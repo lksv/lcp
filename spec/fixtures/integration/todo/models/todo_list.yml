@@ -1,0 +1,31 @@
+model:
+  name: todo_list
+  label: "Todo List"
+  label_plural: "Todo Lists"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+        - type: length
+          options: { minimum: 1, maximum: 255 }
+
+    - name: description
+      type: text
+      label: "Description"
+
+  associations:
+    - type: has_many
+      name: todo_items
+      target_model: todo_item
+      foreign_key: todo_list_id
+      dependent: destroy
+
+  options:
+    timestamps: true
+    label_method: title

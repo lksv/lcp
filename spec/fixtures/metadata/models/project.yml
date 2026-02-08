@@ -1,0 +1,71 @@
+model:
+  name: project
+  label: "Project"
+  label_plural: "Projects"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+        - type: length
+          options: { minimum: 3, maximum: 255 }
+
+    - name: status
+      type: enum
+      label: "Status"
+      enum_values:
+        - { value: draft, label: "Draft" }
+        - { value: active, label: "Active" }
+        - { value: completed, label: "Completed" }
+        - { value: archived, label: "Archived" }
+      default: draft
+
+    - name: description
+      type: text
+      label: "Description"
+
+    - name: budget
+      type: decimal
+      label: "Budget"
+      column_options: { precision: 12, scale: 2 }
+      validations:
+        - type: numericality
+          options: { greater_than_or_equal_to: 0, allow_nil: true }
+
+    - name: due_date
+      type: date
+      label: "Due Date"
+
+    - name: start_date
+      type: date
+      label: "Start Date"
+
+    - name: priority
+      type: integer
+      label: "Priority"
+      default: 0
+
+  scopes:
+    - name: active
+      where: { status: "active" }
+    - name: not_archived
+      where_not: { status: "archived" }
+    - name: recent
+      order: { created_at: desc }
+      limit: 10
+
+  events:
+    - name: after_create
+    - name: after_update
+    - name: on_status_change
+      type: field_change
+      field: status
+
+  options:
+    timestamps: true
+    label_method: title

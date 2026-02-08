@@ -1,0 +1,76 @@
+presenter:
+  name: project_admin
+  model: project
+  label: "Project Management"
+  slug: projects
+  icon: folder
+
+  index:
+    default_view: table
+    views_available: [table, tiles]
+    default_sort: { field: created_at, direction: desc }
+    per_page: 25
+    table_columns:
+      - { field: title, width: "30%", link_to: show, sortable: true }
+      - { field: status, width: "15%", display: badge, sortable: true }
+      - { field: budget, display: currency, sortable: true }
+      - { field: due_date, display: relative_date, sortable: true }
+
+  show:
+    layout:
+      - section: "Overview"
+        columns: 2
+        fields:
+          - { field: title, display: heading }
+          - { field: status, display: badge }
+      - section: "Details"
+        columns: 1
+        fields:
+          - { field: description, display: rich_text }
+          - { field: budget, display: currency }
+
+  form:
+    sections:
+      - title: "Basic Information"
+        columns: 2
+        fields:
+          - { field: title, placeholder: "Enter project title...", autofocus: true }
+          - { field: status, input_type: select }
+      - title: "Details"
+        columns: 1
+        fields:
+          - { field: description, input_type: text }
+      - title: "Timeline & Budget"
+        columns: 3
+        fields:
+          - { field: budget, input_type: number, prefix: "$" }
+          - { field: start_date, input_type: date_picker }
+          - { field: due_date, input_type: date_picker }
+
+  search:
+    enabled: true
+    searchable_fields: [title, description]
+    placeholder: "Search projects..."
+    predefined_filters:
+      - { name: all, label: "All", default: true }
+      - { name: active, label: "Active", scope: active }
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Project", icon: plus }
+    single:
+      - { name: show, type: built_in, icon: eye }
+      - { name: edit, type: built_in, icon: pencil }
+      - name: archive
+        type: custom
+        label: "Archive"
+        icon: archive
+        confirm: true
+        confirm_message: "Archive this project?"
+        visible_when: { field: status, operator: not_in, value: [archived, completed] }
+        style: danger
+      - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }
+
+  navigation:
+    menu: main
+    position: 1

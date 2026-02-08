@@ -1,0 +1,51 @@
+model:
+  name: contact
+  label: "Contact"
+  label_plural: "Contacts"
+
+  fields:
+    - name: first_name
+      type: string
+      label: "First Name"
+      column_options:
+        limit: 100
+        "null": false
+      validations:
+        - type: presence
+
+    - name: last_name
+      type: string
+      label: "Last Name"
+      column_options:
+        limit: 100
+        "null": false
+      validations:
+        - type: presence
+
+    - name: email
+      type: string
+      label: "Email"
+      validations:
+        - type: format
+          options:
+            with: !ruby/regexp '/\A[^@\s]+@[^@\s]+\z/'
+            allow_blank: true
+
+    - name: phone
+      type: string
+      label: "Phone"
+
+    - name: position
+      type: string
+      label: "Position"
+
+  associations:
+    - type: belongs_to
+      name: company
+      target_model: company
+      foreign_key: company_id
+      required: true
+
+  options:
+    timestamps: true
+    label_method: first_name
