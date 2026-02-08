@@ -1,0 +1,34 @@
+model:
+  name: todo_item
+  label: "Todo Item"
+  label_plural: "Todo Items"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+
+    - name: completed
+      type: boolean
+      label: "Completed"
+      default: false
+
+    - name: due_date
+      type: date
+      label: "Due Date"
+
+  associations:
+    - type: belongs_to
+      name: todo_list
+      target_model: todo_list
+      foreign_key: todo_list_id
+      required: true
+
+  options:
+    timestamps: true
+    label_method: title

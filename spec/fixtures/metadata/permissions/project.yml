@@ -1,0 +1,47 @@
+permissions:
+  model: project
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields:
+        readable: all
+        writable: all
+      actions: all
+      scope: all
+      presenters: all
+
+    manager:
+      crud: [index, show, create, update]
+      fields:
+        readable: all
+        writable: [title, description, status, due_date, start_date, priority]
+      actions:
+        allowed: [archive]
+        denied: []
+      scope: all
+      presenters: [project_admin]
+
+    viewer:
+      crud: [index, show]
+      fields:
+        readable: [title, status, description, due_date]
+        writable: []
+      actions:
+        allowed: []
+      scope: all
+      presenters: [project_public]
+
+  default_role: viewer
+
+  field_overrides:
+    budget:
+      writable_by: [admin]
+      readable_by: [admin, manager]
+
+  record_rules:
+    - name: archived_readonly
+      condition: { field: status, operator: eq, value: archived }
+      effect:
+        deny_crud: [update, destroy]
+        except_roles: [admin]

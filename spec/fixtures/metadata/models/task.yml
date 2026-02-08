@@ -1,0 +1,35 @@
+model:
+  name: task
+  label: "Task"
+  label_plural: "Tasks"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      validations:
+        - type: presence
+
+    - name: status
+      type: enum
+      label: "Status"
+      enum_values:
+        - { value: todo, label: "To Do" }
+        - { value: in_progress, label: "In Progress" }
+        - { value: done, label: "Done" }
+      default: todo
+
+    - name: description
+      type: text
+      label: "Description"
+
+  associations:
+    - type: belongs_to
+      name: project
+      target_model: project
+      foreign_key: project_id
+      required: true
+
+  options:
+    timestamps: true
+    label_method: title

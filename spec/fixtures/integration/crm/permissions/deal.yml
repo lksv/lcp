@@ -1,0 +1,42 @@
+permissions:
+  model: deal
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    sales_rep:
+      crud: [index, show, create, update]
+      fields:
+        readable: all
+        writable: [title, stage, company_id, contact_id]
+      actions:
+        allowed: [close_won]
+        denied: []
+      scope: all
+      presenters: [deal_admin]
+
+    viewer:
+      crud: [index, show]
+      fields: { readable: [title, stage, value], writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: [deal_pipeline]
+
+  default_role: viewer
+
+  field_overrides:
+    value:
+      writable_by: [admin]
+      readable_by: [admin, sales_rep]
+
+  record_rules:
+    - name: closed_deals_readonly
+      condition: { field: stage, operator: in, value: [closed_won, closed_lost] }
+      effect:
+        deny_crud: [update, destroy]
+        except_roles: [admin]

@@ -1,0 +1,99 @@
+module LcpRuby
+  module ModelFactory
+    class SchemaManager
+      attr_reader :model_definition
+
+      def initialize(model_definition)
+        @model_definition = model_definition
+      end
+
+      def ensure_table!
+        table = model_definition.table_name
+
+        if ActiveRecord::Base.connection.table_exists?(table)
+          update_table!
+        else
+          create_table!
+        end
+      end
+
+      private
+
+      def create_table!
+        table = model_definition.table_name
+        fields = model_definition.fields
+        associations = model_definition.associations
+        timestamps = model_definition.timestamps?
+
+        ActiveRecord::Base.connection.create_table(table) do |t|
+          fields.each do |field|
+            add_column_to_table(t, field)
+          end
+
+          associations.select { |a| a.type == "belongs_to" }.each do |assoc|
+            unless fields.any? { |f| f.name == assoc.foreign_key }
+              t.bigint assoc.foreign_key, null: !assoc.required
+              t.index assoc.foreign_key
+            end
+          end
+
+          t.timestamps if timestamps
+        end
+      end
+
+      def update_table!
+        table = model_definition.table_name
+        connection = ActiveRecord::Base.connection
+        existing_columns = connection.columns(table).map(&:name)
+
+        model_definition.fields.each do |field|
+          column_name = field.name
+          next if existing_columns.include?(column_name)
+
+          options = build_column_options(field)
+          connection.add_column(table, column_name, field.column_type, **options)
+        end
+
+        model_definition.associations.select { |a| a.type == "belongs_to" }.each do |assoc|
+          fk = assoc.foreign_key
+          next if existing_columns.include?(fk)
+          next if model_definition.fields.any? { |f| f.name == fk }
+
+          connection.add_column(table, fk, :bigint, null: !assoc.required)
+
+          unless connection.index_exists?(table, fk)
+            connection.add_index(table, fk)
+          end
+        end
+
+        if model_definition.timestamps?
+          %w[created_at updated_at].each do |ts_col|
+            unless existing_columns.include?(ts_col)
+              connection.add_column(table, ts_col, :datetime, precision: 6)
+            end
+          end
+        end
+      end
+
+      def add_column_to_table(t, field)
+        options = build_column_options(field)
+        col_type = field.column_type
+
+        t.column field.name, col_type, **options
+      end
+
+      def build_column_options(field)
+        options = {}
+
+        col_opts = field.column_options
+        options[:limit] = col_opts[:limit] if col_opts[:limit]
+        options[:precision] = col_opts[:precision] if col_opts[:precision]
+        options[:scale] = col_opts[:scale] if col_opts[:scale]
+        options[:null] = col_opts[:null] if col_opts.key?(:null)
+        options[:default] = field.default if field.default
+
+        options
+      end
+    end
+  end
+end

@@ -1,0 +1,37 @@
+presenter:
+  name: deal_pipeline
+  model: deal
+  label: "Deal Pipeline"
+  slug: pipeline
+  icon: bar-chart
+  read_only: true
+
+  index:
+    default_view: table
+    default_sort: { field: created_at, direction: desc }
+    per_page: 50
+    table_columns:
+      - { field: title, width: "30%", link_to: show, sortable: true }
+      - { field: stage, width: "20%", display: badge, sortable: true }
+      - { field: value, width: "20%", display: currency, sortable: true }
+
+  show:
+    layout:
+      - section: "Deal Information"
+        columns: 2
+        fields:
+          - { field: title, display: heading }
+          - { field: stage, display: badge }
+          - { field: value, display: currency }
+
+  search:
+    enabled: false
+
+  actions:
+    collection: []
+    single:
+      - { name: show, type: built_in, icon: eye }
+
+  navigation:
+    menu: main
+    position: 4

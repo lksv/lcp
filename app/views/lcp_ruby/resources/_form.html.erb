@@ -1,0 +1,67 @@
+<%= form_with(model: @record, url: @record.new_record? ? resources_path : resource_path(@record), scope: :record, method: @record.new_record? ? :post : :patch) do |form| %>
+  <% if @record.errors.any? %>
+    <div class="lcp-errors">
+      <h3><%= pluralize(@record.errors.count, "error") %> prevented this record from being saved:</h3>
+      <ul>
+        <% @record.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <% @layout_builder.form_sections.each do |section| %>
+    <fieldset class="lcp-form-section">
+      <legend><%= section["title"] %></legend>
+
+      <div class="lcp-form-fields" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;">
+        <% section["fields"].each do |field_config| %>
+          <% field_config = field_config.transform_keys(&:to_s) if field_config.is_a?(Hash) %>
+          <% field_name = field_config["field"] %>
+          <% field_def = field_config["field_definition"] %>
+          <% next unless field_def %>
+          <% next unless field_config["association"] || current_evaluator.field_writable?(field_name) %>
+
+          <div class="lcp-form-field">
+            <%= form.label field_name, field_def.label %>
+
+            <% case field_config["input_type"] || field_def.type %>
+            <% when "text", "rich_text_editor" %>
+              <%= form.text_area field_name, placeholder: field_config["placeholder"] %>
+            <% when "select" %>
+              <% if field_def.enum? %>
+                <%= form.select field_name, field_def.enum_value_names.map { |v| [v.humanize, v] }, include_blank: true %>
+              <% end %>
+            <% when "number" %>
+              <%= form.number_field field_name, step: "any", placeholder: field_config["placeholder"] %>
+            <% when "date_picker", "date" %>
+              <%= form.date_field field_name %>
+            <% when "datetime" %>
+              <%= form.datetime_local_field field_name %>
+            <% when "boolean" %>
+              <%= form.check_box field_name %>
+            <% when "association_select" %>
+              <% assoc = field_config["association"] %>
+              <% if assoc&.lcp_model? %>
+                <% target_class = LcpRuby.registry.model_for(assoc.target_model) %>
+                <% options = target_class.all.map { |r| [r.respond_to?(:to_label) ? r.to_label : r.to_s, r.id] } %>
+                <%= form.select field_name, options, include_blank: "-- Select --" %>
+              <% else %>
+                <%= form.number_field field_name, placeholder: "ID" %>
+              <% end %>
+            <% else %>
+              <%= form.text_field field_name,
+                    placeholder: field_config["placeholder"],
+                    autofocus: field_config["autofocus"] %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </fieldset>
+  <% end %>
+
+  <div class="lcp-form-actions">
+    <%= form.submit @record.new_record? ? "Create" : "Update", class: "btn btn-primary" %>
+    <%= link_to "Cancel", resources_path, class: "btn" %>
+  </div>
+<% end %>

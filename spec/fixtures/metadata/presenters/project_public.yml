@@ -1,0 +1,31 @@
+presenter:
+  name: project_public
+  model: project
+  label: "Projects"
+  slug: public-projects
+  read_only: true
+
+  index:
+    default_view: tiles
+    views_available: [tiles]
+    per_page: 12
+    table_columns:
+      - { field: title, sortable: true }
+      - { field: status, display: badge }
+
+  show:
+    layout:
+      - section: "Project"
+        columns: 2
+        fields:
+          - { field: title, display: heading }
+          - { field: status, display: badge }
+          - { field: description, display: rich_text }
+
+  search:
+    enabled: true
+    searchable_fields: [title]
+
+  navigation:
+    menu: public
+    position: 1
