@@ -554,6 +554,257 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
   end
 
+  # --- Polymorphic association validations ---
+
+  context "polymorphic belongs_to" do
+    let(:metadata_path) { "" }
+
+    it "does not error when polymorphic belongs_to has no target_model" do
+      v = with_metadata(
+        models: [<<~YAML]
+          model:
+            name: comment
+            fields:
+              - { name: body, type: text }
+            associations:
+              - type: belongs_to
+                name: commentable
+                polymorphic: true
+                required: false
+        YAML
+      )
+
+      result = v.validate
+      expect(result).to be_valid
+    end
+
+    it "does not warn about missing reciprocity for polymorphic belongs_to" do
+      v = with_metadata(
+        models: [<<~YAML]
+          model:
+            name: comment
+            fields:
+              - { name: body, type: text }
+            associations:
+              - type: belongs_to
+                name: commentable
+                polymorphic: true
+                required: false
+        YAML
+      )
+
+      result = v.validate
+      reciprocity_warnings = result.warnings.select { |w| w.include?("no corresponding") }
+      expect(reciprocity_warnings).to be_empty
+    end
+
+    it "does not warn about missing reciprocity for has_many with as" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: post
+              fields:
+                - { name: title, type: string }
+              associations:
+                - type: has_many
+                  name: comments
+                  target_model: comment
+                  as: commentable
+          YAML
+          <<~YAML
+            model:
+              name: comment
+              fields:
+                - { name: body, type: text }
+              associations:
+                - type: belongs_to
+                  name: commentable
+                  polymorphic: true
+                  required: false
+          YAML
+        ]
+      )
+
+      result = v.validate
+      reciprocity_warnings = result.warnings.select { |w| w.include?("no corresponding") }
+      expect(reciprocity_warnings).to be_empty
+    end
+  end
+
+  # --- Through association validations ---
+
+  context "through associations" do
+    let(:metadata_path) { "" }
+
+    it "does not warn about reciprocity for through associations" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: post
+              fields:
+                - { name: title, type: string }
+              associations:
+                - type: has_many
+                  name: taggings
+                  target_model: tagging
+                - type: has_many
+                  name: tags
+                  target_model: tag
+                  through: taggings
+          YAML
+          <<~YAML,
+            model:
+              name: tagging
+              fields: []
+              associations:
+                - type: belongs_to
+                  name: post
+                  target_model: post
+                - type: belongs_to
+                  name: tag
+                  target_model: tag
+          YAML
+          <<~YAML
+            model:
+              name: tag
+              fields:
+                - { name: label, type: string }
+              associations:
+                - type: has_many
+                  name: taggings
+                  target_model: tagging
+          YAML
+        ]
+      )
+
+      result = v.validate
+      reciprocity_warnings = result.warnings.select { |w| w.include?("no corresponding") }
+      expect(reciprocity_warnings).to be_empty
+    end
+
+    it "errors when through references non-existent association" do
+      v = with_metadata(
+        models: [<<~YAML]
+          model:
+            name: post
+            fields:
+              - { name: title, type: string }
+            associations:
+              - type: has_many
+                name: tags
+                through: nonexistent
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/through 'nonexistent' does not match any association/)
+      )
+    end
+
+    it "passes when through references existing association" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: post
+              fields:
+                - { name: title, type: string }
+              associations:
+                - type: has_many
+                  name: taggings
+                  target_model: tagging
+                - type: has_many
+                  name: tags
+                  through: taggings
+          YAML
+          <<~YAML
+            model:
+              name: tagging
+              fields: []
+              associations:
+                - type: belongs_to
+                  name: post
+                  target_model: post
+          YAML
+        ]
+      )
+
+      result = v.validate
+      through_errors = result.errors.select { |e| e.include?("through") }
+      expect(through_errors).to be_empty
+    end
+  end
+
+  # --- Polymorphic _type in presenter/permission fields ---
+
+  context "polymorphic _type field in presenter" do
+    let(:metadata_path) { "" }
+
+    it "accepts commentable_type as valid presenter field" do
+      v = with_metadata(
+        models: [<<~YAML],
+          model:
+            name: comment
+            fields:
+              - { name: body, type: text }
+            associations:
+              - type: belongs_to
+                name: commentable
+                polymorphic: true
+                required: false
+        YAML
+        presenters: [<<~YAML]
+          presenter:
+            name: comments
+            model: comment
+            slug: comments
+            index:
+              table_columns:
+                - { field: body }
+                - { field: commentable_id }
+                - { field: commentable_type }
+        YAML
+      )
+
+      result = v.validate
+      type_errors = result.errors.select { |e| e.include?("commentable_type") }
+      expect(type_errors).to be_empty
+    end
+
+    it "still reports error for truly unknown fields on polymorphic model" do
+      v = with_metadata(
+        models: [<<~YAML],
+          model:
+            name: comment
+            fields:
+              - { name: body, type: text }
+            associations:
+              - type: belongs_to
+                name: commentable
+                polymorphic: true
+                required: false
+        YAML
+        presenters: [<<~YAML]
+          presenter:
+            name: comments
+            model: comment
+            slug: comments
+            index:
+              table_columns:
+                - { field: nonexistent }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/references unknown field 'nonexistent'/)
+      )
+    end
+  end
+
   # --- Scope field validations ---
 
   context "scope references unknown field" do

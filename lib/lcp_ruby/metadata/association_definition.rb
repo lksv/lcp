@@ -4,7 +4,8 @@ module LcpRuby
       VALID_TYPES = %w[belongs_to has_many has_one].freeze
 
       attr_reader :type, :name, :target_model, :class_name, :foreign_key,
-                  :dependent, :required
+                  :dependent, :required, :inverse_of, :counter_cache, :touch,
+                  :polymorphic, :as, :through, :source, :autosave, :validate
 
       def initialize(attrs = {})
         @type = attrs[:type].to_s
@@ -14,6 +15,23 @@ module LcpRuby
         @foreign_key = attrs[:foreign_key]&.to_s || infer_foreign_key
         @dependent = attrs[:dependent]&.to_sym
         @required = attrs.fetch(:required, @type == "belongs_to")
+
+        # Tier 1: simple pass-throughs
+        @inverse_of = attrs[:inverse_of]&.to_sym
+        @counter_cache = attrs[:counter_cache]
+        @touch = attrs[:touch]
+
+        # Tier 2: polymorphic
+        @polymorphic = attrs.fetch(:polymorphic, false)
+        @as = attrs[:as]&.to_s
+
+        # Tier 2: through
+        @through = attrs[:through]&.to_s
+        @source = attrs[:source]&.to_s
+
+        # Tier 2: autosave / validate
+        @autosave = attrs[:autosave]
+        @validate = attrs[:validate]
 
         validate!
       end
@@ -26,12 +44,25 @@ module LcpRuby
           class_name: hash["class_name"],
           foreign_key: hash["foreign_key"],
           dependent: hash["dependent"],
-          required: hash["required"]
+          required: hash["required"],
+          inverse_of: hash["inverse_of"],
+          counter_cache: hash["counter_cache"],
+          touch: hash["touch"],
+          polymorphic: hash["polymorphic"],
+          as: hash["as"],
+          through: hash["through"],
+          source: hash["source"],
+          autosave: hash["autosave"],
+          validate: hash["validate"]
         )
       end
 
       def lcp_model?
         target_model.present?
+      end
+
+      def through?
+        @through.present?
       end
 
       def resolved_class_name
@@ -53,8 +84,8 @@ module LcpRuby
       def validate!
         raise MetadataError, "Association type '#{@type}' is invalid" unless VALID_TYPES.include?(@type)
         raise MetadataError, "Association name is required" if @name.blank?
-        if @target_model.blank? && @class_name.blank?
-          raise MetadataError, "Association '#{@name}' requires either target_model or class_name"
+        unless @polymorphic || @as.present? || @through.present? || @target_model.present? || @class_name.present?
+          raise MetadataError, "Association '#{@name}' requires target_model, class_name, polymorphic, as, or through"
         end
       end
     end

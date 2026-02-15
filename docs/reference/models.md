@@ -384,13 +384,34 @@ Associations define relationships between models.
 
 ```yaml
 associations:
+  # Standard belongs_to
   - type: belongs_to
     name: company
     target_model: company
     foreign_key: company_id
     required: true
-    dependent: destroy
-    class_name: "SomeClass"
+    inverse_of: employees
+
+  # Polymorphic belongs_to (creates _id + _type columns automatically)
+  - type: belongs_to
+    name: commentable
+    polymorphic: true
+    required: false
+
+  # has_many with polymorphic inverse
+  - type: has_many
+    name: comments
+    target_model: comment
+    as: commentable
+
+  # has_many through (join model)
+  - type: has_many
+    name: taggings
+    target_model: tagging
+  - type: has_many
+    name: tags
+    through: taggings
+    source: tag
 ```
 
 ### Association Attributes
@@ -417,10 +438,12 @@ The association name. Used as the method name on the model (e.g., `record.compan
 
 | | |
 |---|---|
-| **Required** | conditionally (either `target_model` or `class_name` must be present) |
+| **Required** | conditionally (see below) |
 | **Type** | string |
 
 Name of another LCP model. The engine resolves this to `LcpRuby::Dynamic::<TargetModel>` at runtime. Use this for associations between LCP-managed models.
+
+At least one of `target_model`, `class_name`, `polymorphic`, `as`, or `through` must be present.
 
 ```yaml
 - type: belongs_to
@@ -433,7 +456,7 @@ Name of another LCP model. The engine resolves this to `LcpRuby::Dynamic::<Targe
 
 | | |
 |---|---|
-| **Required** | conditionally (either `target_model` or `class_name` must be present) |
+| **Required** | conditionally (see `target_model`) |
 | **Type** | string |
 
 Fully qualified class name for associations pointing to non-LCP models (e.g., your host app's `User` model). When `target_model` is set, `class_name` is ignored — the engine generates it automatically.
@@ -464,7 +487,7 @@ The foreign key column name. Specify this when the column name does not follow R
 | **Type** | string |
 | **Allowed** | `destroy`, `delete_all`, `nullify`, `restrict_with_error`, `restrict_with_exception` |
 
-What happens to associated records when the parent is destroyed. Only applicable to `has_many` and `has_one`.
+What happens to associated records when the parent is destroyed. Applicable to all association types.
 
 #### `required`
 
@@ -475,6 +498,187 @@ What happens to associated records when the parent is destroyed. Only applicable
 | **Type** | boolean |
 
 Whether the association is mandatory. For `belongs_to`, setting `required: false` allows the foreign key to be NULL.
+
+#### `inverse_of`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none (Rails auto-detection) |
+| **Type** | string |
+| **Applies to** | all types |
+
+Specifies the inverse association on the target model. Rails usually infers this, but explicit setting avoids ambiguity and improves performance by preventing extra queries.
+
+```yaml
+associations:
+  - type: has_many
+    name: tasks
+    target_model: task
+    inverse_of: project
+```
+
+#### `counter_cache`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none |
+| **Type** | boolean or string |
+| **Applies to** | `belongs_to` |
+
+Maintains a count column on the parent model. Set to `true` to use the default column name (`<children>_count`), or a string for a custom column name.
+
+The counter column must be added as a field on the parent model.
+
+```yaml
+# On child model
+associations:
+  - type: belongs_to
+    name: project
+    target_model: project
+    counter_cache: true
+
+# Or with custom column name
+    counter_cache: tasks_count
+```
+
+#### `touch`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none |
+| **Type** | boolean or string |
+| **Applies to** | `belongs_to` |
+
+Updates the parent's `updated_at` timestamp when the child is saved. Set to `true` for `updated_at`, or a string for a custom timestamp column.
+
+```yaml
+associations:
+  - type: belongs_to
+    name: project
+    target_model: project
+    touch: true
+```
+
+#### `polymorphic`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `false` |
+| **Type** | boolean |
+| **Applies to** | `belongs_to` |
+
+Creates a polymorphic association. When `true`, the engine automatically creates both `<name>_id` and `<name>_type` columns. No `target_model` or `class_name` is needed — the type is determined at runtime from the `_type` column.
+
+```yaml
+# On child model (e.g., comment)
+associations:
+  - type: belongs_to
+    name: commentable
+    polymorphic: true
+    required: false
+```
+
+#### `as`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none |
+| **Type** | string |
+| **Applies to** | `has_many`, `has_one` |
+
+The polymorphic interface name on the target model. Used with `polymorphic` belongs_to on the other side.
+
+```yaml
+# On parent model (e.g., post)
+associations:
+  - type: has_many
+    name: comments
+    target_model: comment
+    as: commentable
+```
+
+#### `through`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none |
+| **Type** | string |
+| **Applies to** | `has_many`, `has_one` |
+
+Creates a through association via a join model. The value is the name of another association on this model that serves as the join. No FK columns are created for through associations.
+
+```yaml
+associations:
+  - type: has_many
+    name: taggings
+    target_model: tagging
+  - type: has_many
+    name: tags
+    through: taggings
+```
+
+#### `source`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none (Rails infers from association name) |
+| **Type** | string |
+| **Applies to** | `has_many`, `has_one` (with `through`) |
+
+Specifies the source association on the join model. Only needed when the name cannot be inferred automatically.
+
+```yaml
+associations:
+  - type: has_many
+    name: authors
+    through: authorships
+    source: person
+```
+
+#### `autosave`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none (Rails default) |
+| **Type** | boolean |
+| **Applies to** | all types |
+
+When `true`, saves associated records whenever the parent is saved.
+
+```yaml
+associations:
+  - type: has_many
+    name: items
+    target_model: item
+    autosave: true
+```
+
+#### `validate`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none (Rails default) |
+| **Type** | boolean |
+| **Applies to** | all types |
+
+When `true`, validates associated records on save. Set to `false` to skip validation of associated records.
+
+```yaml
+associations:
+  - type: has_many
+    name: items
+    target_model: item
+    validate: false
+```
 
 ## Scopes
 

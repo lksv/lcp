@@ -382,8 +382,43 @@ has_one :profile, model: :profile, dependent: :destroy
 | `foreign_key:` | `AssociationDefinition.foreign_key` | Foreign key column. Auto-inferred for `belongs_to` (e.g., `:company` → `company_id`). |
 | `required:` | `AssociationDefinition.required` | Whether association is mandatory. Default: `true` for `belongs_to`, `false` otherwise. |
 | `dependent:` | `AssociationDefinition.dependent` | What happens on parent destroy: `:destroy`, `:nullify`, `:delete_all`, `:restrict_with_error`. |
+| `inverse_of:` | `AssociationDefinition.inverse_of` | Name of inverse association on target model. Avoids ambiguity and extra queries. |
+| `counter_cache:` | `AssociationDefinition.counter_cache` | `belongs_to` only. `true` or custom column name string. |
+| `touch:` | `AssociationDefinition.touch` | `belongs_to` only. Updates parent's `updated_at` on child save. |
+| `polymorphic:` | `AssociationDefinition.polymorphic` | `belongs_to` only. Creates polymorphic association with `_id` and `_type` columns. |
+| `as:` | `AssociationDefinition.as` | `has_many`/`has_one` only. Polymorphic interface name on target. |
+| `through:` | `AssociationDefinition.through` | `has_many`/`has_one` only. Join association name for through relationships. |
+| `source:` | `AssociationDefinition.source` | `has_many`/`has_one` with `through:` only. Source association on join model. |
+| `autosave:` | `AssociationDefinition.autosave` | Auto-save associated records when parent is saved. |
+| `validate:` | `AssociationDefinition.validate` | Validate associated records on save. Set `false` to skip. |
 
-One of `model:` or `class_name:` is required. Use `model:` for LCP models; use `class_name:` for host app models (e.g., `User`).
+At least one of `model:`, `class_name:`, `polymorphic:`, `as:`, or `through:` is required. Use `model:` for LCP models; use `class_name:` for host app models.
+
+### Examples
+
+```ruby
+# Polymorphic belongs_to
+belongs_to :commentable, polymorphic: true
+
+# has_many with polymorphic interface
+has_many :comments, model: :comment, as: :commentable
+
+# has_many through (join model)
+has_many :taggings, model: :tagging
+has_many :tags, through: :taggings
+
+# has_many through with explicit source
+has_many :authors, through: :authorships, source: :person
+
+# Counter cache on belongs_to
+belongs_to :project, model: :project, counter_cache: true
+
+# Touch parent on save
+belongs_to :project, model: :project, touch: true
+
+# Inverse of
+has_many :tasks, model: :task, inverse_of: :project, dependent: :destroy
+```
 
 ## Scopes
 
@@ -461,6 +496,8 @@ The DSL produces the exact same hash structure as parsed YAML. Every DSL constru
 | `values: { a: "A" }` | `enum_values: [{ value: a, label: "A" }]` |
 | `limit: 255, null: false` | `column_options: { limit: 255, "null": false }` |
 | `belongs_to :x, model: :x` | `associations: [{ type: belongs_to, name: x, target_model: x }]` |
+| `belongs_to :x, polymorphic: true` | `associations: [{ type: belongs_to, name: x, polymorphic: true }]` |
+| `has_many :x, through: :y` | `associations: [{ type: has_many, name: x, through: y }]` |
 | `scope :a, where: { ... }` | `scopes: [{ name: a, where: { ... } }]` |
 | `after_create` | `events: [{ name: after_create }]` |
 | `on_field_change :e, field: :f` | `events: [{ name: e, type: field_change, field: f }]` |

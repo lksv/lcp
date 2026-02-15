@@ -174,7 +174,17 @@ module LcpRuby
           end
         end
 
-        validate_association_foreign_key(model, assoc) if assoc.type == "belongs_to"
+        validate_association_foreign_key(model, assoc) if assoc.type == "belongs_to" && !assoc.polymorphic
+        validate_through_reference(model, assoc) if assoc.through?
+      end
+
+      def validate_through_reference(model, assoc)
+        assoc_names = model.associations.map(&:name)
+        unless assoc_names.include?(assoc.through)
+          @errors << "Model '#{model.name}', association '#{assoc.name}': " \
+                     "through '#{assoc.through}' does not match any association on this model. " \
+                     "Available associations: #{assoc_names.join(', ')}"
+        end
       end
 
       def validate_association_foreign_key(model, assoc)
@@ -193,6 +203,8 @@ module LcpRuby
         loader.model_definitions.each_value do |model|
           model.associations.each do |assoc|
             next unless assoc.lcp_model?
+            # Skip reciprocity for polymorphic, as, and through associations
+            next if assoc.polymorphic || assoc.as.present? || assoc.through?
 
             target = loader.model_definitions[assoc.target_model]
             next unless target
@@ -247,7 +259,11 @@ module LcpRuby
         valid_fields = model_def.fields.map(&:name)
         fk_fields = model_def.associations
           .select { |a| a.type == "belongs_to" && a.foreign_key }
-          .map { |a| a.foreign_key.to_s }
+          .flat_map { |a|
+            cols = [ a.foreign_key.to_s ]
+            cols << "#{a.name}_type" if a.polymorphic
+            cols
+          }
         all_valid = valid_fields + fk_fields + %w[created_at updated_at id]
 
         # Check table columns
@@ -404,8 +420,10 @@ module LcpRuby
           next unless field_list.is_a?(Array)
 
           field_list.each do |fname|
-            # FK fields like company_id are valid in writable but not in model fields
+            # FK fields like company_id and polymorphic type fields like commentable_type
+            # are valid in writable but not in model fields
             next if fname.to_s.end_with?("_id")
+            next if fname.to_s.end_with?("_type")
 
             unless valid_fields.include?(fname.to_s)
               @warnings << "Permission '#{perm.model}', role '#{role_name}': " \

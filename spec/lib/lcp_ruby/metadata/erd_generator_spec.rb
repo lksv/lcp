@@ -177,6 +177,145 @@ RSpec.describe LcpRuby::Metadata::ErdGenerator do
     end
   end
 
+  # --- Polymorphic associations ---
+
+  context "with polymorphic associations" do
+    let(:tmpdir) do
+      dir = Dir.mktmpdir("lcp_test")
+      FileUtils.mkdir_p(File.join(dir, "models"))
+      File.write(File.join(dir, "models", "comment.yml"), <<~YAML)
+        model:
+          name: comment
+          fields:
+            - { name: body, type: text }
+          associations:
+            - type: belongs_to
+              name: commentable
+              polymorphic: true
+              required: false
+          options:
+            timestamps: false
+      YAML
+      dir
+    end
+
+    after { FileUtils.rm_rf(tmpdir) }
+
+    let(:fixtures_path) { tmpdir }
+    let(:loader) do
+      l = LcpRuby::Metadata::Loader.new(tmpdir)
+      l.load_all
+      l
+    end
+    let(:generator) { described_class.new(loader) }
+
+    it "includes _type field in Mermaid entity" do
+      diagram = generator.generate(:mermaid)
+      expect(diagram).to include("integer commentable_id FK")
+      expect(diagram).to include("string commentable_type")
+    end
+
+    it "does not render relationship edge for polymorphic belongs_to" do
+      diagram = generator.generate(:mermaid)
+      # Polymorphic has no target_model, so no edge
+      expect(diagram).not_to match(/Comment.*\|\|/)
+    end
+
+    it "includes _type field in DOT entity" do
+      diagram = generator.generate(:dot)
+      expect(diagram).to include("commentable_type : string")
+    end
+
+    it "includes _type field in PlantUML entity" do
+      diagram = generator.generate(:plantuml)
+      expect(diagram).to include("commentable_type : string")
+    end
+  end
+
+  # --- Through associations ---
+
+  context "with through associations" do
+    let(:tmpdir) do
+      dir = Dir.mktmpdir("lcp_test")
+      FileUtils.mkdir_p(File.join(dir, "models"))
+      File.write(File.join(dir, "models", "post.yml"), <<~YAML)
+        model:
+          name: post
+          fields:
+            - { name: title, type: string }
+          associations:
+            - type: has_many
+              name: taggings
+              target_model: tagging
+            - type: has_many
+              name: tags
+              through: taggings
+          options:
+            timestamps: false
+      YAML
+      File.write(File.join(dir, "models", "tagging.yml"), <<~YAML)
+        model:
+          name: tagging
+          fields: []
+          associations:
+            - type: belongs_to
+              name: post
+              target_model: post
+            - type: belongs_to
+              name: tag
+              target_model: tag
+          options:
+            timestamps: false
+      YAML
+      File.write(File.join(dir, "models", "tag.yml"), <<~YAML)
+        model:
+          name: tag
+          fields:
+            - { name: label, type: string }
+          options:
+            timestamps: false
+      YAML
+      dir
+    end
+
+    after { FileUtils.rm_rf(tmpdir) }
+
+    let(:fixtures_path) { tmpdir }
+    let(:loader) do
+      l = LcpRuby::Metadata::Loader.new(tmpdir)
+      l.load_all
+      l
+    end
+    let(:generator) { described_class.new(loader) }
+
+    it "does not render edge for through association in Mermaid" do
+      diagram = generator.generate(:mermaid)
+      # The through association (tags) should not create a direct edge
+      # but the belongs_to edges from tagging should exist
+      expect(diagram).to match(/Tagging.*\|\|.*Post/)
+      expect(diagram).to match(/Tagging.*\|\|.*Tag/)
+    end
+
+    it "does not render edge for through association in DOT" do
+      diagram = generator.generate(:dot)
+      expect(diagram).to include("tagging -> post")
+      expect(diagram).to include("tagging -> tag")
+      # through assoc (post -> tags) should NOT create a direct edge
+      lines = diagram.lines.select { |l| l.include?("->") }
+      expect(lines.count).to eq(2) # only tagging -> post and tagging -> tag
+    end
+
+    it "does not render edge for through association in PlantUML" do
+      diagram = generator.generate(:plantuml)
+      # belongs_to edges from tagging should exist
+      expect(diagram).to match(/tagging.*\|\|.*post/)
+      expect(diagram).to match(/tagging.*\|\|.*tag/)
+      # through assoc (post -> tags) should NOT create a direct edge
+      relationship_lines = diagram.lines.select { |l| l.include?("}") && l.include?("||") }
+      expect(relationship_lines.count).to eq(2)
+    end
+  end
+
   # --- Edge case: no associations ---
 
   context "with a model without associations" do

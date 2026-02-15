@@ -79,6 +79,9 @@ module LcpRuby
         model.associations.select { |a| a.type == "belongs_to" }.each do |assoc|
           fk = assoc.foreign_key || "#{assoc.name}_id"
           lines << "    integer #{fk} FK"
+          if assoc.polymorphic
+            lines << "    string #{assoc.name}_type"
+          end
         end
 
         lines << "  }"
@@ -86,6 +89,7 @@ module LcpRuby
       end
 
       def mermaid_relationship(model, assoc)
+        return nil if assoc.through?
         return nil unless assoc.lcp_model? && model_names.include?(assoc.target_model)
 
         # Only render from belongs_to side to avoid duplicates
@@ -160,6 +164,9 @@ module LcpRuby
         model.associations.select { |a| a.type == "belongs_to" }.each do |assoc|
           fk = assoc.foreign_key || "#{assoc.name}_id"
           fields_str << "#{fk} : integer FK"
+          if assoc.polymorphic
+            fields_str << "#{assoc.name}_type : string"
+          end
         end
 
         label = "{#{model.name}|#{fields_str.join('\\l')}\\l}"
@@ -167,6 +174,7 @@ module LcpRuby
       end
 
       def dot_relationship(model, assoc)
+        return nil if assoc.through?
         return nil unless assoc.lcp_model? && model_names.include?(assoc.target_model)
         return nil unless assoc.type == "belongs_to"
 
@@ -223,6 +231,9 @@ module LcpRuby
           fk = assoc.foreign_key || "#{assoc.name}_id"
           marker = assoc.required ? "* " : "  "
           lines << "  #{marker}#{fk} : integer <<FK>>"
+          if assoc.polymorphic
+            lines << "  #{marker}#{assoc.name}_type : string"
+          end
         end
 
         if model.timestamps?
@@ -236,6 +247,7 @@ module LcpRuby
       end
 
       def plantuml_relationship(model, assoc)
+        return nil if assoc.through?
         return nil unless assoc.lcp_model? && model_names.include?(assoc.target_model)
         return nil unless assoc.type == "belongs_to"
 

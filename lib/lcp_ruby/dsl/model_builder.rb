@@ -188,6 +188,23 @@ module LcpRuby
           assoc_hash["required"] = options[:required]
         end
 
+        # Tier 1: simple pass-throughs
+        assoc_hash["inverse_of"] = options[:inverse_of].to_s if options.key?(:inverse_of)
+        assoc_hash["counter_cache"] = options[:counter_cache] if options.key?(:counter_cache)
+        assoc_hash["touch"] = options[:touch] if options.key?(:touch)
+
+        # Tier 2: polymorphic
+        assoc_hash["polymorphic"] = options[:polymorphic] if options.key?(:polymorphic)
+        assoc_hash["as"] = options[:as].to_s if options.key?(:as)
+
+        # Tier 2: through
+        assoc_hash["through"] = options[:through].to_s if options.key?(:through)
+        assoc_hash["source"] = options[:source].to_s if options.key?(:source)
+
+        # Tier 2: autosave / validate
+        assoc_hash["autosave"] = options[:autosave] if options.key?(:autosave)
+        assoc_hash["validate"] = options[:validate] if options.key?(:validate)
+
         @associations << assoc_hash
       end
 
