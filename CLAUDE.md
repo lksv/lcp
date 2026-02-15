@@ -15,6 +15,7 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Permissions Reference](docs/reference/permissions.md) — Complete permission YAML reference
 - [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
+- [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
 - [Developer Tools](docs/guides/developer-tools.md) — Validate and ERD rake tasks

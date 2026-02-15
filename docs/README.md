@@ -16,6 +16,10 @@ Complete attribute reference for every YAML configuration file:
 - [Condition Operators](reference/condition-operators.md) — Shared operator reference for `visible_when`, `record_rules`, etc.
 - [Engine Configuration](reference/engine-configuration.md) — `LcpRuby.configure` options
 
+## DSL Reference
+
+- [Model DSL](reference/model-dsl.md) — Ruby DSL alternative to YAML for model definitions
+
 ## Guides
 
 - [Custom Actions](guides/custom-actions.md) — Writing domain-specific operations beyond CRUD

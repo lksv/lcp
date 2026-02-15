@@ -59,6 +59,17 @@ model:
       order: { created_at: desc }
       limit: 10
 
+  associations:
+    - type: has_many
+      name: tasks
+      target_model: task
+      dependent: destroy
+    - type: belongs_to
+      name: client
+      class_name: "Client"
+      foreign_key: client_id
+      required: false
+
   events:
     - name: after_create
     - name: after_update

@@ -7,13 +7,22 @@ RSpec.describe LcpRuby::ModelFactory::Builder do
   end
   let(:model_definition) { LcpRuby::Metadata::ModelDefinition.from_hash(model_hash) }
 
+  # Task model is needed because project has `has_many :tasks, dependent: :destroy`
+  let(:task_hash) do
+    YAML.safe_load_file(File.join(fixtures_path, "models/task.yml"))["model"]
+  end
+  let(:task_definition) { LcpRuby::Metadata::ModelDefinition.from_hash(task_hash) }
+
   before do
-    schema_manager = LcpRuby::ModelFactory::SchemaManager.new(model_definition)
-    schema_manager.ensure_table!
+    LcpRuby::ModelFactory::SchemaManager.new(task_definition).ensure_table!
+    LcpRuby::ModelFactory::Builder.new(task_definition).build
+
+    LcpRuby::ModelFactory::SchemaManager.new(model_definition).ensure_table!
   end
 
   after do
     ActiveRecord::Base.connection.drop_table(:projects) if ActiveRecord::Base.connection.table_exists?(:projects)
+    ActiveRecord::Base.connection.drop_table(:tasks) if ActiveRecord::Base.connection.table_exists?(:tasks)
   end
 
   describe "#build" do

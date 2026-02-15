@@ -84,6 +84,8 @@ model:
 
 This creates a `tasks` database table with `title`, `completed`, and `due_date` columns, plus `created_at`/`updated_at` timestamps. See [Models Reference](reference/models.md) for all field types, validations, associations, and more.
 
+> **Alternative:** You can also define models using a [Ruby DSL](reference/model-dsl.md) instead of YAML. The same model above in DSL syntax is `config/lcp_ruby/models/task.rb`.
+
 ## Your First Presenter
 
 Create `config/lcp_ruby/presenters/task_admin.yml`:

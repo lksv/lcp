@@ -25,6 +25,8 @@ module LcpRuby
           definition = ModelDefinition.from_hash(model_data)
           @model_definitions[definition.name] = definition
         end
+
+        load_dsl_models("models")
       end
 
       def load_presenters
@@ -62,13 +64,29 @@ module LcpRuby
         return unless dir.exist?
 
         Dir[dir.join("*.yml"), dir.join("*.yaml")].sort.each do |file_path|
-          data = YAML.safe_load_file(file_path, permitted_classes: [Symbol, Regexp])
+          data = YAML.safe_load_file(file_path, permitted_classes: [ Symbol, Regexp ])
           next unless data
 
           yield(data, file_path)
         rescue Psych::SyntaxError => e
           raise MetadataError, "YAML syntax error in #{file_path}: #{e.message}"
         end
+      end
+
+      def load_dsl_models(subdirectory)
+        dir = base_path.join(subdirectory)
+        dsl_definitions = Dsl::DslLoader.load_models(dir)
+        dsl_definitions.each do |name, definition|
+          register_model_definition!(definition, dir.join("#{name}.rb"))
+        end
+      end
+
+      def register_model_definition!(definition, source_path)
+        if @model_definitions.key?(definition.name)
+          raise MetadataError,
+            "Duplicate model '#{definition.name}' — already loaded, conflict at #{source_path}"
+        end
+        @model_definitions[definition.name] = definition
       end
 
       def validate_references

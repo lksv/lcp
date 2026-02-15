@@ -11,7 +11,7 @@ module LcpRuby
         @name = attrs[:name].to_s
         @target_model = attrs[:target_model]&.to_s
         @class_name = attrs[:class_name]
-        @foreign_key = attrs[:foreign_key]&.to_s
+        @foreign_key = attrs[:foreign_key]&.to_s || infer_foreign_key
         @dependent = attrs[:dependent]&.to_sym
         @required = attrs.fetch(:required, @type == "belongs_to")
 
@@ -43,6 +43,12 @@ module LcpRuby
       end
 
       private
+
+      def infer_foreign_key
+        return nil unless @type == "belongs_to"
+
+        "#{@name}_id"
+      end
 
       def validate!
         raise MetadataError, "Association type '#{@type}' is invalid" unless VALID_TYPES.include?(@type)

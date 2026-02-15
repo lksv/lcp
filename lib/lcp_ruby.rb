@@ -16,6 +16,11 @@ require "lcp_ruby/metadata/loader"
 require "lcp_ruby/metadata/configuration_validator"
 require "lcp_ruby/metadata/erd_generator"
 
+# DSL
+require "lcp_ruby/dsl/field_builder"
+require "lcp_ruby/dsl/model_builder"
+require "lcp_ruby/dsl/dsl_loader"
+
 # Model Factory
 require "lcp_ruby/model_factory/registry"
 require "lcp_ruby/model_factory/schema_manager"
@@ -73,6 +78,13 @@ module LcpRuby
 
     def registry
       @registry ||= ModelFactory::Registry.new
+    end
+
+    def define_model(name, &block)
+      builder = Dsl::ModelBuilder.new(name)
+      builder.instance_eval(&block)
+      hash = builder.to_hash
+      Metadata::ModelDefinition.from_hash(hash)
     end
 
     def reset!
