@@ -1,0 +1,7 @@
+# Runtime and generated files
+*.sqlite3
+log/
+tmp/
+
+# Playwright MCP
+.playwright-mcp/
