@@ -64,6 +64,7 @@ model:
       name: tasks
       target_model: task
       dependent: destroy
+      inverse_of: project
     - type: belongs_to
       name: client
       class_name: "Client"

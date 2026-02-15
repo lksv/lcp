@@ -35,6 +35,14 @@ module LcpRuby
               t.bigint assoc.foreign_key, null: !assoc.required
               t.index assoc.foreign_key
             end
+
+            if assoc.polymorphic
+              type_col = "#{assoc.name}_type"
+              unless fields.any? { |f| f.name == type_col }
+                t.string type_col
+                t.index [ assoc.foreign_key, type_col ]
+              end
+            end
           end
 
           t.timestamps if timestamps
@@ -63,6 +71,17 @@ module LcpRuby
 
           unless connection.index_exists?(table, fk)
             connection.add_index(table, fk)
+          end
+
+          if assoc.polymorphic
+            type_col = "#{assoc.name}_type"
+            unless existing_columns.include?(type_col) || model_definition.fields.any? { |f| f.name == type_col }
+              connection.add_column(table, type_col, :string)
+
+              unless connection.index_exists?(table, [ fk, type_col ])
+                connection.add_index(table, [ fk, type_col ])
+              end
+            end
           end
         end
 

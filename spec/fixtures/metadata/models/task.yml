@@ -29,6 +29,7 @@ model:
       target_model: project
       foreign_key: project_id
       required: true
+      inverse_of: tasks
 
   options:
     timestamps: true

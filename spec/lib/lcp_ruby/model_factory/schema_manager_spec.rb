@@ -63,5 +63,53 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
         }.not_to raise_error
       end
     end
+
+    context "polymorphic belongs_to via update_table!" do
+      let(:poly_hash) do
+        {
+          "name" => "note",
+          "table_name" => "notes",
+          "fields" => [
+            { "name" => "body", "type" => "text" }
+          ],
+          "associations" => [
+            {
+              "type" => "belongs_to",
+              "name" => "notable",
+              "polymorphic" => true,
+              "required" => false
+            }
+          ],
+          "options" => { "timestamps" => false }
+        }
+      end
+      let(:poly_definition) { LcpRuby::Metadata::ModelDefinition.from_hash(poly_hash) }
+      let(:poly_manager) { described_class.new(poly_definition) }
+
+      before do
+        # Create table with only the body column — no FK columns yet
+        ActiveRecord::Base.connection.create_table(:notes) do |t|
+          t.text :body
+        end
+      end
+
+      after do
+        ActiveRecord::Base.connection.drop_table(:notes) if ActiveRecord::Base.connection.table_exists?(:notes)
+      end
+
+      it "adds both _id and _type columns for polymorphic belongs_to" do
+        poly_manager.ensure_table!
+
+        columns = ActiveRecord::Base.connection.columns(:notes).map(&:name)
+        expect(columns).to include("notable_id")
+        expect(columns).to include("notable_type")
+      end
+
+      it "creates composite index for polymorphic columns" do
+        poly_manager.ensure_table!
+
+        expect(ActiveRecord::Base.connection.index_exists?(:notes, %w[notable_id notable_type])).to be true
+      end
+    end
   end
 end

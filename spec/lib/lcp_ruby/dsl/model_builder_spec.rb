@@ -455,6 +455,109 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
       assoc = builder.to_hash["associations"].first
       expect(assoc["required"]).to eq(false)
     end
+
+    it "supports inverse_of" do
+      builder = described_class.new(:project)
+      builder.instance_eval do
+        has_many :tasks, model: :task, inverse_of: :project
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["inverse_of"]).to eq("project")
+    end
+
+    it "supports counter_cache" do
+      builder = described_class.new(:task)
+      builder.instance_eval do
+        belongs_to :project, model: :project, counter_cache: true
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["counter_cache"]).to be true
+    end
+
+    it "supports counter_cache with custom column name" do
+      builder = described_class.new(:task)
+      builder.instance_eval do
+        belongs_to :project, model: :project, counter_cache: "tasks_count"
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["counter_cache"]).to eq("tasks_count")
+    end
+
+    it "supports touch" do
+      builder = described_class.new(:task)
+      builder.instance_eval do
+        belongs_to :project, model: :project, touch: true
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["touch"]).to be true
+    end
+
+    it "supports polymorphic belongs_to" do
+      builder = described_class.new(:comment)
+      builder.instance_eval do
+        belongs_to :commentable, polymorphic: true
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["polymorphic"]).to be true
+      expect(assoc).not_to have_key("target_model")
+    end
+
+    it "supports has_many with as" do
+      builder = described_class.new(:post)
+      builder.instance_eval do
+        has_many :comments, model: :comment, as: :commentable
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["as"]).to eq("commentable")
+    end
+
+    it "supports has_many through" do
+      builder = described_class.new(:post)
+      builder.instance_eval do
+        has_many :tags, through: :taggings
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["through"]).to eq("taggings")
+      expect(assoc).not_to have_key("target_model")
+    end
+
+    it "supports has_many through with source" do
+      builder = described_class.new(:post)
+      builder.instance_eval do
+        has_many :tags, through: :taggings, source: :tag
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["through"]).to eq("taggings")
+      expect(assoc["source"]).to eq("tag")
+    end
+
+    it "supports autosave" do
+      builder = described_class.new(:project)
+      builder.instance_eval do
+        has_many :tasks, model: :task, autosave: true
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["autosave"]).to be true
+    end
+
+    it "supports validate" do
+      builder = described_class.new(:project)
+      builder.instance_eval do
+        has_many :tasks, model: :task, validate: false
+      end
+
+      assoc = builder.to_hash["associations"].first
+      expect(assoc["validate"]).to be false
+    end
   end
 
   describe "scopes" do
@@ -648,7 +751,7 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
         field :start_date, :date, label: "Start Date"
         field :priority, :integer, label: "Priority", default: 0
 
-        has_many :tasks, model: :task, dependent: :destroy
+        has_many :tasks, model: :task, dependent: :destroy, inverse_of: :project
         belongs_to :client, class_name: "Client", foreign_key: :client_id, required: false
 
         scope :active,       where: { status: "active" }
@@ -709,6 +812,7 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
         expect(dsl_assoc.foreign_key).to eq(yaml_assoc.foreign_key)
         expect(dsl_assoc.dependent).to eq(yaml_assoc.dependent)
         expect(dsl_assoc.required).to eq(yaml_assoc.required)
+        expect(dsl_assoc.inverse_of).to eq(yaml_assoc.inverse_of)
       end
 
       # Events

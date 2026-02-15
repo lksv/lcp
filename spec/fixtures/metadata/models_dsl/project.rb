@@ -20,7 +20,7 @@ define_model :project do
   field :start_date, :date, label: "Start Date"
   field :priority, :integer, label: "Priority", default: 0
 
-  has_many :tasks, model: :task, dependent: :destroy
+  has_many :tasks, model: :task, dependent: :destroy, inverse_of: :project
   belongs_to :client, class_name: "Client", foreign_key: :client_id, required: false
 
   scope :active,       where: { status: "active" }
