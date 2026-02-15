@@ -1,0 +1,28 @@
+define_presenter :project_public, inherits: :project_admin do
+  label "Projects"
+  slug "public-projects"
+  icon "globe"
+  read_only true
+
+  index do
+    default_view :tiles
+    views_available :tiles
+    per_page 12
+    column :title, sortable: true
+    column :status, display: :badge
+  end
+
+  show do
+    section "Project", columns: 2 do
+      field :title, display: :heading
+      field :status, display: :badge
+      field :description, display: :rich_text
+    end
+  end
+
+  search do
+    searchable_fields :title
+  end
+
+  navigation menu: :public, position: 1
+end

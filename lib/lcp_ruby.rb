@@ -19,6 +19,7 @@ require "lcp_ruby/metadata/erd_generator"
 # DSL
 require "lcp_ruby/dsl/field_builder"
 require "lcp_ruby/dsl/model_builder"
+require "lcp_ruby/dsl/presenter_builder"
 require "lcp_ruby/dsl/dsl_loader"
 
 # Model Factory
@@ -85,6 +86,13 @@ module LcpRuby
       builder.instance_eval(&block)
       hash = builder.to_hash
       Metadata::ModelDefinition.from_hash(hash)
+    end
+
+    def define_presenter(name, &block)
+      builder = Dsl::PresenterBuilder.new(name)
+      builder.instance_eval(&block)
+      hash = builder.to_hash
+      Metadata::PresenterDefinition.from_hash(hash)
     end
 
     def reset!

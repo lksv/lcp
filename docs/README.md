@@ -19,6 +19,7 @@ Complete attribute reference for every YAML configuration file:
 ## DSL Reference
 
 - [Model DSL](reference/model-dsl.md) — Ruby DSL alternative to YAML for model definitions
+- [Presenter DSL](reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenter definitions (with inheritance)
 
 ## Guides
 

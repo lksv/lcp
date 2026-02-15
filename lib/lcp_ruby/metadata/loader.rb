@@ -35,6 +35,8 @@ module LcpRuby
           definition = PresenterDefinition.from_hash(presenter_data)
           @presenter_definitions[definition.name] = definition
         end
+
+        load_dsl_presenters("presenters")
       end
 
       def load_permissions
@@ -87,6 +89,22 @@ module LcpRuby
             "Duplicate model '#{definition.name}' — already loaded, conflict at #{source_path}"
         end
         @model_definitions[definition.name] = definition
+      end
+
+      def load_dsl_presenters(subdirectory)
+        dir = base_path.join(subdirectory)
+        dsl_definitions = Dsl::DslLoader.load_presenters(dir)
+        dsl_definitions.each do |name, definition|
+          register_presenter_definition!(definition, dir.join("#{name}.rb"))
+        end
+      end
+
+      def register_presenter_definition!(definition, source_path)
+        if @presenter_definitions.key?(definition.name)
+          raise MetadataError,
+            "Duplicate presenter '#{definition.name}' — already loaded, conflict at #{source_path}"
+        end
+        @presenter_definitions[definition.name] = definition
       end
 
       def validate_references
