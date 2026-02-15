@@ -1,0 +1,387 @@
+# Permissions Reference
+
+File: `config/lcp_ruby/permissions/<name>.yml`
+
+Permission YAML defines role-based access control: who can perform which CRUD operations, which fields they can read and write, which custom actions they can execute, which records they can see, and which presenters they can access.
+
+## Top-Level Attributes
+
+```yaml
+permissions:
+  model: <model_name>
+  roles: {}
+  default_role: <role_name>
+  field_overrides: {}
+  record_rules: []
+```
+
+### `model`
+
+| | |
+|---|---|
+| **Required** | yes |
+| **Type** | string |
+
+Name of the [model](models.md) these permissions apply to. Use `_default` to define fallback permissions applied when no model-specific permission file exists.
+
+```yaml
+# Model-specific permissions
+permissions:
+  model: deal
+
+# Default fallback permissions
+permissions:
+  model: _default
+```
+
+### `roles`
+
+| | |
+|---|---|
+| **Required** | yes |
+| **Type** | hash of role configs |
+
+Each key is a role name (matched against the value returned by `user.<role_method>`). See [Role Configuration](#role-configuration) below.
+
+### `default_role`
+
+| | |
+|---|---|
+| **Default** | `"viewer"` |
+| **Type** | string |
+
+The role assigned to users whose `role_method` does not match any key in `roles`, or when no user is present. This ensures every request has a defined permission set.
+
+### `field_overrides`
+
+| | |
+|---|---|
+| **Default** | `{}` |
+| **Type** | hash |
+
+Per-field access overrides that take precedence over the role's general `fields` setting. See [Field Overrides](#field-overrides).
+
+### `record_rules`
+
+| | |
+|---|---|
+| **Default** | `[]` |
+| **Type** | array |
+
+Rules that deny CRUD operations on records matching a condition, with optional role exceptions. See [Record Rules](#record-rules).
+
+## Role Configuration
+
+Each role is a hash with the following attributes:
+
+```yaml
+roles:
+  admin:
+    crud: [index, show, create, update, destroy]
+    fields:
+      readable: all
+      writable: all
+    actions: all
+    scope: all
+    presenters: all
+```
+
+### `crud`
+
+| | |
+|---|---|
+| **Required** | yes |
+| **Type** | array of strings |
+| **Allowed values** | `index`, `show`, `create`, `update`, `destroy` |
+
+CRUD operations this role can perform. The permission system automatically resolves action aliases:
+
+| Alias | Resolves To |
+|-------|-------------|
+| `edit` | `update` |
+| `new` | `create` |
+
+You only need to list `create` and `update` — `new` and `edit` are inferred.
+
+```yaml
+# Full access
+crud: [index, show, create, update, destroy]
+
+# Read-only
+crud: [index, show]
+
+# Create and read, but no update or delete
+crud: [index, show, create]
+```
+
+### `fields`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | hash with `readable` and `writable` keys |
+
+Controls field-level access.
+
+```yaml
+fields:
+  readable: all          # Can read all fields
+  writable: all          # Can write all fields
+
+fields:
+  readable: [title, stage, value]   # Can only read these fields
+  writable: [title, stage]          # Can only write these fields
+
+fields:
+  readable: all
+  writable: []           # Read-only: can read everything, write nothing
+```
+
+- `"all"` — grants access to every field defined in the model
+- Array of field names — grants access to only those fields
+- `[]` (empty array) — no access
+
+### `actions`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | string or hash |
+
+Controls which custom actions the role can execute.
+
+```yaml
+# Can execute all custom actions
+actions: all
+
+# Granular control
+actions:
+  allowed: [close_won, reopen]
+  denied: [force_delete]
+
+# Allow all except specific ones
+actions:
+  allowed: all
+  denied: [force_delete]
+
+# No custom actions
+actions:
+  allowed: []
+```
+
+The `denied` list takes precedence: if an action appears in both `allowed` and `denied`, it is denied.
+
+### `scope`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | all records visible |
+| **Type** | string or hash |
+
+Controls which records the role can see (row-level security). Set to `"all"` for unrestricted access, or use one of four scope types.
+
+#### Scope Type: `field_match`
+
+Filters records where a field matches a value derived from the current user.
+
+```yaml
+scope:
+  type: field_match
+  field: owner_id
+  value: current_user_id
+```
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `field` | string | Column name to filter on |
+| `value` | string | Value reference (see below) |
+
+**Value references:**
+- `current_user_id` — resolves to `user.id`
+- `current_user_<method>` — resolves to `user.<method>` (e.g., `current_user_department_id` calls `user.department_id`)
+- Any other string — used as a literal value
+
+#### Scope Type: `association`
+
+Filters records where a field's value is in a collection returned by a user method.
+
+```yaml
+scope:
+  type: association
+  field: department_id
+  method: department_ids
+```
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `field` | string | Column name to filter on |
+| `method` | string | Method on the user object that returns an array of allowed values |
+
+Use this when users belong to multiple groups (e.g., departments, teams) and should see records from any of their groups.
+
+#### Scope Type: `where`
+
+Applies a static `WHERE` clause.
+
+```yaml
+scope:
+  type: where
+  conditions: { active: true }
+```
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `conditions` | hash | Hash of column/value pairs passed to `ActiveRecord::Base.where` |
+
+Use this for role-based static filtering (e.g., viewers can only see active records).
+
+#### Scope Type: `custom`
+
+Delegates to a named scope method on the model, passing the current user as an argument.
+
+```yaml
+scope:
+  type: custom
+  method: visible_to_user
+```
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `method` | string | Scope method name on the model class |
+
+The model must define this scope accepting a user parameter:
+
+```ruby
+scope :visible_to_user, ->(user) { where(region: user.region) }
+```
+
+Use this for complex filtering logic that cannot be expressed with the other scope types.
+
+### `presenters`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | string or array |
+
+Controls which presenters the role can access.
+
+```yaml
+# Can access all presenters for this model
+presenters: all
+
+# Can only access specific presenters
+presenters: [deal_admin, deal_pipeline]
+```
+
+## Field Overrides
+
+Override field-level access per role, independent of the role's general `fields` setting. These take precedence over the `readable`/`writable` lists in the role config.
+
+```yaml
+field_overrides:
+  value:
+    readable_by: [admin, sales_rep]
+    writable_by: [admin]
+  ssn:
+    readable_by: [admin]
+    masked_for: [sales_rep, viewer]
+```
+
+### Override Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `readable_by` | array of role names | Only these roles can read this field |
+| `writable_by` | array of role names | Only these roles can write this field |
+| `masked_for` | array of role names | These roles see a masked value instead of the actual data |
+
+**How it works:**
+- If `readable_by` is set on a field, the role must be in that list to read it — even if the role's `fields.readable` is set to `all`.
+- If `writable_by` is set, the role must be in that list to write it.
+- `masked_for` is a display-level flag. The `PermissionEvaluator.field_masked?` method returns `true` for roles in the list, and the UI layer can choose how to mask (e.g., show "***").
+
+## Record Rules
+
+Rules that conditionally deny CRUD operations based on record field values.
+
+```yaml
+record_rules:
+  - name: closed_deals_readonly
+    condition: { field: stage, operator: in, value: [closed_won, closed_lost] }
+    effect:
+      deny_crud: [update, destroy]
+      except_roles: [admin]
+```
+
+### Record Rule Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `name` | string | Human-readable rule identifier |
+| `condition` | object | [Condition](condition-operators.md) evaluated against each record |
+| `effect` | object | What happens when the condition matches |
+
+### Effect Attributes
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `deny_crud` | array | CRUD operations to deny (e.g., `[update, destroy]`) |
+| `except_roles` | array | Roles exempt from the denial |
+
+**Evaluation order:**
+1. The role's `crud` list is checked first (`can?`)
+2. Then each record rule's condition is evaluated against the specific record (`can_for_record?`)
+3. If the condition matches and the action is in `deny_crud` and the role is not in `except_roles`, the action is denied
+
+This enables patterns like "closed deals are read-only for everyone except admins."
+
+## Complete Example
+
+```yaml
+permissions:
+  model: deal
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    sales_rep:
+      crud: [index, show, create, update]
+      fields:
+        readable: all
+        writable: [title, stage, company_id, contact_id]
+      actions:
+        allowed: [close_won]
+        denied: []
+      scope: all
+      presenters: [deal_admin]
+
+    viewer:
+      crud: [index, show]
+      fields: { readable: [title, stage, value], writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: [deal_pipeline]
+
+  default_role: viewer
+
+  field_overrides:
+    value:
+      writable_by: [admin]
+      readable_by: [admin, sales_rep]
+
+  record_rules:
+    - name: closed_deals_readonly
+      condition: { field: stage, operator: in, value: [closed_won, closed_lost] }
+      effect:
+        deny_crud: [update, destroy]
+        except_roles: [admin]
+```
+
+Source: `lib/lcp_ruby/metadata/permission_definition.rb`, `lib/lcp_ruby/authorization/permission_evaluator.rb`, `lib/lcp_ruby/authorization/scope_builder.rb`

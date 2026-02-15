@@ -32,8 +32,10 @@ Parses YAML into typed definition objects.
 - **PermissionDefinition** — roles, field_overrides, record_rules
 - **FieldDefinition** — name, type, label, column_options, validations, default, enum_values
 - **AssociationDefinition** — type, name, target_model, class_name, foreign_key, dependent, required
-- **ValidationDefinition** — type, options
+- **ValidationDefinition** — type, options, validator_class
 - **EventDefinition** — name, type (lifecycle or field_change), field, condition
+- **ConfigurationValidator** — cross-validates all loaded definitions (referenced models exist, field types valid, etc.); used by `lcp_ruby:validate` rake task
+- **ErdGenerator** — generates Entity Relationship Diagrams in mermaid, dot, or plantuml formats; used by `lcp_ruby:erd` rake task
 
 **Supported field types:** string, text, integer, float, decimal, boolean, date, datetime, enum, file, rich_text, json, uuid
 
