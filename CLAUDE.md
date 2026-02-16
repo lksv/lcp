@@ -19,6 +19,7 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
 - [Presenter DSL Reference](docs/reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenters (with inheritance)
 - [Custom Types Guide](docs/guides/custom-types.md) — Practical examples of custom business types
+- [Extensibility Guide](docs/guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validations, scopes
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
 - [Developer Tools](docs/guides/developer-tools.md) — Validate and ERD rake tasks
