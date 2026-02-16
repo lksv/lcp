@@ -205,6 +205,12 @@ module LcpRuby
         assoc_hash["autosave"] = options[:autosave] if options.key?(:autosave)
         assoc_hash["validate"] = options[:validate] if options.key?(:validate)
 
+        # Nested attributes
+        if options.key?(:nested_attributes)
+          na = options[:nested_attributes]
+          assoc_hash["nested_attributes"] = na.is_a?(Hash) ? stringify_keys(na) : na
+        end
+
         @associations << assoc_hash
       end
 
@@ -252,15 +258,7 @@ module LcpRuby
       end
 
       def stringify_keys(hash)
-        return hash unless hash.is_a?(Hash)
-
-        hash.transform_keys(&:to_s).transform_values do |v|
-          case v
-          when Hash then stringify_keys(v)
-          when Symbol then v.to_s
-          else v
-          end
-        end
+        HashUtils.stringify_deep(hash)
       end
     end
   end

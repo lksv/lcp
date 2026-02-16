@@ -33,6 +33,26 @@ model:
         - type: numericality
           options: { greater_than_or_equal_to: 0, allow_nil: true }
 
+    - name: priority
+      type: integer
+      label: "Priority"
+      default: 50
+
+    - name: progress
+      type: integer
+      label: "Progress"
+      default: 0
+
+    - name: featured
+      type: boolean
+      label: "Featured"
+      default: false
+
+    - name: rating
+      type: integer
+      label: "Rating"
+      default: 0
+
   associations:
     - type: belongs_to
       name: company

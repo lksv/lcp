@@ -2,10 +2,12 @@ module LcpRuby
   module Metadata
     class AssociationDefinition
       VALID_TYPES = %w[belongs_to has_many has_one].freeze
+      NESTED_ATTRIBUTES_KEYS = %w[allow_destroy reject_if limit update_only].freeze
 
       attr_reader :type, :name, :target_model, :class_name, :foreign_key,
                   :dependent, :required, :inverse_of, :counter_cache, :touch,
-                  :polymorphic, :as, :through, :source, :autosave, :validate
+                  :polymorphic, :as, :through, :source, :autosave, :validate,
+                  :nested_attributes
 
       def initialize(attrs = {})
         @type = attrs[:type].to_s
@@ -33,6 +35,9 @@ module LcpRuby
         @autosave = attrs[:autosave]
         @validate = attrs[:validate]
 
+        # Nested attributes
+        @nested_attributes = parse_nested_attributes(attrs[:nested_attributes])
+
         validate!
       end
 
@@ -53,7 +58,8 @@ module LcpRuby
           through: hash["through"],
           source: hash["source"],
           autosave: hash["autosave"],
-          validate: hash["validate"]
+          validate: hash["validate"],
+          nested_attributes: hash["nested_attributes"]
         )
       end
 
@@ -79,6 +85,25 @@ module LcpRuby
         return nil unless @type == "belongs_to"
 
         "#{@name}_id"
+      end
+
+      def parse_nested_attributes(value)
+        return nil unless value.is_a?(Hash)
+
+        value = value.transform_keys(&:to_s)
+        unknown_keys = value.keys - NESTED_ATTRIBUTES_KEYS
+        if unknown_keys.any?
+          Rails.logger.warn(
+            "LcpRuby: Association '#{@name}' has unrecognized nested_attributes keys: " \
+            "#{unknown_keys.join(', ')}. Valid keys: #{NESTED_ATTRIBUTES_KEYS.join(', ')}"
+          )
+        end
+
+        result = {}
+        NESTED_ATTRIBUTES_KEYS.each do |key|
+          result[key] = value[key] if value.key?(key)
+        end
+        result.empty? ? nil : result
       end
 
       def validate!

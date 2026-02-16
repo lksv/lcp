@@ -19,12 +19,20 @@ model:
       type: text
       label: "Description"
 
+    - name: start_date
+      type: date
+      label: "Start Date"
+
   associations:
     - type: has_many
       name: todo_items
       target_model: todo_item
       foreign_key: todo_list_id
       dependent: destroy
+      inverse_of: todo_list
+      nested_attributes:
+        allow_destroy: true
+        reject_if: all_blank
 
   options:
     timestamps: true

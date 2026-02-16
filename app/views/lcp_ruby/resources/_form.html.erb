@@ -10,69 +10,27 @@
     </div>
   <% end %>
 
-  <% @layout_builder.form_sections.each do |section| %>
-    <fieldset class="lcp-form-section">
-      <legend><%= section["title"] %></legend>
-
-      <div class="lcp-form-fields" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;">
-        <% section["fields"].each do |field_config| %>
-          <% field_config = field_config.transform_keys(&:to_s) if field_config.is_a?(Hash) %>
-          <% field_name = field_config["field"] %>
-          <% field_def = field_config["field_definition"] %>
-          <% next unless field_def %>
-          <% next unless field_config["association"] || current_evaluator.field_writable?(field_name) %>
-
-          <div class="lcp-form-field">
-            <%= form.label field_name, field_def.label %>
-
-            <% resolved_input = field_config["input_type"] || field_def.type_definition&.input_type || field_def.type %>
-            <% case resolved_input %>
-            <% when "text", "rich_text_editor" %>
-              <%= form.text_area field_name, placeholder: field_config["placeholder"] %>
-            <% when "select" %>
-              <% if field_def.enum? %>
-                <%= form.select field_name, field_def.enum_value_names.map { |v| [v.humanize, v] }, include_blank: true %>
-              <% end %>
-            <% when "number" %>
-              <%= form.number_field field_name, step: "any", placeholder: field_config["placeholder"] %>
-            <% when "date_picker", "date" %>
-              <%= form.date_field field_name %>
-            <% when "datetime" %>
-              <%= form.datetime_local_field field_name %>
-            <% when "boolean" %>
-              <%= form.check_box field_name %>
-            <% when "association_select" %>
-              <% assoc = field_config["association"] %>
-              <% if assoc&.lcp_model? %>
-                <% target_class = LcpRuby.registry.model_for(assoc.target_model) %>
-                <% options = target_class.all.map { |r| [r.respond_to?(:to_label) ? r.to_label : r.to_s, r.id] } %>
-                <%= form.select field_name, options, include_blank: "-- Select --" %>
-              <% else %>
-                <%= form.number_field field_name, placeholder: "ID" %>
-              <% end %>
-            <% when "email" %>
-              <%= form.email_field field_name,
-                    placeholder: field_config["placeholder"],
-                    autofocus: field_config["autofocus"] %>
-            <% when "tel" %>
-              <%= form.telephone_field field_name,
-                    placeholder: field_config["placeholder"],
-                    autofocus: field_config["autofocus"] %>
-            <% when "url" %>
-              <%= form.url_field field_name,
-                    placeholder: field_config["placeholder"],
-                    autofocus: field_config["autofocus"] %>
-            <% when "color" %>
-              <%= form.color_field field_name %>
-            <% else %>
-              <%= form.text_field field_name,
-                    placeholder: field_config["placeholder"],
-                    autofocus: field_config["autofocus"] %>
-            <% end %>
-          </div>
+  <% sections = @layout_builder.form_sections %>
+  <% if @layout_builder.form_layout == "tabs" %>
+    <div class="lcp-tabs">
+      <nav class="lcp-tab-nav">
+        <% sections.each_with_index do |section, i| %>
+          <% next if section["type"] == "nested_fields" && i != sections.index(section) %>
+          <button type="button" data-lcp-tab="<%= i %>" class="btn <%= 'active' if i == 0 %>">
+            <%= section["title"] %>
+          </button>
         <% end %>
-      </div>
-    </fieldset>
+      </nav>
+      <% sections.each_with_index do |section, i| %>
+        <div data-lcp-panel="<%= i %>" style="<%= 'display:none' unless i == 0 %>">
+          <%= render partial: "lcp_ruby/resources/form_section", locals: { form: form, section: section } %>
+        </div>
+      <% end %>
+    </div>
+  <% else %>
+    <% sections.each do |section| %>
+      <%= render partial: "lcp_ruby/resources/form_section", locals: { form: form, section: section } %>
+    <% end %>
   <% end %>
 
   <div class="lcp-form-actions">

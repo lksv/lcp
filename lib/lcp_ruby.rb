@@ -1,4 +1,5 @@
 require "lcp_ruby/version"
+require "lcp_ruby/hash_utils"
 require "lcp_ruby/configuration"
 require "lcp_ruby/dynamic"
 require "lcp_ruby/current"

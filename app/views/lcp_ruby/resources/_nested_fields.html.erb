@@ -1,0 +1,21 @@
+<div class="lcp-nested-row">
+  <div class="lcp-nested-fields" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || (section['fields'] || []).size %>, 1fr); gap: 0.5rem;">
+    <% (section["fields"] || []).each do |field_config| %>
+
+      <% field_def = field_config["field_definition"] %>
+      <% next unless field_def %>
+      <% field_name = field_config["field"] %>
+
+      <div class="lcp-form-field">
+        <%= form.label field_name, field_def.label %>
+        <% resolved_input = field_config["input_type"] || field_def.type_definition&.input_type || field_def.type %>
+        <%= render_form_input(form, field_name, resolved_input, field_config, field_def) %>
+      </div>
+    <% end %>
+  </div>
+
+  <% if section["allow_remove"] != false %>
+    <%= form.hidden_field :_destroy, value: false, class: "lcp-destroy-flag" %>
+    <button type="button" class="btn btn-danger lcp-nested-remove">Remove</button>
+  <% end %>
+</div>

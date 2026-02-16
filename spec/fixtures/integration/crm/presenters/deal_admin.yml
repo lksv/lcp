@@ -9,10 +9,11 @@ presenter:
     default_view: table
     default_sort: { field: created_at, direction: desc }
     per_page: 25
+    actions_position: dropdown
     table_columns:
-      - { field: title, width: "30%", link_to: show, sortable: true }
-      - { field: stage, width: "20%", display: badge, sortable: true }
-      - { field: value, width: "20%", display: currency, sortable: true }
+      - { field: title, width: "30%", link_to: show, sortable: true, pinned: left }
+      - { field: stage, width: "20%", display: badge, sortable: true, hidden_on: mobile }
+      - { field: value, width: "20%", display: currency, sortable: true, summary: sum }
 
   show:
     layout:
@@ -24,15 +25,24 @@ presenter:
           - { field: value, display: currency }
 
   form:
+    layout: tabs
     sections:
       - title: "Deal Details"
         columns: 2
         fields:
           - { field: title, placeholder: "Deal title...", autofocus: true }
           - { field: stage, input_type: select }
-          - { field: value, input_type: number }
+          - { field: value, input_type: number, prefix: "$" }
           - { field: company_id, input_type: association_select }
           - { field: contact_id, input_type: association_select }
+      - title: "Metrics"
+        collapsible: true
+        collapsed: true
+        fields:
+          - { field: priority, input_type: slider, input_options: { min: 0, max: 100, step: 5, show_value: true } }
+          - { field: progress, input_type: number, suffix: "%", readonly: true }
+          - { field: featured, input_type: toggle }
+          - { field: rating, input_type: rating, input_options: { max: 5 } }
 
   search:
     enabled: true

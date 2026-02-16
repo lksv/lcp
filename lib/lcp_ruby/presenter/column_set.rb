@@ -13,9 +13,7 @@ module LcpRuby
         readable = permission_evaluator.readable_fields
 
         all_columns.select do |col|
-          col = col.transform_keys(&:to_s) if col.is_a?(Hash)
-          field_name = col["field"]
-          readable.include?(field_name)
+          readable.include?(col["field"])
         end
       end
 
@@ -23,9 +21,7 @@ module LcpRuby
         writable = permission_evaluator.writable_fields
 
         section_fields.select do |field|
-          field = field.transform_keys(&:to_s) if field.is_a?(Hash)
-          field_name = field["field"]
-          writable.include?(field_name)
+          writable.include?(field["field"])
         end
       end
 
@@ -33,9 +29,7 @@ module LcpRuby
         readable = permission_evaluator.readable_fields
 
         section_fields.select do |field|
-          field = field.transform_keys(&:to_s) if field.is_a?(Hash)
-          field_name = field["field"]
-          readable.include?(field_name)
+          readable.include?(field["field"])
         end
       end
     end

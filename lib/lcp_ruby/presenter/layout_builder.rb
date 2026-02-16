@@ -11,7 +11,17 @@ module LcpRuby
       def form_sections
         config = presenter_definition.form_config
         sections = config["sections"] || []
-        sections.map { |s| normalize_section(s) }
+        sections.map do |s|
+          if s["type"] == "nested_fields"
+            normalize_nested_section(s)
+          else
+            normalize_section(s)
+          end
+        end
+      end
+
+      def form_layout
+        presenter_definition.form_config["layout"] || "flat"
       end
 
       def show_sections
@@ -23,10 +33,7 @@ module LcpRuby
       private
 
       def normalize_section(section)
-        section = section.transform_keys(&:to_s) if section.is_a?(Hash)
-
         fields = (section["fields"] || []).map do |f|
-          f = f.transform_keys(&:to_s) if f.is_a?(Hash)
           field_def = model_definition.field(f["field"])
 
           if field_def.nil?
@@ -49,6 +56,41 @@ module LcpRuby
         end
 
         section.merge("fields" => fields)
+      end
+
+      def normalize_nested_section(section)
+        assoc_name = section["association"]
+        assoc = model_definition.associations.find { |a| a.name == assoc_name }
+        return section unless assoc&.target_model
+
+        target_def = LcpRuby.loader.model_definition(assoc.target_model)
+        return section unless target_def
+
+        fields = (section["fields"] || []).map do |f|
+          field_def = target_def.field(f["field"])
+          if field_def
+            f.merge("field_definition" => field_def)
+          else
+            # Try association FK field on target model
+            target_assoc = target_def.associations.find { |a| a.foreign_key == f["field"].to_s }
+            if target_assoc
+              f.merge(
+                "field_definition" => Metadata::FieldDefinition.new(
+                  name: f["field"],
+                  type: "integer",
+                  label: target_assoc.name.to_s.humanize
+                ),
+                "association" => target_assoc
+              )
+            end
+          end
+        end.compact
+
+        section.merge(
+          "fields" => fields,
+          "association_definition" => assoc,
+          "target_model_definition" => target_def
+        )
       end
     end
   end

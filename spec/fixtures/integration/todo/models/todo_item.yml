@@ -28,6 +28,7 @@ model:
       target_model: todo_list
       foreign_key: todo_list_id
       required: true
+      inverse_of: todo_items
 
   options:
     timestamps: true

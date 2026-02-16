@@ -13,6 +13,7 @@ define_model :contact do
   field :email, :email, label: "Email"
   field :phone, :phone, label: "Phone"
   field :position, :string, label: "Position"
+  field :active, :boolean, label: "Active", default: true
 
   belongs_to :company, model: :company, required: true
 

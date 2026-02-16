@@ -8,18 +8,21 @@ define_presenter :company_admin do
     default_view :table
     default_sort :name, :asc
     per_page 25
-    column :name, width: "30%", link_to: :show, sortable: true
+    row_click :show
+
+    column :name, width: "30%", link_to: :show, sortable: true, pinned: :left
     column :industry, width: "20%", display: :badge, sortable: true
-    column :website, width: "25%"
-    column :phone, width: "25%"
+    column :website, width: "25%", display: :url_link
+    column :phone, width: "25%", display: :phone_link
   end
 
   show do
     section "Company Information", columns: 2 do
       field :name, display: :heading
       field :industry, display: :badge
-      field :website
-      field :phone
+      field :website, display: :url_link
+      field :phone, display: :phone_link
+      field :created_at, display: :relative_date
     end
     association_list "Contacts", association: :contacts
     association_list "Deals", association: :deals

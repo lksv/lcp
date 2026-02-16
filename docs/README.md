@@ -29,6 +29,7 @@ Complete attribute reference for every YAML configuration file:
 - [Custom Actions](guides/custom-actions.md) — Writing domain-specific operations beyond CRUD
 - [Event Handlers](guides/event-handlers.md) — Responding to lifecycle events and field changes
 - [Custom Types](guides/custom-types.md) — Defining custom business types (percentage, postal_code, slug, hex_color)
+- [Display Types](guides/display-types.md) — Visual guide to all display renderers
 - [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate` and `lcp_ruby:erd` rake tasks
 
 ## Internals
