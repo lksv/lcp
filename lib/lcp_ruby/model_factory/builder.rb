@@ -12,6 +12,7 @@ module LcpRuby
         apply_table_name(model_class)
         apply_enums(model_class)
         apply_validations(model_class)
+        apply_transforms(model_class)
         apply_associations(model_class)
         apply_scopes(model_class)
         apply_callbacks(model_class)
@@ -44,6 +45,10 @@ module LcpRuby
 
       def apply_validations(model_class)
         ValidationApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_transforms(model_class)
+        TransformApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_associations(model_class)

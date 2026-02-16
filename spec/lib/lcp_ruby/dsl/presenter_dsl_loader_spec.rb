@@ -53,7 +53,7 @@ RSpec.describe LcpRuby::Dsl::DslLoader, ".load_presenters" do
       expect(child.show_config["layout"][0]["section"]).to eq("Project")
 
       # Child's search replaces parent's
-      expect(child.search_config["searchable_fields"]).to eq(["title"])
+      expect(child.search_config["searchable_fields"]).to eq([ "title" ])
 
       # Child's navigation replaces parent's
       expect(child.navigation_config["menu"]).to eq("public")

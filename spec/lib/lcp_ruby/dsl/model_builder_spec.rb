@@ -157,7 +157,7 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
     it "auto-humanizes array values" do
       builder = described_class.new(:project)
       builder.instance_eval do
-        field :priority, :enum, values: [:low, :medium, :high]
+        field :priority, :enum, values: [ :low, :medium, :high ]
       end
 
       field = builder.to_hash["fields"].first
@@ -660,11 +660,11 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
     it "handles where_not with array values" do
       builder = described_class.new(:deal)
       builder.instance_eval do
-        scope :open, where_not: { stage: ["closed_won", "closed_lost"] }
+        scope :open, where_not: { stage: [ "closed_won", "closed_lost" ] }
       end
 
       scope = builder.to_hash["scopes"].first
-      expect(scope["where_not"]).to eq({ "stage" => ["closed_won", "closed_lost"] })
+      expect(scope["where_not"]).to eq({ "stage" => [ "closed_won", "closed_lost" ] })
     end
   end
 

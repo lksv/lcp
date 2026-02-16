@@ -112,9 +112,9 @@ end
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `name` | yes | Column name (symbol). Must be unique within the model. |
-| `type` | yes | Field type (symbol). One of the 14 valid types below. |
+| `type` | yes | Field type (symbol). One of the 14 base types or a registered [business type](types.md) name. |
 
-### Field Types
+### Base Types
 
 | Type | DB Column | Description |
 |------|-----------|-------------|
@@ -131,6 +131,27 @@ end
 | `:rich_text` | `:text` | Rich text content. Default form input: rich text editor. |
 | `:json` | `:jsonb` | JSON data stored as PostgreSQL jsonb. |
 | `:uuid` | `:string` | UUID stored as string. |
+
+### Business Types
+
+In addition to base types, fields can use any registered business type:
+
+```ruby
+field :email, :email           # strip + downcase + email format validation + <input type="email">
+field :phone, :phone           # strip + normalize_phone + phone format validation + <input type="tel">
+field :website, :url           # strip + normalize_url + URL format validation + <input type="url">
+field :favorite_color, :color  # strip + downcase + hex color validation + <input type="color">
+```
+
+Business types bundle transforms, validations, and input hints. Additional field-level validations merge with the type defaults:
+
+```ruby
+field :email, :email do
+  validates :presence          # added on top of the email type's format validation
+end
+```
+
+See [Types Reference](types.md) for the full list of built-in types and how to define custom ones.
 
 ### Keyword Options
 

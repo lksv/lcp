@@ -17,8 +17,8 @@ define_model :company do
       other: "Other"
     }
 
-  field :website, :string, label: "Website"
-  field :phone, :string, label: "Phone"
+  field :website, :url, label: "Website"
+  field :phone, :phone, label: "Phone"
 
   has_many :contacts, model: :contact, foreign_key: :company_id, dependent: :destroy
   has_many :deals, model: :deal, foreign_key: :company_id, dependent: :destroy

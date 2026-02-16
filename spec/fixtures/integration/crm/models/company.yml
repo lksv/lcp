@@ -25,11 +25,11 @@ model:
         - { value: other, label: "Other" }
 
     - name: website
-      type: string
+      type: url
       label: "Website"
 
     - name: phone
-      type: string
+      type: phone
       label: "Phone"
 
   associations:

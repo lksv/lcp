@@ -73,6 +73,7 @@ bundle exec rails s -p 3001
 
 | Feature | Where | Docs |
 |---------|-------|------|
+| Business types | Contact email (`:email`), phone (`:phone`); Company website (`:url`), phone (`:phone`) | [Types](reference/types.md) |
 | Custom actions | `close_won` marks deal as won | [Custom Actions](guides/custom-actions.md) |
 | Event handlers | `on_stage_change` logs stage transitions | [Event Handlers](guides/event-handlers.md) |
 | Scopes | `open_deals` (where_not closed), `won`, `lost` | [Scopes](reference/models.md#scopes) |

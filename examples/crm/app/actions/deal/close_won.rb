@@ -7,7 +7,7 @@ module LcpRuby
             return failure(message: "No deal specified")
           end
 
-          if record.stage.in?(["closed_won", "closed_lost"])
+          if record.stage.in?([ "closed_won", "closed_lost" ])
             return failure(message: "Deal is already closed")
           end
 

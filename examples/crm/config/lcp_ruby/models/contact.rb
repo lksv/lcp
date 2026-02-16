@@ -10,11 +10,8 @@ define_model :contact do
     validates :presence
   end
 
-  field :email, :string, label: "Email" do
-    validates :format, with: '\A[^@\s]+@[^@\s]+\z', allow_blank: true
-  end
-
-  field :phone, :string, label: "Phone"
+  field :email, :email, label: "Email"
+  field :phone, :phone, label: "Phone"
   field :position, :string, label: "Position"
 
   belongs_to :company, model: :company, required: true

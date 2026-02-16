@@ -7,12 +7,13 @@ LCP Ruby is a Rails mountable engine that generates full CRUD information system
 **Data flow:**
 ```
 YAML metadata (config/lcp_ruby/)
+  ├── types/*.yml        → Metadata::Loader → TypeDefinition → TypeRegistry
   ├── models/*.yml       → Metadata::Loader → ModelDefinition
   ├── presenters/*.yml   → Metadata::Loader → PresenterDefinition
   └── permissions/*.yml  → Metadata::Loader → PermissionDefinition
                                 ↓
               ModelFactory::Builder.build → LcpRuby::Dynamic::<Name>
-              (creates AR class + DB table + validations + associations + scopes)
+              (creates AR class + DB table + validations + transforms + associations + scopes)
                                 ↓
               LcpRuby.registry.register(name, model_class)
                                 ↓
@@ -26,7 +27,7 @@ YAML metadata (config/lcp_ruby/)
 
 Parses YAML into typed definition objects.
 
-- **Loader** — loads YAML from `config/lcp_ruby/{models,presenters,permissions}/`; provides `load_all`, and accessors for `model_definitions`, `presenter_definitions`, `permission_definitions`
+- **Loader** — loads YAML and DSL from `config/lcp_ruby/{types,models,presenters,permissions}/`; provides `load_all` (types → models → presenters → permissions), and accessors for `model_definitions`, `presenter_definitions`, `permission_definitions`
 - **ModelDefinition** — fields, associations, scopes, events, options
 - **PresenterDefinition** — index/show/form config, search, actions, navigation
 - **PermissionDefinition** — roles, field_overrides, record_rules
@@ -37,19 +38,33 @@ Parses YAML into typed definition objects.
 - **ConfigurationValidator** — cross-validates all loaded definitions (referenced models exist, field types valid, etc.); used by `lcp_ruby:validate` rake task
 - **ErdGenerator** — generates Entity Relationship Diagrams in mermaid, dot, or plantuml formats; used by `lcp_ruby:erd` rake task
 
-**Supported field types:** string, text, integer, float, decimal, boolean, date, datetime, enum, file, rich_text, json, uuid
+**Base field types:** string, text, integer, float, decimal, boolean, date, datetime, enum, file, rich_text, json, uuid
+
+**Built-in business types:** email, phone, url, color (see Types module below)
 
 **Supported validation types:** presence, length, numericality, format, inclusion, exclusion, uniqueness, confirmation, custom
 
 **Association types:** belongs_to, has_many, has_one
 
+### Types (`lib/lcp_ruby/types/`)
+
+Business type system that bundles storage type, transforms, validations, and UI hints into reusable definitions.
+
+- **TypeRegistry** — maps type name (string) → `TypeDefinition`; `register`, `resolve`, `registered?`, `clear!`
+- **TypeDefinition** — value object: `name`, `base_type`, `transforms`, `validations`, `input_type`, `display_type`, `column_options`, `html_input_attrs`; `.from_hash` factory, `#column_type` delegates to base type
+- **ServiceRegistry** — generic category-based service registry (categories: `transform`, `validator`, `display`); `register`, `lookup`, `registered?`, `clear!`
+- **BuiltInTypes** — registers 4 built-in types: `email`, `phone`, `url`, `color`
+- **BuiltInServices** — registers 4 transform services: `strip`, `downcase`, `normalize_url`, `normalize_phone`
+- **Transforms** — `BaseTransform` + concrete transform classes (`Strip`, `Downcase`, `NormalizeUrl`, `NormalizePhone`); each implements `#call(value)` → value
+
 ### Model Factory (`lib/lcp_ruby/model_factory/`)
 
 Builds dynamic ActiveRecord models from metadata definitions.
 
-- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace, applies enums, validations, associations, scopes, callbacks, label method, and registers the model in the Registry
-- **SchemaManager** — auto-creates/updates DB tables when `auto_migrate: true` is set in configuration
-- **ValidationApplicator** — applies AR validations from metadata (standard + custom)
+- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace, applies enums, validations, transforms, associations, scopes, callbacks, label method, and registers the model in the Registry
+- **SchemaManager** — auto-creates/updates DB tables when `auto_migrate: true` is set in configuration; merges type-level column_options before field-level (field wins)
+- **ValidationApplicator** — applies AR validations from metadata (standard + custom); after explicit field validations, applies type-default validations (skips if field already has a validation of the same type)
+- **TransformApplicator** — for fields with a `type_definition`, assembles transform chain from `ServiceRegistry` and applies `model_class.normalizes :field, with: -> { chain }`
 - **AssociationApplicator** — sets up belongs_to, has_many, has_one with options (foreign_key, class_name, dependent, required)
 - **ScopeApplicator** — generates scopes from `where`, `where_not`, `order`, `limit`, and custom scope definitions
 - **CallbackApplicator** — registers lifecycle callbacks and field_change event triggers that dispatch to the Events system
@@ -169,9 +184,10 @@ end
 3. `lcp_ruby.assets` — precompiles `lcp_ruby/application.css`
 
 **`load_metadata!` sequence:**
-1. `Loader.load_all` — parse all YAML files
-2. Iterate `model_definitions` — for each: `SchemaManager.ensure_table!` + `Builder.build`
-3. `Registry.register(name, model_class)` for each built model
+1. `BuiltInServices.register_all!` + `BuiltInTypes.register_all!` — register built-in transforms and types
+2. `Loader.load_all` — load types → models → presenters → permissions (YAML + DSL)
+3. Iterate `model_definitions` — for each: `SchemaManager.ensure_table!` + `Builder.build`
+4. `Registry.register(name, model_class)` for each built model
 
 **`reload!`** — calls `reset!` then re-runs `load_metadata!`
 
@@ -182,7 +198,7 @@ Plain ERB templates (no ViewComponents despite gemspec dependency).
 - **Layout** (`application.html.erb`) — inline CSS (Bootstrap-inspired), confirm dialog JS
 - **Index** (`index.html.erb`) — table with sortable columns, search bar, predefined filter buttons, Kaminari pagination, row actions; display types: `badge`, `currency`, `relative_date`
 - **Show** (`show.html.erb`) — sections with field grid or `association_list`; display types: `heading`, `badge`, `link`, `rich_text`, `currency`, `relative_date`
-- **Form** (`_form.html.erb`) — sections with grid; input types: text/textarea, select (enum), number, date, datetime, boolean, `association_select`, `rich_text_editor`
+- **Form** (`_form.html.erb`) — sections with grid; resolves input type as: explicit presenter `input_type` → `type_definition.input_type` → base field type. Supported inputs: text/textarea, select (enum), number, date, datetime, boolean, `association_select`, `rich_text_editor`, email, tel, url, color
 - **New/Edit** — thin wrappers that render the `_form` partial
 
 ## Error Classes (`lib/lcp_ruby.rb`)

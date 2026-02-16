@@ -18,6 +18,20 @@ module LcpRuby
           field.validations.each do |validation|
             apply_validation(field.name, validation)
           end
+
+          apply_type_default_validations(field) if field.type_definition
+        end
+      end
+
+      def apply_type_default_validations(field)
+        explicit_types = field.validations.map(&:type)
+
+        field.type_definition.validations.each do |type_validation|
+          validation_type = type_validation["type"]
+          next if explicit_types.include?(validation_type)
+
+          validation_def = Metadata::ValidationDefinition.new(type_validation)
+          apply_validation(field.name, validation_def)
         end
       end
 
@@ -63,7 +77,7 @@ module LcpRuby
 
       def apply_custom_validation(field_name, validation)
         validator_class = validation.validator_class.constantize
-        opts = validation.options.merge(fields: [field_name.to_sym])
+        opts = validation.options.merge(fields: [ field_name.to_sym ])
         @model_class.validates_with validator_class, **opts
       rescue NameError => e
         raise SchemaError,

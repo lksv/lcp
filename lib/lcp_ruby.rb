@@ -16,8 +16,21 @@ require "lcp_ruby/metadata/loader"
 require "lcp_ruby/metadata/configuration_validator"
 require "lcp_ruby/metadata/erd_generator"
 
+# Types
+require "lcp_ruby/types/service_registry"
+require "lcp_ruby/types/type_definition"
+require "lcp_ruby/types/type_registry"
+require "lcp_ruby/types/transforms/base_transform"
+require "lcp_ruby/types/transforms/strip"
+require "lcp_ruby/types/transforms/downcase"
+require "lcp_ruby/types/transforms/normalize_url"
+require "lcp_ruby/types/transforms/normalize_phone"
+require "lcp_ruby/types/built_in_services"
+require "lcp_ruby/types/built_in_types"
+
 # DSL
 require "lcp_ruby/dsl/field_builder"
+require "lcp_ruby/dsl/type_builder"
 require "lcp_ruby/dsl/model_builder"
 require "lcp_ruby/dsl/presenter_builder"
 require "lcp_ruby/dsl/dsl_loader"
@@ -29,6 +42,7 @@ require "lcp_ruby/model_factory/validation_applicator"
 require "lcp_ruby/model_factory/association_applicator"
 require "lcp_ruby/model_factory/scope_applicator"
 require "lcp_ruby/model_factory/callback_applicator"
+require "lcp_ruby/model_factory/transform_applicator"
 require "lcp_ruby/model_factory/builder"
 
 # Authorization
@@ -88,6 +102,15 @@ module LcpRuby
       Metadata::ModelDefinition.from_hash(hash)
     end
 
+    def define_type(name, &block)
+      builder = Dsl::TypeBuilder.new(name)
+      builder.instance_eval(&block)
+      hash = builder.to_hash
+      type_def = Types::TypeDefinition.from_hash(hash)
+      Types::TypeRegistry.register(type_def.name, type_def)
+      type_def
+    end
+
     def define_presenter(name, &block)
       builder = Dsl::PresenterBuilder.new(name)
       builder.instance_eval(&block)
@@ -99,6 +122,8 @@ module LcpRuby
       @configuration = nil
       @loader = nil
       @registry = nil
+      Types::TypeRegistry.clear!
+      Types::ServiceRegistry.clear!
     end
   end
 end

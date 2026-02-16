@@ -11,12 +11,14 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Documentation Index](docs/README.md) — Links to all documentation
 - [Getting Started](docs/getting-started.md) — Installation and first model tutorial
 - [Models Reference](docs/reference/models.md) — Complete model YAML reference
+- [Types Reference](docs/reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters Reference](docs/reference/presenters.md) — Complete presenter YAML reference
 - [Permissions Reference](docs/reference/permissions.md) — Complete permission YAML reference
 - [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
 - [Presenter DSL Reference](docs/reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenters (with inheritance)
+- [Custom Types Guide](docs/guides/custom-types.md) — Practical examples of custom business types
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
 - [Developer Tools](docs/guides/developer-tools.md) — Validate and ERD rake tasks
@@ -58,12 +60,13 @@ cd examples/crm && bundle exec rails db:prepare && bundle exec rails s -p 3001
 
 ```
 YAML metadata (config/lcp_ruby/)
+  ├── types/*.yml        → Metadata::Loader → TypeDefinition → TypeRegistry
   ├── models/*.yml       → Metadata::Loader → ModelDefinition
   ├── presenters/*.yml   → Metadata::Loader → PresenterDefinition
   └── permissions/*.yml  → Metadata::Loader → PermissionDefinition
                                 ↓
               ModelFactory::Builder.build → LcpRuby::Dynamic::<Name>
-              (creates AR class + DB table + validations + associations + scopes)
+              (creates AR class + DB table + validations + transforms + associations + scopes)
                                 ↓
               LcpRuby.registry.register(name, model_class)
                                 ↓
@@ -76,7 +79,8 @@ YAML metadata (config/lcp_ruby/)
 | Module | Location | Purpose |
 |--------|----------|---------|
 | `Metadata` | `lib/lcp_ruby/metadata/` | Parses YAML into definition objects (ModelDefinition, PresenterDefinition, etc.) |
-| `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, AssociationApplicator, ScopeApplicator |
+| `Types` | `lib/lcp_ruby/types/` | TypeRegistry, TypeDefinition, ServiceRegistry, built-in types (email, phone, url, color), transforms (strip, downcase, normalize_url, normalize_phone) |
+| `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator |
 | `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections), ColumnSet (visible columns), ActionSet (visible actions) |
 | `Authorization` | `lib/lcp_ruby/authorization/` | PolicyFactory (dynamic Pundit policies), PermissionEvaluator (can?, readable_fields, writable_fields), ScopeBuilder |
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |
@@ -130,7 +134,7 @@ Permissions YAML defines roles with: `crud` list, `fields` (readable/writable), 
 
 ## YAML Metadata Conventions
 
-**Model fields**: supported types are `string`, `text`, `integer`, `float`, `decimal`, `boolean`, `date`, `datetime`, `enum`, `file`, `rich_text`, `json`, `uuid`.
+**Model fields**: base types are `string`, `text`, `integer`, `float`, `decimal`, `boolean`, `date`, `datetime`, `enum`, `file`, `rich_text`, `json`, `uuid`. Built-in business types: `email`, `phone`, `url`, `color`. Custom types can be defined in `config/lcp_ruby/types/`.
 
 **Scopes**: support `where`, `where_not`, `order`, `limit`. The `where_not` key generates `scope :name, -> { where.not(...) }`.
 

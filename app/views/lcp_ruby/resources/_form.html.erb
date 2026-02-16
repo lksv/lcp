@@ -25,7 +25,8 @@
           <div class="lcp-form-field">
             <%= form.label field_name, field_def.label %>
 
-            <% case field_config["input_type"] || field_def.type %>
+            <% resolved_input = field_config["input_type"] || field_def.type_definition&.input_type || field_def.type %>
+            <% case resolved_input %>
             <% when "text", "rich_text_editor" %>
               <%= form.text_area field_name, placeholder: field_config["placeholder"] %>
             <% when "select" %>
@@ -49,6 +50,20 @@
               <% else %>
                 <%= form.number_field field_name, placeholder: "ID" %>
               <% end %>
+            <% when "email" %>
+              <%= form.email_field field_name,
+                    placeholder: field_config["placeholder"],
+                    autofocus: field_config["autofocus"] %>
+            <% when "tel" %>
+              <%= form.telephone_field field_name,
+                    placeholder: field_config["placeholder"],
+                    autofocus: field_config["autofocus"] %>
+            <% when "url" %>
+              <%= form.url_field field_name,
+                    placeholder: field_config["placeholder"],
+                    autofocus: field_config["autofocus"] %>
+            <% when "color" %>
+              <%= form.color_field field_name %>
             <% else %>
               <%= form.text_field field_name,
                     placeholder: field_config["placeholder"],

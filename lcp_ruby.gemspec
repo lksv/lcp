@@ -3,8 +3,8 @@ require_relative "lib/lcp_ruby/version"
 Gem::Specification.new do |spec|
   spec.name        = "lcp_ruby"
   spec.version     = LcpRuby::VERSION
-  spec.authors     = ["LCP Ruby Contributors"]
-  spec.email       = ["lcp-ruby@example.com"]
+  spec.authors     = [ "LCP Ruby Contributors" ]
+  spec.email       = [ "lcp-ruby@example.com" ]
   spec.homepage    = "https://github.com/lksv/lcp-ruby"
   spec.summary     = "Low Code Platform engine for Rails"
   spec.description = "Rails mountable engine that creates information systems from YAML metadata"

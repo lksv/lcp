@@ -61,7 +61,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error for unknown target_model" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: order
             fields:
@@ -155,7 +155,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error when enum has no values" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: ticket
             fields:
@@ -172,7 +172,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error when default is not in enum_values" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: ticket
             fields:
@@ -193,7 +193,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "passes when default is in enum_values" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: ticket
             fields:
@@ -219,7 +219,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: order
             fields:
@@ -248,13 +248,13 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       # This test confirms that protection layer works.
       expect {
         with_metadata(
-          models: [<<~YAML],
+          models: [ <<~YAML ],
             model:
               name: project
               fields:
                 - { name: title, type: string }
           YAML
-          presenters: [<<~YAML]
+          presenters: [ <<~YAML ]
             presenter:
               name: ghost_admin
               model: ghost
@@ -270,13 +270,13 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: project
             fields:
               - { name: title, type: string }
         YAML
-        presenters: [<<~YAML]
+        presenters: [ <<~YAML ]
           presenter:
             name: project_admin
             model: project
@@ -300,13 +300,13 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: project
             fields:
               - { name: title, type: string }
         YAML
-        presenters: [<<~YAML]
+        presenters: [ <<~YAML ]
           presenter:
             name: project_admin
             model: project
@@ -331,7 +331,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: project
             fields:
@@ -340,7 +340,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               - name: active
                 where: { title: "x" }
         YAML
-        presenters: [<<~YAML]
+        presenters: [ <<~YAML ]
           presenter:
             name: project_admin
             model: project
@@ -366,13 +366,13 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: project
             fields:
               - { name: title, type: string }
         YAML
-        permissions: [<<~YAML]
+        permissions: [ <<~YAML ]
           permissions:
             model: project
             roles:
@@ -395,13 +395,13 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: project
             fields:
               - { name: title, type: string }
         YAML
-        permissions: [<<~YAML]
+        permissions: [ <<~YAML ]
           permissions:
             model: project
             roles:
@@ -425,13 +425,13 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: project
             fields:
               - { name: title, type: string }
         YAML
-        permissions: [<<~YAML]
+        permissions: [ <<~YAML ]
           permissions:
             model: project
             roles:
@@ -459,13 +459,13 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: project
             fields:
               - { name: title, type: string }
         YAML
-        permissions: [<<~YAML]
+        permissions: [ <<~YAML ]
           permissions:
             model: project
             roles:
@@ -495,7 +495,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: project
             fields:
@@ -561,7 +561,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "does not error when polymorphic belongs_to has no target_model" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: comment
             fields:
@@ -580,7 +580,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "does not warn about missing reciprocity for polymorphic belongs_to" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: comment
             fields:
@@ -686,7 +686,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "errors when through references non-existent association" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: post
             fields:
@@ -745,7 +745,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "accepts commentable_type as valid presenter field" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: comment
             fields:
@@ -756,7 +756,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
                 polymorphic: true
                 required: false
         YAML
-        presenters: [<<~YAML]
+        presenters: [ <<~YAML ]
           presenter:
             name: comments
             model: comment
@@ -776,7 +776,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "still reports error for truly unknown fields on polymorphic model" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: comment
             fields:
@@ -787,7 +787,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
                 polymorphic: true
                 required: false
         YAML
-        presenters: [<<~YAML]
+        presenters: [ <<~YAML ]
           presenter:
             name: comments
             model: comment
@@ -812,7 +812,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "warns about unknown where field" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: project
             fields:
@@ -834,28 +834,32 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
   context "with CRM integration fixtures" do
     let(:metadata_path) { File.expand_path("../../../fixtures/integration/crm", __dir__) }
+    let(:loader) do
+      LcpRuby::Types::BuiltInServices.register_all!
+      LcpRuby::Types::BuiltInTypes.register_all!
+      LcpRuby::Metadata::Loader.new(metadata_path)
+    end
 
     it "validates without errors" do
       result = validator.validate
       expect(result).to be_valid
     end
   end
-
 end
 
 RSpec.describe LcpRuby::Metadata::ConfigurationValidator::ValidationResult do
   it "is valid when no errors" do
-    result = described_class.new(errors: [], warnings: ["some warning"])
+    result = described_class.new(errors: [], warnings: [ "some warning" ])
     expect(result).to be_valid
   end
 
   it "is not valid when errors exist" do
-    result = described_class.new(errors: ["some error"], warnings: [])
+    result = described_class.new(errors: [ "some error" ], warnings: [])
     expect(result).not_to be_valid
   end
 
   it "formats output with errors and warnings" do
-    result = described_class.new(errors: ["err1"], warnings: ["warn1"])
+    result = described_class.new(errors: [ "err1" ], warnings: [ "warn1" ])
     output = result.to_s
     expect(output).to include("[ERROR] err1")
     expect(output).to include("[WARN]  warn1")

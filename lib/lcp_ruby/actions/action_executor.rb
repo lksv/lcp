@@ -21,7 +21,7 @@ module LcpRuby
             message: "Not authorized to execute this action",
             redirect_to: nil,
             data: nil,
-            errors: ["unauthorized"]
+            errors: [ "unauthorized" ]
           )
         end
 
@@ -33,7 +33,7 @@ module LcpRuby
           message: "Action failed: #{e.message}",
           redirect_to: nil,
           data: nil,
-          errors: [e.message]
+          errors: [ e.message ]
         )
       end
     end

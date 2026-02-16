@@ -98,9 +98,11 @@ Column name. Must be unique within the model. Used as the ActiveRecord attribute
 | | |
 |---|---|
 | **Required** | yes |
-| **Type** | string (one of 14 valid types) |
+| **Type** | string (base type or registered business type) |
 
-Determines the database column type and default form input behavior.
+Determines the database column type and default form input behavior. Accepts one of the 14 base types below, or any registered [business type](types.md) name (e.g., `email`, `phone`, `url`, `color`).
+
+**Base types:**
 
 | Type | DB Column | Description |
 |------|-----------|-------------|
@@ -117,6 +119,17 @@ Determines the database column type and default form input behavior.
 | `rich_text` | `:text` | Rich text content. Default form input: rich text editor. |
 | `json` | `:jsonb` | JSON data stored as PostgreSQL jsonb. |
 | `uuid` | `:string` | UUID stored as string. |
+
+**Built-in business types:**
+
+| Type | Base | Transforms | Input | Description |
+|------|------|------------|-------|-------------|
+| `email` | string | strip, downcase | `<input type="email">` | Email with format validation |
+| `phone` | string | strip, normalize_phone | `<input type="tel">` | Phone with format validation |
+| `url` | string | strip, normalize_url | `<input type="url">` | URL with format validation, auto-prepends `https://` |
+| `color` | string | strip, downcase | `<input type="color">` | Hex color (`#rrggbb`) with format validation |
+
+Business types bundle transforms (normalization), validations, HTML input hints, and column options into a reusable definition. See [Types Reference](types.md) for defining custom types.
 
 #### `label`
 
