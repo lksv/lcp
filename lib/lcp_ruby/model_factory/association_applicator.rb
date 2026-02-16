@@ -53,9 +53,16 @@ module LcpRuby
 
         apply_common_options(opts, assoc)
 
-        @model_class.has_many assoc.name.to_sym, **opts
+        if assoc.order.present?
+          order_clause = normalize_order(assoc.order)
+          @model_class.has_many assoc.name.to_sym, -> { order(order_clause) }, **opts
+        else
+          @model_class.has_many assoc.name.to_sym, **opts
+        end
       end
 
+      # Note: order on has_one selects which record is returned (the first
+      # matching row after ordering), it does not sort a collection.
       def apply_has_one(assoc)
         opts = base_options(assoc)
         opts[:as] = assoc.as.to_sym if assoc.as.present?
@@ -70,7 +77,12 @@ module LcpRuby
 
         apply_common_options(opts, assoc)
 
-        @model_class.has_one assoc.name.to_sym, **opts
+        if assoc.order.present?
+          order_clause = normalize_order(assoc.order)
+          @model_class.has_one assoc.name.to_sym, -> { order(order_clause) }, **opts
+        else
+          @model_class.has_one assoc.name.to_sym, **opts
+        end
       end
 
       def apply_nested_attributes(assoc)
@@ -113,6 +125,17 @@ module LcpRuby
         opts[:inverse_of] = assoc.inverse_of if assoc.inverse_of
         opts[:autosave] = assoc.autosave unless assoc.autosave.nil?
         opts[:validate] = assoc.validate unless assoc.validate.nil?
+      end
+
+      def normalize_order(order)
+        case order
+        when Hash
+          order.transform_keys(&:to_sym).transform_values { |v| v.to_s.downcase.to_sym }
+        when String, Symbol
+          { order.to_sym => :asc }
+        else
+          order
+        end
       end
     end
   end

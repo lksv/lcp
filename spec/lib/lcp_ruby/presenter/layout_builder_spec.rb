@@ -242,6 +242,39 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
       expect(title_field["field_definition"]).to be_a(LcpRuby::Metadata::FieldDefinition)
     end
 
+    context "with sortable" do
+      it "resolves sortable: true to sortable_field 'position'" do
+        sortable_presenter_hash = nested_presenter_hash.deep_dup
+        sortable_presenter_hash["form"]["sections"][1]["sortable"] = true
+        sortable_presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(sortable_presenter_hash)
+
+        sortable_builder = described_class.new(sortable_presenter_def, todo_list_model_def)
+        sections = sortable_builder.form_sections
+        nested_section = sections.find { |s| s["type"] == "nested_fields" }
+
+        expect(nested_section["sortable_field"]).to eq("position")
+      end
+
+      it "resolves sortable: 'sort_order' to sortable_field 'sort_order'" do
+        sortable_presenter_hash = nested_presenter_hash.deep_dup
+        sortable_presenter_hash["form"]["sections"][1]["sortable"] = "sort_order"
+        sortable_presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(sortable_presenter_hash)
+
+        sortable_builder = described_class.new(sortable_presenter_def, todo_list_model_def)
+        sections = sortable_builder.form_sections
+        nested_section = sections.find { |s| s["type"] == "nested_fields" }
+
+        expect(nested_section["sortable_field"]).to eq("sort_order")
+      end
+
+      it "does not set sortable_field when sortable is absent" do
+        sections = nested_builder.form_sections
+        nested_section = sections.find { |s| s["type"] == "nested_fields" }
+
+        expect(nested_section).not_to have_key("sortable_field")
+      end
+    end
+
     it "returns section unchanged when association not found" do
       bad_presenter_hash = nested_presenter_hash.deep_dup
       bad_presenter_hash["form"]["sections"][1]["association"] = "nonexistent"

@@ -1,6 +1,11 @@
+<% sortable_field = section["sortable_field"] %>
+<% visible_fields = (section["fields"] || []).reject { |f| sortable_field && f["field"] == sortable_field } %>
 <div class="lcp-nested-row">
-  <div class="lcp-nested-fields" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || (section['fields'] || []).size %>, 1fr); gap: 0.5rem;">
-    <% (section["fields"] || []).each do |field_config| %>
+  <% if sortable_field %>
+    <span class="lcp-drag-handle">&#9776;</span>
+  <% end %>
+  <div class="lcp-nested-fields" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || visible_fields.size %>, 1fr); gap: 0.5rem;">
+    <% visible_fields.each do |field_config| %>
 
       <% field_def = field_config["field_definition"] %>
       <% next unless field_def %>
@@ -13,6 +18,10 @@
       </div>
     <% end %>
   </div>
+
+  <% if sortable_field %>
+    <%= form.hidden_field sortable_field.to_sym, class: "lcp-position-field" %>
+  <% end %>
 
   <% if section["allow_remove"] != false %>
     <%= form.hidden_field :_destroy, value: false, class: "lcp-destroy-flag" %>

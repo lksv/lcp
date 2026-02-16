@@ -330,6 +330,7 @@ Adds a nested form section for creating and editing associated records inline wi
 | `add_label:` | string | Custom label for the "Add" button |
 | `empty_message:` | string | Message shown when there are no nested records |
 | `columns:` | integer | Number of layout columns for each nested record row |
+| `sortable:` | boolean or string | Enable drag-and-drop reordering. `true` uses `position` field, or pass a string for a custom field name |
 
 Inside the `nested_fields` block, use `field` calls to define which fields of the associated model to display.
 
@@ -349,6 +350,18 @@ form do
   end
 end
 ```
+
+**With sortable (drag-and-drop reordering):**
+
+```ruby
+nested_fields "Items", association: :todo_items,
+  sortable: true, add_label: "Add Item" do
+    field :title
+    field :completed, input_type: :checkbox
+end
+```
+
+Set `sortable: true` to use the default `position` field, or `sortable: "sort_order"` for a custom field name. The position field is hidden from the visible form and auto-permitted in the controller.
 
 ### Form Fields (Section Builder)
 

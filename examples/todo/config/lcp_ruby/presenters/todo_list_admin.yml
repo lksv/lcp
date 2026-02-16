@@ -40,6 +40,7 @@ presenter:
         allow_remove: true
         add_label: "Add Item"
         columns: 3
+        sortable: true
         fields:
           - { field: title, placeholder: "What needs to be done?" }
           - { field: completed, input_type: boolean }
