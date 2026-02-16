@@ -11,6 +11,7 @@ LCP Ruby is a Rails mountable engine that generates full CRUD information system
 Complete attribute reference for every YAML configuration file:
 
 - [Models](reference/models.md) — Fields, validations, associations, scopes, events
+- [Types](reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters](reference/presenters.md) — Index, show, form, search, actions, navigation
 - [Permissions](reference/permissions.md) — Roles, CRUD, field access, scopes, record rules
 - [Condition Operators](reference/condition-operators.md) — Shared operator reference for `visible_when`, `record_rules`, etc.
@@ -20,11 +21,13 @@ Complete attribute reference for every YAML configuration file:
 
 - [Model DSL](reference/model-dsl.md) — Ruby DSL alternative to YAML for model definitions
 - [Presenter DSL](reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenter definitions (with inheritance)
+- [Types](reference/types.md#dsl-type-definition) — Ruby DSL for defining custom business types
 
 ## Guides
 
 - [Custom Actions](guides/custom-actions.md) — Writing domain-specific operations beyond CRUD
 - [Event Handlers](guides/event-handlers.md) — Responding to lifecycle events and field changes
+- [Custom Types](guides/custom-types.md) — Defining custom business types (percentage, postal_code, slug, hex_color)
 - [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate` and `lcp_ruby:erd` rake tasks
 
 ## Internals

@@ -1,6 +1,27 @@
 module LcpRuby
   module Dsl
     class DslLoader
+      def self.load_types(dir)
+        definitions = {}
+        return definitions unless dir.exist?
+
+        Dir[dir.join("*.rb")].sort.each do |file_path|
+          context = TypeEvalContext.new
+          context.instance_eval(File.read(file_path), file_path)
+          context.type_definitions.each do |type_def|
+            if definitions.key?(type_def.name)
+              raise MetadataError,
+                "Duplicate type '#{type_def.name}' in DSL files — conflict at #{file_path}"
+            end
+            definitions[type_def.name] = type_def
+          end
+        rescue SyntaxError => e
+          raise MetadataError, "Ruby DSL syntax error in #{file_path}: #{e.message}"
+        end
+
+        definitions
+      end
+
       def self.load_models(dir)
         definitions = {}
         return definitions unless dir.exist?
@@ -83,9 +104,9 @@ module LcpRuby
                        "Presenter '#{name}' inherits from '#{inherits}', but '#{inherits}' was not found"
                    end
                    builder.to_hash_with_parent(parent_hash)
-                 else
+          else
                    builder.to_hash
-                 end
+          end
 
           resolved_hashes[name] = hash
           definitions << Metadata::PresenterDefinition.from_hash(hash)
@@ -142,6 +163,22 @@ module LcpRuby
           builder.instance_eval(&block)
           hash = builder.to_hash
           @definitions << Metadata::ModelDefinition.from_hash(hash)
+        end
+      end
+
+      # Isolated evaluation context for type DSL files.
+      class TypeEvalContext
+        attr_reader :type_definitions
+
+        def initialize
+          @type_definitions = []
+        end
+
+        def define_type(name, &block)
+          builder = TypeBuilder.new(name)
+          builder.instance_eval(&block)
+          hash = builder.to_hash
+          @type_definitions << Types::TypeDefinition.from_hash(hash)
         end
       end
 

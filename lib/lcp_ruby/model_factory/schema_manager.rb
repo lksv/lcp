@@ -104,6 +104,16 @@ module LcpRuby
       def build_column_options(field)
         options = {}
 
+        # Apply type-level column options first (type defaults)
+        if field.type_definition
+          type_opts = field.type_definition.column_options
+          options[:limit] = type_opts[:limit] if type_opts[:limit]
+          options[:precision] = type_opts[:precision] if type_opts[:precision]
+          options[:scale] = type_opts[:scale] if type_opts[:scale]
+          options[:null] = type_opts[:null] if type_opts.key?(:null)
+        end
+
+        # Overlay field-level column options (field wins)
         col_opts = field.column_options
         options[:limit] = col_opts[:limit] if col_opts[:limit]
         options[:precision] = col_opts[:precision] if col_opts[:precision]

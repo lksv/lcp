@@ -33,6 +33,9 @@ module LcpRuby
       def load_metadata!
         return if @metadata_loaded
 
+        Types::BuiltInServices.register_all!
+        Types::BuiltInTypes.register_all!
+
         loader = LcpRuby.loader
         loader.load_all
 

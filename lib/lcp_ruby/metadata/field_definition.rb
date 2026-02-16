@@ -1,13 +1,16 @@
 module LcpRuby
   module Metadata
     class FieldDefinition
-      VALID_TYPES = %w[
+      BASE_TYPES = %w[
         string text integer float decimal boolean
         date datetime enum file rich_text json uuid
       ].freeze
 
+      # Backward compatibility
+      VALID_TYPES = BASE_TYPES
+
       attr_reader :name, :type, :label, :column_options, :validations,
-                  :enum_values, :default
+                  :enum_values, :default, :type_definition
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -19,6 +22,7 @@ module LcpRuby
         @default = attrs[:default]
 
         validate!
+        resolve_type_definition!
       end
 
       def self.from_hash(hash)
@@ -34,13 +38,17 @@ module LcpRuby
       end
 
       def column_type
-        case type
-        when "enum" then :string
-        when "rich_text" then :text
-        when "uuid" then :string
-        when "json" then :jsonb
-        when "file" then :string
-        else type.to_sym
+        if @type_definition
+          @type_definition.column_type
+        else
+          case type
+          when "enum" then :string
+          when "rich_text" then :text
+          when "uuid" then :string
+          when "json" then :jsonb
+          when "file" then :string
+          else type.to_sym
+          end
         end
       end
 
@@ -56,7 +64,14 @@ module LcpRuby
 
       def validate!
         raise MetadataError, "Field name is required" if @name.blank?
-        raise MetadataError, "Field type '#{@type}' is invalid for field '#{@name}'" unless VALID_TYPES.include?(@type)
+
+        unless BASE_TYPES.include?(@type) || Types::TypeRegistry.registered?(@type)
+          raise MetadataError, "Field type '#{@type}' is invalid for field '#{@name}'"
+        end
+      end
+
+      def resolve_type_definition!
+        @type_definition = Types::TypeRegistry.resolve(@type)
       end
 
       def self.symbolize_keys(hash)

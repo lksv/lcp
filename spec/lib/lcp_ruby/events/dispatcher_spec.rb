@@ -52,10 +52,10 @@ RSpec.describe LcpRuby::Events::Dispatcher do
       LcpRuby::Events::HandlerRegistry.register("project", "after_update", test_handler)
 
       record = @model_class.create!(title: "Before")
-      changes = { "title" => ["Before", "After"] }
+      changes = { "title" => [ "Before", "After" ] }
       described_class.dispatch(event_name: "after_update", record: record, changes: changes)
 
-      expect(received_changes).to eq("title" => ["Before", "After"])
+      expect(received_changes).to eq("title" => [ "Before", "After" ])
     end
   end
 end

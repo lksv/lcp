@@ -23,7 +23,7 @@ define_model :deal do
   belongs_to :company, model: :company, required: true
   belongs_to :contact, model: :contact, required: false
 
-  scope :open_deals, where_not: { stage: ["closed_won", "closed_lost"] }
+  scope :open_deals, where_not: { stage: [ "closed_won", "closed_lost" ] }
   scope :won,        where: { stage: "closed_won" }
   scope :lost,       where: { stage: "closed_lost" }
 

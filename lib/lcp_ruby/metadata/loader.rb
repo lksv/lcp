@@ -13,10 +13,21 @@ module LcpRuby
       end
 
       def load_all
+        load_types
         load_models
         load_presenters
         load_permissions
         validate_references
+      end
+
+      def load_types
+        load_yamls("types") do |data, file_path|
+          type_data = data["type"] || raise(MetadataError, "Missing 'type' key in #{file_path}")
+          type_def = Types::TypeDefinition.from_hash(type_data)
+          Types::TypeRegistry.register(type_def.name, type_def)
+        end
+
+        load_dsl_types("types")
       end
 
       def load_models
@@ -72,6 +83,17 @@ module LcpRuby
           yield(data, file_path)
         rescue Psych::SyntaxError => e
           raise MetadataError, "YAML syntax error in #{file_path}: #{e.message}"
+        end
+      end
+
+      def load_dsl_types(subdirectory)
+        dir = base_path.join(subdirectory)
+        Dsl::DslLoader.load_types(dir).each do |name, type_def|
+          if Types::TypeRegistry.registered?(name)
+            raise MetadataError,
+              "Duplicate type '#{name}' — already loaded, conflict in DSL files"
+          end
+          Types::TypeRegistry.register(name, type_def)
         end
       end
 

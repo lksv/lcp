@@ -46,7 +46,7 @@ define_presenter :deal_admin do
   action :close_won, type: :custom, on: :single,
     label: "Close as Won", icon: "check-circle",
     confirm: true, confirm_message: "Mark this deal as won?",
-    visible_when: { field: :stage, operator: :not_in, value: [:closed_won, :closed_lost] }
+    visible_when: { field: :stage, operator: :not_in, value: [ :closed_won, :closed_lost ] }
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
 
   navigation menu: :main, position: 3

@@ -157,11 +157,11 @@ module LcpRuby
         condition.each do |k, v|
           key = k.to_s
           result[key] = case v
-                        when Symbol then v.to_s
-                        when Array then v.map { |item| item.is_a?(Symbol) ? item.to_s : item }
-                        when Hash then stringify_visible_when(v)
-                        else v
-                        end
+          when Symbol then v.to_s
+          when Array then v.map { |item| item.is_a?(Symbol) ? item.to_s : item }
+          when Hash then stringify_visible_when(v)
+          else v
+          end
         end
         result
       end

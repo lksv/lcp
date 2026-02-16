@@ -20,7 +20,7 @@ module LcpRuby
             defaults = { lcp_presenter: presenter_name }
 
             if presenter.read_only?
-              router.resources slug, only: [:index, :show], controller: "resources", defaults: defaults
+              router.resources slug, only: [ :index, :show ], controller: "resources", defaults: defaults
             else
               router.resources slug, controller: "resources", defaults: defaults do
                 router.member do

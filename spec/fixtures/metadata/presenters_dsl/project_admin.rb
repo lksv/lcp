@@ -54,7 +54,7 @@ define_presenter :project_admin do
   action :archive, type: :custom, on: :single,
     label: "Archive", icon: "archive",
     confirm: true, confirm_message: "Archive this project?",
-    visible_when: { field: :status, operator: :not_in, value: [:archived, :completed] },
+    visible_when: { field: :status, operator: :not_in, value: [ :archived, :completed ] },
     style: :danger
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
 

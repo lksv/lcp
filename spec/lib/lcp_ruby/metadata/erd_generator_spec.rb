@@ -137,6 +137,11 @@ RSpec.describe LcpRuby::Metadata::ErdGenerator do
 
   context "with CRM fixtures" do
     let(:fixtures_path) { File.expand_path("../../../fixtures/integration/crm", __dir__) }
+    let(:loader) do
+      LcpRuby::Types::BuiltInServices.register_all!
+      LcpRuby::Types::BuiltInTypes.register_all!
+      LcpRuby::Metadata::Loader.new(fixtures_path)
+    end
 
     describe "Mermaid format" do
       subject(:diagram) { generator.generate(:mermaid) }

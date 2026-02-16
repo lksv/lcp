@@ -20,6 +20,10 @@ module IntegrationHelper
       LcpRuby::Dynamic.send(:remove_const, const)
     end
 
+    # Register built-in types and services
+    LcpRuby::Types::BuiltInServices.register_all!
+    LcpRuby::Types::BuiltInTypes.register_all!
+
     # Configure and load
     LcpRuby.configuration.metadata_path = fixture_path
     LcpRuby.configuration.auto_migrate = true
@@ -49,7 +53,7 @@ module IntegrationHelper
     connection = ActiveRecord::Base.connection
 
     Dir[File.join(models_dir, "*.yml")].each do |file|
-      data = YAML.safe_load_file(file, permitted_classes: [Symbol, Regexp])
+      data = YAML.safe_load_file(file, permitted_classes: [ Symbol, Regexp ])
       next unless data && data["model"]
 
       model_name = data["model"]["name"]

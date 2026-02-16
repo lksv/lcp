@@ -151,7 +151,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       end
       hash = builder.to_hash
 
-      expect(hash["index"]["table_columns"]).to eq([{ "field" => "title" }])
+      expect(hash["index"]["table_columns"]).to eq([ { "field" => "title" } ])
     end
   end
 
@@ -327,7 +327,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
 
       search = hash["search"]
       expect(search["enabled"]).to eq(true)
-      expect(search["searchable_fields"]).to eq(["title"])
+      expect(search["searchable_fields"]).to eq([ "title" ])
       expect(search["placeholder"]).to eq("Search deals...")
       expect(search["predefined_filters"]).to eq([
         { "name" => "all", "label" => "All", "default" => true },
@@ -426,7 +426,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         action :close_won, type: :custom, on: :single,
           label: "Close as Won", icon: "check-circle",
           confirm: true, confirm_message: "Mark this deal as won?",
-          visible_when: { field: :stage, operator: :not_in, value: [:closed_won, :closed_lost] }
+          visible_when: { field: :stage, operator: :not_in, value: [ :closed_won, :closed_lost ] }
       end
       hash = builder.to_hash
 
@@ -488,21 +488,21 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         "index" => {
           "default_view" => "table",
           "per_page" => 25,
-          "table_columns" => [{ "field" => "title" }]
+          "table_columns" => [ { "field" => "title" } ]
         },
         "show" => {
-          "layout" => [{ "section" => "Info", "fields" => [{ "field" => "title" }] }]
+          "layout" => [ { "section" => "Info", "fields" => [ { "field" => "title" } ] } ]
         },
         "form" => {
-          "sections" => [{ "title" => "Details", "fields" => [{ "field" => "title" }] }]
+          "sections" => [ { "title" => "Details", "fields" => [ { "field" => "title" } ] } ]
         },
         "search" => {
           "enabled" => true,
-          "searchable_fields" => ["title"]
+          "searchable_fields" => [ "title" ]
         },
         "actions" => {
-          "collection" => [{ "name" => "create", "type" => "built_in" }],
-          "single" => [{ "name" => "show", "type" => "built_in" }]
+          "collection" => [ { "name" => "create", "type" => "built_in" } ],
+          "single" => [ { "name" => "show", "type" => "built_in" } ]
         },
         "navigation" => { "menu" => "main", "position" => 3 }
       }
@@ -573,7 +573,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       merged = builder.to_hash_with_parent(parent_hash)
 
       expect(merged["actions"]).to eq({
-        "single" => [{ "name" => "show", "type" => "built_in", "icon" => "eye" }]
+        "single" => [ { "name" => "show", "type" => "built_in", "icon" => "eye" } ]
       })
     end
 
@@ -679,7 +679,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         action :archive, type: :custom, on: :single,
           label: "Archive", icon: "archive",
           confirm: true, confirm_message: "Archive this project?",
-          visible_when: { field: :status, operator: :not_in, value: [:archived, :completed] },
+          visible_when: { field: :status, operator: :not_in, value: [ :archived, :completed ] },
           style: :danger
         action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
 

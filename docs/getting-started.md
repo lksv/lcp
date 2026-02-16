@@ -44,6 +44,7 @@ Create the metadata directories:
 
 ```
 config/lcp_ruby/
+  types/          # Custom business type definitions (optional)
   models/         # Model definitions (fields, associations, scopes, events)
   presenters/     # UI definitions (index, show, form, actions, navigation)
   permissions/    # Role-based access control
@@ -184,6 +185,7 @@ Visit `http://localhost:3000/admin/tasks` to see your task management interface.
 ## Next Steps
 
 - [Models Reference](reference/models.md) — Add associations, scopes, events, and complex validations
+- [Types Reference](reference/types.md) — Use business types (email, phone, url, color) or define custom ones
 - [Custom Actions](guides/custom-actions.md) — Add domain-specific operations
 - [Event Handlers](guides/event-handlers.md) — React to model changes
 - [Developer Tools](guides/developer-tools.md) — Validate configuration and generate ERD diagrams
