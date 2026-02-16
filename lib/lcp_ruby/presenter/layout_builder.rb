@@ -86,11 +86,17 @@ module LcpRuby
           end
         end.compact
 
-        section.merge(
+        result = section.merge(
           "fields" => fields,
           "association_definition" => assoc,
           "target_model_definition" => target_def
         )
+
+        if section["sortable"]
+          result["sortable_field"] = section["sortable"].is_a?(String) ? section["sortable"] : "position"
+        end
+
+        result
       end
     end
   end

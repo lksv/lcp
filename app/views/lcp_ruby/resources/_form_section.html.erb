@@ -1,6 +1,7 @@
 <% if section["type"] == "nested_fields" %>
   <fieldset class="lcp-form-section lcp-nested-section"
-            data-nested-max="<%= section['max'] %>" data-nested-min="<%= section['min'] || 0 %>">
+            data-nested-max="<%= section['max'] %>" data-nested-min="<%= section['min'] || 0 %>"
+            <% if section['sortable_field'] %>data-sortable="true" data-sortable-field="<%= section['sortable_field'] %>"<% end %>>
     <legend><%= section["title"] %></legend>
     <div class="lcp-nested-container">
       <%= form.fields_for section["association"].to_sym do |nf| %>

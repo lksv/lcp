@@ -507,6 +507,54 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(section["fields"][1]["input_type"]).to eq("number")
     end
 
+    it "supports sortable: true on nested_fields" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :order
+        form do
+          nested_fields "Items", association: :items, sortable: true do
+            field :name
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section["sortable"]).to eq(true)
+    end
+
+    it "supports sortable: 'sort_order' on nested_fields" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :order
+        form do
+          nested_fields "Items", association: :items, sortable: "sort_order" do
+            field :name
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section["sortable"]).to eq("sort_order")
+    end
+
+    it "omits sortable when false (default)" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :order
+        form do
+          nested_fields "Items", association: :items do
+            field :name
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section).not_to have_key("sortable")
+    end
+
     it "supports nested_fields with defaults" do
       builder = described_class.new(:test)
       builder.instance_eval do

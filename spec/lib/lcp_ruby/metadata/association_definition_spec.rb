@@ -166,6 +166,44 @@ RSpec.describe LcpRuby::Metadata::AssociationDefinition do
     end
   end
 
+  describe "order" do
+    it "stores order hash" do
+      assoc = described_class.new(
+        type: "has_many", name: "items", target_model: "item",
+        order: { "position" => "asc" }
+      )
+      expect(assoc.order).to eq({ "position" => "asc" })
+    end
+
+    it "stores nil when order is not provided" do
+      assoc = described_class.new(
+        type: "has_many", name: "items", target_model: "item"
+      )
+      expect(assoc.order).to be_nil
+    end
+  end
+
+  describe ".from_hash with order" do
+    it "reads order from hash" do
+      assoc = described_class.from_hash(
+        "type" => "has_many",
+        "name" => "items",
+        "target_model" => "item",
+        "order" => { "position" => "asc" }
+      )
+      expect(assoc.order).to eq({ "position" => "asc" })
+    end
+
+    it "reads nil order when not in hash" do
+      assoc = described_class.from_hash(
+        "type" => "has_many",
+        "name" => "items",
+        "target_model" => "item"
+      )
+      expect(assoc.order).to be_nil
+    end
+  end
+
   describe "validation" do
     it "raises for invalid type" do
       expect {

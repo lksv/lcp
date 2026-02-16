@@ -484,6 +484,109 @@ RSpec.describe "TODO App Integration", type: :request do
     end
   end
 
+  describe "Sortable nested forms" do
+    it "renders drag handles on nested form" do
+      get "/admin/lists/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-drag-handle")
+    end
+
+    it "renders data-sortable attribute on nested section" do
+      get "/admin/lists/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('data-sortable="true"')
+      expect(response.body).to include('data-sortable-field="position"')
+    end
+
+    it "renders hidden position field" do
+      get "/admin/lists/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-position-field")
+    end
+
+    it "does not render position as a visible field" do
+      get "/admin/lists/new"
+
+      expect(response).to have_http_status(:ok)
+      # The position field label should not appear as a visible form field
+      expect(response.body).not_to match(/<label[^>]*>Position<\/label>/)
+    end
+
+    it "creates records with position values" do
+      post "/admin/lists", params: {
+        record: {
+          title: "Sorted List",
+          todo_items_attributes: {
+            "0" => { title: "First", completed: false, position: 0 },
+            "1" => { title: "Second", completed: false, position: 1 },
+            "2" => { title: "Third", completed: false, position: 2 }
+          }
+        }
+      }
+
+      expect(response).to have_http_status(:redirect)
+      list = todo_list_model.last
+      items = list.todo_items
+      expect(items.map(&:title)).to eq(%w[First Second Third])
+      expect(items.map(&:position)).to eq([ 0, 1, 2 ])
+    end
+
+    it "updates positions correctly (reorder)" do
+      list = todo_list_model.create!(title: "Reorder List")
+      item1 = todo_item_model.create!(title: "A", todo_list_id: list.id, position: 0)
+      item2 = todo_item_model.create!(title: "B", todo_list_id: list.id, position: 1)
+      item3 = todo_item_model.create!(title: "C", todo_list_id: list.id, position: 2)
+
+      patch "/admin/lists/#{list.id}", params: {
+        record: {
+          title: "Reorder List",
+          todo_items_attributes: {
+            "0" => { id: item1.id, title: "A", position: 2 },
+            "1" => { id: item2.id, title: "B", position: 0 },
+            "2" => { id: item3.id, title: "C", position: 1 }
+          }
+        }
+      }
+
+      expect(response).to have_http_status(:redirect)
+      items = list.todo_items.reload
+      expect(items.map(&:title)).to eq(%w[B C A])
+    end
+
+    it "loads existing items in position order on edit form" do
+      list = todo_list_model.create!(title: "Ordered List")
+      todo_item_model.create!(title: "Zeta Item", todo_list_id: list.id, position: 2)
+      todo_item_model.create!(title: "Alpha Item", todo_list_id: list.id, position: 0)
+      todo_item_model.create!(title: "Mu Item", todo_list_id: list.id, position: 1)
+
+      get "/admin/lists/#{list.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      body = response.body
+      # Extract input values from nested fields to verify order
+      input_values = body.scan(/value="((?:Alpha|Mu|Zeta) Item)"/).flatten
+      expect(input_values).to eq([ "Alpha Item", "Mu Item", "Zeta Item" ])
+    end
+
+    it "auto-permits position field" do
+      expect {
+        post "/admin/lists", params: {
+          record: {
+            title: "Position Test",
+            todo_items_attributes: {
+              "0" => { title: "Item", completed: false, position: 5 }
+            }
+          }
+        }
+      }.to change { todo_item_model.count }.by(1)
+
+      expect(todo_item_model.last.position).to eq(5)
+    end
+  end
+
   describe "Nested permits (build_nested_permits)" do
     it "permits nested attributes based on model association" do
       expect {

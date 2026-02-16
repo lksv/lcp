@@ -423,6 +423,7 @@ has_one :address, model: :address, dependent: :destroy,
 | `autosave:` | `AssociationDefinition.autosave` | Auto-save associated records when parent is saved. |
 | `validate:` | `AssociationDefinition.validate` | Validate associated records on save. Set `false` to skip. |
 | `nested_attributes:` | `AssociationDefinition.nested_attributes` | `has_many`/`has_one` only. Hash with nested attributes options: `allow_destroy:`, `reject_if:`, `limit:`, `update_only:`. Requires `inverse_of:`. See [Nested Attributes](models.md#nested-attributes). |
+| `order:` | `AssociationDefinition.order` | `has_many`/`has_one` only. Default ordering for associated records. Hash with column names as keys and `:asc`/`:desc` as values, or a single symbol for ascending order. |
 
 At least one of `model:`, `class_name:`, `polymorphic:`, `as:`, or `through:` is required. Use `model:` for LCP models; use `class_name:` for host app models.
 
@@ -450,6 +451,10 @@ belongs_to :project, model: :project, touch: true
 
 # Inverse of
 has_many :tasks, model: :task, inverse_of: :project, dependent: :destroy
+
+# Ordered association (for sortable nested forms)
+has_many :items, model: :item, dependent: :destroy,
+  inverse_of: :list, order: { position: :asc }
 ```
 
 ## Scopes
@@ -531,6 +536,7 @@ The DSL produces the exact same hash structure as parsed YAML. Every DSL constru
 | `belongs_to :x, polymorphic: true` | `associations: [{ type: belongs_to, name: x, polymorphic: true }]` |
 | `has_many :x, through: :y` | `associations: [{ type: has_many, name: x, through: y }]` |
 | `has_many :x, ..., nested_attributes: { allow_destroy: true }` | `associations: [{ ..., nested_attributes: { allow_destroy: true } }]` |
+| `has_many :x, ..., order: { position: :asc }` | `associations: [{ ..., order: { position: asc } }]` |
 | `scope :a, where: { ... }` | `scopes: [{ name: a, where: { ... } }]` |
 | `after_create` | `events: [{ name: after_create }]` |
 | `on_field_change :e, field: :f` | `events: [{ name: e, type: field_change, field: f }]` |

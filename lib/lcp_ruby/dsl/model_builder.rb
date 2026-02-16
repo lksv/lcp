@@ -211,6 +211,15 @@ module LcpRuby
           assoc_hash["nested_attributes"] = na.is_a?(Hash) ? stringify_keys(na) : na
         end
 
+        # Order
+        if options.key?(:order)
+          assoc_hash["order"] = case options[:order]
+          when Hash then stringify_keys(options[:order])
+          when Symbol, String then { options[:order].to_s => "asc" }
+          else options[:order]
+          end
+        end
+
         @associations << assoc_hash
       end
 

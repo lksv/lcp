@@ -693,6 +693,30 @@ associations:
     validate: false
 ```
 
+#### `order`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none |
+| **Type** | hash |
+| **Applies to** | `has_many`, `has_one` |
+
+Default ordering for associated records. The engine passes this as a scope lambda to the ActiveRecord association. Keys are column names, values are `asc` or `desc`.
+
+```yaml
+associations:
+  - type: has_many
+    name: todo_items
+    target_model: todo_item
+    order:
+      position: asc
+```
+
+This generates: `has_many :todo_items, -> { order(position: :asc) }, ...`
+
+Useful for sortable nested forms where child records have a position field.
+
 ## Nested Attributes
 
 Associations can declare `nested_attributes` to enable creating and updating associated records through the parent model's form. This uses Rails' `accepts_nested_attributes_for` under the hood.

@@ -7,7 +7,7 @@ module LcpRuby
       attr_reader :type, :name, :target_model, :class_name, :foreign_key,
                   :dependent, :required, :inverse_of, :counter_cache, :touch,
                   :polymorphic, :as, :through, :source, :autosave, :validate,
-                  :nested_attributes
+                  :nested_attributes, :order
 
       def initialize(attrs = {})
         @type = attrs[:type].to_s
@@ -38,6 +38,9 @@ module LcpRuby
         # Nested attributes
         @nested_attributes = parse_nested_attributes(attrs[:nested_attributes])
 
+        # Order (for has_many/has_one default ordering)
+        @order = attrs[:order]
+
         validate!
       end
 
@@ -59,7 +62,8 @@ module LcpRuby
           source: hash["source"],
           autosave: hash["autosave"],
           validate: hash["validate"],
-          nested_attributes: hash["nested_attributes"]
+          nested_attributes: hash["nested_attributes"],
+          order: hash["order"]
         )
       end
 

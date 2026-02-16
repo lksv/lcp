@@ -101,6 +101,10 @@ module LcpRuby
         child_fields = (section["fields"] || []).map { |f| f["field"].to_sym }
         child_fields += [ :id ]
         child_fields << :_destroy if assoc.nested_attributes["allow_destroy"]
+
+        pos = sortable_position_field(section)
+        child_fields << pos.to_sym unless pos.nil? || child_fields.include?(pos.to_sym)
+
         nested["#{assoc.name}_attributes".to_sym] = child_fields
       end
       nested
@@ -188,11 +192,21 @@ module LcpRuby
         next unless min > 0
 
         if record.respond_to?(assoc_name) && record.send(assoc_name).size < min
-          (min - record.send(assoc_name).size).times do
-            record.send(assoc_name).build
+          existing_count = record.send(assoc_name).size
+          pos = sortable_position_field(section)
+          (min - existing_count).times do |i|
+            new_record = record.send(assoc_name).build
+            if pos && new_record.respond_to?("#{pos}=")
+              new_record[pos] = existing_count + i
+            end
           end
         end
       end
+    end
+
+    def sortable_position_field(section)
+      return unless section["sortable"]
+      section["sortable"].is_a?(String) ? section["sortable"] : "position"
     end
 
     # Pundit uses model class to find policy

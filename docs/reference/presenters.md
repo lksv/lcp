@@ -943,6 +943,31 @@ form:
 | `max` | integer | - | Maximum number of child records allowed |
 | `empty_message` | string | - | Message displayed when there are no child records |
 | `columns` | array | - | Field definitions for each child record row (same format as form fields) |
+| `sortable` | boolean or string | `false` | Enable drag-and-drop reordering. Set to `true` to use a `position` field, or a string to specify a custom position field name |
+
+##### Sortable Nested Forms
+
+When `sortable` is set, nested form rows get drag handles for reordering via HTML5 Drag and Drop. The position field is automatically hidden from the visible form fields and rendered as a hidden input that updates on drag. The position field is also auto-permitted in the controller.
+
+```yaml
+form:
+  sections:
+    - title: "Items"
+      type: nested_fields
+      association: line_items
+      sortable: true
+      fields:
+        - { field: name }
+        - { field: quantity, input_type: number }
+```
+
+The child model should have an integer position field, and the parent association should specify `order: { position: asc }` to load children in the correct order.
+
+**Custom position field name:**
+
+```yaml
+sortable: "sort_order"
+```
 
 #### How Association Selects Work
 

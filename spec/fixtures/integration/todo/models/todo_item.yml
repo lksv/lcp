@@ -22,6 +22,11 @@ model:
       type: date
       label: "Due Date"
 
+    - name: position
+      type: integer
+      label: "Position"
+      default: 0
+
   associations:
     - type: belongs_to
       name: todo_list

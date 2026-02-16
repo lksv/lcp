@@ -26,6 +26,8 @@ model:
       foreign_key: todo_list_id
       dependent: destroy
       inverse_of: todo_list
+      order:
+        position: asc
       nested_attributes:
         allow_destroy: true
         reject_if: all_blank

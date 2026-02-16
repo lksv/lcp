@@ -4,6 +4,43 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
   # Use a fresh anonymous class for each test to avoid state leakage
   let(:model_class) { Class.new(ActiveRecord::Base) { self.abstract_class = true } }
 
+  describe "order scope" do
+    it "applies order scope lambda to has_many when order is present" do
+      assoc = LcpRuby::Metadata::AssociationDefinition.new(
+        type: "has_many", name: "items", target_model: "item",
+        order: { "position" => "asc" }
+      )
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+
+      expect(model_class).to receive(:has_many).with(:items, kind_of(Proc), hash_including)
+
+      described_class.new(model_class, model_def).apply!
+    end
+
+    it "does not apply order scope when order is nil" do
+      assoc = LcpRuby::Metadata::AssociationDefinition.new(
+        type: "has_many", name: "items", target_model: "item"
+      )
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+
+      expect(model_class).to receive(:has_many).with(:items, hash_including)
+
+      described_class.new(model_class, model_def).apply!
+    end
+
+    it "applies order scope lambda to has_one when order is present" do
+      assoc = LcpRuby::Metadata::AssociationDefinition.new(
+        type: "has_one", name: "latest_item", target_model: "item",
+        order: { "created_at" => "desc" }
+      )
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+
+      expect(model_class).to receive(:has_one).with(:latest_item, kind_of(Proc), hash_including)
+
+      described_class.new(model_class, model_def).apply!
+    end
+  end
+
   describe "#apply_nested_attributes" do
     it "calls accepts_nested_attributes_for with allow_destroy" do
       assoc = LcpRuby::Metadata::AssociationDefinition.new(
