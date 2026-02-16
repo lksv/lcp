@@ -11,13 +11,13 @@ module LcpRuby
         @label = attrs[:label] || @name.humanize
         @slug = attrs[:slug]
         @icon = attrs[:icon]
-        @index_config = attrs[:index_config] || {}
-        @show_config = attrs[:show_config] || {}
-        @form_config = attrs[:form_config] || {}
-        @search_config = attrs[:search_config] || {}
-        @actions_config = attrs[:actions_config] || {}
-        @navigation_config = attrs[:navigation_config] || {}
-        @options = attrs[:options] || {}
+        @index_config = HashUtils.stringify_deep(attrs[:index_config] || {})
+        @show_config = HashUtils.stringify_deep(attrs[:show_config] || {})
+        @form_config = HashUtils.stringify_deep(attrs[:form_config] || {})
+        @search_config = HashUtils.stringify_deep(attrs[:search_config] || {})
+        @actions_config = HashUtils.stringify_deep(attrs[:actions_config] || {})
+        @navigation_config = HashUtils.stringify_deep(attrs[:navigation_config] || {})
+        @options = HashUtils.stringify_deep(attrs[:options] || {})
 
         validate!
       end

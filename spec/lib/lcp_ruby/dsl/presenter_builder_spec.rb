@@ -153,6 +153,63 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
 
       expect(hash["index"]["table_columns"]).to eq([ { "field" => "title" } ])
     end
+
+    it "produces row_click" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        index do
+          row_click :show
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]["row_click"]).to eq("show")
+    end
+
+    it "produces empty_message" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        index do
+          empty_message "No deals yet."
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]["empty_message"]).to eq("No deals yet.")
+    end
+
+    it "produces actions_position" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        index do
+          actions_position :dropdown
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]["actions_position"]).to eq("dropdown")
+    end
+
+    it "produces column with display_options, hidden_on, pinned, and summary" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        index do
+          column :stage, display: :badge, display_options: { color_map: { open: "blue" } }
+          column :value, summary: :sum, hidden_on: :mobile, pinned: :left
+        end
+      end
+      hash = builder.to_hash
+
+      columns = hash["index"]["table_columns"]
+      expect(columns[0]["display_options"]).to eq({ "color_map" => { "open" => "blue" } })
+      expect(columns[1]["summary"]).to eq("sum")
+      expect(columns[1]["hidden_on"]).to eq("mobile")
+      expect(columns[1]["pinned"]).to eq("left")
+    end
   end
 
   describe "show block" do
@@ -238,6 +295,45 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(layout[0]["section"]).to eq("Overview")
       expect(layout[1]["section"]).to eq("Details")
     end
+
+    it "supports responsive option on sections" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        show do
+          section "Info", columns: 3, responsive: { mobile: { columns: 1 }, tablet: { columns: 2 } } do
+            field :title, display: :heading
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["show"]["layout"][0]
+      expect(section["responsive"]).to eq({
+        "mobile" => { "columns" => 1 },
+        "tablet" => { "columns" => 2 }
+      })
+    end
+
+    it "supports col_span, hidden_on, and display_options on fields" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        show do
+          section "Info", columns: 2 do
+            field :title, display: :heading, col_span: 2
+            field :phone, display: :phone_link, hidden_on: :mobile
+            field :value, display: :currency, display_options: { currency: "$", precision: 2 }
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      fields = hash["show"]["layout"][0]["fields"]
+      expect(fields[0]["col_span"]).to eq(2)
+      expect(fields[1]["hidden_on"]).to eq("mobile")
+      expect(fields[2]["display_options"]).to eq({ "currency" => "$", "precision" => 2 })
+    end
   end
 
   describe "form block" do
@@ -308,6 +404,189 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(sections[0]["columns"]).to eq(2)
       expect(sections[1]["columns"]).to eq(1)
       expect(sections[2]["columns"]).to eq(3)
+    end
+
+    it "supports layout option" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        form do
+          layout :tabs
+          section "Tab 1" do
+            field :title
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["form"]["layout"]).to eq("tabs")
+    end
+
+    it "supports collapsible and collapsed options" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        form do
+          section "Notes", collapsible: true, collapsed: true do
+            field :notes, input_type: :textarea
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section["collapsible"]).to eq(true)
+      expect(section["collapsed"]).to eq(true)
+    end
+
+    it "omits collapsible/collapsed when false" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        form do
+          section "Normal" do
+            field :title
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section).not_to have_key("collapsible")
+      expect(section).not_to have_key("collapsed")
+    end
+
+    it "supports responsive on form sections" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        form do
+          section "Info", columns: 2, responsive: { mobile: { columns: 1 } } do
+            field :title
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["form"]["sections"][0]["responsive"]).to eq({
+        "mobile" => { "columns" => 1 }
+      })
+    end
+
+    it "supports nested_fields" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :order
+        form do
+          nested_fields "Line Items", association: :line_items,
+            allow_add: true, allow_remove: true,
+            min: 1, max: 20,
+            add_label: "Add Item",
+            empty_message: "No items.",
+            columns: 3 do
+              field :product_name
+              field :quantity, input_type: :number
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section["type"]).to eq("nested_fields")
+      expect(section["title"]).to eq("Line Items")
+      expect(section["association"]).to eq("line_items")
+      expect(section["allow_add"]).to eq(true)
+      expect(section["allow_remove"]).to eq(true)
+      expect(section["min"]).to eq(1)
+      expect(section["max"]).to eq(20)
+      expect(section["add_label"]).to eq("Add Item")
+      expect(section["empty_message"]).to eq("No items.")
+      expect(section["columns"]).to eq(3)
+      expect(section["fields"].length).to eq(2)
+      expect(section["fields"][0]["field"]).to eq("product_name")
+      expect(section["fields"][1]["input_type"]).to eq("number")
+    end
+
+    it "supports nested_fields with defaults" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :order
+        form do
+          nested_fields "Items", association: :items do
+            field :name
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section["allow_add"]).to eq(true)
+      expect(section["allow_remove"]).to eq(true)
+      expect(section).not_to have_key("min")
+      expect(section).not_to have_key("max")
+      expect(section).not_to have_key("add_label")
+    end
+
+    it "supports divider pseudo-field" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :contact
+        form do
+          section "Info", columns: 2 do
+            field :first_name
+            field :last_name
+            divider label: "Contact"
+            field :email
+            field :phone
+            divider
+            field :notes
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      fields = hash["form"]["sections"][0]["fields"]
+      expect(fields.length).to eq(7)
+      expect(fields[2]).to eq({ "type" => "divider", "label" => "Contact" })
+      expect(fields[5]).to eq({ "type" => "divider" })
+    end
+
+    it "supports col_span, hint, readonly, suffix, hidden_on on form fields" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        form do
+          section "Details" do
+            field :title, col_span: 2, hint: "Help text"
+            field :code, readonly: true
+            field :weight, suffix: "kg", hidden_on: :mobile
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      fields = hash["form"]["sections"][0]["fields"]
+      expect(fields[0]["col_span"]).to eq(2)
+      expect(fields[0]["hint"]).to eq("Help text")
+      expect(fields[1]["readonly"]).to eq(true)
+      expect(fields[2]["suffix"]).to eq("kg")
+      expect(fields[2]["hidden_on"]).to eq("mobile")
+    end
+
+    it "supports visible_when as string on form fields" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        form do
+          section "Details" do
+            field :discount_reason, visible_when: "discounted?"
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      field = hash["form"]["sections"][0]["fields"][0]
+      expect(field["visible_when"]).to eq("discounted?")
     end
   end
 

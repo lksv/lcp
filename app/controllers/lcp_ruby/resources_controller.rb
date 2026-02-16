@@ -7,6 +7,9 @@ module LcpRuby
       scope = policy_scope(@model_class)
       scope = apply_search(scope)
       scope = apply_sort(scope)
+
+      @summaries = compute_summaries(scope) if summary_columns_present?
+
       @records = scope.page(params[:page]).per(current_presenter.per_page)
 
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
@@ -23,6 +26,8 @@ module LcpRuby
     def new
       @record = @model_class.new
       authorize @record
+      apply_dynamic_defaults(@record)
+      build_nested_records(@record)
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
     end
 
@@ -74,7 +79,37 @@ module LcpRuby
         .select { |a| a.type == "belongs_to" && a.foreign_key.present? }
         .map { |a| a.foreign_key.to_sym }
 
-      params.require(:record).permit(*(writable + fk_fields).uniq)
+      flat_fields = (writable + fk_fields).uniq
+      nested = build_nested_permits
+
+      if nested.any?
+        params.require(:record).permit(*flat_fields, **nested)
+      else
+        params.require(:record).permit(*flat_fields)
+      end
+    end
+
+    def build_nested_permits
+      nested = {}
+      current_model_definition.associations.select { |a| a.nested_attributes }.each do |assoc|
+        section = find_nested_section_for(assoc.name)
+        next unless section
+
+        target_def = LcpRuby.loader.model_definition(assoc.target_model)
+        next unless target_def
+
+        child_fields = (section["fields"] || []).map { |f| f["field"].to_sym }
+        child_fields += [ :id ]
+        child_fields << :_destroy if assoc.nested_attributes["allow_destroy"]
+        nested["#{assoc.name}_attributes".to_sym] = child_fields
+      end
+      nested
+    end
+
+    def find_nested_section_for(assoc_name)
+      (current_presenter.form_config["sections"] || []).find do |s|
+        s["type"] == "nested_fields" && s["association"] == assoc_name
+      end
     end
 
     def apply_search(scope)
@@ -104,6 +139,60 @@ module LcpRuby
       direction = "asc" unless %w[asc desc].include?(direction.to_s.downcase)
 
       scope.order(field => direction)
+    end
+
+    def summary_columns_present?
+      current_presenter.table_columns.any? { |c| c["summary"].present? }
+    end
+
+    def compute_summaries(scope)
+      columns = current_presenter.table_columns.select { |c| c["summary"].present? }
+      columns.each_with_object({}) do |col, h|
+        field = col["field"]
+        next unless @model_class.column_names.include?(field)
+
+        case col["summary"]
+        when "sum"   then h[field] = scope.sum(field)
+        when "avg"   then h[field] = scope.average(field)
+        when "count" then h[field] = scope.where.not(field => nil).count
+        end
+      end
+    end
+
+    def apply_dynamic_defaults(record)
+      sections = current_presenter.form_config["sections"] || []
+      sections.each do |section|
+        next if section["type"] == "nested_fields"
+
+        (section["fields"] || []).each do |fc|
+          next unless fc["default"]
+
+          field_name = fc["field"]
+          case fc["default"]
+          when "current_date"
+            record[field_name] ||= Date.today if record.respond_to?("#{field_name}=")
+          when "current_user_id"
+            record[field_name] ||= current_user&.id if record.respond_to?("#{field_name}=")
+          end
+        end
+      end
+    end
+
+    def build_nested_records(record)
+      sections = current_presenter.form_config["sections"] || []
+      sections.each do |section|
+        next unless section["type"] == "nested_fields"
+
+        assoc_name = section["association"]
+        min = (section["min"] || 0).to_i
+        next unless min > 0
+
+        if record.respond_to?(assoc_name) && record.send(assoc_name).size < min
+          (min - record.send(assoc_name).size).times do
+            record.send(assoc_name).build
+          end
+        end
+      end
     end
 
     # Pundit uses model class to find policy

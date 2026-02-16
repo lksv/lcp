@@ -174,6 +174,9 @@ module LcpRuby
         @per_page_value = nil
         @views_available = nil
         @columns = []
+        @row_click_value = nil
+        @empty_message_value = nil
+        @actions_position_value = nil
       end
 
       def default_view(value)
@@ -192,12 +195,23 @@ module LcpRuby
         @views_available = values.flatten.map(&:to_s)
       end
 
+      def row_click(value)
+        @row_click_value = value.to_s
+      end
+
+      def empty_message(value)
+        @empty_message_value = value
+      end
+
+      def actions_position(value)
+        @actions_position_value = value.to_s
+      end
+
       def column(field_name, **options)
         col = { "field" => field_name.to_s }
-        col["width"] = options[:width] if options.key?(:width)
-        col["link_to"] = options[:link_to].to_s if options.key?(:link_to)
-        col["sortable"] = options[:sortable] if options.key?(:sortable)
-        col["display"] = options[:display].to_s if options.key?(:display)
+        options.each do |k, v|
+          col[k.to_s] = v.is_a?(Symbol) ? v.to_s : HashUtils.stringify_deep(v)
+        end
         @columns << col
       end
 
@@ -208,6 +222,9 @@ module LcpRuby
         hash["default_sort"] = @default_sort if @default_sort
         hash["per_page"] = @per_page_value if @per_page_value
         hash["table_columns"] = @columns unless @columns.empty?
+        hash["row_click"] = @row_click_value if @row_click_value
+        hash["empty_message"] = @empty_message_value if @empty_message_value
+        hash["actions_position"] = @actions_position_value if @actions_position_value
         hash
       end
     end
@@ -220,9 +237,15 @@ module LcpRuby
       def field(name, **options)
         field_hash = { "field" => name.to_s }
         options.each do |k, v|
-          field_hash[k.to_s] = v.is_a?(Symbol) ? v.to_s : v
+          field_hash[k.to_s] = v.is_a?(Symbol) ? v.to_s : HashUtils.stringify_deep(v)
         end
         @fields << field_hash
+      end
+
+      def divider(label: nil)
+        d = { "type" => "divider" }
+        d["label"] = label if label
+        @fields << d
       end
 
       def to_fields
@@ -235,8 +258,9 @@ module LcpRuby
         @layout = []
       end
 
-      def section(title, columns: 1, &block)
+      def section(title, columns: 1, responsive: nil, &block)
         section_hash = { "section" => title, "columns" => columns }
+        section_hash["responsive"] = stringify_deep(responsive) if responsive
         if block
           builder = SectionBuilder.new
           builder.instance_eval(&block)
@@ -256,15 +280,53 @@ module LcpRuby
       def to_hash
         { "layout" => @layout }
       end
+
+      private
+
+      def stringify_deep(value)
+        HashUtils.stringify_deep(value)
+      end
     end
 
     class FormBuilder
       def initialize
         @sections = []
+        @layout_value = nil
       end
 
-      def section(title, columns: 1, &block)
+      def layout(value)
+        @layout_value = value.to_s
+      end
+
+      def section(title, columns: 1, responsive: nil, collapsible: false, collapsed: false, &block)
         section_hash = { "title" => title, "columns" => columns }
+        section_hash["responsive"] = stringify_deep(responsive) if responsive
+        section_hash["collapsible"] = collapsible if collapsible
+        section_hash["collapsed"] = collapsed if collapsed
+        if block
+          builder = SectionBuilder.new
+          builder.instance_eval(&block)
+          section_hash["fields"] = builder.to_fields
+        end
+        @sections << section_hash
+      end
+
+      def nested_fields(title, association:, allow_add: true, allow_remove: true,
+                        min: nil, max: nil, add_label: nil, empty_message: nil,
+                        sortable: false, columns: nil, &block)
+        section_hash = {
+          "title" => title,
+          "type" => "nested_fields",
+          "association" => association.to_s,
+          "allow_add" => allow_add,
+          "allow_remove" => allow_remove
+        }
+        section_hash["columns"] = columns if columns
+        section_hash["min"] = min if min
+        section_hash["max"] = max if max
+        section_hash["add_label"] = add_label if add_label
+        section_hash["empty_message"] = empty_message if empty_message
+        section_hash["sortable"] = sortable if sortable
         if block
           builder = SectionBuilder.new
           builder.instance_eval(&block)
@@ -274,7 +336,15 @@ module LcpRuby
       end
 
       def to_hash
-        { "sections" => @sections }
+        hash = { "sections" => @sections }
+        hash["layout"] = @layout_value if @layout_value
+        hash
+      end
+
+      private
+
+      def stringify_deep(value)
+        HashUtils.stringify_deep(value)
       end
     end
 

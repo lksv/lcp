@@ -8,26 +8,43 @@ define_presenter :deal_admin do
     default_view :table
     default_sort :created_at, :desc
     per_page 25
-    column :title, width: "30%", link_to: :show, sortable: true
-    column :stage, width: "20%", display: :badge, sortable: true
-    column :value, width: "20%", display: :currency, sortable: true
+    row_click :show
+    empty_message "No deals found"
+    actions_position :dropdown
+
+    column :title, width: "30%", link_to: :show, sortable: true, display: :truncate, display_options: { max: 40 }
+    column :stage, width: "15%", display: :badge, display_options: { color_map: { lead: "blue", qualified: "cyan", proposal: "orange", negotiation: "purple", closed_won: "green", closed_lost: "red" } }, sortable: true
+    column :value, width: "15%", display: :currency, display_options: { currency: "EUR" }, sortable: true, summary: "sum"
+    column :progress, width: "15%", display: :progress_bar
+    column :priority, width: "10%", sortable: true
   end
 
   show do
-    section "Deal Information", columns: 2 do
+    section "Deal Information", columns: 2, responsive: { mobile: { columns: 1 } } do
       field :title, display: :heading
-      field :stage, display: :badge
-      field :value, display: :currency
+      field :stage, display: :badge, display_options: { color_map: { lead: "blue", qualified: "cyan", proposal: "orange", negotiation: "purple", closed_won: "green", closed_lost: "red" } }
+      field :value, display: :currency, display_options: { currency: "EUR" }
+      field :progress, display: :progress_bar
+      field :priority, display: :rating, display_options: { max: 5 }
+      field :created_at, display: :relative_date
     end
   end
 
   form do
+    layout :tabs
+
     section "Deal Details", columns: 2 do
-      field :title, placeholder: "Deal title...", autofocus: true
+      field :title, placeholder: "Deal title...", autofocus: true, col_span: 2
       field :stage, input_type: :select
-      field :value, input_type: :number
+      field :value, input_type: :number, prefix: "EUR", hint: "Deal value without VAT"
       field :company_id, input_type: :association_select
       field :contact_id, input_type: :association_select
+    end
+
+    section "Advanced", columns: 2, collapsible: true, collapsed: true do
+      field :priority, input_type: :slider, input_options: { min: 0, max: 100, step: 5, show_value: true }
+      field :progress, input_type: :slider, input_options: { min: 0, max: 100, step: 10, show_value: true }
+      field :created_at, readonly: true
     end
   end
 

@@ -28,7 +28,7 @@ module LcpRuby
           fields: parse_fields(hash["fields"]),
           validations: parse_validations(hash["validations"]),
           associations: parse_associations(hash["associations"]),
-          scopes: hash["scopes"] || [],
+          scopes: (hash["scopes"] || []).map { |s| HashUtils.stringify_deep(s) },
           events: parse_events(hash["events"]),
           options: hash["options"] || {}
         )

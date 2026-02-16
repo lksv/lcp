@@ -20,8 +20,10 @@ module LcpRuby
           apply_belongs_to(assoc)
         when "has_many"
           apply_has_many(assoc)
+          apply_nested_attributes(assoc)
         when "has_one"
           apply_has_one(assoc)
+          apply_nested_attributes(assoc)
         end
       end
 
@@ -69,6 +71,28 @@ module LcpRuby
         apply_common_options(opts, assoc)
 
         @model_class.has_one assoc.name.to_sym, **opts
+      end
+
+      def apply_nested_attributes(assoc)
+        return unless assoc.nested_attributes
+
+        opts = {}
+        na = assoc.nested_attributes
+
+        opts[:allow_destroy] = na["allow_destroy"] if na.key?("allow_destroy")
+        opts[:limit] = na["limit"] if na.key?("limit")
+        opts[:update_only] = na["update_only"] if na.key?("update_only")
+
+        if na["reject_if"]
+          reject_value = na["reject_if"]
+          opts[:reject_if] = case reject_value.to_s
+          when "all_blank" then :all_blank
+          else
+            reject_value.is_a?(Symbol) ? reject_value : reject_value.to_s.to_sym
+          end
+        end
+
+        @model_class.accepts_nested_attributes_for(assoc.name.to_sym, **opts)
       end
 
       def base_options(assoc)

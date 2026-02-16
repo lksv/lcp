@@ -99,6 +99,9 @@ index:
   views_available: [table, tiles]
   default_sort: { field: created_at, direction: desc }
   per_page: 25
+  row_click: show
+  empty_message: "No records found."
+  actions_position: dropdown
   table_columns: []
 ```
 
@@ -146,6 +149,51 @@ default_sort: { field: created_at, direction: desc }
 
 Number of records per page. Used by Kaminari pagination.
 
+### `row_click`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | not set |
+| **Type** | string |
+
+When set to `"show"`, clicking any table row navigates to the record's show page. This makes the entire row clickable, not just link columns. When omitted, rows are not clickable (users navigate via link columns or action buttons).
+
+```yaml
+index:
+  row_click: show
+```
+
+### `empty_message`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | not set |
+| **Type** | string |
+
+Custom message displayed when no records match the current search or filter. If omitted, a generic empty state is shown.
+
+```yaml
+index:
+  empty_message: "No deals match your criteria. Try adjusting your filters."
+```
+
+### `actions_position`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | inline |
+| **Type** | string |
+
+Controls how single-record actions are rendered in each table row. When set to `"dropdown"`, all single actions are grouped into a dropdown menu (useful when there are many actions). The default behavior renders each action as an inline button.
+
+```yaml
+index:
+  actions_position: dropdown
+```
+
 ### `table_columns`
 
 | | |
@@ -172,15 +220,317 @@ table_columns:
 | `width` | string | CSS width (e.g., `"30%"`, `"200px"`) |
 | `link_to` | string | Makes the cell a link. Value `show` links to the record's show page |
 | `sortable` | boolean | Enables column header sorting |
-| `display` | string | Display type (see below) |
+| `display` | string | Display type (see [Display Types](#display-types)) |
+| `display_options` | hash | Options passed to the display renderer (see [Display Types](#display-types) for per-type options) |
+| `hidden_on` | array/string | Hide column at specific breakpoints. Values: `"mobile"`, `"tablet"`. Accepts a single string or an array |
+| `pinned` | string | Pin column to one side on horizontal scroll. Value: `"left"` |
+| `summary` | string | Adds a summary row at the bottom of the table for this column. Values: `"sum"`, `"avg"`, `"count"` |
 
-#### Display Types (Index)
+**Example with new column attributes:**
 
-| Type | Description |
-|------|-------------|
-| `badge` | Renders the value as a colored badge (useful for enum/status fields) |
-| `currency` | Formats the value as currency |
-| `relative_date` | Shows relative time (e.g., "3 days ago") |
+```yaml
+table_columns:
+  - field: name
+    width: "25%"
+    link_to: show
+    sortable: true
+    pinned: left
+  - field: email
+    hidden_on: [mobile, tablet]
+  - field: status
+    display: badge
+    display_options:
+      color_map:
+        active: green
+        inactive: gray
+        pending: yellow
+  - field: revenue
+    display: currency
+    display_options:
+      currency: "$"
+      precision: 2
+    sortable: true
+    summary: sum
+  - field: deals_count
+    summary: count
+    hidden_on: mobile
+```
+
+## Display Types
+
+Display types control how field values are rendered in index tables and show pages. Each display type can accept `display_options` to customize its behavior.
+
+### `heading`
+
+Renders the value as `<strong>` text. Useful for primary identifiers.
+
+```yaml
+{ field: title, display: heading }
+```
+
+### `badge`
+
+Renders the value as a colored badge. Useful for enum and status fields.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `color_map` | hash | Maps field values to badge colors |
+
+Available colors: `green`, `red`, `blue`, `yellow`, `orange`, `purple`, `gray`, `teal`, `cyan`, `pink`.
+
+```yaml
+- field: status
+  display: badge
+  display_options:
+    color_map:
+      active: green
+      inactive: gray
+      pending: yellow
+      suspended: red
+```
+
+### `truncate`
+
+Truncates long text with an ellipsis.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `max` | integer | `50` | Maximum number of characters before truncation |
+
+```yaml
+- field: description
+  display: truncate
+  display_options:
+    max: 100
+```
+
+### `boolean_icon`
+
+Shows a Yes/No indicator with color instead of raw true/false.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `true_icon` | string | Icon name for true values |
+| `false_icon` | string | Icon name for false values |
+
+```yaml
+- field: verified
+  display: boolean_icon
+  display_options:
+    true_icon: check-circle
+    false_icon: x-circle
+```
+
+### `progress_bar`
+
+Renders a horizontal progress bar.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `max` | integer | `100` | Maximum value (100% mark) |
+
+```yaml
+- field: completion
+  display: progress_bar
+  display_options:
+    max: 100
+```
+
+### `image`
+
+Renders the field value as an image URL.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `size` | string | Image size: `"small"`, `"medium"`, `"large"` |
+
+```yaml
+- field: photo_url
+  display: image
+  display_options:
+    size: medium
+```
+
+### `avatar`
+
+Renders a circular avatar image.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `size` | integer | `32` | Avatar diameter in pixels |
+
+```yaml
+- field: profile_image
+  display: avatar
+  display_options:
+    size: 48
+```
+
+### `currency`
+
+Formats a numeric value as currency.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `currency` | string | Currency unit string (e.g., `"$"`, `"EUR"`) |
+| `precision` | integer | Number of decimal places |
+
+```yaml
+- field: amount
+  display: currency
+  display_options:
+    currency: "$"
+    precision: 2
+```
+
+### `percentage`
+
+Formats a numeric value as a percentage.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `precision` | integer | Number of decimal places |
+
+```yaml
+- field: margin
+  display: percentage
+  display_options:
+    precision: 1
+```
+
+### `number`
+
+Formats a numeric value with delimiters and precision.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `delimiter` | string | Thousands separator (e.g., `","`) |
+| `precision` | integer | Number of decimal places |
+
+```yaml
+- field: population
+  display: number
+  display_options:
+    delimiter: ","
+    precision: 0
+```
+
+### `date`
+
+Formats a date value.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `format` | string | `"%Y-%m-%d"` | strftime format string |
+
+```yaml
+- field: birth_date
+  display: date
+  display_options:
+    format: "%B %d, %Y"
+```
+
+### `datetime`
+
+Formats a datetime value.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `format` | string | strftime format string |
+
+```yaml
+- field: created_at
+  display: datetime
+  display_options:
+    format: "%Y-%m-%d %H:%M"
+```
+
+### `relative_date`
+
+Shows a human-readable relative time (e.g., "3 days ago", "in 2 hours").
+
+```yaml
+{ field: updated_at, display: relative_date }
+```
+
+### `email_link`
+
+Renders the value as a `mailto:` link.
+
+```yaml
+{ field: email, display: email_link }
+```
+
+### `phone_link`
+
+Renders the value as a `tel:` link.
+
+```yaml
+{ field: phone, display: phone_link }
+```
+
+### `url_link`
+
+Renders the value as an external link that opens in a new tab.
+
+```yaml
+{ field: website, display: url_link }
+```
+
+### `color_swatch`
+
+Renders a color preview swatch alongside the color value.
+
+```yaml
+{ field: brand_color, display: color_swatch }
+```
+
+### `rating`
+
+Displays a numeric value as filled stars.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `max` | integer | `5` | Maximum number of stars |
+
+```yaml
+- field: score
+  display: rating
+  display_options:
+    max: 5
+```
+
+### `code`
+
+Renders the value in monospace code formatting.
+
+```yaml
+{ field: api_key, display: code }
+```
+
+### `file_size`
+
+Renders a numeric byte value as human-readable file size (e.g., "2.4 MB").
+
+```yaml
+{ field: attachment_size, display: file_size }
+```
+
+### `rich_text`
+
+Renders HTML content safely.
+
+```yaml
+{ field: body, display: rich_text }
+```
+
+### `link`
+
+Renders the value as a clickable link. Uses `to_label` (if defined on the model) or `to_s` for the display text.
+
+```yaml
+{ field: reference, display: link }
+```
 
 ## Show Configuration
 
@@ -212,6 +562,7 @@ Array of section objects. Each section is rendered as a card or panel.
 | `fields` | array | Fields to display (see below) |
 | `type` | string | Set to `association_list` for related record sections |
 | `association` | string | Association name (required when `type: association_list`) |
+| `responsive` | hash | Responsive overrides per breakpoint (see below) |
 
 #### Association List Sections
 
@@ -225,23 +576,60 @@ Use `type: association_list` to render a table of associated records within the 
 
 This renders a list of records from the `contacts` has_many association.
 
+#### Responsive Sections
+
+Use `responsive` to override the number of columns at different breakpoints:
+
+```yaml
+- section: "Deal Information"
+  columns: 3
+  responsive:
+    tablet:
+      columns: 2
+    mobile:
+      columns: 1
+  fields:
+    - { field: title, display: heading }
+    - { field: stage, display: badge }
+    - { field: value, display: currency }
+```
+
 #### Show Field Attributes
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `field` | string | Model field name |
-| `display` | string | Display type (see below) |
+| `display` | string | Display type (see [Display Types](#display-types)) |
+| `display_options` | hash | Options passed to the display renderer (see [Display Types](#display-types) for per-type options) |
+| `col_span` | integer | Number of grid columns this field spans (defaults to 1) |
+| `hidden_on` | array/string | Hide field at specific breakpoints. Values: `"mobile"`, `"tablet"` |
 
-#### Display Types (Show)
+**Example with new show field attributes:**
 
-| Type | Description |
-|------|-------------|
-| `heading` | Renders as a prominent heading |
-| `badge` | Colored badge |
-| `link` | Renders as a clickable link |
-| `rich_text` | Renders HTML content |
-| `currency` | Currency formatting |
-| `relative_date` | Relative time display |
+```yaml
+show:
+  layout:
+    - section: "Overview"
+      columns: 3
+      responsive:
+        mobile:
+          columns: 1
+      fields:
+        - { field: title, display: heading, col_span: 3 }
+        - field: status
+          display: badge
+          display_options:
+            color_map:
+              active: green
+              inactive: red
+        - { field: email, display: email_link }
+        - { field: phone, display: phone_link, hidden_on: mobile }
+        - field: revenue
+          display: currency
+          display_options:
+            currency: "$"
+            precision: 2
+```
 
 ## Form Configuration
 
@@ -249,6 +637,7 @@ Controls the create and edit forms.
 
 ```yaml
 form:
+  layout: flat
   sections:
     - title: "Section Title"
       columns: 2
@@ -257,6 +646,33 @@ form:
         - { field: stage, input_type: select }
         - { field: value, input_type: number, prefix: "$" }
         - { field: company_id, input_type: association_select }
+```
+
+### `layout`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `"flat"` |
+| **Type** | string |
+
+Controls how form sections are rendered. When set to `"tabs"`, each section becomes a tab in a tabbed interface. The default `"flat"` layout renders sections as stacked cards.
+
+```yaml
+form:
+  layout: tabs
+  sections:
+    - title: "General"
+      fields:
+        - { field: title }
+        - { field: description, input_type: textarea }
+    - title: "Pricing"
+      fields:
+        - { field: price, input_type: number }
+        - { field: currency, input_type: select }
+    - title: "Advanced"
+      fields:
+        - { field: notes, input_type: rich_text_editor }
 ```
 
 ### `sections`
@@ -270,6 +686,46 @@ Array of form section objects.
 | `title` | string | Section heading text |
 | `columns` | integer | Number of columns in the field grid (default: 1) |
 | `fields` | array | Form fields (see below) |
+| `collapsible` | boolean | When `true`, the section can be collapsed/expanded by clicking its header |
+| `collapsed` | boolean | When `true` (and `collapsible` is `true`), the section starts in the collapsed state |
+| `responsive` | hash | Responsive overrides per breakpoint (see below) |
+
+**Example with collapsible sections:**
+
+```yaml
+form:
+  sections:
+    - title: "Basic Information"
+      columns: 2
+      fields:
+        - { field: name }
+        - { field: email }
+    - title: "Advanced Options"
+      columns: 2
+      collapsible: true
+      collapsed: true
+      fields:
+        - { field: api_key }
+        - { field: webhook_url }
+```
+
+**Example with responsive sections:**
+
+```yaml
+form:
+  sections:
+    - title: "Contact Details"
+      columns: 3
+      responsive:
+        tablet:
+          columns: 2
+        mobile:
+          columns: 1
+      fields:
+        - { field: first_name }
+        - { field: last_name }
+        - { field: email }
+```
 
 #### Form Field Attributes
 
@@ -280,6 +736,69 @@ Array of form section objects.
 | `placeholder` | string | Placeholder text for the input |
 | `autofocus` | boolean | Auto-focus this field when the form loads |
 | `prefix` | string | Text prefix displayed before the input (e.g., `"$"` for currency) |
+| `suffix` | string | Text suffix displayed after the input (e.g., `"kg"`, `"%"`) |
+| `col_span` | integer | Number of grid columns this field spans (defaults to 1) |
+| `hint` | string | Help text displayed below the input |
+| `readonly` | boolean | Renders the field as read-only (visible but not editable) |
+| `visible_when` | string | Server-side method name evaluated on `@record`. The field is only shown when the method returns truthy |
+| `default` | string | Default value for new records. Supports dynamic defaults (see below) |
+| `input_options` | hash | Type-specific input options (see below) |
+| `display_options` | hash | Options passed to the display renderer when field is shown in read-only mode |
+| `hidden_on` | array/string | Hide field at specific breakpoints. Values: `"mobile"`, `"tablet"` |
+
+**Example with new field attributes:**
+
+```yaml
+fields:
+  - field: title
+    placeholder: "Enter title..."
+    autofocus: true
+    col_span: 2
+    hint: "A descriptive title for the deal"
+  - field: value
+    input_type: number
+    prefix: "$"
+    suffix: "USD"
+    input_options:
+      min: 0
+      step: 0.01
+  - field: internal_code
+    readonly: true
+    hint: "Auto-generated, cannot be changed"
+  - field: renewal_date
+    visible_when: "renewable?"
+  - field: created_at
+    default: current_date
+    hidden_on: mobile
+```
+
+#### Dynamic Defaults
+
+The `default` attribute supports dynamic values that are resolved at form render time:
+
+| Value | Description |
+|-------|-------------|
+| `"current_date"` | Sets the default to today's date |
+| `"current_user_id"` | Sets the default to the current user's ID |
+
+```yaml
+- { field: start_date, default: current_date }
+- { field: assigned_to_id, default: current_user_id }
+```
+
+#### Conditional Visibility
+
+The `visible_when` attribute on **form fields** accepts a method name (string) that is called on the record instance (`@record`). The field is rendered only when the method returns a truthy value. This is evaluated server-side on each form render.
+
+```yaml
+- field: discount_reason
+  input_type: textarea
+  visible_when: "discounted?"
+```
+
+The method `discounted?` must be defined on the model (e.g., via a custom concern or model method).
+
+> **Note:** Form field `visible_when` accepts a simple method name string, which is different from action `visible_when` that uses a [condition object](condition-operators.md) with `field`, `operator`, and `value` keys. This inconsistency is a known limitation. A future version may unify both to support condition objects.
 
 #### Input Types
 
@@ -294,6 +813,136 @@ Array of form section objects.
 | `boolean` | Checkbox | `boolean` fields |
 | `association_select` | Dropdown populated from associated model's records | FK fields (e.g., `company_id`) |
 | `rich_text_editor` | Rich text editor | `rich_text` fields |
+| `slider` | Range slider input | - |
+| `toggle` | Toggle switch (on/off) | - |
+| `rating` | Star rating input | - |
+
+#### Input Options
+
+Input options provide type-specific configuration for form inputs.
+
+**Text / Textarea:**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `rows` | integer | Number of visible rows (textarea only) |
+| `max_length` | integer | Maximum character count |
+| `show_counter` | boolean | Show a character counter below the input |
+
+```yaml
+- field: description
+  input_type: textarea
+  input_options:
+    rows: 6
+    max_length: 500
+    show_counter: true
+```
+
+**Number:**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `min` | number | Minimum allowed value |
+| `max` | number | Maximum allowed value |
+| `step` | number | Step increment for the input |
+
+```yaml
+- field: quantity
+  input_type: number
+  input_options:
+    min: 1
+    max: 1000
+    step: 1
+```
+
+**Slider:**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `min` | number | Minimum slider value |
+| `max` | number | Maximum slider value |
+| `step` | number | Step increment |
+| `show_value` | boolean | Display the current value alongside the slider |
+
+```yaml
+- field: priority
+  input_type: slider
+  input_options:
+    min: 1
+    max: 10
+    step: 1
+    show_value: true
+```
+
+**Rating:**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `max` | integer | Maximum number of stars |
+
+```yaml
+- field: satisfaction
+  input_type: rating
+  input_options:
+    max: 5
+```
+
+#### Divider Pseudo-Field
+
+Use a divider to visually separate groups of fields within a section:
+
+```yaml
+fields:
+  - { field: first_name }
+  - { field: last_name }
+  - { type: divider, label: "Contact Information" }
+  - { field: email }
+  - { field: phone }
+  - { type: divider }
+  - { field: notes, input_type: textarea }
+```
+
+A divider with a `label` renders a labeled horizontal rule. A divider without a `label` renders a plain separator line.
+
+#### Nested Fields
+
+Use `type: nested_fields` to manage associated records inline within the parent form. This is useful for `has_many` relationships where you want to create, edit, and delete child records without leaving the form.
+
+```yaml
+form:
+  sections:
+    - title: "Order Details"
+      fields:
+        - { field: customer_id, input_type: association_select }
+        - { field: order_date, input_type: date }
+    - title: "Line Items"
+      type: nested_fields
+      association: line_items
+      allow_add: true
+      allow_remove: true
+      add_label: "Add Line Item"
+      min: 1
+      max: 20
+      empty_message: "No line items yet. Click 'Add Line Item' to begin."
+      columns:
+        - { field: product_id, input_type: association_select }
+        - { field: quantity, input_type: number }
+        - { field: unit_price, input_type: number, prefix: "$" }
+```
+
+##### Nested Fields Section Attributes
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `type` | string | - | Must be `"nested_fields"` |
+| `association` | string | - | Name of the `has_many` association on the parent model |
+| `allow_add` | boolean | `true` | Show a button to add new child records |
+| `allow_remove` | boolean | `true` | Show a remove button on each child record row |
+| `add_label` | string | `"Add"` | Label for the add button |
+| `min` | integer | - | Minimum number of child records required |
+| `max` | integer | - | Maximum number of child records allowed |
+| `empty_message` | string | - | Message displayed when there are no child records |
+| `columns` | array | - | Field definitions for each child record row (same format as form fields) |
 
 #### How Association Selects Work
 
@@ -430,30 +1079,111 @@ presenter:
     default_view: table
     default_sort: { field: created_at, direction: desc }
     per_page: 25
+    row_click: show
+    empty_message: "No deals found. Create your first deal to get started."
+    actions_position: dropdown
     table_columns:
-      - { field: title, width: "30%", link_to: show, sortable: true }
-      - { field: stage, width: "20%", display: badge, sortable: true }
-      - { field: value, width: "20%", display: currency, sortable: true }
+      - field: title
+        width: "30%"
+        link_to: show
+        sortable: true
+        pinned: left
+      - field: stage
+        width: "15%"
+        display: badge
+        display_options:
+          color_map:
+            open: blue
+            negotiation: yellow
+            closed_won: green
+            closed_lost: red
+        sortable: true
+      - field: value
+        width: "15%"
+        display: currency
+        display_options:
+          currency: "$"
+          precision: 2
+        sortable: true
+        summary: sum
+      - field: contact_name
+        hidden_on: [mobile, tablet]
+      - { field: updated_at, display: relative_date, hidden_on: mobile }
 
   show:
     layout:
       - section: "Deal Information"
-        columns: 2
+        columns: 3
+        responsive:
+          tablet:
+            columns: 2
+          mobile:
+            columns: 1
         fields:
-          - { field: title, display: heading }
-          - { field: stage, display: badge }
-          - { field: value, display: currency }
+          - { field: title, display: heading, col_span: 3 }
+          - field: stage
+            display: badge
+            display_options:
+              color_map:
+                open: blue
+                negotiation: yellow
+                closed_won: green
+                closed_lost: red
+          - field: value
+            display: currency
+            display_options:
+              currency: "$"
+          - { field: email, display: email_link }
+          - { field: website, display: url_link, hidden_on: mobile }
+      - section: "Contacts"
+        type: association_list
+        association: contacts
 
   form:
+    layout: tabs
     sections:
       - title: "Deal Details"
         columns: 2
+        responsive:
+          mobile:
+            columns: 1
         fields:
-          - { field: title, placeholder: "Deal title...", autofocus: true }
+          - field: title
+            placeholder: "Deal title..."
+            autofocus: true
+            col_span: 2
+            hint: "A short, descriptive name for the deal"
           - { field: stage, input_type: select }
-          - { field: value, input_type: number }
+          - field: value
+            input_type: number
+            prefix: "$"
+            input_options:
+              min: 0
+              step: 0.01
+          - { type: divider, label: "Relationships" }
           - { field: company_id, input_type: association_select }
           - { field: contact_id, input_type: association_select }
+      - title: "Additional"
+        collapsible: true
+        fields:
+          - field: probability
+            input_type: slider
+            input_options:
+              min: 0
+              max: 100
+              step: 5
+              show_value: true
+            suffix: "%"
+          - field: notes
+            input_type: textarea
+            input_options:
+              rows: 4
+              max_length: 2000
+              show_counter: true
+          - field: close_date
+            input_type: date
+            default: current_date
+            visible_when: "closeable?"
 
   search:
     enabled: true

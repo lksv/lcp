@@ -3,7 +3,7 @@
     <h1><%= current_presenter.label %></h1>
     <div class="lcp-toolbar">
       <% @action_set.collection_actions.each do |action| %>
-        <% action = action.transform_keys(&:to_s) if action.is_a?(Hash) %>
+
         <% if action["type"] == "built_in" && action["name"] == "create" %>
           <%= link_to action["label"] || "New", new_resource_path, class: "btn btn-primary" %>
         <% end %>
@@ -23,69 +23,110 @@
   <% if current_presenter.search_config.dig("predefined_filters")&.any? %>
     <div class="lcp-filters">
       <% current_presenter.search_config["predefined_filters"].each do |filter| %>
-        <% filter = filter.transform_keys(&:to_s) if filter.is_a?(Hash) %>
+
         <%= link_to filter["label"], resources_path + "?filter=#{filter['name']}",
               class: "btn btn-filter #{'active' if params[:filter] == filter['name']}" %>
       <% end %>
     </div>
   <% end %>
 
-  <table class="lcp-table">
-    <thead>
-      <tr>
-        <% @column_set.visible_table_columns.each do |col| %>
-          <% col = col.transform_keys(&:to_s) if col.is_a?(Hash) %>
-          <th style="<%= "width: #{col['width']}" if col['width'] %>">
-            <% if col["sortable"] %>
-              <%= link_to col["field"].humanize, url_for(sort: col["field"], direction: toggle_direction(col["field"])) %>
-            <% else %>
-              <%= col["field"].humanize %>
-            <% end %>
-          </th>
-        <% end %>
-        <th>Actions</th>
-      </tr>
-    </thead>
-    <tbody>
-      <% @records.each do |record| %>
+  <% if @records.empty? && current_presenter.index_config["empty_message"] %>
+    <div class="lcp-empty-state">
+      <p><%= current_presenter.index_config["empty_message"] %></p>
+    </div>
+  <% else %>
+    <table class="lcp-table">
+      <thead>
         <tr>
           <% @column_set.visible_table_columns.each do |col| %>
-            <% col = col.transform_keys(&:to_s) if col.is_a?(Hash) %>
-            <td>
-              <% value = record.send(col["field"]) rescue nil %>
-              <% if col["link_to"] == "show" %>
-                <%= link_to value, resource_path(record) %>
-              <% elsif col["display"] == "badge" %>
-                <span class="badge"><%= value %></span>
-              <% elsif col["display"] == "currency" %>
-                <%= number_to_currency(value) %>
-              <% elsif col["display"] == "relative_date" && value.respond_to?(:strftime) %>
-                <%= time_ago_in_words(value) %> ago
+
+            <th style="<%= "width: #{col['width']}" if col['width'] %>"
+                class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
+              <% if col["sortable"] %>
+                <%= link_to col["field"].humanize, url_for(sort: col["field"], direction: toggle_direction(col["field"])) %>
               <% else %>
-                <%= value %>
+                <%= col["field"].humanize %>
+              <% end %>
+            </th>
+          <% end %>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @records.each do |record| %>
+          <tr class="<%= 'lcp-row-clickable' if current_presenter.index_config['row_click'] %>"
+              data-href="<%= resource_path(record) if current_presenter.index_config['row_click'] %>">
+            <% @column_set.visible_table_columns.each do |col| %>
+  
+              <td class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
+                <% value = record.send(col["field"]) rescue nil %>
+                <% if col["link_to"] == "show" %>
+                  <%= link_to render_display_value(value, col["display"], col["display_options"]), resource_path(record) %>
+                <% elsif col["display"] %>
+                  <%= render_display_value(value, col["display"], col["display_options"]) %>
+                <% else %>
+                  <%= value %>
+                <% end %>
+              </td>
+            <% end %>
+            <td class="lcp-actions">
+              <% if current_presenter.index_config["actions_position"] == "dropdown" %>
+                <div class="lcp-actions-dropdown">
+                  <button type="button" class="btn lcp-dropdown-toggle">Actions</button>
+                  <div class="lcp-dropdown-menu">
+                    <% @action_set.single_actions(record).each do |action| %>
+              
+                      <% case action["name"] %>
+                      <% when "show" %>
+                        <%= link_to "Show", resource_path(record), class: "lcp-dropdown-item" %>
+                      <% when "edit" %>
+                        <%= link_to "Edit", edit_resource_path(record), class: "lcp-dropdown-item" %>
+                      <% when "destroy" %>
+                        <%= button_to "Delete", resource_path(record),
+                              method: :delete,
+                              data: { turbo_confirm: "Are you sure?" },
+                              class: "btn-danger lcp-dropdown-item" %>
+                      <% end %>
+                    <% end %>
+                  </div>
+                </div>
+              <% else %>
+                <% @action_set.single_actions(record).each do |action| %>
+          
+                  <% case action["name"] %>
+                  <% when "show" %>
+                    <%= link_to "Show", resource_path(record) %>
+                  <% when "edit" %>
+                    <%= link_to "Edit", edit_resource_path(record) %>
+                  <% when "destroy" %>
+                    <%= button_to "Delete", resource_path(record),
+                          method: :delete,
+                          data: { turbo_confirm: "Are you sure?" },
+                          class: "btn-danger" %>
+                  <% end %>
+                <% end %>
               <% end %>
             </td>
-          <% end %>
-          <td class="lcp-actions">
-            <% @action_set.single_actions(record).each do |action| %>
-              <% action = action.transform_keys(&:to_s) if action.is_a?(Hash) %>
-              <% case action["name"] %>
-              <% when "show" %>
-                <%= link_to "Show", resource_path(record) %>
-              <% when "edit" %>
-                <%= link_to "Edit", edit_resource_path(record) %>
-              <% when "destroy" %>
-                <%= button_to "Delete", resource_path(record),
-                      method: :delete,
-                      data: { turbo_confirm: "Are you sure?" },
-                      class: "btn-danger" %>
-              <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+      <% if @summaries&.any? %>
+        <tfoot>
+          <tr class="lcp-summary-row">
+            <% @column_set.visible_table_columns.each do |col| %>
+  
+              <td>
+                <% if @summaries[col["field"]] %>
+                  <strong><%= col["summary"] == "avg" ? number_with_precision(@summaries[col["field"]], precision: 2) : @summaries[col["field"]] %></strong>
+                <% end %>
+              </td>
             <% end %>
-          </td>
-        </tr>
+            <td></td>
+          </tr>
+        </tfoot>
       <% end %>
-    </tbody>
-  </table>
+    </table>
+  <% end %>
 
   <%= paginate @records if @records.respond_to?(:total_pages) %>
 </div>
