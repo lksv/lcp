@@ -59,14 +59,7 @@ module LcpRuby
       private
 
       def stringify_keys(hash)
-        return hash unless hash.is_a?(Hash)
-        hash.transform_keys(&:to_s).transform_values do |v|
-          case v
-          when Hash then stringify_keys(v)
-          when Symbol then v.to_s
-          else v
-          end
-        end
+        HashUtils.stringify_deep(hash)
       end
     end
   end

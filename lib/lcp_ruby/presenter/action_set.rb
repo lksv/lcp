@@ -27,19 +27,15 @@ module LcpRuby
 
       def filter_actions(actions)
         actions.select do |action|
-          action = action.transform_keys(&:to_s) if action.is_a?(Hash)
-          action_name = action["name"]
-
           if action["type"] == "built_in"
-            permission_evaluator.can?(action_name)
+            permission_evaluator.can?(action["name"])
           else
-            permission_evaluator.can_execute_action?(action_name)
+            permission_evaluator.can_execute_action?(action["name"])
           end
         end
       end
 
       def action_visible_for_record?(action, record)
-        action = action.transform_keys(&:to_s) if action.is_a?(Hash)
         visible_when = action["visible_when"]
         return true unless visible_when
 

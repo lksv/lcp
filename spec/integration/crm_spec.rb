@@ -329,4 +329,176 @@ RSpec.describe "CRM App Integration", type: :request do
       expect(response.body).to include("Edit")
     end
   end
+
+  describe "Display types in index" do
+    before { stub_current_user(role: "admin") }
+
+    let!(:company) { company_model.create!(name: "Test Corp", industry: "technology") }
+
+    it "renders badge display type for stage column" do
+      deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
+
+      get "/admin/deals"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("badge")
+    end
+
+    it "renders currency display type for value column" do
+      deal_model.create!(title: "Deal", stage: "lead", value: 1234.50, company_id: company.id)
+
+      get "/admin/deals"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("1,234.50")
+    end
+
+    it "renders pinned column CSS class" do
+      deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
+
+      get "/admin/deals"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-pinned-left")
+    end
+
+    it "renders hidden_on CSS class" do
+      deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
+
+      get "/admin/deals"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-hidden-mobile")
+    end
+
+    it "renders dropdown actions when actions_position is dropdown" do
+      deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
+
+      get "/admin/deals"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-actions-dropdown")
+    end
+
+    it "renders summary row with sum" do
+      deal_model.create!(title: "Deal 1", stage: "lead", value: 100.0, company_id: company.id)
+      deal_model.create!(title: "Deal 2", stage: "lead", value: 250.0, company_id: company.id)
+
+      get "/admin/deals"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-summary-row")
+      expect(response.body).to include("350")
+    end
+  end
+
+  describe "Display types in show" do
+    before { stub_current_user(role: "admin") }
+
+    let!(:company) { company_model.create!(name: "Test Corp", industry: "technology") }
+
+    it "renders heading display type" do
+      deal = deal_model.create!(title: "Important Deal", stage: "lead", company_id: company.id)
+
+      get "/admin/deals/#{deal.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("<strong>")
+      expect(response.body).to include("Important Deal")
+    end
+
+    it "renders badge on show page" do
+      deal = deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
+
+      get "/admin/deals/#{deal.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("badge")
+    end
+  end
+
+  describe "Form layout features" do
+    before { stub_current_user(role: "admin") }
+
+    let!(:company) { company_model.create!(name: "Test Corp", industry: "technology") }
+
+    it "renders tabs layout on deal form" do
+      get "/admin/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-tabs")
+      expect(response.body).to include("lcp-tab-nav")
+      expect(response.body).to include("Deal Details")
+      expect(response.body).to include("Metrics")
+    end
+
+    it "renders collapsible section with collapsed state" do
+      get "/admin/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-collapsible")
+      expect(response.body).to include("lcp-collapsed")
+      expect(response.body).to include("lcp-collapse-toggle")
+    end
+
+    it "renders prefix on value field" do
+      get "/admin/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-input-prefix")
+      expect(response.body).to include("$")
+    end
+
+    it "renders suffix on progress field" do
+      get "/admin/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-input-suffix")
+      expect(response.body).to include("%")
+    end
+
+    it "renders readonly field" do
+      get "/admin/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-readonly-value")
+    end
+
+    it "still submits form data correctly with tabs layout" do
+      expect {
+        post "/admin/deals", params: {
+          record: { title: "Tab Deal", stage: "lead", value: 500.0, company_id: company.id }
+        }
+      }.to change { deal_model.count }.by(1)
+
+      expect(deal_model.last.title).to eq("Tab Deal")
+    end
+
+    it "renders slider input for priority field" do
+      get "/admin/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-slider-wrapper")
+      expect(response.body).to include("lcp-slider")
+      expect(response.body).to include("lcp-slider-value")
+      expect(response.body).to include('type="range"')
+    end
+
+    it "renders toggle input for featured field" do
+      get "/admin/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-toggle")
+      expect(response.body).to include("lcp-toggle-input")
+      expect(response.body).to include("lcp-toggle-slider")
+    end
+
+    it "renders rating input for rating field" do
+      get "/admin/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      # Rating renders as a select with values 0..5
+      expect(response.body).to match(/<select[^>]*name="record\[rating\]"/)
+    end
+  end
 end

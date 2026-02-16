@@ -61,7 +61,6 @@ module LcpRuby
 
     def find_batch_action_key
       batch_action = current_presenter.batch_actions.find do |a|
-        a = a.transform_keys(&:to_s) if a.is_a?(Hash)
         a["name"] == params[:action_name]
       end
 

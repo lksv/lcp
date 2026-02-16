@@ -34,6 +34,11 @@ model:
       type: string
       label: "Position"
 
+    - name: active
+      type: boolean
+      label: "Active"
+      default: true
+
   associations:
     - type: belongs_to
       name: company

@@ -693,6 +693,118 @@ associations:
     validate: false
 ```
 
+## Nested Attributes
+
+Associations can declare `nested_attributes` to enable creating and updating associated records through the parent model's form. This uses Rails' `accepts_nested_attributes_for` under the hood.
+
+```yaml
+associations:
+  - type: has_many
+    name: todo_items
+    target_model: todo_item
+    dependent: destroy
+    inverse_of: todo_list
+    nested_attributes:
+      allow_destroy: true
+      reject_if: all_blank
+      limit: 50
+      update_only: false
+```
+
+### Nested Attributes Keys
+
+#### `allow_destroy`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `false` |
+| **Type** | boolean |
+
+When `true`, nested records can be marked for deletion by passing `_destroy: true` in the nested attributes hash. Without this option, nested records can only be created and updated, not removed through the parent form.
+
+```yaml
+nested_attributes:
+  allow_destroy: true
+```
+
+#### `reject_if`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none |
+| **Type** | string |
+
+Controls when nested records are silently rejected (not saved). The special value `"all_blank"` rejects any nested record where every attribute value is blank. This is useful for forms that render empty rows for new records — blank rows are ignored instead of causing validation errors.
+
+Can also be set to a symbol name referencing a custom method on the model that returns `true` to reject the record.
+
+```yaml
+nested_attributes:
+  reject_if: all_blank
+```
+
+#### `limit`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none (unlimited) |
+| **Type** | integer |
+
+Maximum number of nested records that can be processed at once. If the incoming attributes hash contains more records than the limit, a `TooManyRecords` exception is raised. Use this to prevent abuse or accidental mass-creation of associated records.
+
+```yaml
+nested_attributes:
+  limit: 50
+```
+
+#### `update_only`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `false` |
+| **Type** | boolean |
+
+When `true`, only existing associated records can be updated — no new records are created through nested attributes. Nested attribute hashes without a matching `id` are ignored.
+
+```yaml
+nested_attributes:
+  update_only: true
+```
+
+### Requirements
+
+- The parent association **must** specify `inverse_of` for nested attributes to work correctly. Without `inverse_of`, Rails cannot properly link the parent and child records during validation, which can cause unexpected behavior or validation failures.
+- Nested attributes are typically used with `has_many` and `has_one` associations.
+
+### Full Example
+
+```yaml
+model:
+  name: todo_list
+  label: "Todo List"
+
+  fields:
+    - name: name
+      type: string
+      validations:
+        - type: presence
+
+  associations:
+    - type: has_many
+      name: todo_items
+      target_model: todo_item
+      dependent: destroy
+      inverse_of: todo_list
+      nested_attributes:
+        allow_destroy: true
+        reject_if: all_blank
+        limit: 50
+```
+
 ## Scopes
 
 Scopes define named query methods on the model.

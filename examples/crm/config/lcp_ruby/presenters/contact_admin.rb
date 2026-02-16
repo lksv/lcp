@@ -8,19 +8,23 @@ define_presenter :contact_admin do
     default_view :table
     default_sort :last_name, :asc
     per_page 25
+    row_click :show
+
     column :first_name, width: "20%", link_to: :show, sortable: true
     column :last_name, width: "20%", sortable: true
-    column :email, width: "25%"
-    column :position, width: "20%"
+    column :email, width: "25%", display: :email_link
+    column :phone, width: "15%", display: :phone_link
+    column :active, width: "10%", display: :boolean_icon
   end
 
   show do
-    section "Contact Information", columns: 2 do
+    section "Contact Information", columns: 2, responsive: { mobile: { columns: 1 } } do
       field :first_name, display: :heading
       field :last_name
-      field :email
-      field :phone
+      field :email, display: :email_link
+      field :phone, display: :phone_link
       field :position
+      field :active, display: :boolean_icon
     end
   end
 
@@ -31,6 +35,7 @@ define_presenter :contact_admin do
       field :email, placeholder: "email@example.com"
       field :phone, placeholder: "+1..."
       field :position, placeholder: "Job title..."
+      field :active, input_type: :toggle
       field :company_id, input_type: :association_select
     end
   end

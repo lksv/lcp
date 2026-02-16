@@ -9,6 +9,8 @@ presenter:
     default_view: table
     default_sort: { field: created_at, direction: desc }
     per_page: 25
+    row_click: show
+    empty_message: "No lists yet."
     table_columns:
       - { field: title, width: "50%", link_to: show, sortable: true }
       - { field: description, width: "50%" }
@@ -20,14 +22,31 @@ presenter:
         fields:
           - { field: title, display: heading }
           - { field: description }
+      - section: "Items"
+        type: association_list
+        association: todo_items
 
   form:
     sections:
       - title: "List Details"
-        columns: 1
+        columns: 2
         fields:
-          - { field: title, placeholder: "Enter list title...", autofocus: true }
-          - { field: description, input_type: text }
+          - { field: title, placeholder: "Enter list title...", autofocus: true, hint: "Give your list a descriptive name", col_span: 2 }
+          - { type: divider, label: "Additional Info" }
+          - { field: start_date, input_type: date, default: current_date }
+          - { field: description, input_type: text, visible_when: "persisted?" }
+      - title: "Items"
+        type: nested_fields
+        association: todo_items
+        allow_add: true
+        allow_remove: true
+        add_label: "Add Item"
+        min: 1
+        columns: 3
+        fields:
+          - { field: title, placeholder: "What needs to be done?" }
+          - { field: completed, input_type: boolean }
+          - { field: due_date, input_type: date_picker }
 
   search:
     enabled: true

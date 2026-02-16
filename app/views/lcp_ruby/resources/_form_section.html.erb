@@ -1,0 +1,98 @@
+<% if section["type"] == "nested_fields" %>
+  <fieldset class="lcp-form-section lcp-nested-section"
+            data-nested-max="<%= section['max'] %>" data-nested-min="<%= section['min'] || 0 %>">
+    <legend><%= section["title"] %></legend>
+    <div class="lcp-nested-container">
+      <%= form.fields_for section["association"].to_sym do |nf| %>
+        <%= render "lcp_ruby/resources/nested_fields", form: nf, section: section %>
+      <% end %>
+    </div>
+
+    <% if section["allow_add"] != false %>
+      <%# Hidden template row for JS cloning %>
+      <% assoc_reflection = @record.class.reflect_on_association(section["association"].to_sym) %>
+      <% if assoc_reflection %>
+        <div data-lcp-nested-template style="display:none">
+          <%= form.fields_for section["association"].to_sym, assoc_reflection.klass.new, child_index: "NEW_RECORD" do |template_f| %>
+            <%= render "lcp_ruby/resources/nested_fields", form: template_f, section: section %>
+          <% end %>
+        </div>
+        <button type="button" class="btn lcp-nested-add"><%= section["add_label"] || "Add" %></button>
+      <% end %>
+    <% end %>
+
+    <% if section["allow_add"] == false && section["allow_remove"] == false && @record.send(section["association"]).empty? %>
+      <p class="lcp-empty-nested"><%= section["empty_message"] || "No records." %></p>
+    <% end %>
+  </fieldset>
+<% else %>
+  <% collapsible = section["collapsible"] %>
+  <% collapsed = section["collapsed"] %>
+  <fieldset class="lcp-form-section <%= 'lcp-collapsible' if collapsible %> <%= 'lcp-collapsed' if collapsible && collapsed %>">
+    <legend>
+      <% if collapsible %>
+        <button type="button" class="lcp-collapse-toggle"><%= section["title"] %> <span class="lcp-collapse-icon"></span></button>
+      <% else %>
+        <%= section["title"] %>
+      <% end %>
+    </legend>
+
+    <div class="lcp-collapsible-content" style="<%= 'display:none' if collapsible && collapsed %>">
+      <div class="lcp-form-fields lcp-grid"
+           style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;"
+           <%= "data-responsive-mobile=\"#{section.dig('responsive', 'mobile', 'columns')}\"" if section.dig('responsive', 'mobile', 'columns') %>
+           <%= "data-responsive-tablet=\"#{section.dig('responsive', 'tablet', 'columns')}\"" if section.dig('responsive', 'tablet', 'columns') %>>
+        <% (section["fields"] || []).each do |field_config| %>
+
+
+          <%# Handle divider pseudo-field %>
+          <% if field_config["type"] == "divider" %>
+            <div class="lcp-divider" style="grid-column: 1 / -1;">
+              <hr>
+              <% if field_config["label"] %>
+                <span class="lcp-divider-label"><%= field_config["label"] %></span>
+              <% end %>
+            </div>
+            <% next %>
+          <% end %>
+
+          <% field_name = field_config["field"] %>
+          <% field_def = field_config["field_definition"] %>
+          <% next unless field_def %>
+          <% next unless field_config["association"] || current_evaluator.field_writable?(field_name) %>
+
+          <%# visible_when: server-side check.
+              Intentionally uses `send` to call an arbitrary method on the record.
+              This is safe because visible_when values come from developer-authored
+              presenter YAML/DSL configuration, not from user input. %>
+          <% if field_config["visible_when"] %>
+            <% next unless @record.respond_to?(field_config["visible_when"]) && @record.send(field_config["visible_when"]) %>
+          <% end %>
+
+          <div class="lcp-form-field <%= hidden_on_classes(field_config) %>"
+               <%= "style=\"grid-column: span #{field_config['col_span']}\"" if field_config["col_span"] %>>
+            <%= form.label field_name, field_def.label %>
+
+            <% resolved_input = field_config["input_type"] || field_def.type_definition&.input_type || field_def.type %>
+
+            <% if field_config["readonly"] %>
+              <div class="lcp-readonly-value"><%= @record.send(field_name) %></div>
+            <% elsif field_config["prefix"] || field_config["suffix"] %>
+              <div class="lcp-input-group">
+                <% if field_config["prefix"] %><span class="lcp-input-prefix"><%= field_config["prefix"] %></span><% end %>
+                <%= render_form_input(form, field_name, resolved_input, field_config, field_def) %>
+                <% if field_config["suffix"] %><span class="lcp-input-suffix"><%= field_config["suffix"] %></span><% end %>
+              </div>
+            <% else %>
+              <%= render_form_input(form, field_name, resolved_input, field_config, field_def) %>
+            <% end %>
+
+            <% if field_config["hint"] %>
+              <span class="lcp-field-hint"><%= field_config["hint"] %></span>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    </div>
+  </fieldset>
+<% end %>
