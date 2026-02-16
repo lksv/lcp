@@ -20,6 +20,10 @@ define_model :deal do
     validates :numericality, greater_than_or_equal_to: 0, allow_nil: true
   end
 
+  field :priority, :integer, label: "Priority", default: 50
+
+  field :progress, :integer, label: "Progress", default: 0
+
   belongs_to :company, model: :company, required: true
   belongs_to :contact, model: :contact, required: false
 

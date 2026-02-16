@@ -8,7 +8,6 @@ module LcpRuby
 
       def apply!
         @model_definition.scopes.each do |scope_config|
-          scope_config = scope_config.transform_keys(&:to_s) if scope_config.is_a?(Hash)
           apply_scope(scope_config)
         end
       end

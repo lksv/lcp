@@ -150,6 +150,35 @@ default_sort :created_at, :desc
 
 Number of records per page. Default: 25.
 
+#### `row_click(value)`
+
+Sets the behavior when a user clicks a table row.
+
+```ruby
+row_click :show   # clicking a row navigates to the show page
+```
+
+#### `empty_message(value)`
+
+Message displayed when the index table has no records.
+
+```ruby
+empty_message "No deals found. Create your first deal to get started."
+```
+
+#### `actions_position(value)`
+
+Controls how row-level actions are displayed.
+
+| Value | Description |
+|-------|-------------|
+| `:inline` | Actions are rendered as inline buttons (default) |
+| `:dropdown` | Actions appear in a dropdown menu |
+
+```ruby
+actions_position :dropdown
+```
+
 #### `column(field_name, **options)`
 
 Adds a table column.
@@ -160,6 +189,10 @@ Adds a table column.
 | `link_to:` | symbol | Link target action (e.g., `:show`) |
 | `sortable:` | boolean | Whether column is sortable |
 | `display:` | symbol | Display format (`:badge`, `:currency`, `:relative_date`, etc.) |
+| `display_options:` | hash | Additional display configuration (e.g., `{ color_map: { ... } }`) |
+| `hidden_on:` | symbol or array | Responsive breakpoints to hide the column on (e.g., `:mobile`, `[:mobile, :tablet]`) |
+| `pinned:` | symbol | Pin the column to `:left` or `:right` side of the table |
+| `summary:` | symbol | Summary function for the column footer (e.g., `:sum`, `:avg`, `:count`) |
 
 ## Show Configuration
 
@@ -179,9 +212,18 @@ end
 
 ### Show Methods
 
-#### `section(title, columns: 1, &block)`
+#### `section(title, columns: 1, responsive: nil, &block)`
 
-Creates a section with fields. The `columns:` option controls the layout grid.
+Creates a section with fields. The `columns:` option controls the layout grid. The `responsive:` option controls how the section adapts to different screen sizes.
+
+```ruby
+show do
+  section "Deal Information", columns: 2, responsive: { mobile: 1 } do
+    field :title, display: :heading
+    field :stage, display: :badge
+  end
+end
+```
 
 #### `association_list(title, association:)`
 
@@ -192,9 +234,9 @@ association_list "Contacts", association: :contacts
 association_list "Deals", association: :deals
 ```
 
-### Section Fields
+### Section Fields (Show)
 
-Inside a `section` block, use `field` to add display fields:
+Inside a show `section` block, use `field` to add display fields:
 
 ```ruby
 field :name, display: :heading
@@ -206,6 +248,9 @@ field :budget, display: :currency
 | Option | Type | Description |
 |--------|------|-------------|
 | `display:` | symbol | Display format for the field value |
+| `col_span:` | integer | Number of grid columns this field spans |
+| `hidden_on:` | symbol or array | Responsive breakpoints to hide the field on |
+| `display_options:` | hash | Additional display configuration |
 
 ## Form Configuration
 
@@ -224,13 +269,90 @@ end
 
 ### Form Methods
 
-#### `section(title, columns: 1, &block)`
+#### `layout(value)`
+
+Sets the overall form layout mode.
+
+| Value | Description |
+|-------|-------------|
+| `:flat` | All sections rendered sequentially (default) |
+| `:tabs` | Each section rendered as a tab |
+
+```ruby
+form do
+  layout :tabs
+
+  section "Basic Info" do
+    field :title
+  end
+
+  section "Details" do
+    field :description
+  end
+end
+```
+
+#### `section(title, columns: 1, collapsible: false, collapsed: false, responsive: nil, &block)`
 
 Creates a form section. Multiple sections create visual groupings.
 
-### Form Fields
+| Option | Type | Description |
+|--------|------|-------------|
+| `columns:` | integer | Number of layout columns (default: 1) |
+| `collapsible:` | boolean | Whether the section can be collapsed/expanded by the user |
+| `collapsed:` | boolean | Whether the section starts in collapsed state (requires `collapsible: true`) |
+| `responsive:` | hash | Responsive column overrides (e.g., `{ mobile: 1 }`) |
 
-Inside a form `section` block:
+```ruby
+form do
+  section "Primary", columns: 2, responsive: { mobile: 1 } do
+    field :title
+    field :stage, input_type: :select
+  end
+
+  section "Notes", collapsible: true, collapsed: true do
+    field :description, input_type: :textarea
+  end
+end
+```
+
+#### `nested_fields(title, association:, **options, &block)`
+
+Adds a nested form section for creating and editing associated records inline within the parent form. The target association must have `nested_attributes` configured in the model definition.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `association:` | symbol | The `has_many` or `has_one` association name (required) |
+| `allow_add:` | boolean | Show an "Add" button for creating new nested records (default: `true`) |
+| `allow_remove:` | boolean | Show a "Remove" button on each nested record (default: `true`) |
+| `min:` | integer | Minimum number of nested records |
+| `max:` | integer | Maximum number of nested records |
+| `add_label:` | string | Custom label for the "Add" button |
+| `empty_message:` | string | Message shown when there are no nested records |
+| `columns:` | integer | Number of layout columns for each nested record row |
+
+Inside the `nested_fields` block, use `field` calls to define which fields of the associated model to display.
+
+```ruby
+form do
+  section "List Details" do
+    field :name
+  end
+
+  nested_fields "Items", association: :todo_items,
+    allow_add: true, allow_remove: true,
+    max: 50, add_label: "Add Item",
+    empty_message: "No items yet.", columns: 2 do
+      field :title, placeholder: "Item title..."
+      field :completed, input_type: :checkbox
+      field :due_date, input_type: :date_picker
+  end
+end
+```
+
+### Form Fields (Section Builder)
+
+Inside a form `section` or `nested_fields` block:
 
 ```ruby
 field :title, placeholder: "Enter title...", autofocus: true
@@ -246,6 +368,32 @@ field :company_id, input_type: :association_select
 | `placeholder:` | string | Placeholder text |
 | `autofocus:` | boolean | Auto-focus on page load |
 | `prefix:` | string | Input prefix (e.g., `"$"`) |
+| `suffix:` | string | Input suffix (e.g., `"kg"`) |
+| `col_span:` | integer | Number of grid columns this field spans (e.g., `2` for a full-width field in a 2-column section) |
+| `hint:` | string | Help text displayed below the input |
+| `readonly:` | boolean | Render the field as read-only |
+| `visible_when:` | string | Method name called on `@record`; the field is shown only when the method returns truthy (e.g., `"discounted?"`) |
+| `default:` | any | Default value for the form input (overrides the model-level default for this form) |
+| `input_options:` | hash | Additional options passed to the input widget |
+| `display_options:` | hash | Display configuration (e.g., formatting) |
+| `hidden_on:` | symbol or array | Responsive breakpoints to hide the field on |
+
+#### `divider(label: nil)`
+
+Adds a horizontal divider pseudo-field inside a section. Useful for visually separating groups of related fields.
+
+```ruby
+form do
+  section "Contact Details", columns: 2 do
+    field :first_name
+    field :last_name
+    divider label: "Address"
+    field :street, col_span: 2
+    field :city
+    field :zip_code
+  end
+end
+```
 
 ## Search Configuration
 
@@ -397,9 +545,16 @@ Inheritance is purely a DSL convenience — the result is always a flat hash ide
 | `read_only true` | `read_only: true` |
 | `index do ... end` | `index: { ... }` |
 | `column :title, sortable: true` | `table_columns: [{ field: title, sortable: true }]` |
-| `show do section "Info" do ... end end` | `show: { layout: [{ section: "Info", ... }] }` |
+| `row_click :show` | `index: { row_click: show }` |
+| `empty_message "No records."` | `index: { empty_message: "No records." }` |
+| `actions_position :inline` | `index: { actions_position: inline }` |
+| `show do section "Info", responsive: {...} do ... end end` | `show: { layout: [{ section: "Info", responsive: {...}, ... }] }` |
 | `association_list "X", association: :y` | `{ section: "X", type: association_list, association: y }` |
-| `form do section "Details" do ... end end` | `form: { sections: [{ title: "Details", ... }] }` |
+| `form do layout :tabs end` | `form: { layout: tabs }` |
+| `form do section "Details", collapsible: true do ... end end` | `form: { sections: [{ title: "Details", collapsible: true, ... }] }` |
+| `nested_fields "Items", association: :items do ... end` | `form: { sections: [{ type: nested_fields, title: "Items", association: items, ... }] }` |
+| `divider label: "Address"` | `fields: [{ type: divider, label: "Address" }]` |
+| `field :x, col_span: 2, hint: "Help"` | `fields: [{ field: x, col_span: 2, hint: "Help" }]` |
 | `search do ... end` | `search: { ... }` |
 | `search enabled: false` | `search: { enabled: false }` |
 | `action :show, type: :built_in, on: :single` | `actions: { single: [{ name: show, type: built_in }] }` |
@@ -423,26 +578,50 @@ define_presenter :deal_admin do
     default_view :table
     default_sort :created_at, :desc
     per_page 25
-    column :title, width: "30%", link_to: :show, sortable: true
-    column :stage, width: "20%", display: :badge, sortable: true
-    column :value, width: "20%", display: :currency, sortable: true
+    row_click :show
+    empty_message "No deals yet. Create your first deal to get started."
+    actions_position :dropdown
+    column :title, width: "30%", link_to: :show, sortable: true, pinned: :left
+    column :stage, width: "20%", display: :badge, sortable: true,
+      display_options: { color_map: { lead: "blue", closed_won: "green", closed_lost: "red" } }
+    column :value, width: "20%", display: :currency, sortable: true,
+      summary: :sum, hidden_on: :mobile
   end
 
   show do
-    section "Deal Information", columns: 2 do
-      field :title, display: :heading
+    section "Deal Information", columns: 2, responsive: { mobile: 1 } do
+      field :title, display: :heading, col_span: 2
       field :stage, display: :badge
       field :value, display: :currency
     end
   end
 
   form do
-    section "Deal Details", columns: 2 do
-      field :title, placeholder: "Deal title...", autofocus: true
+    layout :tabs
+
+    section "Deal Details", columns: 2, responsive: { mobile: 1 } do
+      field :title, placeholder: "Deal title...", autofocus: true,
+        hint: "A short descriptive name for the deal"
       field :stage, input_type: :select
-      field :value, input_type: :number
+      field :value, input_type: :number, prefix: "$", col_span: 1
       field :company_id, input_type: :association_select
       field :contact_id, input_type: :association_select
+    end
+
+    section "Additional Info", collapsible: true, collapsed: true do
+      field :description, input_type: :textarea, col_span: 2
+      divider label: "Internal"
+      field :notes, input_type: :textarea, readonly: true,
+        visible_when: { field: :stage, operator: :not_eq, value: "lead" }
+    end
+
+    nested_fields "Line Items", association: :line_items,
+      allow_add: true, allow_remove: true,
+      max: 20, add_label: "Add Line Item",
+      empty_message: "No line items.", columns: 3 do
+        field :product_name, placeholder: "Product..."
+        field :quantity, input_type: :number, default: 1
+        field :unit_price, input_type: :number, prefix: "$"
     end
   end
 

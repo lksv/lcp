@@ -9,18 +9,22 @@ presenter:
     default_view: table
     default_sort: { field: created_at, direction: desc }
     per_page: 50
+    row_click: show
     table_columns:
       - { field: title, width: "50%", link_to: show, sortable: true }
-      - { field: completed, width: "15%", display: badge, sortable: true }
-      - { field: due_date, width: "20%", sortable: true }
+      - { field: completed, width: "15%", display: badge, display_options: { color_map: { "true": green, "false": gray } }, sortable: true }
+      - { field: due_date, width: "20%", display: relative_date, sortable: true }
 
   show:
     layout:
       - section: "Item Details"
         columns: 2
+        responsive:
+          mobile:
+            columns: 1
         fields:
           - { field: title, display: heading }
-          - { field: completed, display: badge }
+          - { field: completed, display: boolean_icon }
           - { field: due_date }
 
   form:
@@ -28,7 +32,7 @@ presenter:
       - title: "Item Details"
         columns: 1
         fields:
-          - { field: title, placeholder: "What needs to be done?", autofocus: true }
+          - { field: title, placeholder: "What needs to be done?", autofocus: true, hint: "Be specific about the task" }
           - { field: completed, input_type: boolean }
           - { field: due_date, input_type: date_picker }
           - { field: todo_list_id, input_type: association_select }

@@ -18,7 +18,7 @@ module LcpRuby
       private
 
       def stringify_keys(hash)
-        hash.transform_keys(&:to_s)
+        HashUtils.stringify_deep(hash)
       end
     end
   end

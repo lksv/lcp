@@ -2,6 +2,10 @@ module LcpRuby
   class ApplicationController < LcpRuby.configuration.parent_controller.constantize
     include Pundit::Authorization
 
+    helper LcpRuby::DisplayHelper
+    helper LcpRuby::FormHelper
+    helper LcpRuby::LayoutHelper
+
     layout "lcp_ruby/application"
 
     before_action :authenticate_user!

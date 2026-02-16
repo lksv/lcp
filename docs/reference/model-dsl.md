@@ -386,12 +386,22 @@ belongs_to :author, class_name: "User", foreign_key: :author_id
 ```ruby
 has_many :contacts, model: :contact, dependent: :destroy
 has_many :items, model: :item, foreign_key: :parent_id
+
+# With nested attributes
+has_many :todo_items, model: :todo_item, dependent: :destroy,
+  inverse_of: :todo_list,
+  nested_attributes: { allow_destroy: true, reject_if: :all_blank }
 ```
 
 ### `has_one`
 
 ```ruby
 has_one :profile, model: :profile, dependent: :destroy
+
+# With nested attributes
+has_one :address, model: :address, dependent: :destroy,
+  inverse_of: :contact,
+  nested_attributes: { update_only: true }
 ```
 
 ### Association Options
@@ -412,6 +422,7 @@ has_one :profile, model: :profile, dependent: :destroy
 | `source:` | `AssociationDefinition.source` | `has_many`/`has_one` with `through:` only. Source association on join model. |
 | `autosave:` | `AssociationDefinition.autosave` | Auto-save associated records when parent is saved. |
 | `validate:` | `AssociationDefinition.validate` | Validate associated records on save. Set `false` to skip. |
+| `nested_attributes:` | `AssociationDefinition.nested_attributes` | `has_many`/`has_one` only. Hash with nested attributes options: `allow_destroy:`, `reject_if:`, `limit:`, `update_only:`. Requires `inverse_of:`. See [Nested Attributes](models.md#nested-attributes). |
 
 At least one of `model:`, `class_name:`, `polymorphic:`, `as:`, or `through:` is required. Use `model:` for LCP models; use `class_name:` for host app models.
 
@@ -519,6 +530,7 @@ The DSL produces the exact same hash structure as parsed YAML. Every DSL constru
 | `belongs_to :x, model: :x` | `associations: [{ type: belongs_to, name: x, target_model: x }]` |
 | `belongs_to :x, polymorphic: true` | `associations: [{ type: belongs_to, name: x, polymorphic: true }]` |
 | `has_many :x, through: :y` | `associations: [{ type: has_many, name: x, through: y }]` |
+| `has_many :x, ..., nested_attributes: { allow_destroy: true }` | `associations: [{ ..., nested_attributes: { allow_destroy: true } }]` |
 | `scope :a, where: { ... }` | `scopes: [{ name: a, where: { ... } }]` |
 | `after_create` | `events: [{ name: after_create }]` |
 | `on_field_change :e, field: :f` | `events: [{ name: e, type: field_change, field: f }]` |

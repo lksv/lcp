@@ -9,16 +9,18 @@ presenter:
     default_view: table
     default_sort: { field: created_at, direction: desc }
     per_page: 25
+    row_click: show
+    empty_message: "No lists yet. Create your first todo list!"
     table_columns:
       - { field: title, width: "50%", link_to: show, sortable: true }
-      - { field: description, width: "50%" }
+      - { field: description, width: "50%", display: truncate, display_options: { max: 60 } }
 
   show:
     layout:
       - section: "Details"
         columns: 1
         fields:
-          - { field: title, display: heading }
+          - { field: title, display: heading, col_span: 2 }
           - { field: description }
       - section: "Items"
         type: association_list
@@ -29,8 +31,19 @@ presenter:
       - title: "List Details"
         columns: 1
         fields:
-          - { field: title, placeholder: "Enter list title...", autofocus: true }
-          - { field: description, input_type: text }
+          - { field: title, placeholder: "Enter list title...", autofocus: true, col_span: 2 }
+          - { field: description, input_type: text, hint: "Optional description for this list" }
+      - title: "Items"
+        type: nested_fields
+        association: todo_items
+        allow_add: true
+        allow_remove: true
+        add_label: "Add Item"
+        columns: 3
+        fields:
+          - { field: title, placeholder: "What needs to be done?" }
+          - { field: completed, input_type: boolean }
+          - { field: due_date, input_type: date_picker }
 
   search:
     enabled: true

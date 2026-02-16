@@ -4,7 +4,7 @@
     <div class="lcp-toolbar">
       <%= link_to "Back to list", resources_path, class: "btn" %>
       <% @action_set.single_actions(@record).each do |action| %>
-        <% action = action.transform_keys(&:to_s) if action.is_a?(Hash) %>
+
         <% case action["name"] %>
         <% when "edit" %>
           <%= link_to "Edit", edit_resource_path(@record), class: "btn" %>
@@ -34,35 +34,23 @@
           </div>
         <% end %>
       <% else %>
-        <div class="lcp-fields" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;">
+        <div class="lcp-fields lcp-grid" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;"
+             <%= "data-responsive-mobile=\"#{section.dig('responsive', 'mobile', 'columns')}\"" if section.dig('responsive', 'mobile', 'columns') %>
+             <%= "data-responsive-tablet=\"#{section.dig('responsive', 'tablet', 'columns')}\"" if section.dig('responsive', 'tablet', 'columns') %>>
           <% visible_fields = @column_set.visible_show_fields(section["fields"]) %>
           <% visible_fields.each do |field_config| %>
-            <% field_config = field_config.transform_keys(&:to_s) if field_config.is_a?(Hash) %>
+
             <% field_name = field_config["field"] %>
             <% next unless @record.respond_to?(field_name) %>
             <% value = @record.send(field_name) %>
 
-            <div class="lcp-field">
+            <div class="lcp-field <%= hidden_on_classes(field_config) %>"
+                 <%= "style=\"grid-column: span #{field_config['col_span']}\"" if field_config["col_span"] %>>
               <% field_def = field_config["field_definition"] %>
               <label><%= field_def&.label || field_name.humanize %></label>
               <div class="lcp-field-value">
-                <% case field_config["display"] %>
-                <% when "heading" %>
-                  <strong><%= value %></strong>
-                <% when "badge" %>
-                  <span class="badge"><%= value %></span>
-                <% when "link" %>
-                  <% if value.respond_to?(:to_label) %>
-                    <%= value.to_label %>
-                  <% else %>
-                    <%= value %>
-                  <% end %>
-                <% when "rich_text" %>
-                  <div class="rich-text"><%= value&.html_safe %></div>
-                <% when "currency" %>
-                  <%= number_to_currency(value) %>
-                <% when "relative_date" %>
-                  <%= value.respond_to?(:strftime) ? time_ago_in_words(value) + " ago" : value %>
+                <% if field_config["display"] %>
+                  <%= render_display_value(value, field_config["display"], field_config["display_options"], field_def) %>
                 <% else %>
                   <%= value %>
                 <% end %>

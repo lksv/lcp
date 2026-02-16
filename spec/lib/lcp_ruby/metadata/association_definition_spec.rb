@@ -264,5 +264,116 @@ RSpec.describe LcpRuby::Metadata::AssociationDefinition do
       expect(assoc.autosave).to be true
       expect(assoc.validate).to be false
     end
+
+    it "reads nested_attributes from hash" do
+      assoc = described_class.from_hash(
+        "type" => "has_many",
+        "name" => "items",
+        "target_model" => "item",
+        "inverse_of" => "order",
+        "nested_attributes" => {
+          "allow_destroy" => true,
+          "reject_if" => "all_blank",
+          "limit" => 50
+        }
+      )
+
+      expect(assoc.nested_attributes).to eq({
+        "allow_destroy" => true,
+        "reject_if" => "all_blank",
+        "limit" => 50
+      })
+    end
+  end
+
+  describe "nested_attributes parsing" do
+    it "parses valid nested_attributes hash" do
+      assoc = described_class.new(
+        type: "has_many", name: "items", target_model: "item",
+        nested_attributes: { "allow_destroy" => true, "reject_if" => "all_blank" }
+      )
+
+      expect(assoc.nested_attributes).to eq({
+        "allow_destroy" => true,
+        "reject_if" => "all_blank"
+      })
+    end
+
+    it "parses all supported keys" do
+      assoc = described_class.new(
+        type: "has_many", name: "items", target_model: "item",
+        nested_attributes: {
+          "allow_destroy" => true,
+          "reject_if" => "all_blank",
+          "limit" => 10,
+          "update_only" => true
+        }
+      )
+
+      expect(assoc.nested_attributes).to include(
+        "allow_destroy" => true,
+        "reject_if" => "all_blank",
+        "limit" => 10,
+        "update_only" => true
+      )
+    end
+
+    it "returns nil for non-Hash value" do
+      assoc = described_class.new(
+        type: "has_many", name: "items", target_model: "item",
+        nested_attributes: true
+      )
+
+      expect(assoc.nested_attributes).to be_nil
+    end
+
+    it "returns nil for empty hash" do
+      assoc = described_class.new(
+        type: "has_many", name: "items", target_model: "item",
+        nested_attributes: {}
+      )
+
+      expect(assoc.nested_attributes).to be_nil
+    end
+
+    it "returns nil when nil is passed" do
+      assoc = described_class.new(
+        type: "has_many", name: "items", target_model: "item",
+        nested_attributes: nil
+      )
+
+      expect(assoc.nested_attributes).to be_nil
+    end
+
+    it "filters out unrecognized keys" do
+      assoc = described_class.new(
+        type: "has_many", name: "items", target_model: "item",
+        nested_attributes: { "allow_destroy" => true, "unknown_key" => "value" }
+      )
+
+      expect(assoc.nested_attributes).to eq({ "allow_destroy" => true })
+      expect(assoc.nested_attributes).not_to have_key("unknown_key")
+    end
+
+    it "logs a warning for unrecognized keys" do
+      expect(Rails.logger).to receive(:warn).with(/unrecognized nested_attributes keys.*unknown_key/)
+
+      described_class.new(
+        type: "has_many", name: "items", target_model: "item",
+        nested_attributes: { "allow_destroy" => true, "unknown_key" => "value" }
+      )
+    end
+
+    it "handles symbol keys by converting them to strings" do
+      assoc = described_class.new(
+        type: "has_many", name: "items", target_model: "item",
+        nested_attributes: { allow_destroy: true, reject_if: "all_blank" }
+      )
+
+      expect(assoc.nested_attributes).to eq({
+        "allow_destroy" => true,
+        "reject_if" => "all_blank"
+      })
+    end
   end
 end
