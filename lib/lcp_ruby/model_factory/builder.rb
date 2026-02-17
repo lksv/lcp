@@ -16,6 +16,8 @@ module LcpRuby
         apply_associations(model_class)
         apply_scopes(model_class)
         apply_callbacks(model_class)
+        apply_defaults(model_class)
+        apply_computed(model_class)
         apply_label_method(model_class)
         model_class
       end
@@ -61,6 +63,14 @@ module LcpRuby
 
       def apply_callbacks(model_class)
         CallbackApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_defaults(model_class)
+        DefaultApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_computed(model_class)
+        ComputedApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_label_method(model_class)

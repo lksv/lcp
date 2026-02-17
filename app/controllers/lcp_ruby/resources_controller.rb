@@ -26,7 +26,6 @@ module LcpRuby
     def new
       @record = @model_class.new
       authorize @record
-      apply_dynamic_defaults(@record)
       build_nested_records(@record)
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
     end
@@ -171,25 +170,6 @@ module LcpRuby
         when "sum"   then h[field] = scope.sum(field)
         when "avg"   then h[field] = scope.average(field)
         when "count" then h[field] = scope.where.not(field => nil).count
-        end
-      end
-    end
-
-    def apply_dynamic_defaults(record)
-      sections = current_presenter.form_config["sections"] || []
-      sections.each do |section|
-        next if section["type"] == "nested_fields"
-
-        (section["fields"] || []).each do |fc|
-          next unless fc["default"]
-
-          field_name = fc["field"]
-          case fc["default"]
-          when "current_date"
-            record[field_name] ||= Date.today if record.respond_to?("#{field_name}=")
-          when "current_user_id"
-            record[field_name] ||= current_user&.id if record.respond_to?("#{field_name}=")
-          end
         end
       end
     end

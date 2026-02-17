@@ -42,8 +42,8 @@ module LcpRuby
 
         @model_class.after_update do |record|
           if record.saved_change_to_attribute?(field)
-            should_fire = if condition.present?
-              record.instance_eval(condition)
+            should_fire = if condition.is_a?(Hash)
+              ConditionEvaluator.evaluate_any(record, condition)
             else
               true
             end

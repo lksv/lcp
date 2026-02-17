@@ -2,13 +2,18 @@ define_model :contact do
   label "Contact"
   label_plural "Contacts"
 
-  field :first_name, :string, label: "First Name", limit: 100, null: false do
+  field :first_name, :string, label: "First Name", limit: 100, null: false,
+    transforms: [:strip, :titlecase] do
     validates :presence
   end
 
-  field :last_name, :string, label: "Last Name", limit: 100, null: false do
+  field :last_name, :string, label: "Last Name", limit: 100, null: false,
+    transforms: [:strip, :titlecase] do
     validates :presence
   end
+
+  field :full_name, :string, label: "Full Name",
+    computed: "{first_name} {last_name}"
 
   field :email, :email, label: "Email"
   field :phone, :phone, label: "Phone"
@@ -18,5 +23,5 @@ define_model :contact do
   belongs_to :company, model: :company, required: true
 
   timestamps true
-  label_method :first_name
+  label_method :full_name
 end

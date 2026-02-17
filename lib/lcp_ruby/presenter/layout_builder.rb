@@ -50,6 +50,8 @@ module LcpRuby
             end
           else
             f = f.merge("field_definition" => field_def)
+            # Computed fields are readonly in forms
+            f = f.merge("readonly" => true) if field_def.computed?
           end
 
           f

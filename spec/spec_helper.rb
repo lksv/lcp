@@ -11,16 +11,5 @@ RSpec.configure do |config|
 
   config.before(:each) do
     LcpRuby.reset!
-    LcpRuby::Events::HandlerRegistry.clear!
-    LcpRuby::Actions::ActionRegistry.clear!
-    LcpRuby::Authorization::PolicyFactory.clear!
-    LcpRuby::Types::TypeRegistry.clear!
-    LcpRuby::Types::ServiceRegistry.clear!
-    LcpRuby::ConditionServiceRegistry.clear!
-
-    # Remove dynamic constants
-    LcpRuby::Dynamic.constants.each do |const|
-      LcpRuby::Dynamic.send(:remove_const, const)
-    end
   end
 end

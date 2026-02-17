@@ -119,7 +119,7 @@ module LcpRuby
         options[:precision] = col_opts[:precision] if col_opts[:precision]
         options[:scale] = col_opts[:scale] if col_opts[:scale]
         options[:null] = col_opts[:null] if col_opts.key?(:null)
-        options[:default] = field.default if field.default
+        options[:default] = field.default if field.default && !field.default.is_a?(Hash)
 
         options
       end

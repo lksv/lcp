@@ -7,6 +7,9 @@ module LcpRuby
         def register(category, key, service)
           validate_category!(category)
           registries[category.to_s][key.to_s] = service
+          if category.to_s == "transform" && defined?(Services::Registry)
+            Services::Registry.register("transforms", key, service)
+          end
         end
 
         def lookup(category, key)

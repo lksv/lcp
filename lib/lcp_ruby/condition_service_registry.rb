@@ -3,6 +3,7 @@ module LcpRuby
     class << self
       def register(key, service)
         registry[key.to_s] = service
+        Services::Registry.register("conditions", key, service) if defined?(Services::Registry)
       end
 
       def lookup(key)

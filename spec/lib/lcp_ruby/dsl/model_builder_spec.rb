@@ -345,6 +345,56 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
     end
   end
 
+  describe "model-level validations on FK fields" do
+    it "converts validates on belongs_to FK field to model-level validation" do
+      builder = described_class.new(:deal)
+      builder.instance_eval do
+        field :title, :string
+        field :stage, :enum, values: %w[lead qualified negotiation]
+        belongs_to :contact, model: :contact, required: false
+        validates :contact_id, :presence, when: { field: :stage, operator: :in, value: %w[negotiation] }
+      end
+
+      hash = builder.to_hash
+
+      # Should not raise MetadataError about unknown field
+      # contact_id should become a model-level validation with field target
+      expect(hash["validations"].length).to eq(1)
+      validation = hash["validations"].first
+      expect(validation["type"]).to eq("presence")
+      expect(validation["field"]).to eq("contact_id")
+      expect(validation["when"]).to eq({ field: :stage, operator: :in, value: %w[negotiation] })
+    end
+
+    it "converts validates on FK field with explicit foreign_key" do
+      builder = described_class.new(:task)
+      builder.instance_eval do
+        field :title, :string
+        belongs_to :author, model: :user, foreign_key: :author_id
+        validates :author_id, :presence
+      end
+
+      hash = builder.to_hash
+
+      expect(hash["validations"].length).to eq(1)
+      expect(hash["validations"].first["field"]).to eq("author_id")
+      expect(hash["validations"].first["type"]).to eq("presence")
+    end
+
+    it "still raises for truly unknown fields (not FK)" do
+      builder = described_class.new(:deal)
+      builder.instance_eval do
+        field :title, :string
+        belongs_to :contact, model: :contact
+        validates :nonexistent_field, :presence
+      end
+
+      expect { builder.to_hash }.to raise_error(
+        LcpRuby::MetadataError, /references unknown field 'nonexistent_field'/
+      )
+    end
+  end
+
   describe "model-level validations (validates_model)" do
     it "produces model-level validation hash" do
       builder = described_class.new(:project)

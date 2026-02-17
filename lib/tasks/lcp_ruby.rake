@@ -20,11 +20,23 @@ namespace :lcp_ruby do
 
     puts result
     puts ""
+
+    # Check service references
+    LcpRuby::Types::BuiltInServices.register_all!
+    LcpRuby::Types::BuiltInTypes.register_all!
+    LcpRuby::Services::BuiltInTransforms.register_all!
+    LcpRuby::Services::BuiltInDefaults.register_all!
+    LcpRuby::Services::Registry.discover!(Rails.root.join("app").to_s)
+
+    service_result = LcpRuby::Services::Checker.new(loader.model_definitions).check
+    puts service_result
+    puts ""
+
     puts "Models:      #{loader.model_definitions.size}"
     puts "Presenters:  #{loader.presenter_definitions.size}"
     puts "Permissions: #{loader.permission_definitions.size}"
 
-    exit 1 unless result.valid?
+    exit 1 unless result.valid? && service_result.valid?
   end
 
   desc "Generate ERD diagram from LCP Ruby models (FORMAT=mermaid|dot|plantuml, OUTPUT=file)"

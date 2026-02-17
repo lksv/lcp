@@ -1,18 +1,31 @@
 # Extensibility Guide
 
-LCP Ruby generates full CRUD applications from YAML metadata, but real-world systems need custom business logic. This guide covers all extensibility mechanisms available today and outlines the planned architecture for future versions.
+LCP Ruby generates full CRUD applications from YAML metadata, but real-world systems need custom business logic. This guide covers all extensibility mechanisms.
 
 ## Overview
 
-LCP Ruby provides six extensibility points, each designed for a specific category of customization:
+LCP Ruby provides extensibility through two systems:
+
+1. **Services::Registry** — unified auto-discover registry for transforms, validators, defaults, computed fields, and conditions. Services live in `app/lcp_services/{category}/` and are discovered automatically.
+2. **Dedicated registries** — custom actions (`app/actions/`), event handlers (`app/event_handlers/`), and condition services (`app/condition_services/`) use their own registries with auto-discovery.
+
+### Service Categories
+
+| Category | Contract | Side Effects? | Directory | Used In |
+|----------|----------|---------------|-----------|---------|
+| `transforms` | `def call(value) -> value` | No | `app/lcp_services/transforms/` | Field `transforms:`, type `transforms:` |
+| `validators` | `def self.call(record, **opts) -> void` | No | `app/lcp_services/validators/` | Validation `type: service` |
+| `defaults` | `def self.call(record, field_name) -> value` | No | `app/lcp_services/defaults/` | Field `default: { service: }` |
+| `computed` | `def self.call(record) -> value` | No | `app/lcp_services/computed/` | Field `computed: { service: }` |
+| `conditions` | `def self.call(record) -> boolean` | No | `app/lcp_services/conditions/` | `visible_when: { service: }`, `when: { service: }` |
+
+### Other Extension Points
 
 | Mechanism | Contract | Side Effects? | Base Class | Docs |
 |-----------|----------|---------------|------------|------|
 | Custom Actions | `(record, user, params) -> Result` | Yes | `Actions::BaseAction` | [Guide](custom-actions.md) |
 | Event Handlers | `(record, changes) -> void` | Yes | `Events::HandlerBase` | [Guide](event-handlers.md) |
-| Custom Transforms | `(value) -> value` | No (pure) | `Types::Transforms::BaseTransform` | [Reference](../reference/types.md#custom-transforms) |
-| Custom Validations | `(record, field) -> errors` | No (pure) | `ActiveModel::Validator` | [Reference](../reference/models.md#validations) |
-| Condition Services | `(record) -> boolean` | No (pure) | Class with `self.call` | [Guide](conditional-rendering.md) |
+| Custom Validations | `(record, field) -> errors` | No | `ActiveModel::Validator` | [Reference](../reference/models.md#validations) |
 | Scopes | `(relation) -> relation` | No | YAML/DSL config | [Reference](../reference/models.md#scopes) |
 
 ## Choosing the Right Mechanism
@@ -22,8 +35,12 @@ Use this decision tree to pick the right extensibility point:
 - **User clicks a button** (explicit action) -> [Custom Action](#custom-actions)
 - **React to data changes** (implicit side effect) -> [Event Handler](#event-handlers)
 - **Normalize field values on write** (transform input) -> [Custom Transform](#custom-transforms)
-- **Enforce data constraints** (reject invalid data) -> [Custom Validation](#custom-validations)
+- **Enforce data constraints on a single field** (reject invalid data) -> [Custom Validation](#custom-validations) or declarative [comparison](../reference/models.md#comparison)
+- **Enforce cross-record business rules** (e.g., aggregate limits) -> [Service Validator](#service-validators)
+- **Calculate a field from other fields** -> [Computed Field](#computed-fields)
+- **Set field default at record creation** -> [Dynamic Default](#dynamic-defaults)
 - **Compute field/section visibility dynamically** (server-side condition) -> [Condition Service](#condition-services)
+- **Run validation only in certain states** -> [Conditional Validation](../reference/models.md#conditional-validations-when) (declarative `when:`)
 - **Reusable query filters** (named queries) -> [Scope](#scopes)
 
 ## Quick Examples
@@ -96,6 +113,10 @@ events:
   - name: on_stage_change
     type: field_change
     field: stage
+    condition:
+      field: stage
+      operator: not_in
+      value: [lead]
 ```
 
 See the [Event Handlers guide](event-handlers.md) for async handlers, lifecycle events, and the full `HandlerBase` API.
@@ -104,32 +125,42 @@ See the [Event Handlers guide](event-handlers.md) for async handlers, lifecycle 
 
 Transforms normalize field values on assignment. They are pure functions: `value in -> value out`.
 
-```ruby
-# lib/transforms/titlecase.rb
-class TitlecaseTransform < LcpRuby::Types::Transforms::BaseTransform
-  def call(value)
-    value.respond_to?(:titlecase) ? value.titlecase : value
-  end
-end
+Transforms can be used at the **field level** (directly on a field) or at the **type level** (bundled with a custom type). For simple cases, field-level transforms avoid the need for a custom type entirely.
 
-# config/initializers/lcp_ruby.rb
-Rails.application.config.after_initialize do
-  LcpRuby::Types::ServiceRegistry.register("transform", "titlecase", TitlecaseTransform.new)
-end
-```
-
-Use in a type definition:
+**Field-level transform** (no custom type needed):
 
 ```yaml
-type:
-  name: proper_name
-  base_type: string
-  transforms:
-    - strip
-    - titlecase
+# YAML
+- name: title
+  type: string
+  transforms: [strip]
 ```
 
-Transforms chain in order via `ActiveRecord.normalizes` — each transform's output feeds the next. See the [Types Reference](../reference/types.md#custom-transforms) for details.
+```ruby
+# DSL
+field :first_name, :string, transforms: [:strip, :titlecase]
+```
+
+**Custom transform service** — register in `app/lcp_services/transforms/`:
+
+```ruby
+# app/lcp_services/transforms/titlecase.rb
+module LcpRuby
+  module HostServices
+    module Transforms
+      class Titlecase
+        def call(value)
+          value.respond_to?(:titlecase) ? value.titlecase : value
+        end
+      end
+    end
+  end
+end
+```
+
+The service is auto-discovered and can be referenced by key (`titlecase`) in both field-level `transforms:` and type-level `transforms:`.
+
+Transforms chain in order via `ActiveRecord.normalizes` — each transform's output feeds the next. Field-level transforms extend type-level transforms (deduplicated). See the [Types Reference](../reference/types.md#custom-transforms) for details.
 
 ### Custom Validations
 
@@ -167,6 +198,133 @@ validations:
 
 The engine calls `validator_class.constantize` at build time, so the class must be loaded before models are built.
 
+> **Tip:** For cross-field date/number comparisons, consider using the declarative [`comparison`](../reference/models.md#comparison) validation type instead of writing a custom validator class. For cross-record business rules, use a [service validator](#service-validators).
+
+### Service Validators
+
+Service validators enforce business rules that span multiple records or require database queries. They are auto-discovered from `app/lcp_services/validators/`.
+
+```ruby
+# app/lcp_services/validators/deal_credit_limit.rb
+module LcpRuby
+  module HostServices
+    module Validators
+      class DealCreditLimit
+        def self.call(record, **opts)
+          return unless record.respond_to?(:company_id) && record.company_id
+
+          company_deals = record.class.where(company_id: record.company_id)
+          company_deals = company_deals.where.not(id: record.id) if record.persisted?
+          total = company_deals.sum(:value).to_f + record.value.to_f
+
+          if total > 1_000_000
+            record.errors.add(:value, "total company deals exceed credit limit (1M)")
+          end
+        end
+      end
+    end
+  end
+end
+```
+
+Reference in model YAML/DSL:
+
+```yaml
+# Model-level service validation
+validations:
+  - type: service
+    service: deal_credit_limit
+```
+
+```ruby
+# DSL
+validates_model :service, service: "deal_credit_limit"
+```
+
+### Computed Fields
+
+Computed fields derive their values from other fields and are automatically calculated before save. They are rendered as readonly in forms.
+
+**Template computed field** — string interpolation using `{field_name}` syntax:
+
+```ruby
+# DSL
+field :full_name, :string, computed: "{first_name} {last_name}"
+```
+
+```yaml
+# YAML
+- name: full_name
+  type: string
+  computed: "{first_name} {last_name}"
+```
+
+**Service computed field** — delegates to a registered service in `app/lcp_services/computed/`:
+
+```ruby
+# app/lcp_services/computed/weighted_deal_value.rb
+module LcpRuby
+  module HostServices
+    module Computed
+      class WeightedDealValue
+        def self.call(record)
+          value = record.value.to_f
+          progress = record.progress.to_f
+          (value * progress / 100.0).round(2)
+        end
+      end
+    end
+  end
+end
+```
+
+```ruby
+# DSL
+field :weighted_value, :decimal, computed: { service: "weighted_deal_value" }
+```
+
+See [Computed Fields](../reference/models.md#computed) in the Models Reference.
+
+### Dynamic Defaults
+
+Dynamic defaults set field values at record creation time using runtime logic. They run via `after_initialize` on new records only.
+
+**Built-in defaults:**
+
+```yaml
+- name: start_date
+  type: date
+  default: current_date
+```
+
+Built-in keys: `current_date`, `current_datetime`, `current_user_id`.
+
+**Service defaults** — custom logic in `app/lcp_services/defaults/`:
+
+```ruby
+# app/lcp_services/defaults/thirty_days_out.rb
+module LcpRuby
+  module HostServices
+    module Defaults
+      class ThirtyDaysOut
+        def self.call(record, field_name)
+          Date.current + 30
+        end
+      end
+    end
+  end
+end
+```
+
+```yaml
+- name: expected_close_date
+  type: date
+  default:
+    service: thirty_days_out
+```
+
+See [Dynamic Defaults](../reference/models.md#default) in the Models Reference.
+
 ### Condition Services
 
 Condition services compute dynamic visibility for fields or sections. They are pure functions: `record in -> boolean out`. Use them when declarative `visible_when` operators are not expressive enough.
@@ -193,6 +351,15 @@ fields:
 ```
 
 When the presenter evaluates `visible_when` and encounters a `service` key, it looks up the named condition service in the `ConditionServiceRegistry` and calls it with the current record. The field is visible only if the service returns `true`.
+
+Condition services can also be used in validation `when:` conditions:
+
+```yaml
+validations:
+  - type: presence
+    when:
+      service: requires_approval
+```
 
 ### Scopes
 
@@ -290,10 +457,9 @@ Rails.application.config.after_initialize do
   # Discover condition services from app/condition_services/
   LcpRuby::ConditionServiceRegistry.discover!(app_path.to_s)
 
-  # Register custom transforms
-  LcpRuby::Types::ServiceRegistry.register(
-    "transform", "titlecase", TitlecaseTransform.new
-  )
+  # Discover services (transforms, validators, defaults, computed, conditions)
+  # from app/lcp_services/
+  LcpRuby::Services::Registry.discover!(app_path.to_s)
 end
 ```
 
@@ -303,23 +469,29 @@ end
 app/
   actions/
     deal/
-      close_won.rb          # LcpRuby::HostActions::Deal::CloseWon
+      close_won.rb              # LcpRuby::HostActions::Deal::CloseWon
   event_handlers/
     deal/
-      on_stage_change.rb    # LcpRuby::HostEventHandlers::Deal::OnStageChange
+      on_stage_change.rb        # LcpRuby::HostEventHandlers::Deal::OnStageChange
   condition_services/
-    credit_check.rb           # LcpRuby::HostConditionServices::CreditCheck
+    credit_check.rb             # LcpRuby::HostConditionServices::CreditCheck
+  lcp_services/
+    transforms/
+      titlecase.rb              # LcpRuby::HostServices::Transforms::Titlecase
+    validators/
+      deal_credit_limit.rb      # LcpRuby::HostServices::Validators::DealCreditLimit
+    defaults/
+      thirty_days_out.rb        # LcpRuby::HostServices::Defaults::ThirtyDaysOut
+    computed/
+      weighted_deal_value.rb    # LcpRuby::HostServices::Computed::WeightedDealValue
   validators/
     business_rule_validator.rb  # BusinessRuleValidator
-lib/
-  transforms/
-    titlecase.rb            # TitlecaseTransform
 config/
   lcp_ruby/
     types/
-      proper_name.yml       # references "titlecase" transform
+      proper_name.yml           # references "titlecase" transform
     models/
-      deal.yml              # references custom scope, events, validations
+      deal.yml                  # references scopes, events, validations, computed, defaults
 ```
 
 ## Future Architecture
@@ -381,16 +553,6 @@ Three approaches are under consideration:
 | **Full SDK** | Client SDK with ORM-like API over the wire | High engine work | Extensions feel native |
 
 The likely path is starting with the rich snapshot approach — serialize the record plus declared `includes` into a JSON payload, send to the external process, receive a result or mutation list back.
-
-### Computed Fields and Dynamic Defaults
-
-Future function types beyond actions and handlers:
-
-- **Computed fields** — derive values from other fields (e.g., `full_name` from `first_name` + `last_name`)
-- **Dynamic defaults** — calculate default values at record creation time (e.g., next invoice number from a sequence)
-- **Field-level visibility functions** — programmatic `visible_when` logic beyond the declarative operator set
-
-These would follow the same pattern: a Ruby class with a simple contract, registered via the same discovery mechanism.
 
 ### ProcessRunner
 
