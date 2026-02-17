@@ -56,13 +56,9 @@ module LcpRuby
             @errors << "Model '#{model_def.name}', field '#{field.name}': " \
                        "default service '#{service_key}' not found in Services::Registry"
           end
-        elsif field.default.is_a?(String) && Services::Registry.registered?("defaults", field.default)
-          # String defaults that match a registered service are valid
-        elsif field.default.is_a?(String) && !literal_default?(field)
-          # String defaults that don't match any service could be literal values;
-          # only flag if they look like a service reference (contain no spaces, not a date, etc.)
-          # We skip this check — literal string defaults are valid and common.
         end
+        # String defaults are either registered service keys (handled by
+        # DefaultApplicator at runtime) or literal values — both are valid.
       end
 
       def check_field_computed(model_def, field)
@@ -80,10 +76,9 @@ module LcpRuby
       def check_field_transforms(model_def, field)
         field.transforms.each do |key|
           next if Services::Registry.registered?("transforms", key)
-          next if Types::ServiceRegistry.lookup("transform", key)
 
           @errors << "Model '#{model_def.name}', field '#{field.name}': " \
-                     "transform '#{key}' not found in Services::Registry or Types::ServiceRegistry"
+                     "transform '#{key}' not found in Services::Registry"
         end
       end
 
@@ -109,10 +104,6 @@ module LcpRuby
         end
       end
 
-      def literal_default?(field)
-        # Enum defaults, booleans, numbers are literal values, not service references
-        field.enum? || %w[boolean integer float decimal].include?(field.type)
-      end
     end
   end
 end

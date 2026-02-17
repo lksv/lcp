@@ -160,7 +160,7 @@ The underlying storage type. Must be one of: `string`, `text`, `integer`, `float
 | **Default** | `[]` |
 | **Type** | array of strings |
 
-Ordered list of transform service keys. Each key must be registered in the `ServiceRegistry` under the `"transform"` category. Transforms are chained in order and applied via `ActiveRecord.normalizes`.
+Ordered list of transform service keys. Each key must be registered in `Services::Registry` under the `"transforms"` category. Transforms are chained in order and applied via `ActiveRecord.normalizes`.
 
 Built-in transforms: `strip`, `downcase`, `normalize_url`, `normalize_phone`.
 
@@ -265,7 +265,7 @@ end
 
 ## Custom Transforms
 
-To add a custom transform, create a class that inherits from `LcpRuby::Types::Transforms::BaseTransform` and register it in the `ServiceRegistry`:
+To add a custom transform, create a class that inherits from `LcpRuby::Types::Transforms::BaseTransform` and register it in `Services::Registry`:
 
 ```ruby
 # lib/transforms/titlecase.rb
@@ -277,7 +277,7 @@ end
 
 # config/initializers/lcp_ruby.rb
 Rails.application.config.after_initialize do
-  LcpRuby::Types::ServiceRegistry.register("transform", "titlecase", TitlecaseTransform.new)
+  LcpRuby::Services::Registry.register("transforms", "titlecase", TitlecaseTransform.new)
 end
 ```
 
@@ -296,8 +296,8 @@ type:
 
 Types are loaded before models to ensure all type references can be resolved:
 
-1. Built-in services registered (`BuiltInServices.register_all!`)
-2. Built-in types registered (`BuiltInTypes.register_all!`)
+1. Built-in types registered (`BuiltInTypes.register_all!`)
+2. Built-in transforms registered (`Services::BuiltInTransforms.register_all!`)
 3. User YAML types loaded from `config/lcp_ruby/types/*.yml`
 4. User DSL types loaded from `config/lcp_ruby/types/*.rb`
 5. Models loaded (fields can now reference any registered type)
@@ -370,4 +370,4 @@ Result:
 - Forms render `<input type="number">` for currency fields
 - The `total` field additionally requires a value (presence validation merged on top)
 
-Source: `lib/lcp_ruby/types/type_registry.rb`, `lib/lcp_ruby/types/type_definition.rb`, `lib/lcp_ruby/types/service_registry.rb`, `lib/lcp_ruby/types/built_in_types.rb`, `lib/lcp_ruby/types/built_in_services.rb`, `lib/lcp_ruby/dsl/type_builder.rb`, `lib/lcp_ruby/model_factory/transform_applicator.rb`
+Source: `lib/lcp_ruby/types/type_registry.rb`, `lib/lcp_ruby/types/type_definition.rb`, `lib/lcp_ruby/types/built_in_types.rb`, `lib/lcp_ruby/services/registry.rb`, `lib/lcp_ruby/services/built_in_transforms.rb`, `lib/lcp_ruby/dsl/type_builder.rb`, `lib/lcp_ruby/model_factory/transform_applicator.rb`

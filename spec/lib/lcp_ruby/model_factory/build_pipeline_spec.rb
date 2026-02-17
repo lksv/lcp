@@ -6,7 +6,6 @@ require "spec_helper"
 # catching bugs at layer boundaries that unit tests miss.
 RSpec.describe "Model build pipeline" do
   before do
-    LcpRuby::Types::BuiltInServices.register_all!
     LcpRuby::Types::BuiltInTypes.register_all!
     LcpRuby::Services::BuiltInTransforms.register_all!
     LcpRuby::Services::BuiltInDefaults.register_all!

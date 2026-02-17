@@ -13,7 +13,6 @@ module IntegrationHelper
     LcpRuby.reset!
 
     # Register built-in types and services
-    LcpRuby::Types::BuiltInServices.register_all!
     LcpRuby::Types::BuiltInTypes.register_all!
     LcpRuby::Services::BuiltInTransforms.register_all!
     LcpRuby::Services::BuiltInDefaults.register_all!
