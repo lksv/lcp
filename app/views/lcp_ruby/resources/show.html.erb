@@ -4,16 +4,7 @@
     <div class="lcp-toolbar">
       <%= link_to "Back to list", resources_path, class: "btn" %>
       <% @action_set.single_actions(@record).each do |action| %>
-
-        <% case action["name"] %>
-        <% when "edit" %>
-          <%= link_to "Edit", edit_resource_path(@record), class: "btn" %>
-        <% when "destroy" %>
-          <%= button_to "Delete", resource_path(@record),
-                method: :delete,
-                data: { turbo_confirm: action["confirm_message"] || "Are you sure?" },
-                class: "btn btn-danger" %>
-        <% end %>
+        <%= render "lcp_ruby/resources/action_button", action: action, record: @record, css_class: "btn" %>
       <% end %>
     </div>
   </div>

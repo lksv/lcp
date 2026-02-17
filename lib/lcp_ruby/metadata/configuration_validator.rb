@@ -30,7 +30,7 @@ module LcpRuby
       end
 
       VALID_CRUD_ACTIONS = %w[index show create update destroy].freeze
-      VALID_CONDITION_OPERATORS = %w[eq not_eq neq in not_in gt gte lt lte present blank].freeze
+      VALID_CONDITION_OPERATORS = %w[eq not_eq neq in not_in gt gte lt lte present blank matches not_matches].freeze
 
       attr_reader :loader
 
@@ -288,8 +288,17 @@ module LcpRuby
         sections = config["sections"] || config["layout"] || []
         sections.each do |section|
           section = section.transform_keys(&:to_s) if section.is_a?(Hash)
-          fields = section["fields"] || [] if section.is_a?(Hash)
-          next unless fields
+          next unless section.is_a?(Hash)
+
+          # Validate section-level conditions
+          %w[visible_when disable_when].each do |cond_key|
+            condition = section[cond_key]
+            next unless condition.is_a?(Hash)
+
+            validate_condition(presenter, condition, "#{config_name} section '#{section['title']}', #{cond_key}")
+          end
+
+          fields = section["fields"] || []
 
           fields.each do |f|
             f = f.transform_keys(&:to_s) if f.is_a?(Hash)
@@ -299,6 +308,16 @@ module LcpRuby
             unless valid_fields.include?(field_name.to_s)
               @errors << "Presenter '#{presenter.name}', #{config_name}: " \
                          "references unknown field '#{field_name}' on model '#{presenter.model}'"
+            end
+
+            # Validate field-level conditions
+            next unless f.is_a?(Hash)
+
+            %w[visible_when disable_when].each do |cond_key|
+              condition = f[cond_key]
+              next unless condition.is_a?(Hash)
+
+              validate_condition(presenter, condition, "#{config_name} field '#{field_name}', #{cond_key}")
             end
           end
         end
@@ -343,24 +362,43 @@ module LcpRuby
       end
 
       def validate_action_visible_when(presenter, action)
-        condition = action["visible_when"]
-        return unless condition.is_a?(Hash)
+        %w[visible_when disable_when].each do |cond_key|
+          condition = action[cond_key]
+          next unless condition.is_a?(Hash)
 
+          validate_condition(presenter, condition, "action '#{action['name']}', #{cond_key}")
+        end
+      end
+
+      def validate_condition(presenter, condition, context)
         condition = condition.transform_keys(&:to_s)
+
+        # Service conditions don't need field/operator validation
+        return if condition.key?("service")
+
         field_name = condition["field"]
         operator = condition["operator"]
 
         if field_name
           valid_fields = model_field_names(presenter.model)
           unless valid_fields.include?(field_name.to_s)
-            @errors << "Presenter '#{presenter.name}', action '#{action['name']}': " \
-                       "visible_when references unknown field '#{field_name}'"
+            @errors << "Presenter '#{presenter.name}', #{context}: " \
+                       "references unknown field '#{field_name}'"
           end
         end
 
         if operator && !VALID_CONDITION_OPERATORS.include?(operator.to_s)
-          @errors << "Presenter '#{presenter.name}', action '#{action['name']}': " \
-                     "visible_when uses unknown operator '#{operator}'"
+          @errors << "Presenter '#{presenter.name}', #{context}: " \
+                     "uses unknown operator '#{operator}'"
+        end
+
+        if %w[matches not_matches].include?(operator.to_s) && condition["value"].is_a?(String)
+          begin
+            Regexp.new(condition["value"])
+          rescue RegexpError => e
+            @errors << "Presenter '#{presenter.name}', #{context}: " \
+                       "invalid regex pattern '#{condition['value']}': #{e.message}"
+          end
         end
       end
 

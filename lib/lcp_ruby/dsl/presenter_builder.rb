@@ -82,6 +82,7 @@ module LcpRuby
         action_hash["confirm_message"] = options[:confirm_message] if options.key?(:confirm_message)
         action_hash["style"] = options[:style].to_s if options.key?(:style)
         action_hash["visible_when"] = stringify_visible_when(options[:visible_when]) if options.key?(:visible_when)
+        action_hash["disable_when"] = stringify_visible_when(options[:disable_when]) if options.key?(:disable_when)
 
         @actions << { on: on.to_s, hash: action_hash }
       end
@@ -298,11 +299,14 @@ module LcpRuby
         @layout_value = value.to_s
       end
 
-      def section(title, columns: 1, responsive: nil, collapsible: false, collapsed: false, &block)
+      def section(title, columns: 1, responsive: nil, collapsible: false, collapsed: false,
+                  visible_when: nil, disable_when: nil, &block)
         section_hash = { "title" => title, "columns" => columns }
         section_hash["responsive"] = stringify_deep(responsive) if responsive
         section_hash["collapsible"] = collapsible if collapsible
         section_hash["collapsed"] = collapsed if collapsed
+        section_hash["visible_when"] = stringify_deep(visible_when) if visible_when
+        section_hash["disable_when"] = stringify_deep(disable_when) if disable_when
         if block
           builder = SectionBuilder.new
           builder.instance_eval(&block)
@@ -313,7 +317,7 @@ module LcpRuby
 
       def nested_fields(title, association:, allow_add: true, allow_remove: true,
                         min: nil, max: nil, add_label: nil, empty_message: nil,
-                        sortable: false, columns: nil, &block)
+                        sortable: false, columns: nil, visible_when: nil, disable_when: nil, &block)
         section_hash = {
           "title" => title,
           "type" => "nested_fields",
@@ -327,6 +331,8 @@ module LcpRuby
         section_hash["add_label"] = add_label if add_label
         section_hash["empty_message"] = empty_message if empty_message
         section_hash["sortable"] = sortable if sortable
+        section_hash["visible_when"] = stringify_deep(visible_when) if visible_when
+        section_hash["disable_when"] = stringify_deep(disable_when) if disable_when
         if block
           builder = SectionBuilder.new
           builder.instance_eval(&block)

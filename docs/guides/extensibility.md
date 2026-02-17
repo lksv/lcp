@@ -4,7 +4,7 @@ LCP Ruby generates full CRUD applications from YAML metadata, but real-world sys
 
 ## Overview
 
-LCP Ruby provides five extensibility points, each designed for a specific category of customization:
+LCP Ruby provides six extensibility points, each designed for a specific category of customization:
 
 | Mechanism | Contract | Side Effects? | Base Class | Docs |
 |-----------|----------|---------------|------------|------|
@@ -12,6 +12,7 @@ LCP Ruby provides five extensibility points, each designed for a specific catego
 | Event Handlers | `(record, changes) -> void` | Yes | `Events::HandlerBase` | [Guide](event-handlers.md) |
 | Custom Transforms | `(value) -> value` | No (pure) | `Types::Transforms::BaseTransform` | [Reference](../reference/types.md#custom-transforms) |
 | Custom Validations | `(record, field) -> errors` | No (pure) | `ActiveModel::Validator` | [Reference](../reference/models.md#validations) |
+| Condition Services | `(record) -> boolean` | No (pure) | Class with `self.call` | [Guide](conditional-rendering.md) |
 | Scopes | `(relation) -> relation` | No | YAML/DSL config | [Reference](../reference/models.md#scopes) |
 
 ## Choosing the Right Mechanism
@@ -22,6 +23,7 @@ Use this decision tree to pick the right extensibility point:
 - **React to data changes** (implicit side effect) -> [Event Handler](#event-handlers)
 - **Normalize field values on write** (transform input) -> [Custom Transform](#custom-transforms)
 - **Enforce data constraints** (reject invalid data) -> [Custom Validation](#custom-validations)
+- **Compute field/section visibility dynamically** (server-side condition) -> [Condition Service](#condition-services)
 - **Reusable query filters** (named queries) -> [Scope](#scopes)
 
 ## Quick Examples
@@ -165,6 +167,33 @@ validations:
 
 The engine calls `validator_class.constantize` at build time, so the class must be loaded before models are built.
 
+### Condition Services
+
+Condition services compute dynamic visibility for fields or sections. They are pure functions: `record in -> boolean out`. Use them when declarative `visible_when` operators are not expressive enough.
+
+```ruby
+# app/condition_services/credit_check.rb
+module LcpRuby
+  module HostConditionServices
+    class CreditCheck
+      def self.call(record)
+        record.credit_score.present? && record.credit_score > 500
+      end
+    end
+  end
+end
+```
+
+Used in presenter YAML:
+
+```yaml
+fields:
+  - field: premium_options
+    visible_when: { service: credit_check }
+```
+
+When the presenter evaluates `visible_when` and encounters a `service` key, it looks up the named condition service in the `ConditionServiceRegistry` and calls it with the current record. The field is visible only if the service returns `true`.
+
 ### Scopes
 
 Declarative scopes are defined in YAML using `where`, `where_not`, `order`, and `limit`:
@@ -258,6 +287,9 @@ Rails.application.config.after_initialize do
   # Discover event handlers from app/event_handlers/
   LcpRuby::Events::HandlerRegistry.discover!(app_path.to_s)
 
+  # Discover condition services from app/condition_services/
+  LcpRuby::ConditionServiceRegistry.discover!(app_path.to_s)
+
   # Register custom transforms
   LcpRuby::Types::ServiceRegistry.register(
     "transform", "titlecase", TitlecaseTransform.new
@@ -275,6 +307,8 @@ app/
   event_handlers/
     deal/
       on_stage_change.rb    # LcpRuby::HostEventHandlers::Deal::OnStageChange
+  condition_services/
+    credit_check.rb           # LcpRuby::HostConditionServices::CreditCheck
   validators/
     business_rule_validator.rb  # BusinessRuleValidator
 lib/

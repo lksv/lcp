@@ -16,6 +16,7 @@ RSpec.configure do |config|
     LcpRuby::Authorization::PolicyFactory.clear!
     LcpRuby::Types::TypeRegistry.clear!
     LcpRuby::Types::ServiceRegistry.clear!
+    LcpRuby::ConditionServiceRegistry.clear!
 
     # Remove dynamic constants
     LcpRuby::Dynamic.constants.each do |const|

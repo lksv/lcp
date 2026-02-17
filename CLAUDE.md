@@ -19,7 +19,8 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
 - [Presenter DSL Reference](docs/reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenters (with inheritance)
 - [Custom Types Guide](docs/guides/custom-types.md) — Practical examples of custom business types
-- [Extensibility Guide](docs/guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validations, scopes
+- [Extensibility Guide](docs/guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validations, scopes, condition services
+- [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when` and `disable_when` on fields, sections, and actions
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
 - [Developer Tools](docs/guides/developer-tools.md) — Validate and ERD rake tasks
@@ -71,8 +72,10 @@ YAML metadata (config/lcp_ruby/)
                                 ↓
               LcpRuby.registry.register(name, model_class)
                                 ↓
+              ConditionServiceRegistry.discover! → condition services from app/condition_services/
+                                ↓
               Engine routes (/:lcp_slug/*) → ResourcesController
-              (CRUD with Pundit authorization, presenter-driven UI)
+              (CRUD with Pundit authorization, presenter-driven UI, conditional rendering)
 ```
 
 ### Key Modules
@@ -86,6 +89,7 @@ YAML metadata (config/lcp_ruby/)
 | `Authorization` | `lib/lcp_ruby/authorization/` | PolicyFactory (dynamic Pundit policies), PermissionEvaluator (can?, readable_fields, writable_fields), ScopeBuilder |
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |
 | `Actions` | `lib/lcp_ruby/actions/` | ActionExecutor + ActionRegistry. Host apps define custom actions in `app/actions/` |
+| `Conditions` | `lib/lcp_ruby/condition_evaluator.rb`, `lib/lcp_ruby/condition_service_registry.rb` | ConditionEvaluator (field-value + service conditions), ConditionServiceRegistry. Host apps define condition services in `app/condition_services/` |
 
 ### Controller Stack
 

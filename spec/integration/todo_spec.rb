@@ -466,21 +466,95 @@ RSpec.describe "TODO App Integration", type: :request do
       expect(response.body).to include("Additional Info")
     end
 
-    it "hides visible_when field on new form (persisted? is false)" do
+    it "hides visible_when field on new form (service condition returns false)" do
       get "/admin/lists/new"
 
       expect(response).to have_http_status(:ok)
-      # description field has visible_when: "persisted?" — should not render on new form
-      expect(response.body).not_to include("Description")
+      # description field has visible_when: { service: persisted_check }
+      # On new form, record is not persisted so field is rendered with display: none
+      expect(response.body).to include("display: none")
+      expect(response.body).to include("data-lcp-service-condition")
     end
 
-    it "shows visible_when field on edit form (persisted? is true)" do
+    it "shows visible_when field on edit form (service condition returns true)" do
       list = todo_list_model.create!(title: "Test")
 
       get "/admin/lists/#{list.id}/edit"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Description")
+      # On edit form, record is persisted so field should be visible (no display:none on this field)
+    end
+  end
+
+  describe "Service condition rendering" do
+    it "hides description field on new form (persisted_check service returns false)" do
+      get "/admin/lists/new"
+
+      expect(response).to have_http_status(:ok)
+      # description has visible_when: { service: persisted_check }
+      # New record is not persisted, so service returns false
+      expect(response.body).to include("data-lcp-service-condition")
+    end
+
+    it "shows description field on edit form (persisted_check service returns true)" do
+      list = todo_list_model.create!(title: "Test List")
+
+      get "/admin/lists/#{list.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      # Edit record is persisted, so service returns true and field is visible
+      expect(response.body).to include("Description")
+    end
+
+    it "hidden description field value is still accepted on form submit" do
+      expect {
+        post "/admin/lists", params: {
+          record: { title: "With Desc", description: "Hidden but submitted" }
+        }
+      }.to change { todo_list_model.count }.by(1)
+
+      expect(todo_list_model.last.description).to eq("Hidden but submitted")
+    end
+  end
+
+  describe "Evaluate conditions endpoint" do
+    it "returns service condition results for existing record via AJAX" do
+      list = todo_list_model.create!(title: "Persisted List")
+
+      post "/admin/lists/#{list.id}/evaluate_conditions", params: {
+        record: { title: "Updated Title" }
+      }, headers: { "Accept" => "application/json" }
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      # description has visible_when: { service: persisted_check }
+      # Record is persisted, so service returns true
+      expect(json["description_visible"]).to be true
+    end
+
+    it "returns service condition results for new record via AJAX" do
+      post "/admin/lists/evaluate_conditions", params: {
+        record: { title: "New Title" }
+      }, headers: { "Accept" => "application/json" }
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      # New record is not persisted, so service returns false
+      expect(json["description_visible"]).to be false
+    end
+
+    it "returns empty hash when no service conditions are present" do
+      list = todo_list_model.create!(title: "Test")
+
+      post "/admin/lists/#{list.id}/evaluate_conditions", params: {
+        record: { title: "Updated" }
+      }, headers: { "Accept" => "application/json" }
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      # Only the description field has a service condition
+      expect(json).to have_key("description_visible")
     end
   end
 

@@ -417,6 +417,169 @@ RSpec.describe "CRM App Integration", type: :request do
     end
   end
 
+  describe "Conditional rendering" do
+    before { stub_current_user(role: "admin") }
+
+    let!(:company) { company_model.create!(name: "Test Corp", industry: "technology") }
+
+    it "hides contact_id field when stage is lead" do
+      deal = deal_model.create!(title: "Lead Deal", stage: "lead", company_id: company.id)
+
+      get "/admin/deals/#{deal.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      # contact_id has visible_when: { field: stage, operator: not_in, value: [lead] }
+      # When stage=lead, the field should be hidden
+      expect(response.body).to include("data-lcp-visible-field=\"stage\"")
+    end
+
+    it "shows contact_id field when stage is qualified" do
+      deal = deal_model.create!(title: "Qualified Deal", stage: "qualified", company_id: company.id)
+
+      get "/admin/deals/#{deal.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("data-lcp-conditional=\"field\"")
+    end
+
+    it "applies lcp-conditionally-disabled class to value field when stage is closed_won" do
+      deal = deal_model.create!(title: "Won Deal", stage: "closed_won", value: 100.0, company_id: company.id)
+
+      get "/admin/deals/#{deal.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-conditionally-disabled")
+    end
+
+    it "does not disable value field when stage is lead" do
+      deal = deal_model.create!(title: "Lead Deal", stage: "lead", value: 100.0, company_id: company.id)
+
+      get "/admin/deals/#{deal.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      # The value field wrapper should have data-lcp-conditional but not the disabled class
+      expect(response.body).to include("data-lcp-disable-field=\"stage\"")
+    end
+
+    it "hides Metrics section when stage is lead" do
+      get "/admin/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      # New deal has no stage set, but the Metrics section should have conditional attrs
+      expect(response.body).to include("data-lcp-visible-field=\"stage\"")
+    end
+
+    it "renders conditional data attributes on sections" do
+      deal = deal_model.create!(title: "Qualified Deal", stage: "qualified", company_id: company.id)
+
+      get "/admin/deals/#{deal.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("data-lcp-conditional=\"section\"")
+    end
+
+    it "disables close_won action when value is blank on index" do
+      deal = deal_model.create!(title: "No Value Deal", stage: "qualified", company_id: company.id)
+
+      get "/admin/deals"
+
+      expect(response).to have_http_status(:ok)
+      # close_won has disable_when: { field: value, operator: blank }
+      # When value is nil/blank, the action should be disabled
+      expect(response.body).to include("lcp-action-disabled")
+    end
+
+    it "enables close_won action when value is present on index" do
+      deal = deal_model.create!(title: "Valued Deal", stage: "qualified", value: 500.0, company_id: company.id)
+
+      get "/admin/deals"
+
+      expect(response).to have_http_status(:ok)
+      # close_won should NOT have the disabled class when value is present
+      # It should still be visible (stage is not closed)
+      expect(response.body).to include("Close as Won")
+    end
+
+    it "renders custom action as button_to with confirm dialog on show page" do
+      deal = deal_model.create!(title: "Active Deal", stage: "qualified", value: 500.0, company_id: company.id)
+
+      get "/admin/deals/#{deal.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Close as Won")
+      # Custom actions render as button_to (form with POST)
+      expect(response.body).to include("actions/close_won")
+      expect(response.body).to include("Mark this deal as won?")
+    end
+
+    it "renders disabled custom action as span on show page" do
+      deal = deal_model.create!(title: "No Value Deal", stage: "qualified", company_id: company.id)
+
+      get "/admin/deals/#{deal.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-action-disabled")
+      expect(response.body).to include("Close as Won")
+    end
+
+    it "does not render close_won action for closed deals" do
+      deal = deal_model.create!(title: "Won Deal", stage: "closed_won", value: 100.0, company_id: company.id)
+
+      get "/admin/deals/#{deal.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Close as Won")
+    end
+  end
+
+  describe "Evaluate conditions authorization" do
+    let!(:company) { company_model.create!(name: "Test Corp", industry: "technology") }
+
+    it "allows admin to evaluate conditions on existing record" do
+      stub_current_user(role: "admin")
+      deal = deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
+
+      post "/admin/deals/#{deal.id}/evaluate_conditions", params: {
+        record: { title: "Updated" }
+      }, headers: { "Accept" => "application/json" }
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "allows admin to evaluate conditions on new record" do
+      stub_current_user(role: "admin")
+
+      post "/admin/deals/evaluate_conditions", params: {
+        record: { title: "New Deal", stage: "lead" }
+      }, headers: { "Accept" => "application/json" }
+
+      expect(response).to have_http_status(:ok)
+    end
+
+    it "denies viewer from evaluating conditions on existing record (no edit permission)" do
+      stub_current_user(role: "viewer")
+      deal = deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
+
+      post "/admin/deals/#{deal.id}/evaluate_conditions", params: {
+        record: { title: "Updated" }
+      }, headers: { "Accept" => "application/json" }
+
+      # Viewer cannot access deal_admin presenter, Pundit returns 403 for JSON
+      expect(response).to have_http_status(:forbidden)
+    end
+
+    it "denies viewer from evaluating conditions on new record (no create permission)" do
+      stub_current_user(role: "viewer")
+
+      post "/admin/deals/evaluate_conditions", params: {
+        record: { title: "New Deal", stage: "lead" }
+      }, headers: { "Accept" => "application/json" }
+
+      # Viewer cannot access deal_admin presenter, Pundit returns 403 for JSON
+      expect(response).to have_http_status(:forbidden)
+    end
+  end
+
   describe "Form layout features" do
     before { stub_current_user(role: "admin") }
 

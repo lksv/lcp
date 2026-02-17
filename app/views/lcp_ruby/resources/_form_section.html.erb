@@ -1,7 +1,17 @@
 <% if section["type"] == "nested_fields" %>
-  <fieldset class="lcp-form-section lcp-nested-section"
+  <%
+    nested_visible = section["visible_when"].is_a?(Hash) ? condition_met?(@record, section["visible_when"]) : true
+    nested_disabled = section["disable_when"].is_a?(Hash) ? condition_met?(@record, section["disable_when"]) : false
+    nested_cond_attrs = conditional_data(section)
+    nested_style_parts = []
+    nested_style_parts << "display: none" unless nested_visible
+  %>
+  <fieldset class="lcp-form-section lcp-nested-section <%= 'lcp-conditionally-disabled' if nested_disabled %>"
             data-nested-max="<%= section['max'] %>" data-nested-min="<%= section['min'] || 0 %>"
-            <% if section['sortable_field'] %>data-sortable="true" data-sortable-field="<%= section['sortable_field'] %>"<% end %>>
+            <% if section['sortable_field'] %>data-sortable="true" data-sortable-field="<%= section['sortable_field'] %>"<% end %>
+            <% if nested_cond_attrs.any? %>data-lcp-conditional="section"<% end %>
+            <%= tag.attributes(nested_cond_attrs) %>
+            <% if nested_style_parts.any? %>style="<%= nested_style_parts.join('; ') %>"<% end %>>
     <legend><%= section["title"] %></legend>
     <div class="lcp-nested-container">
       <%= form.fields_for section["association"].to_sym do |nf| %>
@@ -29,7 +39,20 @@
 <% else %>
   <% collapsible = section["collapsible"] %>
   <% collapsed = section["collapsed"] %>
-  <fieldset class="lcp-form-section <%= 'lcp-collapsible' if collapsible %> <%= 'lcp-collapsed' if collapsible && collapsed %>">
+
+  <%# Section-level conditional rendering %>
+  <%
+    section_visible = section["visible_when"].is_a?(Hash) ? condition_met?(@record, section["visible_when"]) : true
+    section_disabled = section["disable_when"].is_a?(Hash) ? condition_met?(@record, section["disable_when"]) : false
+    section_cond_attrs = conditional_data(section)
+    section_style_parts = []
+    section_style_parts << "display: none" unless section_visible
+  %>
+
+  <fieldset class="lcp-form-section <%= 'lcp-collapsible' if collapsible %> <%= 'lcp-collapsed' if collapsible && collapsed %> <%= 'lcp-conditionally-disabled' if section_disabled %>"
+            <% if section_cond_attrs.any? %>data-lcp-conditional="section"<% end %>
+            <%= tag.attributes(section_cond_attrs) %>
+            <% if section_style_parts.any? %>style="<%= section_style_parts.join('; ') %>"<% end %>>
     <legend>
       <% if collapsible %>
         <button type="button" class="lcp-collapse-toggle"><%= section["title"] %> <span class="lcp-collapse-icon"></span></button>
@@ -38,7 +61,7 @@
       <% end %>
     </legend>
 
-    <div class="lcp-collapsible-content" style="<%= 'display:none' if collapsible && collapsed %>">
+    <div class="lcp-collapsible-content" style="<%= 'display: none' if collapsible && collapsed %>">
       <div class="lcp-form-fields lcp-grid"
            style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;"
            <%= "data-responsive-mobile=\"#{section.dig('responsive', 'mobile', 'columns')}\"" if section.dig('responsive', 'mobile', 'columns') %>
@@ -62,16 +85,21 @@
           <% next unless field_def %>
           <% next unless field_config["association"] || current_evaluator.field_writable?(field_name) %>
 
-          <%# visible_when: server-side check.
-              Intentionally uses `send` to call an arbitrary method on the record.
-              This is safe because visible_when values come from developer-authored
-              presenter YAML/DSL configuration, not from user input. %>
-          <% if field_config["visible_when"] %>
-            <% next unless @record.respond_to?(field_config["visible_when"]) && @record.send(field_config["visible_when"]) %>
-          <% end %>
+          <%# Field-level conditional rendering (hash conditions) %>
+          <%
+            field_visible = field_config["visible_when"].is_a?(Hash) ? condition_met?(@record, field_config["visible_when"]) : true
+            field_disabled = field_config["disable_when"].is_a?(Hash) ? condition_met?(@record, field_config["disable_when"]) : false
+            field_cond_attrs = conditional_data(field_config)
 
-          <div class="lcp-form-field <%= hidden_on_classes(field_config) %>"
-               <%= "style=\"grid-column: span #{field_config['col_span']}\"" if field_config["col_span"] %>>
+            field_style_parts = []
+            field_style_parts << "display: none" unless field_visible
+            field_style_parts << "grid-column: span #{field_config['col_span']}" if field_config["col_span"]
+          %>
+
+          <div class="lcp-form-field <%= hidden_on_classes(field_config) %> <%= 'lcp-conditionally-disabled' if field_disabled %>"
+               <% if field_cond_attrs.any? %>data-lcp-conditional="field" data-lcp-field-name="<%= field_name %>"<% end %>
+               <%= tag.attributes(field_cond_attrs) %>
+               <% if field_style_parts.any? %>style="<%= field_style_parts.join('; ') %>"<% end %>>
             <%= form.label field_name, field_def.label %>
 
             <% resolved_input = field_config["input_type"] || field_def.type_definition&.input_type || field_def.type %>

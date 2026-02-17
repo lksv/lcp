@@ -34,7 +34,7 @@ presenter:
           - { field: title, placeholder: "Enter list title...", autofocus: true, hint: "Give your list a descriptive name", col_span: 2 }
           - { type: divider, label: "Additional Info" }
           - { field: start_date, input_type: date, default: current_date }
-          - { field: description, input_type: text, visible_when: "persisted?" }
+          - { field: description, input_type: text, visible_when: { service: persisted_check } }
       - title: "Items"
         type: nested_fields
         association: todo_items

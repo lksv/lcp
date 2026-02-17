@@ -292,7 +292,7 @@ form do
 end
 ```
 
-#### `section(title, columns: 1, collapsible: false, collapsed: false, responsive: nil, &block)`
+#### `section(title, columns: 1, collapsible: false, collapsed: false, responsive: nil, visible_when: nil, disable_when: nil, &block)`
 
 Creates a form section. Multiple sections create visual groupings.
 
@@ -302,6 +302,8 @@ Creates a form section. Multiple sections create visual groupings.
 | `collapsible:` | boolean | Whether the section can be collapsed/expanded by the user |
 | `collapsed:` | boolean | Whether the section starts in collapsed state (requires `collapsible: true`) |
 | `responsive:` | hash | Responsive column overrides (e.g., `{ mobile: 1 }`) |
+| `visible_when:` | hash | Condition hash for section visibility |
+| `disable_when:` | hash | Condition hash for section disabling |
 
 ```ruby
 form do
@@ -331,6 +333,8 @@ Adds a nested form section for creating and editing associated records inline wi
 | `empty_message:` | string | Message shown when there are no nested records |
 | `columns:` | integer | Number of layout columns for each nested record row |
 | `sortable:` | boolean or string | Enable drag-and-drop reordering. `true` uses `position` field, or pass a string for a custom field name |
+| `visible_when:` | hash | Condition hash for nested section visibility |
+| `disable_when:` | hash | Condition hash for nested section disabling |
 
 Inside the `nested_fields` block, use `field` calls to define which fields of the associated model to display.
 
@@ -385,7 +389,8 @@ field :company_id, input_type: :association_select
 | `col_span:` | integer | Number of grid columns this field spans (e.g., `2` for a full-width field in a 2-column section) |
 | `hint:` | string | Help text displayed below the input |
 | `readonly:` | boolean | Render the field as read-only |
-| `visible_when:` | string | Method name called on `@record`; the field is shown only when the method returns truthy (e.g., `"discounted?"`) |
+| `visible_when:` | hash | Condition hash for conditional visibility. Field-value: `{ field: :status, operator: :eq, value: "active" }`. Service: `{ service: :persisted_check }`. See [Conditional Rendering](../guides/conditional-rendering.md). |
+| `disable_when:` | hash | Condition hash for conditional disabling. Same syntax as `visible_when`. When condition is true, field is visually disabled but values are still submitted. |
 | `default:` | any | Default value for the form input (overrides the model-level default for this form) |
 | `input_options:` | hash | Additional options passed to the input widget |
 | `display_options:` | hash | Display configuration (e.g., formatting) |
@@ -486,6 +491,7 @@ action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, sty
 | `confirm_message:` | string | Custom confirmation message |
 | `style:` | symbol | Visual style (e.g., `:danger`) |
 | `visible_when:` | hash | Condition for visibility (see below) |
+| `disable_when:` | hash | Condition for disabling the action (see [Conditional Rendering](../guides/conditional-rendering.md)) |
 
 ### `visible_when` Conditions
 
@@ -568,6 +574,8 @@ Inheritance is purely a DSL convenience — the result is always a flat hash ide
 | `nested_fields "Items", association: :items do ... end` | `form: { sections: [{ type: nested_fields, title: "Items", association: items, ... }] }` |
 | `divider label: "Address"` | `fields: [{ type: divider, label: "Address" }]` |
 | `field :x, col_span: 2, hint: "Help"` | `fields: [{ field: x, col_span: 2, hint: "Help" }]` |
+| `field :x, visible_when: { field: :status, operator: :eq, value: "active" }` | `fields: [{ field: x, visible_when: { field: status, operator: eq, value: active } }]` |
+| `field :x, disable_when: { field: :status, operator: :blank }` | `fields: [{ field: x, disable_when: { field: status, operator: blank } }]` |
 | `search do ... end` | `search: { ... }` |
 | `search enabled: false` | `search: { enabled: false }` |
 | `action :show, type: :built_in, on: :single` | `actions: { single: [{ name: show, type: built_in }] }` |

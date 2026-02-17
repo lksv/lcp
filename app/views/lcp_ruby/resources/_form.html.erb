@@ -1,4 +1,7 @@
-<%= form_with(model: @record, url: @record.new_record? ? resources_path : resource_path(@record), scope: :record, method: @record.new_record? ? :post : :patch) do |form| %>
+<% conditions_url = if service_conditions?(current_presenter)
+     @record.new_record? ? lcp_ruby.evaluate_conditions_new_path(lcp_slug: current_presenter.slug) : lcp_ruby.evaluate_conditions_path(lcp_slug: current_presenter.slug, id: @record.id)
+   end %>
+<%= form_with(model: @record, url: @record.new_record? ? resources_path : resource_path(@record), scope: :record, method: @record.new_record? ? :post : :patch, data: conditions_url ? { "lcp-conditions-url" => conditions_url } : {}) do |form| %>
   <% if @record.errors.any? %>
     <div class="lcp-errors">
       <h3><%= pluralize(@record.errors.count, "error") %> prevented this record from being saved:</h3>
@@ -16,13 +19,20 @@
       <nav class="lcp-tab-nav">
         <% sections.each_with_index do |section, i| %>
           <% next if section["type"] == "nested_fields" && i != sections.index(section) %>
-          <button type="button" data-lcp-tab="<%= i %>" class="btn <%= 'active' if i == 0 %>">
+          <%
+            tab_cond_attrs = conditional_data(section)
+            tab_visible = section["visible_when"].is_a?(Hash) ? condition_met?(@record, section["visible_when"]) : true
+          %>
+          <button type="button" data-lcp-tab="<%= i %>" class="btn <%= 'active' if i == 0 %>"
+                  <% if tab_cond_attrs.any? %>data-lcp-conditional="tab"<% end %>
+                  <%= tag.attributes(tab_cond_attrs) %>
+                  <% unless tab_visible %>style="display: none"<% end %>>
             <%= section["title"] %>
           </button>
         <% end %>
       </nav>
       <% sections.each_with_index do |section, i| %>
-        <div data-lcp-panel="<%= i %>" style="<%= 'display:none' unless i == 0 %>">
+        <div data-lcp-panel="<%= i %>" style="<%= 'display: none' unless i == 0 %>">
           <%= render partial: "lcp_ruby/resources/form_section", locals: { form: form, section: section } %>
         </div>
       <% end %>

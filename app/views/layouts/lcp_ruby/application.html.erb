@@ -171,6 +171,17 @@
     .lcp-nested-row.dragging { opacity: 0.4; }
     .lcp-nested-row.drag-over { border-top: 2px solid #0d6efd; }
 
+    /* Conditionally disabled */
+    .lcp-conditionally-disabled { position: relative; opacity: 0.6; }
+    .lcp-conditionally-disabled input, .lcp-conditionally-disabled select,
+    .lcp-conditionally-disabled textarea { pointer-events: none; }
+    .lcp-conditionally-disabled::after {
+      content: ""; position: absolute; inset: 0; cursor: not-allowed;
+    }
+
+    /* Disabled action */
+    .btn.lcp-action-disabled { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
+
     /* Responsive breakpoints */
     @media (max-width: 640px) {
       .lcp-grid[data-responsive-mobile="1"] { grid-template-columns: 1fr !important; }
@@ -520,6 +531,189 @@
         }
       });
     });
+
+    /* Conditional rendering (visible_when / disable_when) */
+    (function() {
+      function getFieldValue(form, fieldName) {
+        /* Handle checkboxes (Rails hidden+checkbox pattern) */
+        const checkboxes = form.querySelectorAll('input[type="checkbox"][name$="[' + fieldName + ']"]');
+        if (checkboxes.length > 0) {
+          return checkboxes[checkboxes.length - 1].checked ? 'true' : 'false';
+        }
+        /* Handle radio buttons */
+        const radios = form.querySelectorAll('input[type="radio"][name$="[' + fieldName + ']"]');
+        if (radios.length > 0) {
+          for (let i = 0; i < radios.length; i++) {
+            if (radios[i].checked) return radios[i].value;
+          }
+          return '';
+        }
+        /* Handle select and other inputs */
+        const input = form.querySelector('[name$="[' + fieldName + ']"]');
+        if (input) return input.value || '';
+        return '';
+      }
+
+      function evaluateCondition(value, operator, conditionValue) {
+        switch (operator) {
+          case 'eq':
+            return String(value) === String(conditionValue);
+          case 'not_eq': case 'neq':
+            return String(value) !== String(conditionValue);
+          case 'in': {
+            const inList = String(conditionValue).split(',');
+            return inList.indexOf(String(value)) !== -1;
+          }
+          case 'not_in': {
+            const notInList = String(conditionValue).split(',');
+            return notInList.indexOf(String(value)) === -1;
+          }
+          case 'gt':
+            return parseFloat(value) > parseFloat(conditionValue);
+          case 'gte':
+            return parseFloat(value) >= parseFloat(conditionValue);
+          case 'lt':
+            return parseFloat(value) < parseFloat(conditionValue);
+          case 'lte':
+            return parseFloat(value) <= parseFloat(conditionValue);
+          case 'present':
+            return value !== '' && value !== null && value !== undefined;
+          case 'blank':
+            return value === '' || value === null || value === undefined;
+          case 'matches':
+            try { return new RegExp(conditionValue).test(String(value)); } catch(e) { return false; }
+          case 'not_matches':
+            try { return !new RegExp(conditionValue).test(String(value)); } catch(e) { return true; }
+          default:
+            return String(value) === String(conditionValue);
+        }
+      }
+
+      function applyConditions(form) {
+        const elements = form.querySelectorAll('[data-lcp-conditional]');
+        elements.forEach(function(el) {
+          /* visible_when */
+          const visField = el.getAttribute('data-lcp-visible-field');
+          if (visField) {
+            const visOp = el.getAttribute('data-lcp-visible-operator') || 'eq';
+            const visVal = el.getAttribute('data-lcp-visible-value');
+            const fieldValue = getFieldValue(form, visField);
+            const visible = evaluateCondition(fieldValue, visOp, visVal);
+            el.style.display = visible ? '' : 'none';
+
+            /* When a tab button is hidden/shown, also hide/show its panel */
+            if (el.getAttribute('data-lcp-conditional') === 'tab') {
+              const tabIndex = el.getAttribute('data-lcp-tab');
+              const tabs = el.closest('.lcp-tabs');
+              if (tabs && tabIndex) {
+                const panel = tabs.querySelector('[data-lcp-panel="' + tabIndex + '"]');
+                if (panel && !visible) {
+                  panel.style.display = 'none';
+                  el.classList.remove('active');
+                }
+              }
+            }
+          }
+          /* disable_when */
+          const disField = el.getAttribute('data-lcp-disable-field');
+          if (disField) {
+            const disOp = el.getAttribute('data-lcp-disable-operator') || 'eq';
+            const disVal = el.getAttribute('data-lcp-disable-value');
+            const disFieldValue = getFieldValue(form, disField);
+            const disabled = evaluateCondition(disFieldValue, disOp, disVal);
+            if (disabled) {
+              el.classList.add('lcp-conditionally-disabled');
+            } else {
+              el.classList.remove('lcp-conditionally-disabled');
+            }
+          }
+        });
+
+        /* Ensure a visible tab is active when active tab gets hidden */
+        form.querySelectorAll('.lcp-tabs').forEach(function(tabs) {
+          const activeBtn = tabs.querySelector('.lcp-tab-nav .btn.active');
+          if (!activeBtn || activeBtn.style.display === 'none') {
+            const firstVisible = tabs.querySelector('.lcp-tab-nav .btn:not([style*="display:none"]):not([style*="display: none"])');
+            if (firstVisible) {
+              firstVisible.classList.add('active');
+              const idx = firstVisible.getAttribute('data-lcp-tab');
+              const panel = tabs.querySelector('[data-lcp-panel="' + idx + '"]');
+              if (panel) panel.style.display = '';
+            }
+          }
+        });
+      }
+
+      /* Delegated event listeners for form changes */
+      function handleFormChange(e) {
+        const form = e.target.closest('form');
+        if (form && form.querySelector('[data-lcp-conditional]')) {
+          applyConditions(form);
+        }
+      }
+
+      document.addEventListener('change', handleFormChange);
+      document.addEventListener('input', handleFormChange);
+
+      /* Initial evaluation on page load */
+      document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('form').forEach(function(form) {
+          if (form.querySelector('[data-lcp-conditional]')) {
+            applyConditions(form);
+          }
+        });
+      });
+
+      /* AJAX for service conditions */
+      let debounceTimer = null;
+      document.addEventListener('change', function(e) {
+        const form = e.target.closest('form');
+        if (!form) return;
+        const condUrl = form.getAttribute('data-lcp-conditions-url');
+        if (!condUrl) return;
+
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function() {
+          const formData = new FormData(form);
+          const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+          const headers = { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+          if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
+          fetch(condUrl, {
+            method: 'POST',
+            body: formData,
+            headers: headers
+          }).then(function(r) { return r.json(); }).then(function(data) {
+            const serviceEls = form.querySelectorAll('[data-lcp-service-condition]');
+            serviceEls.forEach(function(el) {
+              const fieldName = el.getAttribute('data-lcp-field-name');
+              const condType = el.getAttribute('data-lcp-conditional');
+              const serviceTypes = el.getAttribute('data-lcp-service-condition').split(',');
+
+              serviceTypes.forEach(function(serviceType) {
+                let key;
+                if (condType === 'field') {
+                  key = fieldName + '_' + serviceType;
+                } else {
+                  key = condType + '_' + serviceType;
+                }
+
+                if (data.hasOwnProperty(key)) {
+                  if (serviceType === 'visible') {
+                    el.style.display = data[key] ? '' : 'none';
+                  } else if (serviceType === 'disable') {
+                    if (data[key]) {
+                      el.classList.add('lcp-conditionally-disabled');
+                    } else {
+                      el.classList.remove('lcp-conditionally-disabled');
+                    }
+                  }
+                }
+              });
+            });
+          }).catch(function(err) { console.warn('[LcpRuby] Service condition evaluation failed:', err); });
+        }, 300);
+      });
+    })();
   </script>
 </body>
 </html>

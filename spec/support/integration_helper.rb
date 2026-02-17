@@ -13,6 +13,7 @@ module IntegrationHelper
     LcpRuby.reset!
     LcpRuby::Events::HandlerRegistry.clear!
     LcpRuby::Actions::ActionRegistry.clear!
+    LcpRuby::ConditionServiceRegistry.clear!
     LcpRuby::Authorization::PolicyFactory.clear!
 
     # Remove dynamic constants to avoid "already initialized" warnings
@@ -40,6 +41,9 @@ module IntegrationHelper
 
       LcpRuby.registry.register(model_def.name, model_class)
     end
+
+    # Discover condition services if present in fixture
+    LcpRuby::ConditionServiceRegistry.discover!(fixture_path)
   end
 
   # Drop tables for the given fixture's models
