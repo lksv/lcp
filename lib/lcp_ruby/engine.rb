@@ -33,10 +33,10 @@ module LcpRuby
       def load_metadata!
         return if @metadata_loaded
 
-        Types::BuiltInServices.register_all!
         Types::BuiltInTypes.register_all!
         Services::BuiltInTransforms.register_all!
         Services::BuiltInDefaults.register_all!
+        Services::Registry.discover!(Rails.root.join("app").to_s)
 
         loader = LcpRuby.loader
         loader.load_all
@@ -45,7 +45,6 @@ module LcpRuby
           build_model(model_def)
         end
 
-        Services::Registry.discover!(Rails.root.join("app").to_s)
         LcpRuby.check_services!
 
         @metadata_loaded = true

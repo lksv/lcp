@@ -19,7 +19,6 @@ require "lcp_ruby/metadata/configuration_validator"
 require "lcp_ruby/metadata/erd_generator"
 
 # Types
-require "lcp_ruby/types/service_registry"
 require "lcp_ruby/types/type_definition"
 require "lcp_ruby/types/type_registry"
 require "lcp_ruby/types/transforms/base_transform"
@@ -27,7 +26,6 @@ require "lcp_ruby/types/transforms/strip"
 require "lcp_ruby/types/transforms/downcase"
 require "lcp_ruby/types/transforms/normalize_url"
 require "lcp_ruby/types/transforms/normalize_phone"
-require "lcp_ruby/types/built_in_services"
 require "lcp_ruby/types/built_in_types"
 
 # DSL
@@ -146,7 +144,6 @@ module LcpRuby
       @loader = nil
       @registry = nil
       Types::TypeRegistry.clear!
-      Types::ServiceRegistry.clear!
       ConditionServiceRegistry.clear!
       Events::HandlerRegistry.clear!
       Actions::ActionRegistry.clear!

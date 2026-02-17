@@ -52,9 +52,7 @@ Business type system that bundles storage type, transforms, validations, and UI 
 
 - **TypeRegistry** — maps type name (string) → `TypeDefinition`; `register`, `resolve`, `registered?`, `clear!`
 - **TypeDefinition** — value object: `name`, `base_type`, `transforms`, `validations`, `input_type`, `display_type`, `column_options`, `html_input_attrs`; `.from_hash` factory, `#column_type` delegates to base type
-- **ServiceRegistry** — generic category-based service registry (categories: `transform`, `validator`, `display`); `register`, `lookup`, `registered?`, `clear!`
 - **BuiltInTypes** — registers 4 built-in types: `email`, `phone`, `url`, `color`
-- **BuiltInServices** — registers 4 transform services: `strip`, `downcase`, `normalize_url`, `normalize_phone`
 - **Transforms** — `BaseTransform` + concrete transform classes (`Strip`, `Downcase`, `NormalizeUrl`, `NormalizePhone`); each implements `#call(value)` → value
 
 ### Model Factory (`lib/lcp_ruby/model_factory/`)
@@ -64,7 +62,7 @@ Builds dynamic ActiveRecord models from metadata definitions.
 - **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace, applies enums, validations, transforms, associations, scopes, callbacks, label method, and registers the model in the Registry
 - **SchemaManager** — auto-creates/updates DB tables when `auto_migrate: true` is set in configuration; merges type-level column_options before field-level (field wins)
 - **ValidationApplicator** — applies AR validations from metadata (standard + custom); after explicit field validations, applies type-default validations (skips if field already has a validation of the same type)
-- **TransformApplicator** — for fields with a `type_definition`, assembles transform chain from `ServiceRegistry` and applies `model_class.normalizes :field, with: -> { chain }`
+- **TransformApplicator** — for fields with transforms, assembles transform chain from `Services::Registry` and applies `model_class.normalizes :field, with: -> { chain }`
 - **AssociationApplicator** — sets up belongs_to, has_many, has_one with options (foreign_key, class_name, dependent, required)
 - **ScopeApplicator** — generates scopes from `where`, `where_not`, `order`, `limit`, and custom scope definitions
 - **CallbackApplicator** — registers lifecycle callbacks and field_change event triggers that dispatch to the Events system
@@ -184,10 +182,12 @@ end
 3. `lcp_ruby.assets` — precompiles `lcp_ruby/application.css`
 
 **`load_metadata!` sequence:**
-1. `BuiltInServices.register_all!` + `BuiltInTypes.register_all!` — register built-in transforms and types
-2. `Loader.load_all` — load types → models → presenters → permissions (YAML + DSL)
-3. Iterate `model_definitions` — for each: `SchemaManager.ensure_table!` + `Builder.build`
-4. `Registry.register(name, model_class)` for each built model
+1. `BuiltInTypes.register_all!` + `BuiltInTransforms.register_all!` + `BuiltInDefaults.register_all!` — register built-in types and services
+2. `Services::Registry.discover!` — auto-discover host app services from `app/lcp_services/`
+3. `Loader.load_all` — load types → models → presenters → permissions (YAML + DSL)
+4. Iterate `model_definitions` — for each: `SchemaManager.ensure_table!` + `Builder.build`
+5. `Registry.register(name, model_class)` for each built model
+6. `check_services!` — verify all service references are valid
 
 **`reload!`** — calls `reset!` then re-runs `load_metadata!`
 

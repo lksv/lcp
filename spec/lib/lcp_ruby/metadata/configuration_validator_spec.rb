@@ -835,7 +835,6 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
   context "with CRM integration fixtures" do
     let(:metadata_path) { File.expand_path("../../../fixtures/integration/crm", __dir__) }
     let(:loader) do
-      LcpRuby::Types::BuiltInServices.register_all!
       LcpRuby::Types::BuiltInTypes.register_all!
       LcpRuby::Metadata::Loader.new(metadata_path)
     end

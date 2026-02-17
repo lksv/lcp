@@ -2,7 +2,6 @@ require "spec_helper"
 
 RSpec.describe LcpRuby::ModelFactory::TransformApplicator do
   before do
-    LcpRuby::Types::BuiltInServices.register_all!
     LcpRuby::Types::BuiltInTypes.register_all!
     LcpRuby::Services::BuiltInTransforms.register_all!
   end

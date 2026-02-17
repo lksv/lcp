@@ -2,8 +2,8 @@ require "spec_helper"
 
 RSpec.describe "Type Registry Integration" do
   before do
-    LcpRuby::Types::BuiltInServices.register_all!
     LcpRuby::Types::BuiltInTypes.register_all!
+    LcpRuby::Services::BuiltInTransforms.register_all!
   end
 
   let(:model_hash) do

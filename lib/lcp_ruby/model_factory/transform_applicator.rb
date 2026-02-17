@@ -33,10 +33,14 @@ module LcpRuby
 
       def resolve_transforms(transform_keys)
         transform_keys.filter_map do |key|
-          service = Services::Registry.lookup("transforms", key) ||
-                    Types::ServiceRegistry.lookup("transform", key)
+          service = Services::Registry.lookup("transforms", key)
           unless service
-            Rails.logger.warn("[LcpRuby] Transform '#{key}' not found in registry") if defined?(Rails)
+            message = "[LcpRuby] Transform '#{key}' not found in registry"
+            if defined?(Rails) && !Rails.env.production?
+              raise LcpRuby::MetadataError, message
+            elsif defined?(Rails)
+              Rails.logger.warn(message)
+            end
           end
           service
         end
