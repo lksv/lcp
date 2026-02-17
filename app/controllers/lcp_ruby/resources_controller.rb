@@ -1,6 +1,6 @@
 module LcpRuby
   class ResourcesController < ApplicationController
-    before_action :set_record, only: [ :show, :edit, :update, :destroy ]
+    before_action :set_record, only: [ :show, :edit, :update, :destroy, :evaluate_conditions ]
 
     def index
       authorize @model_class
@@ -63,6 +63,18 @@ module LcpRuby
       authorize @record
       @record.destroy!
       redirect_to resources_path, notice: "#{current_model_definition.label} was successfully deleted."
+    end
+
+    def evaluate_conditions
+      authorize @record, :edit?
+      @record.assign_attributes(permitted_params)
+      render json: evaluate_service_conditions(@record)
+    end
+
+    def evaluate_conditions_new
+      @record = @model_class.new(permitted_params)
+      authorize @record, :create?
+      render json: evaluate_service_conditions(@record)
     end
 
     private
@@ -207,6 +219,34 @@ module LcpRuby
     def sortable_position_field(section)
       return unless section["sortable"]
       section["sortable"].is_a?(String) ? section["sortable"] : "position"
+    end
+
+    def evaluate_service_conditions(record)
+      results = {}
+      sections = current_presenter.form_config["sections"] || []
+      sections.each_with_index do |section, idx|
+        %w[visible_when disable_when].each do |cond_key|
+          cond = section[cond_key]
+          next unless cond.is_a?(Hash) && ConditionEvaluator.condition_type(cond) == :service
+
+          result_key = "section_#{idx}_#{cond_key == 'visible_when' ? 'visible' : 'disable'}"
+          results[result_key] = ConditionEvaluator.evaluate_service(record, cond)
+        end
+
+        (section["fields"] || []).each do |field_config|
+          field_name = field_config["field"]
+          next unless field_name
+
+          %w[visible_when disable_when].each do |cond_key|
+            cond = field_config[cond_key]
+            next unless cond.is_a?(Hash) && ConditionEvaluator.condition_type(cond) == :service
+
+            result_key = "#{field_name}_#{cond_key == 'visible_when' ? 'visible' : 'disable'}"
+            results[result_key] = ConditionEvaluator.evaluate_service(record, cond)
+          end
+        end
+      end
+      results
     end
 
     # Pundit uses model class to find policy

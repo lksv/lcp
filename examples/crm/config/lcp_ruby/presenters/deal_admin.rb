@@ -36,12 +36,15 @@ define_presenter :deal_admin do
     section "Deal Details", columns: 2 do
       field :title, placeholder: "Deal title...", autofocus: true, col_span: 2
       field :stage, input_type: :select
-      field :value, input_type: :number, prefix: "EUR", hint: "Deal value without VAT"
+      field :value, input_type: :number, prefix: "EUR", hint: "Deal value without VAT",
+        disable_when: { field: :stage, operator: :in, value: [ :closed_won, :closed_lost ] }
       field :company_id, input_type: :association_select
-      field :contact_id, input_type: :association_select
+      field :contact_id, input_type: :association_select,
+        visible_when: { field: :stage, operator: :not_in, value: [ :lead ] }
     end
 
-    section "Advanced", columns: 2, collapsible: true, collapsed: true do
+    section "Advanced", columns: 2, collapsible: true, collapsed: true,
+      visible_when: { field: :stage, operator: :not_eq, value: "lead" } do
       field :priority, input_type: :slider, input_options: { min: 0, max: 100, step: 5, show_value: true }
       field :progress, input_type: :slider, input_options: { min: 0, max: 100, step: 10, show_value: true }
       field :created_at, readonly: true
@@ -63,7 +66,8 @@ define_presenter :deal_admin do
   action :close_won, type: :custom, on: :single,
     label: "Close as Won", icon: "check-circle",
     confirm: true, confirm_message: "Mark this deal as won?",
-    visible_when: { field: :stage, operator: :not_in, value: [ :closed_won, :closed_lost ] }
+    visible_when: { field: :stage, operator: :not_in, value: [ :closed_won, :closed_lost ] },
+    disable_when: { field: :value, operator: :blank }
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
 
   navigation menu: :main, position: 3

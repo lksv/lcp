@@ -32,12 +32,13 @@ presenter:
         fields:
           - { field: title, placeholder: "Deal title...", autofocus: true }
           - { field: stage, input_type: select }
-          - { field: value, input_type: number, prefix: "$" }
+          - { field: value, input_type: number, prefix: "$", disable_when: { field: stage, operator: in, value: [closed_won, closed_lost] } }
           - { field: company_id, input_type: association_select }
-          - { field: contact_id, input_type: association_select }
+          - { field: contact_id, input_type: association_select, visible_when: { field: stage, operator: not_in, value: [lead] } }
       - title: "Metrics"
         collapsible: true
         collapsed: true
+        visible_when: { field: stage, operator: not_eq, value: lead }
         fields:
           - { field: priority, input_type: slider, input_options: { min: 0, max: 100, step: 5, show_value: true } }
           - { field: progress, input_type: number, suffix: "%", readonly: true }
@@ -67,6 +68,7 @@ presenter:
         confirm: true
         confirm_message: "Mark this deal as won?"
         visible_when: { field: stage, operator: not_in, value: [closed_won, closed_lost] }
+        disable_when: { field: value, operator: blank }
       - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }
 
   navigation:

@@ -75,35 +75,13 @@
                   <button type="button" class="btn lcp-dropdown-toggle">Actions</button>
                   <div class="lcp-dropdown-menu">
                     <% @action_set.single_actions(record).each do |action| %>
-              
-                      <% case action["name"] %>
-                      <% when "show" %>
-                        <%= link_to "Show", resource_path(record), class: "lcp-dropdown-item" %>
-                      <% when "edit" %>
-                        <%= link_to "Edit", edit_resource_path(record), class: "lcp-dropdown-item" %>
-                      <% when "destroy" %>
-                        <%= button_to "Delete", resource_path(record),
-                              method: :delete,
-                              data: { turbo_confirm: "Are you sure?" },
-                              class: "btn-danger lcp-dropdown-item" %>
-                      <% end %>
+                      <%= render "lcp_ruby/resources/action_button", action: action, record: record, css_class: "lcp-dropdown-item" %>
                     <% end %>
                   </div>
                 </div>
               <% else %>
                 <% @action_set.single_actions(record).each do |action| %>
-          
-                  <% case action["name"] %>
-                  <% when "show" %>
-                    <%= link_to "Show", resource_path(record) %>
-                  <% when "edit" %>
-                    <%= link_to "Edit", edit_resource_path(record) %>
-                  <% when "destroy" %>
-                    <%= button_to "Delete", resource_path(record),
-                          method: :delete,
-                          data: { turbo_confirm: "Are you sure?" },
-                          class: "btn-danger" %>
-                  <% end %>
+                  <%= render "lcp_ruby/resources/action_button", action: action, record: record, css_class: "" %>
                 <% end %>
               <% end %>
             </td>

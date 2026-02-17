@@ -688,7 +688,32 @@ Array of form section objects.
 | `fields` | array | Form fields (see below) |
 | `collapsible` | boolean | When `true`, the section can be collapsed/expanded by clicking its header |
 | `collapsed` | boolean | When `true` (and `collapsible` is `true`), the section starts in the collapsed state |
+| `visible_when` | hash | Condition object. When the condition evaluates to false, the entire section (fieldset) is hidden. Same syntax as field conditions. See [Conditional Visibility](#conditional-visibility) |
+| `disable_when` | hash | Condition object. When the condition evaluates to true, the entire section is visually disabled. Same syntax as field conditions. See [Conditional Disabling](#conditional-disabling) |
 | `responsive` | hash | Responsive overrides per breakpoint (see below) |
+
+**Example with conditional sections:**
+
+```yaml
+form:
+  sections:
+    - title: "Basic Information"
+      columns: 2
+      fields:
+        - { field: name }
+        - { field: stage, input_type: select }
+    - title: "Revenue Details"
+      columns: 2
+      visible_when: { field: stage, operator: not_eq, value: lead }
+      fields:
+        - { field: expected_revenue, input_type: number, prefix: "$" }
+        - { field: probability, input_type: slider }
+    - title: "Closed Deal Info"
+      disable_when: { field: stage, operator: not_in, value: [closed_won, closed_lost] }
+      fields:
+        - { field: close_date, input_type: date }
+        - { field: close_reason, input_type: textarea }
+```
 
 **Example with collapsible sections:**
 
@@ -740,7 +765,8 @@ form:
 | `col_span` | integer | Number of grid columns this field spans (defaults to 1) |
 | `hint` | string | Help text displayed below the input |
 | `readonly` | boolean | Renders the field as read-only (visible but not editable) |
-| `visible_when` | string | Server-side method name evaluated on `@record`. The field is only shown when the method returns truthy |
+| `visible_when` | hash | Condition object. When the condition evaluates to false, the field is hidden (`display:none`). Supports field-value conditions and service conditions. See [Conditional Visibility](#conditional-visibility) |
+| `disable_when` | hash | Condition object. When the condition evaluates to true, the field is visually disabled (opacity reduced, pointer-events disabled) but values are still submitted. Same syntax as `visible_when`. See [Conditional Disabling](#conditional-disabling) |
 | `default` | string | Default value for new records. Supports dynamic defaults (see below) |
 | `input_options` | hash | Type-specific input options (see below) |
 | `display_options` | hash | Options passed to the display renderer when field is shown in read-only mode |
@@ -762,11 +788,12 @@ fields:
     input_options:
       min: 0
       step: 0.01
+    disable_when: { field: stage, operator: in, value: [closed_won, closed_lost] }
   - field: internal_code
     readonly: true
     hint: "Auto-generated, cannot be changed"
   - field: renewal_date
-    visible_when: "renewable?"
+    visible_when: { field: stage, operator: not_in, value: [lead] }
   - field: created_at
     default: current_date
     hidden_on: mobile
@@ -788,17 +815,50 @@ The `default` attribute supports dynamic values that are resolved at form render
 
 #### Conditional Visibility
 
-The `visible_when` attribute on **form fields** accepts a method name (string) that is called on the record instance (`@record`). The field is rendered only when the method returns a truthy value. This is evaluated server-side on each form render.
+The `visible_when` attribute on **form fields** and **form sections** accepts a condition object that controls whether the element is shown. When the condition evaluates to false, the element is hidden with `display:none` — values are preserved in the DOM and still submitted with the form.
+
+Two types of conditions are supported:
+
+**Field-value conditions** reference another field on the same record and are evaluated client-side with JavaScript for instant reactivity:
 
 ```yaml
+# Show only when stage is not "lead"
+- field: expected_revenue
+  visible_when: { field: stage, operator: not_in, value: [lead] }
+
+# Show only when a boolean flag is true
 - field: discount_reason
-  input_type: textarea
-  visible_when: "discounted?"
+  visible_when: { field: discounted, operator: eq, value: true }
 ```
 
-The method `discounted?` must be defined on the model (e.g., via a custom concern or model method).
+**Service conditions** are evaluated server-side (on initial render and via AJAX when field values change):
 
-> **Note:** Form field `visible_when` accepts a simple method name string, which is different from action `visible_when` that uses a [condition object](condition-operators.md) with `field`, `operator`, and `value` keys. This inconsistency is a known limitation. A future version may unify both to support condition objects.
+```yaml
+# Show only when the record is persisted (has been saved)
+- field: internal_code
+  visible_when: { service: persisted_check }
+```
+
+See [Condition Operators](condition-operators.md) for the full list of supported operators.
+
+#### Conditional Disabling
+
+The `disable_when` attribute on **form fields** and **form sections** accepts a condition object with the same syntax as `visible_when`. When the condition evaluates to true, the element is visually disabled — rendered with reduced opacity (`opacity: 0.6`) and `pointer-events: none`. Unlike the HTML `disabled` attribute, this CSS-based approach means **values are still submitted** with the form.
+
+```yaml
+# Disable the value field when the deal is closed
+- field: value
+  input_type: number
+  prefix: "$"
+  disable_when: { field: stage, operator: in, value: [closed_won, closed_lost] }
+
+# Disable notes when stage is blank
+- field: notes
+  input_type: textarea
+  disable_when: { field: stage, operator: blank }
+```
+
+Field-value conditions use client-side JavaScript for instant reactivity. Service conditions are evaluated server-side.
 
 #### Input Types
 
@@ -1057,6 +1117,7 @@ actions:
 | `confirm_message` | string | Custom text for the confirmation dialog |
 | `style` | string | CSS style hint (e.g., `danger` for destructive actions) |
 | `visible_when` | object | Condition controlling visibility (see below) |
+| `disable_when` | object | Condition controlling disabled state. When true, the action button renders as a disabled span instead of a clickable link/button (see below) |
 
 ### Action Types
 
@@ -1072,6 +1133,27 @@ visible_when: { field: stage, operator: not_in, value: [closed_won, closed_lost]
 ```
 
 The condition is evaluated per-record via `ConditionEvaluator`. When omitted, the action is always visible (subject to permission checks).
+
+### Action Disabling
+
+The `disable_when` attribute uses the same [condition object](condition-operators.md) syntax as `visible_when`. When the condition evaluates to true, the action button is rendered as a disabled `<span>` instead of a clickable link or button:
+
+```yaml
+single:
+  - name: send_invoice
+    type: custom
+    label: "Send Invoice"
+    icon: mail
+    disable_when: { field: value, operator: blank }
+  - name: close_won
+    type: custom
+    label: "Close as Won"
+    icon: check-circle
+    visible_when: { field: stage, operator: not_in, value: [closed_won, closed_lost] }
+    disable_when: { field: value, operator: lte, value: 0 }
+```
+
+An action can use both `visible_when` and `disable_when` together. The visibility condition is evaluated first — if the action is hidden, `disable_when` has no effect.
 
 ## Navigation
 
@@ -1185,11 +1267,14 @@ presenter:
             input_options:
               min: 0
               step: 0.01
+            visible_when: { field: stage, operator: not_in, value: [lead] }
+            disable_when: { field: stage, operator: in, value: [closed_won, closed_lost] }
           - { type: divider, label: "Relationships" }
           - { field: company_id, input_type: association_select }
           - { field: contact_id, input_type: association_select }
       - title: "Additional"
         collapsible: true
+        visible_when: { field: stage, operator: not_eq, value: lead }
         fields:
           - field: probability
             input_type: slider
@@ -1208,7 +1293,7 @@ presenter:
           - field: close_date
             input_type: date
             default: current_date
-            visible_when: "closeable?"
+            visible_when: { service: persisted_check }
 
   search:
     enabled: true
@@ -1233,6 +1318,7 @@ presenter:
         confirm: true
         confirm_message: "Mark this deal as won?"
         visible_when: { field: stage, operator: not_in, value: [closed_won, closed_lost] }
+        disable_when: { field: value, operator: blank }
       - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }
 
   navigation:

@@ -4,6 +4,7 @@ require "lcp_ruby/configuration"
 require "lcp_ruby/dynamic"
 require "lcp_ruby/current"
 require "lcp_ruby/condition_evaluator"
+require "lcp_ruby/condition_service_registry"
 
 # Metadata
 require "lcp_ruby/metadata/validation_definition"
@@ -125,6 +126,7 @@ module LcpRuby
       @registry = nil
       Types::TypeRegistry.clear!
       Types::ServiceRegistry.clear!
+      ConditionServiceRegistry.clear!
     end
   end
 end

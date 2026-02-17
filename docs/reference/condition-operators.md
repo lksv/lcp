@@ -1,6 +1,6 @@
 # Condition Operators Reference
 
-Conditions are used in [action visibility](presenters.md#action-visibility) (`visible_when`), [record rules](permissions.md#record-rules) (`condition`), and [event conditions](models.md#condition) (`condition`). They all share the same operator syntax.
+Conditions are used in [action visibility](presenters.md#action-visibility) (`visible_when`/`disable_when`), [form field visibility](presenters.md#field-visibility) (`visible_when`/`disable_when`), [form section visibility](presenters.md#section-visibility) (`visible_when`/`disable_when`), [record rules](permissions.md#record-rules) (`condition`), and [event conditions](models.md#condition) (`condition`). They all share the same operator syntax.
 
 ## Syntax
 
@@ -62,6 +62,28 @@ These operators convert both sides to floats via `to_f` before comparing.
 { field: quantity, operator: lte, value: 100 }
 ```
 
+### Regular Expression Matching
+
+These operators test the field value against a regular expression pattern.
+
+| Operator | Description | Value Type |
+|----------|-------------|------------|
+| `matches` | Matches regular expression | pattern (string) |
+| `not_matches` | Does not match regular expression | pattern (string) |
+
+**Examples:**
+
+```yaml
+# Email has a domain
+{ field: email, operator: matches, value: "^[^@]+@" }
+
+# Code is not a temporary prefix
+{ field: code, operator: not_matches, value: "^TEMP" }
+
+# Name contains digits
+{ field: name, operator: matches, value: "[0-9]" }
+```
+
 ### Presence Checks
 
 These operators ignore the `value` field.
@@ -90,6 +112,17 @@ When `operator` is omitted or unrecognized, the evaluator falls back to `eq` (st
 | Context | YAML Location | Documentation |
 |---------|---------------|---------------|
 | Action visibility | `actions.single[].visible_when` | [Presenters](presenters.md#action-visibility) |
+| Action disable | `actions.single[].disable_when` | [Presenters](presenters.md#action-visibility) |
+| Form field visibility | `form.sections[].fields[].visible_when` | [Presenters](presenters.md#field-visibility) |
+| Form field disable | `form.sections[].fields[].disable_when` | [Presenters](presenters.md#field-visibility) |
+| Form section visibility | `form.sections[].visible_when` | [Presenters](presenters.md#section-visibility) |
+| Form section disable | `form.sections[].disable_when` | [Presenters](presenters.md#section-visibility) |
 | Record rules | `record_rules[].condition` | [Permissions](permissions.md#record-rules) |
+
+## Client-Side Evaluation
+
+All field-value operators (`eq`, `not_eq`, `in`, `not_in`, `gt`, `gte`, `lt`, `lte`, `present`, `blank`, `matches`, `not_matches`) are evaluated client-side in JavaScript for instant UI reactivity when used in form field/section `visible_when` and `disable_when` conditions.
+
+Conditions that use the `service:` key instead of `field:` are evaluated server-side via AJAX, as they require backend logic or data not available in the browser.
 
 Source: `lib/lcp_ruby/condition_evaluator.rb`

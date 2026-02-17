@@ -16,7 +16,9 @@ module LcpRuby
         actions = filter_actions(presenter_definition.single_actions)
         return actions unless record
 
-        actions.select { |a| action_visible_for_record?(a, record) }
+        actions
+          .select { |a| action_visible_for_record?(a, record) }
+          .map { |a| a.merge("_disabled" => action_disabled_for_record?(a, record)) }
       end
 
       def batch_actions
@@ -39,7 +41,14 @@ module LcpRuby
         visible_when = action["visible_when"]
         return true unless visible_when
 
-        ConditionEvaluator.evaluate(record, visible_when)
+        ConditionEvaluator.evaluate_any(record, visible_when)
+      end
+
+      def action_disabled_for_record?(action, record)
+        disable_when = action["disable_when"]
+        return false unless disable_when
+
+        ConditionEvaluator.evaluate_any(record, disable_when)
       end
     end
   end

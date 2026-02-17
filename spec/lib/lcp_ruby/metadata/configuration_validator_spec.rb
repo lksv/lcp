@@ -845,6 +845,185 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       expect(result).to be_valid
     end
   end
+
+  # --- Condition validation ---
+
+  context "condition with invalid regex pattern" do
+    let(:metadata_path) { "" }
+
+    it "reports error for invalid regex in matches operator" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+              - { name: code, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project_admin
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                    - field: code
+                      visible_when: { field: title, operator: matches, value: "[invalid" }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/invalid regex pattern '\[invalid'/)
+      )
+    end
+
+    it "accepts valid regex in matches operator" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+              - { name: code, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project_admin
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                    - field: code
+                      visible_when: { field: title, operator: matches, value: "^[A-Z]+$" }
+        YAML
+      )
+
+      result = v.validate
+      regex_errors = result.errors.select { |e| e.include?("regex") }
+      expect(regex_errors).to be_empty
+    end
+  end
+
+  context "condition validation on fields and sections" do
+    let(:metadata_path) { "" }
+
+    it "reports error for unknown field in field-level disable_when" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project_admin
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                      disable_when: { field: ghost_field, operator: eq, value: x }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/disable_when.*references unknown field 'ghost_field'/)
+      )
+    end
+
+    it "reports error for unknown field in section-level visible_when" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project_admin
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  visible_when: { field: nonexistent, operator: eq, value: x }
+                  fields:
+                    - { field: title }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/section 'Details', visible_when.*references unknown field 'nonexistent'/)
+      )
+    end
+
+    it "reports error for action disable_when with unknown operator" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project_admin
+            model: project
+            slug: projects
+            actions:
+              single:
+                - name: close
+                  type: custom
+                  disable_when: { field: title, operator: fuzzy_match, value: x }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/disable_when.*uses unknown operator 'fuzzy_match'/)
+      )
+    end
+
+    it "skips validation for service conditions" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project_admin
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                      visible_when: { service: some_service }
+        YAML
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("visible_when") || e.include?("disable_when") }
+      expect(condition_errors).to be_empty
+    end
+  end
 end
 
 RSpec.describe LcpRuby::Metadata::ConfigurationValidator::ValidationResult do
