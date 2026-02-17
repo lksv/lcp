@@ -7,6 +7,7 @@ model:
     - name: title
       type: string
       label: "Title"
+      transforms: [strip]
       column_options:
         limit: 255
         "null": false
@@ -18,9 +19,26 @@ model:
       label: "Completed"
       default: false
 
+    - name: start_date
+      type: date
+      label: "Start Date"
+      default: current_date
+
     - name: due_date
       type: date
       label: "Due Date"
+      default:
+        service: one_week_from_now
+      validations:
+        - type: comparison
+          operator: gte
+          field_ref: start_date
+          message: "must be on or after start date"
+        - type: presence
+          when:
+            field: completed
+            operator: eq
+            value: "false"
 
     - name: position
       type: integer

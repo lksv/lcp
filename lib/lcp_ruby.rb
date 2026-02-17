@@ -37,6 +37,12 @@ require "lcp_ruby/dsl/model_builder"
 require "lcp_ruby/dsl/presenter_builder"
 require "lcp_ruby/dsl/dsl_loader"
 
+# Services (unified registry)
+require "lcp_ruby/services/registry"
+require "lcp_ruby/services/built_in_defaults"
+require "lcp_ruby/services/built_in_transforms"
+require "lcp_ruby/services/checker"
+
 # Model Factory
 require "lcp_ruby/model_factory/registry"
 require "lcp_ruby/model_factory/schema_manager"
@@ -45,6 +51,8 @@ require "lcp_ruby/model_factory/association_applicator"
 require "lcp_ruby/model_factory/scope_applicator"
 require "lcp_ruby/model_factory/callback_applicator"
 require "lcp_ruby/model_factory/transform_applicator"
+require "lcp_ruby/model_factory/default_applicator"
+require "lcp_ruby/model_factory/computed_applicator"
 require "lcp_ruby/model_factory/builder"
 
 # Authorization
@@ -79,6 +87,7 @@ module LcpRuby
   class Error < StandardError; end
   class MetadataError < Error; end
   class SchemaError < Error; end
+  class ServiceError < Error; end
 
   class << self
     def configuration
@@ -120,6 +129,18 @@ module LcpRuby
       Metadata::PresenterDefinition.from_hash(hash)
     end
 
+    def check_services
+      Services::Checker.new(loader.model_definitions).check
+    end
+
+    def check_services!
+      result = check_services
+      unless result.valid?
+        raise ServiceError, "Missing service references:\n#{result.errors.map { |e| "  - #{e}" }.join("\n")}"
+      end
+      result
+    end
+
     def reset!
       @configuration = nil
       @loader = nil
@@ -127,6 +148,15 @@ module LcpRuby
       Types::TypeRegistry.clear!
       Types::ServiceRegistry.clear!
       ConditionServiceRegistry.clear!
+      Events::HandlerRegistry.clear!
+      Actions::ActionRegistry.clear!
+      Authorization::PolicyFactory.clear!
+      Services::Registry.clear!
+
+      # Remove dynamic constants to avoid "already initialized" warnings
+      Dynamic.constants.each do |const|
+        Dynamic.send(:remove_const, const)
+      end
     end
   end
 end

@@ -35,6 +35,8 @@ module LcpRuby
 
         Types::BuiltInServices.register_all!
         Types::BuiltInTypes.register_all!
+        Services::BuiltInTransforms.register_all!
+        Services::BuiltInDefaults.register_all!
 
         loader = LcpRuby.loader
         loader.load_all
@@ -42,6 +44,9 @@ module LcpRuby
         loader.model_definitions.each_value do |model_def|
           build_model(model_def)
         end
+
+        Services::Registry.discover!(Rails.root.join("app").to_s)
+        LcpRuby.check_services!
 
         @metadata_loaded = true
       end

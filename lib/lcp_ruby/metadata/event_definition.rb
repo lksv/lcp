@@ -10,9 +10,17 @@ module LcpRuby
         @name = attrs[:name].to_s
         @type = (attrs[:type] || infer_type).to_s
         @field = attrs[:field]&.to_s
-        @condition = attrs[:condition]&.to_s
+        @condition = attrs[:condition]
 
         validate!
+      end
+
+      def condition_hash?
+        @condition.is_a?(Hash)
+      end
+
+      def condition_string?
+        @condition.is_a?(String)
       end
 
       def self.from_hash(hash)

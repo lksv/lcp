@@ -1,6 +1,6 @@
 # Condition Operators Reference
 
-Conditions are used in [action visibility](presenters.md#action-visibility) (`visible_when`/`disable_when`), [form field visibility](presenters.md#field-visibility) (`visible_when`/`disable_when`), [form section visibility](presenters.md#section-visibility) (`visible_when`/`disable_when`), [record rules](permissions.md#record-rules) (`condition`), and [event conditions](models.md#condition) (`condition`). They all share the same operator syntax.
+Conditions are used in [action visibility](presenters.md#action-visibility) (`visible_when`/`disable_when`), [form field visibility](presenters.md#field-visibility) (`visible_when`/`disable_when`), [form section visibility](presenters.md#section-visibility) (`visible_when`/`disable_when`), [record rules](permissions.md#record-rules) (`condition`), [event conditions](models.md#condition) (`condition`), and [conditional validations](models.md#conditional-validations-when) (`when:`). They all share the same operator syntax.
 
 ## Syntax
 
@@ -118,6 +118,8 @@ When `operator` is omitted or unrecognized, the evaluator falls back to `eq` (st
 | Form section visibility | `form.sections[].visible_when` | [Presenters](presenters.md#section-visibility) |
 | Form section disable | `form.sections[].disable_when` | [Presenters](presenters.md#section-visibility) |
 | Record rules | `record_rules[].condition` | [Permissions](permissions.md#record-rules) |
+| Conditional validations | `fields[].validations[].when` | [Models](models.md#conditional-validations-when) |
+| Event conditions | `events[].condition` | [Models](models.md#condition) |
 
 ## Client-Side Evaluation
 

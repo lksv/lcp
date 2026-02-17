@@ -44,6 +44,8 @@ module LcpRuby
 
         field_hash["label"] = options[:label] if options.key?(:label)
         field_hash["default"] = options[:default] if options.key?(:default)
+        field_hash["transforms"] = options[:transforms].map(&:to_s) if options[:transforms]
+        field_hash["computed"] = options[:computed] if options.key?(:computed)
 
         # Extract column options from top-level kwargs
         column_opts = {}
@@ -69,10 +71,21 @@ module LcpRuby
 
       # Style B: model-level validates :field_name, :type, **options
       def validates(field_name, type, **options)
+        when_condition = options.delete(:when)
+        field_ref = options.delete(:field_ref)
+        operator = options.delete(:operator)
+        message = options.delete(:message)
+        service = options.delete(:service)
+
         @model_validations << {
           field: field_name.to_s,
           type: type.to_s,
-          options: options
+          options: options,
+          when: when_condition,
+          field_ref: field_ref,
+          operator: operator,
+          message: message,
+          service: service
         }
       end
 
@@ -81,6 +94,10 @@ module LcpRuby
         validation = { "type" => type.to_s }
         validator_class = options.delete(:validator_class)
         validation["validator_class"] = validator_class if validator_class
+        when_condition = options.delete(:when)
+        validation["when"] = when_condition if when_condition
+        service = options.delete(:service)
+        validation["service"] = service.to_s if service
         validation["options"] = stringify_keys(options) unless options.empty?
         @model_validations << { model_level: true, hash: validation }
       end
@@ -244,6 +261,26 @@ module LcpRuby
 
           field_hash = fields.find { |f| f["name"] == mv[:field] }
           unless field_hash
+            # Check if it references an association FK field
+            fk_assoc = @associations.find { |a|
+              a["type"] == "belongs_to" &&
+                (a["foreign_key"] || "#{a['name']}_id") == mv[:field]
+            }
+            if fk_assoc
+              # Convert to model-level validation with field target
+              validation = { "type" => mv[:type], "field" => mv[:field] }
+              validation["when"] = mv[:when] if mv[:when]
+              validation["field_ref"] = mv[:field_ref].to_s if mv[:field_ref]
+              validation["operator"] = mv[:operator].to_s if mv[:operator]
+              validation["message"] = mv[:message] if mv[:message]
+              validation["service"] = mv[:service].to_s if mv[:service]
+              opts = mv[:options]&.dup || {}
+              validation["options"] = stringify_keys(opts) unless opts.empty?
+              mv[:model_level] = true
+              mv[:hash] = validation
+              next
+            end
+
             raise MetadataError,
               "validates :#{mv[:field]} references unknown field '#{mv[:field]}' in model '#{@name}'"
           end
@@ -251,6 +288,11 @@ module LcpRuby
           validation = { "type" => mv[:type] }
           validator_class = mv[:options].delete(:validator_class)
           validation["validator_class"] = validator_class if validator_class
+          validation["when"] = mv[:when] if mv[:when]
+          validation["field_ref"] = mv[:field_ref].to_s if mv[:field_ref]
+          validation["operator"] = mv[:operator].to_s if mv[:operator]
+          validation["message"] = mv[:message] if mv[:message]
+          validation["service"] = mv[:service].to_s if mv[:service]
 
           opts = mv[:options].dup
           validation["options"] = stringify_keys(opts) unless opts.empty?

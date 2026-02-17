@@ -15,7 +15,8 @@ define_presenter :deal_admin do
     column :title, width: "30%", link_to: :show, sortable: true, display: :truncate, display_options: { max: 40 }
     column :stage, width: "15%", display: :badge, display_options: { color_map: { lead: "blue", qualified: "cyan", proposal: "orange", negotiation: "purple", closed_won: "green", closed_lost: "red" } }, sortable: true
     column :value, width: "15%", display: :currency, display_options: { currency: "EUR" }, sortable: true, summary: "sum"
-    column :progress, width: "15%", display: :progress_bar
+    column :weighted_value, width: "10%", display: :currency, display_options: { currency: "EUR" }
+    column :progress, width: "10%", display: :progress_bar
     column :priority, width: "10%", sortable: true
   end
 
@@ -24,8 +25,10 @@ define_presenter :deal_admin do
       field :title, display: :heading
       field :stage, display: :badge, display_options: { color_map: { lead: "blue", qualified: "cyan", proposal: "orange", negotiation: "purple", closed_won: "green", closed_lost: "red" } }
       field :value, display: :currency, display_options: { currency: "EUR" }
+      field :weighted_value, display: :currency, display_options: { currency: "EUR" }
       field :progress, display: :progress_bar
       field :priority, display: :rating, display_options: { max: 5 }
+      field :expected_close_date
       field :created_at, display: :relative_date
     end
   end
@@ -38,6 +41,7 @@ define_presenter :deal_admin do
       field :stage, input_type: :select
       field :value, input_type: :number, prefix: "EUR", hint: "Deal value without VAT",
         disable_when: { field: :stage, operator: :in, value: [ :closed_won, :closed_lost ] }
+      field :expected_close_date, input_type: :date_picker
       field :company_id, input_type: :association_select
       field :contact_id, input_type: :association_select,
         visible_when: { field: :stage, operator: :not_in, value: [ :lead ] }

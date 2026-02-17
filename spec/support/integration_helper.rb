@@ -9,21 +9,14 @@ module IntegrationHelper
     fixture_path = File.join(FIXTURES_BASE, fixture_name)
     raise "Integration fixture not found: #{fixture_path}" unless File.directory?(fixture_path)
 
-    # Clean up previous state
+    # Clean up previous state (reset! handles all registries + Dynamic constants)
     LcpRuby.reset!
-    LcpRuby::Events::HandlerRegistry.clear!
-    LcpRuby::Actions::ActionRegistry.clear!
-    LcpRuby::ConditionServiceRegistry.clear!
-    LcpRuby::Authorization::PolicyFactory.clear!
-
-    # Remove dynamic constants to avoid "already initialized" warnings
-    LcpRuby::Dynamic.constants.each do |const|
-      LcpRuby::Dynamic.send(:remove_const, const)
-    end
 
     # Register built-in types and services
     LcpRuby::Types::BuiltInServices.register_all!
     LcpRuby::Types::BuiltInTypes.register_all!
+    LcpRuby::Services::BuiltInTransforms.register_all!
+    LcpRuby::Services::BuiltInDefaults.register_all!
 
     # Configure and load
     LcpRuby.configuration.metadata_path = fixture_path
@@ -42,8 +35,9 @@ module IntegrationHelper
       LcpRuby.registry.register(model_def.name, model_class)
     end
 
-    # Discover condition services if present in fixture
+    # Discover services from fixture path
     LcpRuby::ConditionServiceRegistry.discover!(fixture_path)
+    LcpRuby::Services::Registry.discover!(fixture_path)
   end
 
   # Drop tables for the given fixture's models

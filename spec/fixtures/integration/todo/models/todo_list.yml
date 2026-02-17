@@ -22,6 +22,7 @@ model:
     - name: start_date
       type: date
       label: "Start Date"
+      default: current_date
 
   associations:
     - type: has_many

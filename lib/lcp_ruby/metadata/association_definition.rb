@@ -16,7 +16,8 @@ module LcpRuby
         @class_name = attrs[:class_name]
         @foreign_key = attrs[:foreign_key]&.to_s || infer_foreign_key
         @dependent = attrs[:dependent]&.to_sym
-        @required = attrs.fetch(:required, @type == "belongs_to")
+        required = attrs[:required]
+        @required = required.nil? ? (@type == "belongs_to") : required
 
         # Tier 1: simple pass-throughs
         @inverse_of = attrs[:inverse_of]&.to_sym

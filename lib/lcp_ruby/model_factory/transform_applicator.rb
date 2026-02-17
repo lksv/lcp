@@ -8,17 +8,21 @@ module LcpRuby
 
       def apply!
         @model_definition.fields.each do |field|
-          next unless field.type_definition
-          next if field.type_definition.transforms.empty?
+          type_transforms = field.type_definition&.transforms || []
+          field_transforms = field.transforms
 
-          apply_transforms(field)
+          # Merge: type-level first, then field-level (deduplicated)
+          all_keys = (type_transforms + field_transforms).uniq
+          next if all_keys.empty?
+
+          apply_transforms(field, all_keys)
         end
       end
 
       private
 
-      def apply_transforms(field)
-        transforms = resolve_transforms(field.type_definition.transforms)
+      def apply_transforms(field, transform_keys)
+        transforms = resolve_transforms(transform_keys)
         return if transforms.empty?
 
         field_name = field.name.to_sym
@@ -29,9 +33,10 @@ module LcpRuby
 
       def resolve_transforms(transform_keys)
         transform_keys.filter_map do |key|
-          service = Types::ServiceRegistry.lookup("transform", key)
+          service = Services::Registry.lookup("transforms", key) ||
+                    Types::ServiceRegistry.lookup("transform", key)
           unless service
-            Rails.logger.warn("[LcpRuby] Transform '#{key}' not found in ServiceRegistry") if defined?(Rails)
+            Rails.logger.warn("[LcpRuby] Transform '#{key}' not found in registry") if defined?(Rails)
           end
           service
         end

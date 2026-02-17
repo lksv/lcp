@@ -10,7 +10,7 @@ module LcpRuby
       VALID_TYPES = BASE_TYPES
 
       attr_reader :name, :type, :label, :column_options, :validations,
-                  :enum_values, :default, :type_definition
+                  :enum_values, :default, :type_definition, :transforms, :computed
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -20,6 +20,8 @@ module LcpRuby
         @validations = (attrs[:validations] || []).map { |v| ValidationDefinition.new(v) }
         @enum_values = attrs[:enum_values] || []
         @default = attrs[:default]
+        @transforms = Array(attrs[:transforms]).map(&:to_s)
+        @computed = attrs[:computed]
 
         validate!
         resolve_type_definition!
@@ -33,8 +35,14 @@ module LcpRuby
           column_options: symbolize_keys(hash["column_options"]),
           validations: hash["validations"],
           enum_values: hash["enum_values"],
-          default: hash["default"]
+          default: hash["default"],
+          transforms: hash["transforms"],
+          computed: hash["computed"]
         )
+      end
+
+      def computed?
+        !!@computed
       end
 
       def column_type

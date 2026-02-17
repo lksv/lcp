@@ -10,8 +10,7 @@ define_presenter :contact_admin do
     per_page 25
     row_click :show
 
-    column :first_name, width: "20%", link_to: :show, sortable: true
-    column :last_name, width: "20%", sortable: true
+    column :full_name, width: "30%", link_to: :show, sortable: true
     column :email, width: "25%", display: :email_link
     column :phone, width: "15%", display: :phone_link
     column :active, width: "10%", display: :boolean_icon
@@ -19,8 +18,7 @@ define_presenter :contact_admin do
 
   show do
     section "Contact Information", columns: 2, responsive: { mobile: { columns: 1 } } do
-      field :first_name, display: :heading
-      field :last_name
+      field :full_name, display: :heading
       field :email, display: :email_link
       field :phone, display: :phone_link
       field :position

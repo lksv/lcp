@@ -4,6 +4,8 @@ Custom business types let you define reusable field blueprints — bundling a ba
 
 Use custom types when you find yourself repeating the same validation + column options pattern across multiple models.
 
+> **Tip:** For simple normalization (e.g., stripping whitespace from a string field), you may not need a custom type at all. Fields support `transforms:` directly — see [Field-Level Transforms](../reference/models.md#transforms). Use custom types when you need to bundle multiple concerns (transforms + validations + column options + input hints) into a reusable definition.
+
 For the full attribute reference, see [Types Reference](../reference/types.md).
 
 ## Example A: `percentage` (YAML)

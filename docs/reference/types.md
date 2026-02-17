@@ -164,6 +164,8 @@ Ordered list of transform service keys. Each key must be registered in the `Serv
 
 Built-in transforms: `strip`, `downcase`, `normalize_url`, `normalize_phone`.
 
+> **Note:** Fields can also define their own transforms via the `transforms:` attribute. Field-level transforms extend type-level transforms — the union of both is applied, with type-level transforms running first and duplicates removed. For simple cases like adding `strip` to a plain `string` field, field-level transforms may be sufficient without defining a custom type. See [Field-Level Transforms](models.md#transforms).
+
 #### `validations`
 
 | | |

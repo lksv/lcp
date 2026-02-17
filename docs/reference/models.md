@@ -147,9 +147,11 @@ Display label for form inputs, table headers, and show fields.
 |---|---|
 | **Required** | no |
 | **Default** | `nil` |
-| **Type** | varies by field type |
+| **Type** | scalar, string (built-in key), or hash (service) |
 
-Default value assigned to new records. Applied as a database column default.
+Default value for new records. Supports three forms:
+
+**Scalar default** — applied as a database column default:
 
 ```yaml
 - name: completed
@@ -160,6 +162,37 @@ Default value assigned to new records. Applied as a database column default.
   type: string
   default: "medium"
 ```
+
+**Built-in dynamic default** — a string matching a built-in default key. Applied at runtime via `after_initialize` (only on new records, only when the field is blank):
+
+| Key | Value | Description |
+|-----|-------|-------------|
+| `current_date` | `Date.today` | Today's date |
+| `current_datetime` | `Time.current` | Current date and time |
+| `current_user_id` | `LcpRuby::Current.user&.id` | Current user's ID |
+
+```yaml
+- name: start_date
+  type: date
+  default: current_date
+```
+
+**Service dynamic default** — delegates to a registered default service. Applied at runtime via `after_initialize`:
+
+```yaml
+- name: expected_close_date
+  type: date
+  default:
+    service: thirty_days_out
+```
+
+```ruby
+# DSL
+field :start_date, :date, default: "current_date"
+field :expected_close_date, :date, default: { service: "thirty_days_out" }
+```
+
+Service contract: `def self.call(record, field_name) -> value`. Register in `app/lcp_services/defaults/`. See [Extensibility Guide](../guides/extensibility.md).
 
 #### `column_options`
 
@@ -210,6 +243,70 @@ enum_values:
   - { value: archived, label: "Archived" }
 ```
 
+#### `transforms`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `[]` |
+| **Type** | array of strings |
+
+Field-level transforms applied via `ActiveRecord.normalizes`. Transforms run before validation on every assignment. Field-level transforms extend type-level transforms (defined via [custom types](types.md)) — the union is applied, with type-level transforms running first.
+
+```yaml
+# YAML
+- name: title
+  type: string
+  transforms: [strip]
+
+# With custom type that already has transforms
+- name: email
+  type: email  # email type has strip+downcase
+  transforms: [strip]  # deduplicated, won't strip twice
+```
+
+```ruby
+# DSL
+field :first_name, :string, transforms: [:strip, :titlecase]
+```
+
+Built-in transforms: `strip`, `downcase`, `normalize_url`, `normalize_phone`. Custom transforms can be registered in `app/lcp_services/transforms/`. See [Extensibility Guide](../guides/extensibility.md).
+
+#### `computed`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `nil` |
+| **Type** | string (template) or hash (service) |
+
+Computed fields are automatically calculated before save. They are rendered as readonly in forms.
+
+**Template syntax** — interpolates other field values:
+
+```yaml
+- name: full_name
+  type: string
+  computed: "{first_name} {last_name}"
+```
+
+**Service syntax** — delegates to a registered computed service:
+
+```yaml
+- name: weighted_value
+  type: decimal
+  computed:
+    service: weighted_deal_value
+```
+
+```ruby
+# DSL
+field :full_name, :string, computed: "{first_name} {last_name}"
+field :weighted_value, :decimal, computed: { service: "weighted_deal_value" }
+```
+
+Service contract: `def self.call(record) -> value`. Register in `app/lcp_services/computed/`. See [Extensibility Guide](../guides/extensibility.md).
+
 #### `validations`
 
 | | |
@@ -222,7 +319,7 @@ Field-level validations. See [Validations](#validations) below.
 
 ## Validations
 
-Validations can be defined at the field level (inside a field's `validations` array) or at the model level (in the top-level `validations` array). Model-level validations only support the `custom` type.
+Validations can be defined at the field level (inside a field's `validations` array) or at the model level (in the top-level `validations` array). Model-level validations support the `custom` and `service` types.
 
 ### Validation Types
 
@@ -368,6 +465,92 @@ fields:
 validations:
   - type: custom
     validator_class: "BusinessRuleValidator"
+```
+
+#### `comparison`
+
+Compares the field value against another field on the same record. Skipped when either value is nil.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `operator` | string | Comparison operator: `gt`, `gte`, `lt`, `lte`, `eq`, `not_eq` |
+| `field_ref` | string | Name of the field to compare against |
+| `message` | string | Custom error message |
+
+```yaml
+fields:
+  - name: due_date
+    type: date
+    validations:
+      - type: comparison
+        operator: gte
+        field_ref: start_date
+        message: "must be on or after start date"
+```
+
+```ruby
+# DSL
+field :due_date, :date do
+  validates :comparison, operator: :gte, field_ref: :start_date,
+    message: "must be on or after start date"
+end
+```
+
+#### `service`
+
+Delegates validation to a registered service class. The service receives the record and can add errors.
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `service` | string | Service key registered in `app/lcp_services/validators/` |
+
+```yaml
+# Model-level service validation
+validations:
+  - type: service
+    service: deal_credit_limit
+```
+
+```ruby
+# DSL
+validates_model :service, service: "deal_credit_limit"
+```
+
+Service contract: `def self.call(record, **opts) -> void` (adds errors directly to `record.errors`). Register in `app/lcp_services/validators/`. See [Extensibility Guide](../guides/extensibility.md).
+
+### Conditional Validations (`when:`)
+
+Any validation can be made conditional using the `when:` key. When present, the validation only runs if the condition evaluates to true. The condition uses the same `{ field:, operator:, value: }` syntax as [`visible_when`](presenters.md#field-visibility) and [`condition`](condition-operators.md).
+
+```yaml
+fields:
+  - name: value
+    type: decimal
+    validations:
+      - type: presence
+        when:
+          field: stage
+          operator: not_in
+          value: [lead]
+      - type: numericality
+        options: { greater_than_or_equal_to: 0, allow_nil: true }
+```
+
+```ruby
+# DSL
+field :value, :decimal do
+  validates :presence, when: { field: :stage, operator: :not_in, value: %w[lead] }
+  validates :numericality, greater_than_or_equal_to: 0, allow_nil: true
+end
+```
+
+Service-based conditions are also supported:
+
+```yaml
+validations:
+  - type: presence
+    when:
+      service: requires_approval
 ```
 
 ### Common Validation Options
@@ -925,7 +1108,10 @@ events:
   - name: on_stage_change
     type: field_change
     field: stage
-    condition: "active"
+    condition:
+      field: stage
+      operator: not_in
+      value: [lead]
 ```
 
 ### Event Attributes
@@ -966,9 +1152,29 @@ The field to monitor for changes. The event fires only when this field's value c
 | | |
 |---|---|
 | **Required** | no |
-| **Type** | string |
+| **Type** | hash (recommended) or string (deprecated) |
 
-Optional condition for the event. When specified, provides additional context for event filtering.
+Optional condition that must be met for the event to fire. Uses the same `{ field:, operator:, value: }` syntax as [condition operators](condition-operators.md). When a `field_change` event fires, the condition is evaluated against the record's current state — the event is only dispatched if the condition returns true.
+
+```yaml
+# Hash condition (recommended)
+events:
+  - name: on_stage_change
+    type: field_change
+    field: stage
+    condition:
+      field: stage
+      operator: not_eq
+      value: draft
+```
+
+```ruby
+# DSL
+on_field_change :on_stage_change, field: :stage,
+  condition: { field: :stage, operator: :not_in, value: %w[lead] }
+```
+
+> **Deprecated:** String conditions (evaluated via `instance_eval`) are deprecated and will be removed in a future version. Migrate to Hash conditions.
 
 ### Lifecycle Events
 
@@ -1007,6 +1213,8 @@ Method called on records to generate display text (e.g., in association select d
 
 ## Complete Example
 
+### YAML (TODO App)
+
 ```yaml
 model:
   name: todo_item
@@ -1017,6 +1225,7 @@ model:
     - name: title
       type: string
       label: "Title"
+      transforms: [strip]
       column_options:
         limit: 255
         "null": false
@@ -1028,9 +1237,26 @@ model:
       label: "Completed"
       default: false
 
+    - name: start_date
+      type: date
+      label: "Start Date"
+      default: current_date
+
     - name: due_date
       type: date
       label: "Due Date"
+      default:
+        service: one_week_from_now
+      validations:
+        - type: comparison
+          operator: gte
+          field_ref: start_date
+          message: "must be on or after start date"
+        - type: presence
+          when:
+            field: completed
+            operator: eq
+            value: false
 
   associations:
     - type: belongs_to
@@ -1042,6 +1268,56 @@ model:
   options:
     timestamps: true
     label_method: title
+```
+
+### Ruby DSL (CRM App)
+
+```ruby
+define_model :deal do
+  label "Deal"
+  label_plural "Deals"
+
+  field :title, :string, label: "Title", limit: 255, null: false do
+    validates :presence
+  end
+
+  field :stage, :enum, label: "Stage", default: "lead",
+    values: {
+      lead: "Lead", qualified: "Qualified", proposal: "Proposal",
+      negotiation: "Negotiation", closed_won: "Closed Won",
+      closed_lost: "Closed Lost"
+    }
+
+  field :value, :decimal, label: "Value", precision: 12, scale: 2 do
+    validates :numericality, greater_than_or_equal_to: 0, allow_nil: true
+    validates :presence, when: { field: :stage, operator: :not_in, value: %w[lead] }
+  end
+
+  field :weighted_value, :decimal, label: "Weighted Value", precision: 12, scale: 2,
+    computed: { service: "weighted_deal_value" }
+
+  field :expected_close_date, :date, label: "Expected Close",
+    default: { service: "thirty_days_out" } do
+    validates :comparison, operator: :gte, field_ref: :created_at,
+      message: "cannot be before deal creation"
+  end
+
+  belongs_to :company, model: :company, required: true
+  belongs_to :contact, model: :contact, required: false
+
+  validates :contact_id, :presence,
+    when: { field: :stage, operator: :in, value: %w[negotiation closed_won closed_lost] }
+
+  validates_model :service, service: "deal_credit_limit"
+
+  scope :open_deals, where_not: { stage: ["closed_won", "closed_lost"] }
+
+  on_field_change :on_stage_change, field: :stage,
+    condition: { field: :stage, operator: :not_in, value: %w[lead] }
+
+  timestamps true
+  label_method :title
+end
 ```
 
 Source: `lib/lcp_ruby/metadata/model_definition.rb`, `lib/lcp_ruby/metadata/field_definition.rb`, `lib/lcp_ruby/metadata/validation_definition.rb`, `lib/lcp_ruby/metadata/association_definition.rb`, `lib/lcp_ruby/metadata/event_definition.rb`

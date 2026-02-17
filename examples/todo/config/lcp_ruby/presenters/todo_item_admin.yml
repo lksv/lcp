@@ -13,7 +13,8 @@ presenter:
     table_columns:
       - { field: title, width: "50%", link_to: show, sortable: true }
       - { field: completed, width: "15%", display: badge, display_options: { color_map: { "true": green, "false": gray } }, sortable: true }
-      - { field: due_date, width: "20%", display: relative_date, sortable: true }
+      - { field: start_date, width: "15%", sortable: true }
+      - { field: due_date, width: "15%", display: relative_date, sortable: true }
 
   show:
     layout:
@@ -25,6 +26,7 @@ presenter:
         fields:
           - { field: title, display: heading }
           - { field: completed, display: boolean_icon }
+          - { field: start_date }
           - { field: due_date }
 
   form:
@@ -34,6 +36,7 @@ presenter:
         fields:
           - { field: title, placeholder: "What needs to be done?", autofocus: true, hint: "Be specific about the task" }
           - { field: completed, input_type: boolean }
+          - { field: start_date, input_type: date_picker }
           - { field: due_date, input_type: date_picker }
           - { field: todo_list_id, input_type: association_select }
 

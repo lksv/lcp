@@ -25,7 +25,7 @@ Complete attribute reference for every YAML configuration file:
 
 ## Guides
 
-- [Extensibility](guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validations, scopes, condition services, model extensions
+- [Extensibility](guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validators, defaults, computed fields, condition services, scopes, model extensions
 - [Conditional Rendering](guides/conditional-rendering.md) — `visible_when` and `disable_when` on fields, sections, and actions
 - [Custom Actions](guides/custom-actions.md) — Writing domain-specific operations beyond CRUD
 - [Event Handlers](guides/event-handlers.md) — Responding to lifecycle events and field changes
