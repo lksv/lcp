@@ -26,6 +26,17 @@ RSpec.describe LcpRuby::Configuration do
     end
   end
 
+  describe "#impersonation_roles" do
+    it "defaults to empty array" do
+      expect(config.impersonation_roles).to eq([])
+    end
+
+    it "is configurable" do
+      config.impersonation_roles = ["admin", "super_admin"]
+      expect(config.impersonation_roles).to eq(["admin", "super_admin"])
+    end
+  end
+
   describe "#strict_loading" do
     it "defaults to :never" do
       expect(config.strict_loading).to eq(:never)
