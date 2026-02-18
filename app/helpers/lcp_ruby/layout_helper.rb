@@ -19,12 +19,17 @@ module LcpRuby
         presenter = LcpRuby.loader.presenter_definitions[vg.primary_presenter]
         next unless presenter&.routable?
 
+        all_slugs = vg.presenter_names.filter_map do |name|
+          LcpRuby.loader.presenter_definitions[name]&.slug
+        end
+
         {
           presenter: presenter,
           label: presenter.label,
           slug: presenter.slug,
           icon: presenter.icon,
-          navigation: vg.navigation_config
+          navigation: vg.navigation_config,
+          all_slugs: all_slugs
         }
       end.sort_by { |entry| entry[:navigation]["position"] || 99 }
     end
