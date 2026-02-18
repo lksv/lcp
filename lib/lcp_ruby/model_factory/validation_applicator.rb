@@ -1,8 +1,6 @@
 module LcpRuby
   module ModelFactory
     class ValidationApplicator
-      COMPARISON_OPERATORS = %w[gt gte lt lte eq not_eq].freeze
-
       def initialize(model_class, model_definition)
         @model_class = model_class
         @model_definition = model_definition
@@ -68,7 +66,7 @@ module LcpRuby
           @model_class.validates field_name.to_sym, numericality: opts.empty? ? true : opts
         when "format"
           if opts[:with].is_a?(String)
-            opts[:with] = Regexp.new(opts[:with])
+            opts[:with] = ConditionEvaluator.safe_regexp(opts[:with])
           end
           @model_class.validates field_name.to_sym, format: opts
         when "inclusion"
