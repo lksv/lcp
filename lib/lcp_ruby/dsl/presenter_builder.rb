@@ -12,7 +12,6 @@ module LcpRuby
         @form_hash = nil
         @search_hash = nil
         @actions = []
-        @navigation_hash = nil
         @options = {}
       end
 
@@ -87,12 +86,6 @@ module LcpRuby
         @actions << { on: on.to_s, hash: action_hash }
       end
 
-      # Navigation
-      def navigation(menu:, position: nil)
-        @navigation_hash = { "menu" => menu.to_s }
-        @navigation_hash["position"] = position if position
-      end
-
       def to_hash
         hash = { "name" => @name }
         hash["model"] = @model_name if @model_name
@@ -108,8 +101,6 @@ module LcpRuby
         unless @actions.empty?
           hash["actions"] = build_actions_hash
         end
-
-        hash["navigation"] = @navigation_hash if @navigation_hash
 
         # Options are stored at the top level for PresenterDefinition.from_hash
         @options.each { |k, v| hash[k] = v }
@@ -129,7 +120,7 @@ module LcpRuby
         end
 
         # Section-level replace: child replaces parent entirely for these keys
-        %w[index show form search actions navigation].each do |key|
+        %w[index show form search actions].each do |key|
           merged[key] = child_hash[key] if child_hash.key?(key)
         end
 

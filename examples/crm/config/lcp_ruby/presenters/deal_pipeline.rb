@@ -17,5 +17,4 @@ define_presenter :deal_pipeline, inherits: :deal_admin do
 
   action :show, type: :built_in, on: :single, icon: "eye"
 
-  navigation menu: :main, position: 4
 end

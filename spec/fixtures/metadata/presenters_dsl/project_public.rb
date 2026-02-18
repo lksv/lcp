@@ -24,5 +24,4 @@ define_presenter :project_public, inherits: :project_admin do
     searchable_fields :title
   end
 
-  navigation menu: :public, position: 1
 end

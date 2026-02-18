@@ -55,8 +55,7 @@ RSpec.describe LcpRuby::Dsl::DslLoader, ".load_presenters" do
       # Child's search replaces parent's
       expect(child.search_config["searchable_fields"]).to eq([ "title" ])
 
-      # Child's navigation replaces parent's
-      expect(child.navigation_config["menu"]).to eq("public")
+      # Navigation no longer on presenter (moved to view groups)
     end
 
     it "child inherits form from parent when not overridden" do

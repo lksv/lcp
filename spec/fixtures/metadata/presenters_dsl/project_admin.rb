@@ -58,5 +58,4 @@ define_presenter :project_admin do
     style: :danger
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
 
-  navigation menu: :main, position: 1
 end

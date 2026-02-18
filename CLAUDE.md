@@ -13,6 +13,7 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Models Reference](docs/reference/models.md) — Complete model YAML reference
 - [Types Reference](docs/reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters Reference](docs/reference/presenters.md) — Complete presenter YAML reference
+- [View Groups Reference](docs/reference/view-groups.md) — Navigation menu, view switching, auto-creation
 - [Permissions Reference](docs/reference/permissions.md) — Complete permission YAML reference
 - [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
@@ -23,6 +24,7 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when` and `disable_when` on fields, sections, and actions
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
+- [View Groups Guide](docs/guides/view-groups.md) — Multi-view navigation and view switcher setup
 - [Developer Tools](docs/guides/developer-tools.md) — Validate and ERD rake tasks
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views
 - [Examples](docs/examples.md) — TODO and CRM app walkthroughs

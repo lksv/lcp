@@ -2,6 +2,7 @@
   <div class="lcp-header">
     <h1><%= current_presenter.label %></h1>
     <div class="lcp-toolbar">
+      <%= render "lcp_ruby/resources/view_switcher" %>
       <% @action_set.collection_actions.each do |action| %>
 
         <% if action["type"] == "built_in" && action["name"] == "create" %>

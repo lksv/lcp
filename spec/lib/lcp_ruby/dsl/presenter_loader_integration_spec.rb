@@ -21,8 +21,6 @@ RSpec.describe "Presenter Loader DSL integration" do
 
             action :create, type: :built_in, on: :collection, label: "New Widget", icon: "plus"
             action :show, type: :built_in, on: :single, icon: "eye"
-
-            navigation menu: :main, position: 1
           end
         RUBY
 
@@ -142,7 +140,6 @@ RSpec.describe "Presenter Loader DSL integration" do
               end
             end
 
-            navigation menu: :main, position: 1
           end
         RUBY
 
@@ -173,9 +170,6 @@ RSpec.describe "Presenter Loader DSL integration" do
 
         # Inherited show from parent
         expect(child.show_config["layout"][0]["section"]).to eq("Details")
-
-        # Navigation inherited from parent
-        expect(child.navigation_config["menu"]).to eq("main")
       end
     end
   end

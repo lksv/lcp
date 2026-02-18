@@ -74,5 +74,4 @@ define_presenter :deal_admin do
     disable_when: { field: :value, operator: :blank }
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
 
-  navigation menu: :main, position: 3
 end

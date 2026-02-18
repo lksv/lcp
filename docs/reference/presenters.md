@@ -1157,20 +1157,7 @@ An action can use both `visible_when` and `disable_when` together. The visibilit
 
 ## Navigation
 
-Controls menu placement.
-
-```yaml
-navigation:
-  menu: main
-  position: 3
-```
-
-### Navigation Attributes
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| `menu` | string | Menu group name (e.g., `main`) |
-| `position` | integer | Sort order within the menu (lower numbers appear first) |
+Navigation is configured through [view groups](view-groups.md), not directly on presenters. View groups control menu placement, ordering, and view switching between multiple presenters for the same model.
 
 ## Complete Example
 

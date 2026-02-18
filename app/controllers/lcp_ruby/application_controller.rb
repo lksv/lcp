@@ -16,7 +16,8 @@ module LcpRuby
     helper_method :current_presenter, :current_model_definition, :current_evaluator,
                   :resource_path, :resources_path, :new_resource_path, :edit_resource_path,
                   :single_action_path,
-                  :toggle_direction
+                  :toggle_direction,
+                  :current_view_group, :sibling_views
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
     rescue_from LcpRuby::MetadataError, with: :metadata_error
@@ -81,6 +82,25 @@ module LcpRuby
 
     def single_action_path(record, action_name:)
       lcp_ruby.single_action_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record, action_name: action_name)
+    end
+
+    # -- View group helpers --
+
+    def current_view_group
+      return unless current_presenter
+
+      @current_view_group ||= LcpRuby.loader.view_group_for_presenter(current_presenter.name)
+    end
+
+    def sibling_views
+      return [] unless current_view_group
+
+      current_view_group.views.map do |view|
+        presenter = LcpRuby.loader.presenter_definitions[view["presenter"]]
+        next unless presenter
+
+        view.merge("slug" => presenter.slug, "presenter_name" => presenter.name)
+      end.compact
     end
 
     # -- View helpers --

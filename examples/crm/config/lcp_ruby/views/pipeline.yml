@@ -1,0 +1,10 @@
+view_group:
+  model: deal
+  primary: deal_pipeline
+  navigation:
+    menu: main
+    position: 4
+  views:
+    - presenter: deal_pipeline
+      label: "Pipeline"
+      icon: bar-chart

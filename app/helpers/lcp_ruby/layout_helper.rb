@@ -13,5 +13,20 @@ module LcpRuby
       end
       classes.join(" ")
     end
+
+    def navigable_presenters
+      LcpRuby.loader.view_group_definitions.values.filter_map do |vg|
+        presenter = LcpRuby.loader.presenter_definitions[vg.primary_presenter]
+        next unless presenter&.routable?
+
+        {
+          presenter: presenter,
+          label: presenter.label,
+          slug: presenter.slug,
+          icon: presenter.icon,
+          navigation: vg.navigation_config
+        }
+      end.sort_by { |entry| entry[:navigation]["position"] || 99 }
+    end
   end
 end

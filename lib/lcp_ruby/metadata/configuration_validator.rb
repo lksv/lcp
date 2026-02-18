@@ -49,6 +49,7 @@ module LcpRuby
         validate_presenters
         validate_permissions
         validate_uniqueness
+        validate_view_groups
 
         ValidationResult.new(errors: @errors.dup, warnings: @warnings.dup)
       end
@@ -547,6 +548,48 @@ module LcpRuby
               @errors << "Permission '#{perm.model}', role '#{role_name}': " \
                          "references unknown presenter '#{pname}'"
             end
+          end
+        end
+      end
+
+      # --- View group validations ---
+
+      def validate_view_groups
+        return unless loader.respond_to?(:view_group_definitions)
+
+        presenter_in_groups = {}
+        positions = {}
+
+        loader.view_group_definitions.each_value do |vg|
+          unless model_names.include?(vg.model)
+            @errors << "View group '#{vg.name}': references unknown model '#{vg.model}'"
+          end
+
+          presenter_names = loader.presenter_definitions.keys
+          vg.presenter_names.each do |pname|
+            unless presenter_names.include?(pname)
+              @errors << "View group '#{vg.name}': references unknown presenter '#{pname}'"
+            end
+
+            if presenter_in_groups.key?(pname)
+              @errors << "Presenter '#{pname}' appears in multiple view groups: " \
+                         "'#{presenter_in_groups[pname]}' and '#{vg.name}'"
+            end
+            presenter_in_groups[pname] = vg.name
+          end
+
+          unless vg.presenter_names.include?(vg.primary_presenter)
+            @errors << "View group '#{vg.name}': primary presenter '#{vg.primary_presenter}' " \
+                       "is not in the views list"
+          end
+
+          pos = vg.navigation_config["position"]
+          if pos
+            if positions.key?(pos)
+              @warnings << "View group '#{vg.name}': navigation position #{pos} " \
+                           "is also used by view group '#{positions[pos]}'"
+            end
+            positions[pos] = vg.name
           end
         end
       end
