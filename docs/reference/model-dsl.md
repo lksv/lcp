@@ -129,7 +129,7 @@ end
 | `:enum` | `:string` | Stored as string. Requires `values:` option. Default form input: select. |
 | `:file` | `:string` | File path/reference stored as string. |
 | `:rich_text` | `:text` | Rich text content. Default form input: rich text editor. |
-| `:json` | `:jsonb` | JSON data stored as PostgreSQL jsonb. |
+| `:json` | `:jsonb` / `:json` | JSON data. Uses jsonb on PostgreSQL, json on other adapters. |
 | `:uuid` | `:string` | UUID stored as string. |
 
 ### Business Types

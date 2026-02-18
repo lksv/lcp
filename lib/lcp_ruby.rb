@@ -154,6 +154,11 @@ module LcpRuby
       result
     end
 
+    def json_column_type
+      adapter = ActiveRecord::Base.connection.adapter_name.downcase
+      adapter.include?("postgresql") ? :jsonb : :json
+    end
+
     def reset!
       @configuration = nil
       @loader = nil

@@ -70,4 +70,10 @@ RSpec.describe LcpRuby::Configuration do
       expect(config.strict_loading_enabled?).to be false
     end
   end
+
+  describe ".json_column_type" do
+    it "returns :json for SQLite adapter" do
+      expect(LcpRuby.json_column_type).to eq(:json)
+    end
+  end
 end

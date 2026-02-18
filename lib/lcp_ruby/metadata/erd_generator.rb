@@ -115,7 +115,7 @@ module LcpRuby
         when "date" then "date"
         when "datetime" then "datetime"
         when "enum" then "string"
-        when "json" then "jsonb"
+        when "json" then LcpRuby.json_column_type.to_s
         when "file" then "string"
         when "rich_text" then "text"
         else type

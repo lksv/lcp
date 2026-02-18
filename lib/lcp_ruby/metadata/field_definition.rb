@@ -53,7 +53,7 @@ module LcpRuby
           when "enum" then :string
           when "rich_text" then :text
           when "uuid" then :string
-          when "json" then :jsonb
+          when "json" then LcpRuby.json_column_type
           when "file" then :string
           else type.to_sym
           end

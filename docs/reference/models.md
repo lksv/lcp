@@ -117,7 +117,7 @@ Determines the database column type and default form input behavior. Accepts one
 | `enum` | `:string` | Stored as string. Requires `enum_values`. Default form input: select. |
 | `file` | `:string` | File path/reference stored as string. |
 | `rich_text` | `:text` | Rich text content. Default form input: rich text editor. |
-| `json` | `:jsonb` | JSON data stored as PostgreSQL jsonb. |
+| `json` | `:jsonb` / `:json` | JSON data. Uses jsonb on PostgreSQL, json on other adapters. |
 | `uuid` | `:string` | UUID stored as string. |
 
 **Built-in business types:**
