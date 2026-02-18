@@ -287,4 +287,106 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
       expect(nested["association_definition"]).to be_nil
     end
   end
+
+  describe "#form_sections with multi_select" do
+    let(:through_model_hash) do
+      {
+        "name" => "article",
+        "label" => "Article",
+        "fields" => [
+          { "name" => "title", "type" => "string", "label" => "Title" }
+        ],
+        "associations" => [
+          {
+            "type" => "has_many",
+            "name" => "article_tags",
+            "target_model" => "article_tag",
+            "dependent" => "destroy"
+          },
+          {
+            "type" => "has_many",
+            "name" => "tags",
+            "target_model" => "tag",
+            "through" => "article_tags"
+          }
+        ]
+      }
+    end
+    let(:through_model_def) { LcpRuby::Metadata::ModelDefinition.from_hash(through_model_hash) }
+
+    let(:multi_select_presenter_hash) do
+      {
+        "name" => "article_admin",
+        "model" => "article",
+        "label" => "Articles",
+        "slug" => "articles",
+        "index" => { "default_view" => "table", "per_page" => 25, "table_columns" => [] },
+        "show" => { "layout" => [] },
+        "form" => {
+          "sections" => [
+            {
+              "title" => "Details",
+              "columns" => 1,
+              "fields" => [
+                { "field" => "title" },
+                {
+                  "field" => "tag_ids",
+                  "input_type" => "multi_select",
+                  "input_options" => { "association" => "tags" }
+                }
+              ]
+            }
+          ]
+        },
+        "search" => { "enabled" => false },
+        "actions" => { "collection" => [], "single" => [] }
+      }
+    end
+    let(:multi_select_presenter_def) { LcpRuby::Metadata::PresenterDefinition.from_hash(multi_select_presenter_hash) }
+    subject(:ms_builder) { described_class.new(multi_select_presenter_def, through_model_def) }
+
+    it "enriches multi_select field with multi_select_association" do
+      sections = ms_builder.form_sections
+      tag_field = sections.first["fields"].find { |f| f["field"] == "tag_ids" }
+
+      expect(tag_field["multi_select_association"]).to be_a(LcpRuby::Metadata::AssociationDefinition)
+      expect(tag_field["multi_select_association"].name).to eq("tags")
+      expect(tag_field["multi_select_association"].through?).to be true
+    end
+
+    it "creates synthetic field_definition for multi_select field" do
+      sections = ms_builder.form_sections
+      tag_field = sections.first["fields"].find { |f| f["field"] == "tag_ids" }
+
+      expect(tag_field["field_definition"]).to be_a(LcpRuby::Metadata::FieldDefinition)
+      expect(tag_field["field_definition"].name).to eq("tag_ids")
+      expect(tag_field["field_definition"].type).to eq("integer")
+    end
+
+    it "does not enrich when association is not through" do
+      non_through_hash = through_model_hash.deep_dup
+      non_through_hash["associations"] = [
+        { "type" => "has_many", "name" => "tags", "target_model" => "tag" }
+      ]
+      non_through_def = LcpRuby::Metadata::ModelDefinition.from_hash(non_through_hash)
+      builder = described_class.new(multi_select_presenter_def, non_through_def)
+
+      sections = builder.form_sections
+      tag_field = sections.first["fields"].find { |f| f["field"] == "tag_ids" }
+
+      expect(tag_field["multi_select_association"]).to be_nil
+    end
+
+    it "does not enrich when association name does not match" do
+      presenter_hash = multi_select_presenter_hash.deep_dup
+      presenter_hash["form"]["sections"][0]["fields"][1]["input_options"]["association"] = "categories"
+      presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(presenter_hash)
+      builder = described_class.new(presenter_def, through_model_def)
+
+      sections = builder.form_sections
+      cat_field = sections.first["fields"].find { |f| f["field"] == "tag_ids" }
+
+      expect(cat_field["multi_select_association"]).to be_nil
+    end
+  end
 end

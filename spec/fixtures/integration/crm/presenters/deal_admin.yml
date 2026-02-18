@@ -34,8 +34,20 @@ presenter:
           - { field: title, placeholder: "Deal title...", autofocus: true }
           - { field: stage, input_type: select }
           - { field: value, input_type: number, prefix: "$", disable_when: { field: stage, operator: in, value: [closed_won, closed_lost] } }
-          - { field: company_id, input_type: association_select }
-          - { field: contact_id, input_type: association_select, visible_when: { field: stage, operator: not_in, value: [lead] } }
+          - field: company_id
+            input_type: association_select
+            input_options:
+              sort: { name: asc }
+              group_by: industry
+          - field: contact_id
+            input_type: association_select
+            input_options:
+              depends_on:
+                field: company_id
+                foreign_key: company_id
+              sort: { last_name: asc }
+              label_method: full_name
+            visible_when: { field: stage, operator: not_in, value: [lead] }
       - title: "Metrics"
         collapsible: true
         collapsed: true

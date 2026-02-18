@@ -39,7 +39,11 @@ presenter:
           - { field: completed, input_type: boolean }
           - { field: start_date, input_type: date_picker }
           - { field: due_date, input_type: date_picker }
-          - { field: todo_list_id, input_type: association_select }
+          - field: todo_list_id
+            input_type: association_select
+            input_options:
+              sort: { title: asc }
+              include_blank: "-- Pick a list --"
 
   search:
     enabled: true

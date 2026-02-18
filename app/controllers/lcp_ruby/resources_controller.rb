@@ -1,5 +1,7 @@
 module LcpRuby
   class ResourcesController < ApplicationController
+    include LcpRuby::AssociationOptionsBuilder
+
     before_action :set_record, only: [ :show, :edit, :update, :destroy, :evaluate_conditions ]
 
     def index
@@ -73,6 +75,23 @@ module LcpRuby
       redirect_to resources_path, notice: "#{current_model_definition.label} was successfully deleted."
     end
 
+    def select_options
+      authorize @model_class, :index?
+      field_name = params[:field]
+      field_config = find_form_field_config(field_name)
+      return render(json: []) unless field_config
+
+      # Resolve association from enriched field config (covers association_select + multi_select)
+      assoc = field_config["association"] || field_config["multi_select_association"]
+      # Fallback to FK lookup for non-enriched cases
+      assoc ||= resolve_association_for_field(field_name)
+      return render(json: []) unless assoc&.lcp_model?
+
+      input_options = field_config["input_options"] || {}
+      options = build_select_options_json(assoc, input_options)
+      render json: options
+    end
+
     def evaluate_conditions
       authorize @record, :edit?
       @record.assign_attributes(permitted_params)
@@ -91,6 +110,77 @@ module LcpRuby
       @record = @model_class.find(params[:id])
     end
 
+    def find_form_field_config(field_name)
+      return nil unless field_name.present?
+
+      layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+      layout_builder.form_sections
+        .flat_map { |s| s["fields"] || [] }
+        .find { |f| f["field"] == field_name }
+    end
+
+    def resolve_association_for_field(field_name)
+      current_model_definition.associations.find { |a| a.foreign_key == field_name.to_s }
+    end
+
+    def build_select_options_json(assoc, input_options)
+      target_class = LcpRuby.registry.model_for(assoc.target_model)
+
+      # Apply role-based scope or simple scope
+      if input_options["scope_by_role"]
+        role = current_user_role_name
+        role_scope = input_options.dig("scope_by_role", role)
+        if role_scope && role_scope != "all" && target_class.respond_to?(role_scope)
+          query = target_class.send(role_scope)
+        else
+          query = target_class.all
+        end
+      elsif input_options["scope"] && target_class.respond_to?(input_options["scope"])
+        query = target_class.send(input_options["scope"])
+      else
+        query = target_class.all
+      end
+
+      query = query.where(input_options["filter"]) if input_options["filter"]
+
+      # Apply depends_on filtering from request params
+      depends_on = input_options["depends_on"]
+      if depends_on && params[:depends_on].present?
+        fk = depends_on["foreign_key"]
+        parent_value = params[:depends_on][depends_on["field"]]
+        query = query.where(fk => parent_value) if fk && parent_value.present?
+      end
+
+      query = query.order(input_options["sort"]) if input_options["sort"]
+
+      label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
+
+      # Only load :id + label column (+ group/sort columns) when all are real DB columns
+      select_cols = optimize_select_columns(
+        target_class, label_method, input_options["group_by"], sort: input_options["sort"]
+      )
+      query = query.select(*select_cols) if select_cols
+
+      if input_options["group_by"]
+        group_attr = input_options["group_by"]
+        grouped = query.group_by { |r| r.respond_to?(group_attr) ? r.send(group_attr) : "Other" }
+        grouped.sort_by { |k, _| k.to_s }.map do |group_name, records|
+          {
+            group: group_name.to_s,
+            options: records.map { |r| { value: r.id, label: resolve_label(r, label_method) } }
+          }
+        end
+      else
+        query.map { |r| { value: r.id, label: resolve_label(r, label_method) } }
+      end
+    end
+
+    def current_user_role_name
+      current_user&.send(LcpRuby.configuration.role_method).to_s
+    rescue
+      ""
+    end
+
     def permitted_params
       writable = current_evaluator.writable_fields.map(&:to_sym)
 
@@ -106,10 +196,20 @@ module LcpRuby
       flat_fields = (writable + fk_fields).uniq
       nested = build_nested_permits
 
+      # Detect multi_select fields and permit array params
+      array_fields = {}
+      layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+      layout_builder.form_sections
+        .flat_map { |s| s["fields"] || [] }
+        .select { |f| f["input_type"] == "multi_select" }
+        .each { |f| array_fields[f["field"].to_sym] = [] }
+
+      permit_args = flat_fields + array_fields.map { |k, v| { k => v } }
+
       if nested.any?
-        params.require(:record).permit(*flat_fields, **nested)
+        params.require(:record).permit(*permit_args, **nested)
       else
-        params.require(:record).permit(*flat_fields)
+        params.require(:record).permit(*permit_args)
       end
     end
 

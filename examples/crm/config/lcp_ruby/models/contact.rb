@@ -22,6 +22,8 @@ define_model :contact do
 
   belongs_to :company, model: :company, required: true
 
+  scope :active_contacts, where: { active: true }
+
   timestamps true
   label_method :full_name
 end
