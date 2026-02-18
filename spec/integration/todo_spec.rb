@@ -127,6 +127,54 @@ RSpec.describe "TODO App Integration", type: :request do
       end
     end
 
+    describe "sort direction arrows" do
+      it "does not show arrow when default sort column is not in table columns" do
+        get "/admin/items"
+
+        # default_sort is created_at which is not a visible table column
+        expect(response.body).not_to include('<span class="lcp-sort-icon')
+      end
+
+      it "shows asc arrow when sorting ascending via params" do
+        get "/admin/items", params: { sort: "title", direction: "asc" }
+
+        expect(response.body).to include('<span class="lcp-sort-icon lcp-sort-asc">')
+      end
+
+      it "shows desc arrow when sorting descending via params" do
+        get "/admin/items", params: { sort: "title", direction: "desc" }
+
+        expect(response.body).to include('<span class="lcp-sort-icon lcp-sort-desc">')
+      end
+
+      it "marks the sorted column link with lcp-sorted class" do
+        get "/admin/items", params: { sort: "title", direction: "asc" }
+
+        expect(response.body).to include('lcp-sorted')
+      end
+
+      it "does not mark unsorted columns with lcp-sorted class" do
+        get "/admin/items", params: { sort: "title", direction: "asc" }
+
+        # Only the title column link should have lcp-sorted (CSS rule also contains the string)
+        expect(response.body).to include('class="lcp-sorted"')
+        expect(response.body.scan('class="lcp-sorted"').count).to eq(1)
+      end
+
+      it "generates toggle link for sorted column" do
+        get "/admin/items", params: { sort: "title", direction: "asc" }
+
+        # Clicking title again should toggle to desc (params alphabetically ordered by url_for)
+        expect(response.body).to include("direction=desc&amp;sort=title")
+      end
+
+      it "does not show idle arrows on non-sorted sortable columns" do
+        get "/admin/items", params: { sort: "title", direction: "asc" }
+
+        expect(response.body).not_to include('lcp-sort-idle')
+      end
+    end
+
     describe "POST /admin/items (create)" do
       it "creates item with belongs_to association" do
         expect {

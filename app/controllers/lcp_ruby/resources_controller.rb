@@ -153,10 +153,10 @@ module LcpRuby
 
     def apply_sort(scope)
       sort_config = current_presenter.index_config["default_sort"]
-      return scope unless sort_config
+      return scope unless sort_config || params[:sort]
 
-      field = params[:sort] || sort_config["field"]
-      direction = params[:direction] || sort_config["direction"] || "asc"
+      field = params[:sort] || sort_config&.dig("field")
+      direction = params[:direction] || sort_config&.dig("direction") || "asc"
       direction = "asc" unless %w[asc desc].include?(direction.to_s.downcase)
 
       return scope unless @model_class.column_names.include?(field.to_s)
