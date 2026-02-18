@@ -19,6 +19,7 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
 - [Presenter DSL Reference](docs/reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenters (with inheritance)
+- [Presenters Guide](docs/guides/presenters.md) — Step-by-step guide to building presenters with YAML and DSL examples
 - [Custom Types Guide](docs/guides/custom-types.md) — Practical examples of custom business types
 - [Extensibility Guide](docs/guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validations, scopes, condition services
 - [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when` and `disable_when` on fields, sections, and actions

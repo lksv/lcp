@@ -26,6 +26,7 @@ Complete attribute reference for every YAML configuration file:
 
 ## Guides
 
+- [Presenters](guides/presenters.md) — Step-by-step guide to building presenters (index, show, form, search, actions) with YAML and DSL examples
 - [Extensibility](guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validators, defaults, computed fields, condition services, scopes, model extensions
 - [Conditional Rendering](guides/conditional-rendering.md) — `visible_when` and `disable_when` on fields, sections, and actions
 - [Custom Actions](guides/custom-actions.md) — Writing domain-specific operations beyond CRUD
