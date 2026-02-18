@@ -1,14 +1,14 @@
 module LcpRuby
   module Authorization
     class PermissionEvaluator
-      attr_reader :permission_definition, :user, :model_name, :role, :role_config
+      attr_reader :permission_definition, :user, :model_name, :roles, :effective_config
 
       def initialize(permission_definition, user, model_name)
         @permission_definition = permission_definition
         @user = user
         @model_name = model_name
-        @role = resolve_role(user)
-        @role_config = permission_definition.role_config_for(@role)
+        @roles = resolve_roles(user)
+        @effective_config = permission_definition.merged_role_config_for(@roles)
       end
 
       ACTION_ALIASES = {
@@ -17,7 +17,7 @@ module LcpRuby
       }.freeze
 
       def can?(action)
-        crud_list = role_config["crud"]
+        crud_list = effective_config["crud"]
         return false unless crud_list
 
         resolved = ACTION_ALIASES[action.to_s] || action.to_s
@@ -35,7 +35,7 @@ module LcpRuby
           denied = (rule.dig("effect", "deny_crud") || []).map(&:to_s)
           except_roles = (rule.dig("effect", "except_roles") || []).map(&:to_s)
 
-          if denied.include?(action.to_s) && !except_roles.include?(role.to_s)
+          if denied.include?(action.to_s) && (roles & except_roles).empty?
             return false
           end
         end
@@ -44,7 +44,7 @@ module LcpRuby
       end
 
       def readable_fields
-        field_list = role_config.dig("fields", "readable")
+        field_list = effective_config.dig("fields", "readable")
         return [] unless field_list
 
         if field_list == "all"
@@ -56,7 +56,7 @@ module LcpRuby
       end
 
       def writable_fields
-        field_list = role_config.dig("fields", "writable")
+        field_list = effective_config.dig("fields", "writable")
         return [] unless field_list
 
         if field_list == "all"
@@ -70,7 +70,7 @@ module LcpRuby
       def field_readable?(field_name)
         override = permission_definition.field_overrides[field_name.to_s]
         if override && override["readable_by"]
-          return override["readable_by"].map(&:to_s).include?(role.to_s)
+          return (roles & override["readable_by"].map(&:to_s)).any?
         end
 
         readable_fields.include?(field_name.to_s)
@@ -79,7 +79,7 @@ module LcpRuby
       def field_writable?(field_name)
         override = permission_definition.field_overrides[field_name.to_s]
         if override && override["writable_by"]
-          return override["writable_by"].map(&:to_s).include?(role.to_s)
+          return (roles & override["writable_by"].map(&:to_s)).any?
         end
 
         writable_fields.include?(field_name.to_s)
@@ -89,11 +89,13 @@ module LcpRuby
         override = permission_definition.field_overrides[field_name.to_s]
         return false unless override && override["masked_for"]
 
-        override["masked_for"].map(&:to_s).include?(role.to_s)
+        # Masked only if ALL roles are in masked_for
+        masked_roles = override["masked_for"].map(&:to_s)
+        roles.all? { |r| masked_roles.include?(r) }
       end
 
       def can_execute_action?(action_name)
-        actions_config = role_config["actions"]
+        actions_config = effective_config["actions"]
         return true if actions_config == "all"
         return false unless actions_config.is_a?(Hash)
 
@@ -107,14 +109,14 @@ module LcpRuby
       end
 
       def can_access_presenter?(presenter_name)
-        presenters = role_config["presenters"]
+        presenters = effective_config["presenters"]
         return true if presenters == "all"
 
         Array(presenters).map(&:to_s).include?(presenter_name.to_s)
       end
 
       def apply_scope(base_relation)
-        scope_config = role_config["scope"]
+        scope_config = effective_config["scope"]
         return base_relation if scope_config == "all" || scope_config.nil?
 
         ScopeBuilder.new(scope_config, user).apply(base_relation)
@@ -122,14 +124,18 @@ module LcpRuby
 
       private
 
-      def resolve_role(user)
-        return permission_definition.default_role unless user
+      def resolve_roles(user)
+        return [permission_definition.default_role] unless user
 
         role_method = LcpRuby.configuration.role_method
         if user.respond_to?(role_method)
-          user.send(role_method).to_s
+          raw = user.send(role_method)
+          role_names = Array(raw).map(&:to_s)
+          # Filter to roles that have configs; fall back to default if none match
+          matching = role_names.select { |r| permission_definition.roles.key?(r) }
+          matching.empty? ? [permission_definition.default_role] : matching
         else
-          permission_definition.default_role
+          [permission_definition.default_role]
         end
       end
 
@@ -149,7 +155,7 @@ module LcpRuby
       def apply_field_overrides_readable(field_names)
         permission_definition.field_overrides.each do |field_name, override|
           if override["readable_by"]
-            unless override["readable_by"].map(&:to_s).include?(role.to_s)
+            unless (roles & override["readable_by"].map(&:to_s)).any?
               field_names.delete(field_name.to_s)
             end
           end
@@ -160,7 +166,7 @@ module LcpRuby
       def apply_field_overrides_writable(field_names)
         permission_definition.field_overrides.each do |field_name, override|
           if override["writable_by"]
-            unless override["writable_by"].map(&:to_s).include?(role.to_s)
+            unless (roles & override["writable_by"].map(&:to_s)).any?
               field_names.delete(field_name.to_s)
             end
           end

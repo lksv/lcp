@@ -125,6 +125,29 @@ actions:
       visible_when: { field: stage, operator: not_in, value: [closed_won, closed_lost] }
 ```
 
+### Confirm Per Role
+
+The `confirm` attribute can be role-specific. Use a hash with `except` or `only` to control which roles see the confirmation dialog:
+
+```yaml
+# Admin skips confirmation, everyone else sees it
+- name: archive
+  type: custom
+  label: "Archive"
+  confirm:
+    except: [admin]
+  confirm_message: "Are you sure you want to archive this?"
+
+# Only viewers and sales_reps see confirmation
+- name: force_delete
+  type: custom
+  label: "Force Delete"
+  confirm:
+    only: [viewer, sales_rep]
+```
+
+See [Presenters Reference — Confirm Per Role](../reference/presenters.md#confirm-per-role) for the full syntax.
+
 ### Action Categories
 
 | Category | Use For |

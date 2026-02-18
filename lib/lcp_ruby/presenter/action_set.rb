@@ -14,6 +14,7 @@ module LcpRuby
 
       def single_actions(record = nil)
         actions = filter_actions(presenter_definition.single_actions)
+        actions = actions.map { |a| resolve_confirm(a) }
         return actions unless record
 
         actions
@@ -35,6 +36,30 @@ module LcpRuby
             permission_evaluator.can_execute_action?(action["name"])
           end
         end
+      end
+
+      def resolve_confirm(action)
+        confirm = action["confirm"]
+        resolved = case confirm
+        when true, false, nil
+          confirm
+        when Hash
+          normalized = confirm.transform_keys(&:to_s)
+          user_roles = permission_evaluator.roles
+          if normalized.key?("except")
+            except_roles = Array(normalized["except"]).map(&:to_s)
+            (user_roles & except_roles).empty?
+          elsif normalized.key?("only")
+            only_roles = Array(normalized["only"]).map(&:to_s)
+            (user_roles & only_roles).any?
+          else
+            !!confirm
+          end
+        else
+          !!confirm
+        end
+
+        action.merge("confirm" => resolved)
       end
 
       def action_visible_for_record?(action, record)

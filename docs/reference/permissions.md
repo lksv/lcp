@@ -41,7 +41,7 @@ permissions:
 | **Required** | yes |
 | **Type** | hash of role configs |
 
-Each key is a role name (matched against the value returned by `user.<role_method>`). See [Role Configuration](#role-configuration) below.
+Each key is a role name (matched against the values returned by `user.<role_method>`). A user can have multiple roles — see [Multiple Roles](#multiple-roles). See [Role Configuration](#role-configuration) below.
 
 ### `default_role`
 
@@ -383,5 +383,66 @@ permissions:
         deny_crud: [update, destroy]
         except_roles: [admin]
 ```
+
+## Multiple Roles
+
+Users can have multiple roles simultaneously. The `role_method` (default: `lcp_role`) must return an **array of role name strings** (e.g., `["admin", "sales_rep"]`).
+
+When a user has multiple roles, permissions are merged using **union (most-permissive) semantics**:
+
+| Aspect | Merge Rule |
+|--------|------------|
+| `crud` | Union of all roles' CRUD lists |
+| `fields.readable` | Union — if any role has `"all"`, result is `"all"` |
+| `fields.writable` | Union — if any role has `"all"`, result is `"all"` |
+| `actions.allowed` | Union — if any role has `"all"`, result is `"all"` |
+| `actions.denied` | Intersection — denied only if denied by all roles |
+| `scope` | If any role has `"all"`, result is `"all"`; otherwise uses the first role's scope (see note below) |
+| `presenters` | Union — if any role has `"all"`, result is `"all"` |
+
+**Scope merge note:** When multiple roles define different non-"all" scopes (e.g., one role uses `field_match` and another uses `where`), only the first role's scope is used and the others are silently discarded. A warning is logged at `Rails.logger.warn` level to help identify this situation. If you need users with multiple roles to have a combined scope, use a `custom` scope type that handles the logic explicitly.
+
+**Field overrides** with multiple roles:
+- `readable_by` / `writable_by` — access granted if the user has **any** matching role
+- `masked_for` — masked only if **all** of the user's roles are in the `masked_for` list
+
+**Record rules** with multiple roles:
+- `except_roles` — the user is exempt if **any** of their roles is in the exception list
+
+```ruby
+# User model example
+class User < ApplicationRecord
+  def lcp_role
+    roles.pluck(:name)  # => ["admin", "sales_rep"]
+  end
+end
+```
+
+## Menu Filtering
+
+The navigation menu automatically filters out presenters the current user cannot access. If a role's `presenters` list does not include a given presenter, that presenter's menu item is hidden. This uses the same `can_access_presenter?` check as the controller-level authorization.
+
+## Audit Logging
+
+Every authorization denial is logged with details including the user ID, roles, action, resource, and IP address:
+
+```
+[LcpRuby::Auth] Access denied: user=42 roles=viewer action=update resource=deal_admin detail=not authorized
+```
+
+Additionally, an `ActiveSupport::Notifications` event is published for each denial:
+
+```ruby
+ActiveSupport::Notifications.subscribe("authorization.lcp_ruby") do |name, start, finish, id, payload|
+  # payload contains: user_id, roles, action, resource, detail, ip
+  AuditLog.create!(
+    user_id: payload[:user_id],
+    action: "access_denied",
+    details: payload.except(:ip)
+  )
+end
+```
+
+This allows host applications to implement custom audit logging, alerting, or metrics collection.
 
 Source: `lib/lcp_ruby/metadata/permission_definition.rb`, `lib/lcp_ruby/authorization/permission_evaluator.rb`, `lib/lcp_ruby/authorization/scope_builder.rb`

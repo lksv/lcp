@@ -1,4 +1,7 @@
 LcpRuby::Engine.routes.draw do
+  post   "impersonate",      to: "impersonation#create",  as: :impersonate
+  delete "impersonate",      to: "impersonation#destroy", as: :stop_impersonate
+
   scope ":lcp_slug" do
     get    "/",          to: "resources#index",   as: :resources
     get    "/new",       to: "resources#new",     as: :new_resource

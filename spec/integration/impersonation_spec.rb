@@ -1,0 +1,105 @@
+require "spec_helper"
+require "support/integration_helper"
+
+RSpec.describe "Impersonation", type: :request do
+  before(:all) do
+    IntegrationHelper::FIXTURES_BASE
+    # Use CRM fixtures which have multi-role permissions
+  end
+
+  before do
+    load_integration_metadata!("crm")
+    LcpRuby.configuration.impersonation_roles = ["admin"]
+  end
+
+  after { LcpRuby.configuration.impersonation_roles = [] }
+
+  describe "POST /admin/impersonate" do
+    context "when user is admin (allowed to impersonate)" do
+      before { stub_current_user(role: "admin") }
+
+      it "sets impersonation session and redirects" do
+        post "/admin/impersonate", params: { role: "viewer" }
+        expect(response).to redirect_to("/")
+        follow_redirect!
+      end
+
+      it "returns alert when no role specified" do
+        post "/admin/impersonate", params: { role: "" }
+        expect(response).to redirect_to("/")
+        expect(flash[:alert]).to include("No role specified")
+      end
+
+      it "rejects non-existent role" do
+        post "/admin/impersonate", params: { role: "nonexistent" }
+        expect(response).to redirect_to("/")
+        expect(flash[:alert]).to include("not a valid role")
+      end
+    end
+
+    context "when user is not allowed to impersonate" do
+      before { stub_current_user(role: "viewer") }
+
+      it "denies impersonation" do
+        post "/admin/impersonate", params: { role: "admin" }
+        expect(response).to redirect_to("/")
+        expect(flash[:alert]).to include("not authorized")
+      end
+    end
+
+    context "when impersonation is disabled" do
+      before do
+        LcpRuby.configuration.impersonation_roles = []
+        stub_current_user(role: "admin")
+      end
+
+      it "denies impersonation" do
+        post "/admin/impersonate", params: { role: "viewer" }
+        expect(response).to redirect_to("/")
+        expect(flash[:alert]).to include("not authorized")
+      end
+    end
+  end
+
+  describe "DELETE /admin/impersonate" do
+    before { stub_current_user(role: "admin") }
+
+    it "clears impersonation and redirects" do
+      delete "/admin/impersonate"
+      expect(response).to redirect_to("/")
+      expect(flash[:notice]).to include("Stopped impersonation")
+    end
+  end
+
+  describe "impersonation effect on pages" do
+    before { stub_current_user(role: "admin") }
+
+    it "shows impersonation banner when active" do
+      post "/admin/impersonate", params: { role: "viewer" }
+      # viewer has access to deal_pipeline presenter (slug: pipeline)
+      get "/admin/pipeline"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Viewing as role")
+      expect(response.body).to include("viewer")
+      expect(response.body).to include("Stop impersonation")
+    end
+
+    it "restricts access based on impersonated role" do
+      # Admin can access deal_admin, but viewer cannot
+      post "/admin/impersonate", params: { role: "viewer" }
+      get "/admin/deals"
+
+      # Viewer can't access deal_admin presenter, should be denied
+      expect(response).to have_http_status(:redirect)
+    end
+
+    it "shows role selector when impersonation is available but not active" do
+      get "/admin/deals"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("View as:")
+      expect(response.body).to include("Impersonate")
+    end
+  end
+end
