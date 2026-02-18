@@ -16,7 +16,7 @@ module LcpRuby
     helper_method :current_presenter, :current_model_definition, :current_evaluator,
                   :resource_path, :resources_path, :new_resource_path, :edit_resource_path,
                   :single_action_path,
-                  :toggle_direction,
+                  :toggle_direction, :current_sort_field, :current_sort_direction,
                   :current_view_group, :sibling_views
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
@@ -106,11 +106,27 @@ module LcpRuby
     # -- View helpers --
 
     def toggle_direction(field)
-      if params[:sort] == field && params[:direction] == "asc"
+      if current_sort_field == field && current_sort_direction == "asc"
         "desc"
       else
         "asc"
       end
+    end
+
+    def current_sort_field
+      sort_config = default_sort_config
+      return nil unless sort_config || params[:sort]
+
+      params[:sort] || sort_config&.dig("field")
+    end
+
+    def current_sort_direction
+      dir = params[:direction] || default_sort_config&.dig("direction") || "asc"
+      %w[asc desc].include?(dir.to_s.downcase) ? dir.to_s.downcase : "asc"
+    end
+
+    def default_sort_config
+      current_presenter&.index_config&.dig("default_sort")
     end
 
     # -- Error handlers --

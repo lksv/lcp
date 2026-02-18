@@ -44,7 +44,13 @@
             <th style="<%= "width: #{col['width']}" if col['width'] %>"
                 class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
               <% if col["sortable"] %>
-                <%= link_to col["field"].humanize, url_for(sort: col["field"], direction: toggle_direction(col["field"])) %>
+                <%= link_to url_for(sort: col["field"], direction: toggle_direction(col["field"])),
+                      class: "#{'lcp-sorted' if current_sort_field == col['field']}" do %>
+                  <%= col["field"].humanize %>
+                  <% if current_sort_field == col["field"] %>
+                    <span class="lcp-sort-icon lcp-sort-<%= current_sort_direction %>"></span>
+                  <% end %>
+                <% end %>
               <% else %>
                 <%= col["field"].humanize %>
               <% end %>
