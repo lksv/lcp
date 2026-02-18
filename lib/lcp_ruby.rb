@@ -71,7 +71,12 @@ require "lcp_ruby/actions/base_action"
 require "lcp_ruby/actions/action_registry"
 require "lcp_ruby/actions/action_executor"
 
+# Display
+require "lcp_ruby/display/base_renderer"
+require "lcp_ruby/display/renderer_registry"
+
 # Presenter
+require "lcp_ruby/presenter/metadata_lookup"
 require "lcp_ruby/presenter/resolver"
 require "lcp_ruby/presenter/column_set"
 require "lcp_ruby/presenter/layout_builder"
@@ -81,6 +86,7 @@ require "lcp_ruby/presenter/includes_resolver/association_dependency"
 require "lcp_ruby/presenter/includes_resolver/dependency_collector"
 require "lcp_ruby/presenter/includes_resolver/strategy_resolver"
 require "lcp_ruby/presenter/includes_resolver/loading_strategy"
+require "lcp_ruby/presenter/field_value_resolver"
 
 # Routing
 require "lcp_ruby/routing/presenter_routes"
@@ -154,6 +160,7 @@ module LcpRuby
       ConditionServiceRegistry.clear!
       Events::HandlerRegistry.clear!
       Actions::ActionRegistry.clear!
+      Display::RendererRegistry.clear!
       Authorization::PolicyFactory.clear!
       Services::Registry.clear!
 

@@ -82,4 +82,118 @@ RSpec.describe LcpRuby::Presenter::ColumnSet do
       end
     end
   end
+
+  describe "dot-path and template column visibility" do
+    let(:company_model_def) do
+      LcpRuby::Metadata::ModelDefinition.from_hash(
+        "name" => "company",
+        "fields" => [
+          { "name" => "name", "type" => "string" },
+          { "name" => "industry", "type" => "string" }
+        ]
+      )
+    end
+
+    let(:company_perm_def) do
+      LcpRuby::Metadata::PermissionDefinition.from_hash(
+        "model" => "company",
+        "default_role" => "admin",
+        "roles" => {
+          "admin" => { "crud" => %w[read], "fields" => { "readable" => "all", "writable" => "all" } },
+          "restricted" => { "crud" => %w[read], "fields" => { "readable" => %w[name], "writable" => [] } }
+        }
+      )
+    end
+
+    before do
+      allow(LcpRuby).to receive(:loader).and_return(
+        double("Loader").tap do |loader|
+          allow(loader).to receive(:model_definition) do |name|
+            case name.to_s
+            when "deal" then model_def
+            when "company" then company_model_def
+            else raise LcpRuby::MetadataError, "Model '#{name}' not found"
+            end
+          end
+          allow(loader).to receive(:permission_definition) do |name|
+            case name.to_s
+            when "company" then company_perm_def
+            else permission_def
+            end
+          end
+        end
+      )
+    end
+
+    context "dot-path columns" do
+      let(:dot_path_presenter) do
+        LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "deal_admin",
+          "model" => "deal",
+          "index" => {
+            "table_columns" => [
+              { "field" => "title" },
+              { "field" => "company.name" },
+              { "field" => "company.industry" }
+            ]
+          }
+        )
+      end
+
+      it "shows dot-path column when target field is readable" do
+        evaluator = LcpRuby::Authorization::PermissionEvaluator.new(permission_def, make_user("admin"), "deal")
+        column_set = described_class.new(dot_path_presenter, evaluator)
+
+        columns = column_set.visible_table_columns
+        fields = columns.map { |c| c["field"] }
+        expect(fields).to include("company.name")
+      end
+
+      it "hides dot-path column when target field is not readable" do
+        evaluator = LcpRuby::Authorization::PermissionEvaluator.new(permission_def, make_user("restricted"), "deal")
+        column_set = described_class.new(dot_path_presenter, evaluator)
+
+        columns = column_set.visible_table_columns
+        fields = columns.map { |c| c["field"] }
+        # restricted user on company can only read 'name', not 'industry'
+        expect(fields).to include("company.name")
+        expect(fields).not_to include("company.industry")
+      end
+    end
+
+    context "template columns" do
+      let(:template_presenter) do
+        LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "deal_admin",
+          "model" => "deal",
+          "index" => {
+            "table_columns" => [
+              { "field" => "{company.name}: {title}" },
+              { "field" => "{company.industry}" }
+            ]
+          }
+        )
+      end
+
+      it "shows template column when all refs are readable" do
+        evaluator = LcpRuby::Authorization::PermissionEvaluator.new(permission_def, make_user("admin"), "deal")
+        column_set = described_class.new(template_presenter, evaluator)
+
+        columns = column_set.visible_table_columns
+        expect(columns.size).to eq(2)
+      end
+
+      it "hides template column when any ref is not readable" do
+        evaluator = LcpRuby::Authorization::PermissionEvaluator.new(permission_def, make_user("restricted"), "deal")
+        column_set = described_class.new(template_presenter, evaluator)
+
+        columns = column_set.visible_table_columns
+        fields = columns.map { |c| c["field"] }
+        # restricted can read company.name + title => first template visible
+        expect(fields).to include("{company.name}: {title}")
+        # restricted cannot read company.industry => second template hidden
+        expect(fields).not_to include("{company.industry}")
+      end
+    end
+  end
 end

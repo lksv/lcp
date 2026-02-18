@@ -273,6 +273,9 @@ module LcpRuby
           field_name = col.is_a?(Hash) ? col["field"] : col.to_s
           next unless field_name
 
+          # Skip validation for dot-path and template fields (validated at runtime)
+          next if Presenter::FieldValueResolver.dot_path?(field_name) || Presenter::FieldValueResolver.template_field?(field_name)
+
           unless all_valid.include?(field_name.to_s)
             @errors << "Presenter '#{presenter.name}', table_columns: " \
                        "references unknown field '#{field_name}' on model '#{presenter.model}'"
@@ -306,7 +309,8 @@ module LcpRuby
             field_name = f.is_a?(Hash) ? f["field"] : f.to_s
             next unless field_name
 
-            unless valid_fields.include?(field_name.to_s)
+            # Skip validation for dot-path and template fields (validated at runtime)
+            unless Presenter::FieldValueResolver.dot_path?(field_name) || Presenter::FieldValueResolver.template_field?(field_name) || valid_fields.include?(field_name.to_s)
               @errors << "Presenter '#{presenter.name}', #{config_name}: " \
                          "references unknown field '#{field_name}' on model '#{presenter.model}'"
             end

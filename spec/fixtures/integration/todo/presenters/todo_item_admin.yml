@@ -11,7 +11,7 @@ presenter:
     per_page: 50
     table_columns:
       - { field: title, width: "40%", link_to: show, sortable: true }
-      - { field: todo_list_id, width: "20%" }
+      - { field: "todo_list.title", label: "List", width: "20%", sortable: true }
       - { field: completed, width: "15%", display: badge, sortable: true }
       - { field: due_date, width: "15%", sortable: true }
 

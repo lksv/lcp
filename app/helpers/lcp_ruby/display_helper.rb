@@ -1,12 +1,13 @@
 module LcpRuby
   module DisplayHelper
-    def render_display_value(value, display_type, options = {}, field_def = nil)
+    def render_display_value(value, display_type, options = {}, field_def = nil, record: nil)
       return value if display_type.blank?
 
       options ||= {}
       case display_type.to_s
       when "heading"      then content_tag(:strong, value)
       when "badge"        then render_badge(value, options)
+      when "collection"   then render_collection(value, options)
       when "truncate"     then render_truncate(value, options)
       when "boolean_icon" then render_boolean_icon(value, options)
       when "progress_bar" then render_progress_bar(value, options)
@@ -27,11 +28,38 @@ module LcpRuby
       when "file_size"    then number_to_human_size(value.to_i)
       when "rich_text"    then content_tag(:div, sanitize(value&.to_s), class: "rich-text")
       when "link"         then value.respond_to?(:to_label) ? value.to_label : value
-      else value
+      else
+        renderer = LcpRuby::Display::RendererRegistry.renderer_for(display_type.to_s)
+        renderer ? renderer.render(value, options, record: record, view_context: self) : value
       end
     end
 
     private
+
+    def render_collection(value, options)
+      items = Array(value)
+      separator = options["separator"] || ", "
+      limit = options["limit"]&.to_i
+      overflow = options["overflow"] || "..."
+      item_display = options["item_display"]
+      item_display_options = options["item_display_options"] || {}
+
+      truncated = limit && items.size > limit
+      items = items.first(limit) if limit
+
+      rendered = items.map do |item|
+        if item_display.present?
+          render_display_value(item, item_display, item_display_options)
+        else
+          item.to_s
+        end
+      end
+
+      parts = rendered.map { |r| r.respond_to?(:html_safe?) && r.html_safe? ? r : ERB::Util.html_escape(r) }
+      parts << ERB::Util.html_escape(overflow) if truncated
+
+      safe_join(parts, separator)
+    end
 
     def render_badge(value, options)
       color_map = options["color_map"] || {}

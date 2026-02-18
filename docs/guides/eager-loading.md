@@ -74,6 +74,39 @@ form:
         - { field: completed }
 ```
 
+### Dot-Path Fields (Association Traversal)
+
+When using dot-notation fields like `company.name` or `contacts.full_name`, the engine automatically detects the association chain and eager-loads all required associations:
+
+```yaml
+# presenters/deal_admin.yml
+index:
+  table_columns:
+    - { field: title, width: "40%" }
+    - { field: "company.name", width: "20%" }      # Auto-detects belongs_to :company
+    - { field: "contact.full_name", width: "20%" }  # Auto-detects belongs_to :contact
+```
+
+Deep dot-paths are also supported — `company.industry.name` will preload `{ company: :industry }`.
+
+Template fields with dot-path references also trigger eager loading:
+
+```yaml
+table_columns:
+  - { field: "{company.name}: {title}" }  # Auto-detects :company
+```
+
+### Has-Many Collection Fields
+
+Displaying has_many fields in the index table also triggers eager loading:
+
+```yaml
+table_columns:
+  - field: "contacts.full_name"           # Auto-detects has_many :contacts
+    display: collection
+    display_options: { limit: 3 }
+```
+
 ## Enabling strict_loading for Development
 
 Add to your initializer to catch any remaining lazy loads:

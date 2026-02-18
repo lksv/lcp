@@ -76,30 +76,53 @@ module LcpRuby
 
         private
 
-        # Index context: scan table_columns for FK fields matching belongs_to associations.
+        # Index context: scan table_columns for FK fields, dot-paths, and templates.
         def collect_index_deps(presenter_def, model_def)
           fk_map = model_def.belongs_to_fk_map
           presenter_def.table_columns.each do |col|
-            assoc = fk_map[col["field"].to_s]
-            next unless assoc
+            field = col["field"].to_s
 
-            add_dependency(path: assoc.name.to_sym, reason: :display)
+            if field.include?("{")
+              # Template: extract all {ref} and collect dot-path deps
+              field.scan(/\{([^}]+)\}/).flatten.each do |ref|
+                collect_dot_path_dep(ref.strip, model_def) if ref.strip.include?(".")
+              end
+            elsif field.include?(".")
+              collect_dot_path_dep(field, model_def)
+            else
+              assoc = fk_map[field]
+              next unless assoc
+              add_dependency(path: assoc.name.to_sym, reason: :display)
+            end
           end
         end
 
-        # Show context: scan layout for association_list sections.
+        # Show context: scan layout for association_list sections and dot-path fields.
         def collect_show_deps(presenter_def, model_def)
           layout = presenter_def.show_config["layout"] || []
           layout.each do |section|
-            next unless section["type"] == "association_list"
+            if section["type"] == "association_list"
+              assoc_name = section["association"]
+              next unless assoc_name
 
-            assoc_name = section["association"]
-            next unless assoc_name
+              assoc = find_association(model_def, assoc_name)
+              next unless assoc
 
-            assoc = find_association(model_def, assoc_name)
-            next unless assoc
+              add_dependency(path: assoc_name.to_sym, reason: :display)
+            else
+              # Scan section fields for dot-paths and templates
+              (section["fields"] || []).each do |field_config|
+                field = (field_config["field"] || "").to_s
 
-            add_dependency(path: assoc_name.to_sym, reason: :display)
+                if field.include?("{")
+                  field.scan(/\{([^}]+)\}/).flatten.each do |ref|
+                    collect_dot_path_dep(ref.strip, model_def) if ref.strip.include?(".")
+                  end
+                elsif field.include?(".")
+                  collect_dot_path_dep(field, model_def)
+                end
+              end
+            end
           end
         end
 
@@ -116,6 +139,31 @@ module LcpRuby
             next unless assoc
 
             add_dependency(path: assoc_name.to_sym, reason: :display)
+          end
+        end
+
+        def collect_dot_path_dep(field_path, model_def)
+          parts = field_path.split(".")
+          # Last part is the field name, everything before is association chain
+          assoc_parts = parts[0..-2]
+          return if assoc_parts.empty?
+
+          # Verify the first association exists
+          assoc = find_association(model_def, assoc_parts.first)
+          return unless assoc
+
+          path = build_nested_path(assoc_parts)
+          add_dependency(path: path, reason: :display)
+        end
+
+        def build_nested_path(assoc_parts)
+          if assoc_parts.length == 1
+            assoc_parts.first.to_sym
+          else
+            # Build nested hash: ["company", "industry"] => { company: :industry }
+            assoc_parts.reverse.reduce(nil) do |inner, part|
+              inner.nil? ? part.to_sym : { part.to_sym => inner }
+            end
           end
         end
 

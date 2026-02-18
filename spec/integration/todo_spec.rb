@@ -709,6 +709,34 @@ RSpec.describe "TODO App Integration", type: :request do
     end
   end
 
+  describe "Extended display features" do
+    describe "collection display on index" do
+      it "shows item titles as collection on lists index" do
+        list = todo_list_model.create!(title: "Collection List")
+        todo_item_model.create!(title: "Item A", todo_list_id: list.id)
+        todo_item_model.create!(title: "Item B", todo_list_id: list.id)
+
+        get "/admin/lists"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Item A")
+        expect(response.body).to include("Item B")
+      end
+    end
+
+    describe "dot-notation on index" do
+      it "shows list title via dot-notation on items index" do
+        list = todo_list_model.create!(title: "My Todo List")
+        todo_item_model.create!(title: "Test Item", todo_list_id: list.id)
+
+        get "/admin/items"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("My Todo List")
+      end
+    end
+  end
+
   describe "Eager loading" do
     let!(:list) { todo_list_model.create!(title: "My List") }
 

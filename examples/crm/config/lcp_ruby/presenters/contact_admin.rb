@@ -11,7 +11,8 @@ define_presenter :contact_admin do
     row_click :show
 
     column :full_name, width: "25%", link_to: :show, sortable: true
-    column :company_id, width: "15%"
+    column "company.name", label: "Company", width: "15%"
+    column "company.industry", label: "Industry", width: "10%", display: :badge
     column :email, width: "20%", display: :email_link
     column :phone, width: "15%", display: :phone_link
     column :active, width: "10%", display: :boolean_icon
@@ -24,6 +25,8 @@ define_presenter :contact_admin do
       field :phone, display: :phone_link
       field :position
       field :active, display: :boolean_icon
+      field "company.name", label: "Company"
+      field "company.industry", label: "Industry", display: :badge
     end
   end
 

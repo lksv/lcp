@@ -206,6 +206,7 @@ Adds a table column.
 | Option | Type | Description |
 |--------|------|-------------|
 | `width:` | string | Column width (e.g., `"30%"`) |
+| `label:` | string | Custom column header label (e.g., `"Company"` for a `"company.name"` dot-path field) |
 | `link_to:` | symbol | Link target action (e.g., `:show`) |
 | `sortable:` | boolean | Whether column is sortable |
 | `display:` | symbol | Display format (`:badge`, `:currency`, `:relative_date`, etc.) |
@@ -272,6 +273,7 @@ field :budget, display: :currency
 | Option | Type | Description |
 |--------|------|-------------|
 | `display:` | symbol | Display format for the field value |
+| `label:` | string | Custom field label (e.g., `"Company"` for a `"company.name"` dot-path field) |
 | `col_span:` | integer | Number of grid columns this field spans |
 | `hidden_on:` | symbol or array | Responsive breakpoints to hide the field on |
 | `display_options:` | hash | Additional display configuration |
@@ -581,6 +583,62 @@ end
 - **No circular inheritance**: Circular chains (A inherits B, B inherits A) are detected and raise `MetadataError`.
 
 Inheritance is purely a DSL convenience — the result is always a flat hash identical to what you could write in YAML with full duplication.
+
+## Advanced Field Paths
+
+### Dot-Notation (Association Traversal)
+
+Use string field names with dot-notation to traverse associations:
+
+```ruby
+index do
+  column "company.name", sortable: true            # belongs_to
+  column "company.industry", display: :badge        # with display type
+  column "contacts.full_name", display: :collection # has_many
+end
+
+show do
+  section "Details" do
+    field "company.name"
+    field "company.industry", display: :badge
+    field "contacts.full_name", display: :collection,
+      display_options: { limit: 5, separator: " | " }
+  end
+end
+```
+
+### Template Syntax
+
+Use `{field}` syntax in string field names:
+
+```ruby
+index do
+  column "{first_name} {last_name}"
+  column "{company.name}: {title}"
+end
+```
+
+### Collection Display
+
+The `collection` display type renders arrays from has_many dot-paths:
+
+```ruby
+index do
+  column "contacts.full_name", display: :collection,
+    display_options: { limit: 3, overflow: "...", separator: ", " }
+end
+```
+
+### Custom Renderers
+
+Reference custom renderers (from `app/renderers/`) by name:
+
+```ruby
+index do
+  column :stage, display: :conditional_badge,
+    display_options: { rules: [...] }
+end
+```
 
 ## DSL vs YAML Equivalence
 

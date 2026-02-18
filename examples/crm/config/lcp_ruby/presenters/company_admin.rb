@@ -14,6 +14,7 @@ define_presenter :company_admin do
     column :industry, width: "20%", display: :badge, sortable: true
     column :website, width: "25%", display: :url_link
     column :phone, width: "25%", display: :phone_link
+    column "contacts.first_name", label: "Contacts", display: :collection, display_options: { limit: 3, overflow: "..." }
   end
 
   show do
@@ -23,6 +24,7 @@ define_presenter :company_admin do
       field :website, display: :url_link
       field :phone, display: :phone_link
       field :created_at, display: :relative_date
+      field "contacts.first_name", label: "Contacts", display: :collection, display_options: { limit: 5 }
     end
     association_list "Contacts", association: :contacts
     association_list "Deals", association: :deals
