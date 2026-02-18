@@ -1,6 +1,7 @@
 LcpRuby::Engine.routes.draw do
   scope ":lcp_slug" do
     get    "/",          to: "resources#index",   as: :resources
+    get    "/select_options", to: "resources#select_options", as: :select_options
     get    "/new",       to: "resources#new",     as: :new_resource
     post   "/",          to: "resources#create",  as: :create_resource
     post   "/evaluate_conditions",     to: "resources#evaluate_conditions_new", as: :evaluate_conditions_new

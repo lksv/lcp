@@ -1,7 +1,11 @@
 <% conditions_url = if service_conditions?(current_presenter)
      @record.new_record? ? lcp_ruby.evaluate_conditions_new_path(lcp_slug: current_presenter.slug) : lcp_ruby.evaluate_conditions_path(lcp_slug: current_presenter.slug, id: @record.id)
    end %>
-<%= form_with(model: @record, url: @record.new_record? ? resources_path : resource_path(@record), scope: :record, method: @record.new_record? ? :post : :patch, data: conditions_url ? { "lcp-conditions-url" => conditions_url } : {}) do |form| %>
+<% form_data = {}
+   form_data["lcp-conditions-url"] = conditions_url if conditions_url
+   form_data["lcp-select-options-path"] = select_options_path if defined?(select_options_path)
+%>
+<%= form_with(model: @record, url: @record.new_record? ? resources_path : resource_path(@record), scope: :record, method: @record.new_record? ? :post : :patch, class: "lcp-form", data: form_data) do |form| %>
   <% if @record.errors.any? %>
     <div class="lcp-errors">
       <h3><%= pluralize(@record.errors.count, "error") %> prevented this record from being saved:</h3>

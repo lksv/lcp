@@ -193,6 +193,12 @@
     /* Disabled action */
     .btn.lcp-action-disabled { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
 
+    /* Loading state for dependent selects */
+    .lcp-loading { opacity: 0.5; cursor: wait; }
+
+    /* Multi-select validation error */
+    .lcp-multi-select-error { display: block; color: #dc3545; font-size: 0.75rem; margin-top: 0.2rem; }
+
     /* Navigation */
     .lcp-nav { background: #fff; border-bottom: 1px solid #dee2e6; margin-bottom: 1rem; padding: 0 2rem; }
     .lcp-nav-list { display: flex; gap: 0; list-style: none; margin: 0; padding: 0; }
@@ -747,6 +753,134 @@
             });
           }).catch(function(err) { console.warn('[LcpRuby] Service condition evaluation failed:', err); });
         }, 300);
+      });
+    })();
+
+    // Dependent (cascading) select
+    (function() {
+      var form = document.querySelector('form.lcp-form');
+      if (!form) return;
+
+      var dependents = form.querySelectorAll('[data-lcp-depends-on]');
+      if (!dependents.length) return;
+
+      var selectOptionsPath = form.dataset.lcpSelectOptionsPath;
+      if (!selectOptionsPath) return;
+
+      dependents.forEach(function(dep) {
+        var parentFieldName = dep.getAttribute('data-lcp-depends-on');
+        var resetStrategy = dep.getAttribute('data-lcp-depends-reset') || 'clear';
+        var parentSelect = form.querySelector('[name="record[' + parentFieldName + ']"]');
+        if (!parentSelect) return;
+
+        parentSelect.addEventListener('change', function() {
+          var parentValue = parentSelect.value;
+          var fieldName = dep.name.replace(/^record\[/, '').replace(/\]$/, '');
+          var url = selectOptionsPath + '?field=' + encodeURIComponent(fieldName) +
+                    '&depends_on[' + encodeURIComponent(parentFieldName) + ']=' + encodeURIComponent(parentValue);
+
+          // Disable select and show loading indicator during fetch
+          dep.disabled = true;
+          dep.classList.add('lcp-loading');
+
+          fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+              var currentValue = dep.value;
+              var includeBlank = dep.querySelector('option[value=""]');
+              dep.innerHTML = '';
+
+              if (includeBlank) {
+                dep.appendChild(includeBlank.cloneNode(true));
+              }
+
+              // Detect grouped vs flat response format
+              var allValues = [];
+              if (Array.isArray(data) && data.length > 0 && data[0].group !== undefined) {
+                // Grouped: [{group: "...", options: [{value, label}]}]
+                data.forEach(function(g) {
+                  var optgroup = document.createElement('optgroup');
+                  optgroup.label = g.group;
+                  g.options.forEach(function(opt) {
+                    var el = document.createElement('option');
+                    el.value = opt.value;
+                    el.textContent = opt.label;
+                    optgroup.appendChild(el);
+                    allValues.push(String(opt.value));
+                  });
+                  dep.appendChild(optgroup);
+                });
+              } else {
+                // Flat: [{value, label}]
+                data.forEach(function(opt) {
+                  var el = document.createElement('option');
+                  el.value = opt.value;
+                  el.textContent = opt.label;
+                  dep.appendChild(el);
+                  allValues.push(String(opt.value));
+                });
+              }
+
+              if (resetStrategy === 'keep_if_valid') {
+                if (allValues.indexOf(currentValue) !== -1) {
+                  dep.value = currentValue;
+                } else {
+                  dep.value = '';
+                }
+              } else {
+                dep.value = '';
+              }
+
+              dep.dispatchEvent(new Event('change', { bubbles: true }));
+            })
+            .catch(function(err) { console.warn('[LcpRuby] Dependent select fetch failed:', err); })
+            .finally(function() {
+              dep.disabled = false;
+              dep.classList.remove('lcp-loading');
+            });
+        });
+      });
+    })();
+
+    // Multi-select min/max validation via native constraint API
+    (function() {
+      var form = document.querySelector('form.lcp-form');
+      if (!form) return;
+
+      var multiSelects = form.querySelectorAll('select[multiple][data-min], select[multiple][data-max]');
+      if (!multiSelects.length) return;
+
+      function validate(sel) {
+        var count = sel.selectedOptions.length;
+        var min = sel.getAttribute('data-min');
+        var max = sel.getAttribute('data-max');
+        var msgs = [];
+
+        if (min && count < parseInt(min, 10)) {
+          msgs.push('Select at least ' + min + ' item(s)');
+        }
+        if (max && count > parseInt(max, 10)) {
+          msgs.push('Select at most ' + max + ' item(s)');
+        }
+
+        var msgEl = sel.parentElement.querySelector('.lcp-multi-select-error');
+        if (msgs.length > 0) {
+          if (!msgEl) {
+            msgEl = document.createElement('span');
+            msgEl.className = 'lcp-multi-select-error lcp-field-error';
+            sel.parentElement.appendChild(msgEl);
+          }
+          msgEl.textContent = msgs.join('. ');
+          sel.setCustomValidity(msgs.join('. '));
+        } else {
+          if (msgEl) msgEl.remove();
+          sel.setCustomValidity('');
+        }
+      }
+
+      multiSelects.forEach(function(sel) {
+        sel.addEventListener('change', function() { validate(sel); });
+        validate(sel); // validate initial state (e.g. editing existing record)
       });
     })();
   </script>

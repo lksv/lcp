@@ -15,7 +15,7 @@ module LcpRuby
 
     helper_method :current_presenter, :current_model_definition, :current_evaluator,
                   :resource_path, :resources_path, :new_resource_path, :edit_resource_path,
-                  :single_action_path,
+                  :single_action_path, :select_options_path,
                   :toggle_direction, :current_sort_field, :current_sort_direction,
                   :current_view_group, :sibling_views
 
@@ -82,6 +82,10 @@ module LcpRuby
 
     def single_action_path(record, action_name:)
       lcp_ruby.single_action_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record, action_name: action_name)
+    end
+
+    def select_options_path
+      lcp_ruby.select_options_path(lcp_slug: current_presenter.slug)
     end
 
     # -- View group helpers --

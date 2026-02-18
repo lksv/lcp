@@ -420,9 +420,67 @@ field :company_id, input_type: :association_select
 | `visible_when:` | hash | Condition hash for conditional visibility. Field-value: `{ field: :status, operator: :eq, value: "active" }`. Service: `{ service: :persisted_check }`. See [Conditional Rendering](../guides/conditional-rendering.md). |
 | `disable_when:` | hash | Condition hash for conditional disabling. Same syntax as `visible_when`. When condition is true, field is visually disabled but values are still submitted. |
 | `default:` | any | Default value for the form input (overrides the model-level default for this form) |
-| `input_options:` | hash | Additional options passed to the input widget |
+| `input_options:` | hash | Additional options passed to the input widget (see below) |
 | `display_options:` | hash | Display configuration (e.g., formatting) |
 | `hidden_on:` | symbol or array | Responsive breakpoints to hide the field on |
+
+#### `input_options` for Select Fields
+
+**Enum select** — role-based value filtering:
+
+```ruby
+field :stage, input_type: :select,
+  input_options: {
+    include_blank: false,
+    exclude_values: { viewer: ["lead"] },
+    include_values: { intern: ["active", "inactive"] }
+  }
+```
+
+**Association select** — scope, sort, label, grouping:
+
+```ruby
+field :company_id, input_type: :association_select,
+  input_options: {
+    scope: :active,
+    sort: { name: :asc },
+    label_method: :full_name,
+    include_blank: "-- Choose company --",
+    group_by: :industry
+  }
+```
+
+**Dependent (cascading) select** — child select filtered by parent:
+
+```ruby
+field :company_id, input_type: :association_select,
+  input_options: { sort: { name: :asc } }
+
+field :contact_id, input_type: :association_select,
+  input_options: {
+    depends_on: { field: :company_id, foreign_key: :company_id },
+    sort: { last_name: :asc },
+    label_method: :full_name
+  }
+```
+
+**Role-based scope** — different scopes per user role:
+
+```ruby
+field :company_id, input_type: :association_select,
+  input_options: {
+    scope_by_role: { admin: :all, editor: :active_companies, viewer: :my_companies }
+  }
+```
+
+**Multi select** — for `has_many :through` associations:
+
+```ruby
+field :tag_ids, input_type: :multi_select,
+  input_options: { association: :tags, sort: { name: :asc }, max: 5 }
+```
+
+For the complete list of `input_options` keys per input type, see [Presenters Reference — Input Options](presenters.md#input-options).
 
 #### `divider(label: nil)`
 

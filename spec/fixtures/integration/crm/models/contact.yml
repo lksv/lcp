@@ -34,6 +34,11 @@ model:
       type: string
       label: "Position"
 
+    - name: full_name
+      type: string
+      label: "Full Name"
+      computed: "{first_name} {last_name}"
+
     - name: active
       type: boolean
       label: "Active"
@@ -48,4 +53,4 @@ model:
 
   options:
     timestamps: true
-    label_method: first_name
+    label_method: full_name

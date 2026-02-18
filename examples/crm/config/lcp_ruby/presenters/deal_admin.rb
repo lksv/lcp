@@ -39,12 +39,19 @@ define_presenter :deal_admin do
 
     section "Deal Details", columns: 2 do
       field :title, placeholder: "Deal title...", autofocus: true, col_span: 2
-      field :stage, input_type: :select
+      field :stage, input_type: :select,
+        input_options: { exclude_values: { viewer: ["lead"] } }
       field :value, input_type: :number, prefix: "EUR", hint: "Deal value without VAT",
         disable_when: { field: :stage, operator: :in, value: [ :closed_won, :closed_lost ] }
       field :expected_close_date, input_type: :date_picker
-      field :company_id, input_type: :association_select
+      field :company_id, input_type: :association_select,
+        input_options: { sort: { name: :asc }, label_method: :name }
       field :contact_id, input_type: :association_select,
+        input_options: {
+          depends_on: { field: :company_id, foreign_key: :company_id },
+          sort: { last_name: :asc },
+          label_method: :full_name
+        },
         visible_when: { field: :stage, operator: :not_in, value: [ :lead ] }
     end
 
