@@ -67,6 +67,77 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
     end
   end
 
+  describe "#belongs_to_fk_map" do
+    it "returns FK-to-association mapping for belongs_to associations" do
+      definition = described_class.from_hash(
+        "name" => "deal",
+        "fields" => [ { "name" => "title", "type" => "string" } ],
+        "associations" => [
+          { "type" => "belongs_to", "name" => "company", "target_model" => "company", "foreign_key" => "company_id" },
+          { "type" => "belongs_to", "name" => "contact", "target_model" => "contact", "foreign_key" => "contact_id" }
+        ]
+      )
+
+      fk_map = definition.belongs_to_fk_map
+
+      expect(fk_map.keys).to contain_exactly("company_id", "contact_id")
+      expect(fk_map["company_id"].name).to eq("company")
+      expect(fk_map["contact_id"].name).to eq("contact")
+    end
+
+    it "excludes has_many and has_one associations" do
+      definition = described_class.from_hash(
+        "name" => "company",
+        "fields" => [ { "name" => "name", "type" => "string" } ],
+        "associations" => [
+          { "type" => "has_many", "name" => "deals", "target_model" => "deal", "foreign_key" => "company_id" },
+          { "type" => "has_one", "name" => "profile", "target_model" => "profile", "foreign_key" => "company_id" },
+          { "type" => "belongs_to", "name" => "industry", "target_model" => "industry", "foreign_key" => "industry_id" }
+        ]
+      )
+
+      fk_map = definition.belongs_to_fk_map
+
+      expect(fk_map.keys).to eq([ "industry_id" ])
+    end
+
+    it "returns empty hash when no belongs_to associations exist" do
+      definition = described_class.from_hash(
+        "name" => "standalone",
+        "fields" => [ { "name" => "title", "type" => "string" } ],
+        "associations" => [
+          { "type" => "has_many", "name" => "items", "target_model" => "item", "foreign_key" => "standalone_id" }
+        ]
+      )
+
+      expect(definition.belongs_to_fk_map).to eq({})
+    end
+
+    it "returns empty hash when no associations exist" do
+      definition = described_class.from_hash(
+        "name" => "simple",
+        "fields" => [ { "name" => "title", "type" => "string" } ]
+      )
+
+      expect(definition.belongs_to_fk_map).to eq({})
+    end
+
+    it "is memoized" do
+      definition = described_class.from_hash(
+        "name" => "deal",
+        "fields" => [ { "name" => "title", "type" => "string" } ],
+        "associations" => [
+          { "type" => "belongs_to", "name" => "company", "target_model" => "company", "foreign_key" => "company_id" }
+        ]
+      )
+
+      first_call = definition.belongs_to_fk_map
+      second_call = definition.belongs_to_fk_map
+
+      expect(first_call).to equal(second_call)
+    end
+  end
+
   describe "validation" do
     it "raises on missing name" do
       expect {

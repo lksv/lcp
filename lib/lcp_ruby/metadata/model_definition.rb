@@ -50,6 +50,15 @@ module LcpRuby
         fields.select(&:enum?)
       end
 
+      # Returns a Hash mapping FK field name to its belongs_to AssociationDefinition.
+      # e.g. { "company_id" => <AssociationDefinition name="company"> }
+      # Memoized since it's called from multiple places (ColumnSet, DependencyCollector, PermissionEvaluator).
+      def belongs_to_fk_map
+        @belongs_to_fk_map ||= associations
+          .select { |a| a.type == "belongs_to" && a.foreign_key.present? }
+          .each_with_object({}) { |a, h| h[a.foreign_key] = a }
+      end
+
       private
 
       def validate!

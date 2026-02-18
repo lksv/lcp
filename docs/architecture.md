@@ -88,8 +88,9 @@ UI layer that determines what to display and how.
 
 - **Resolver** — `find_by_name`, `find_by_slug`, `presenters_for_model`, `routable_presenters`
 - **LayoutBuilder** — builds `form_sections` and `show_sections`; enriches FK fields with synthetic FieldDefinition + AssociationDefinition via foreign_key metadata matching
-- **ColumnSet** — permission-filtered `visible_table_columns`, `visible_form_fields`, `visible_show_fields`
+- **ColumnSet** — permission-filtered `visible_table_columns`, `visible_form_fields`, `visible_show_fields`; `fk_association_map` returns FK-to-association mapping filtered by visible columns (used by index view to render associated object labels instead of raw FK integers)
 - **ActionSet** — permission-filtered `collection_actions`, `single_actions` (with visibility conditions via ConditionEvaluator), `batch_actions`
+- **IncludesResolver** — auto-detects and resolves association eager loading from presenter metadata. Sub-components: `AssociationDependency` (value object), `DependencyCollector` (gathers deps from presenter/sort/search/manual config), `StrategyResolver` (maps deps to includes/eager_load/joins), `LoadingStrategy` (applies to AR scope)
 
 ### Events (`lib/lcp_ruby/events/`)
 

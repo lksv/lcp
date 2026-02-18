@@ -76,6 +76,11 @@ require "lcp_ruby/presenter/resolver"
 require "lcp_ruby/presenter/column_set"
 require "lcp_ruby/presenter/layout_builder"
 require "lcp_ruby/presenter/action_set"
+require "lcp_ruby/presenter/includes_resolver"
+require "lcp_ruby/presenter/includes_resolver/association_dependency"
+require "lcp_ruby/presenter/includes_resolver/dependency_collector"
+require "lcp_ruby/presenter/includes_resolver/strategy_resolver"
+require "lcp_ruby/presenter/includes_resolver/loading_strategy"
 
 # Routing
 require "lcp_ruby/routing/presenter_routes"

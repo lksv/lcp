@@ -133,9 +133,15 @@ module LcpRuby
         end
       end
 
+      # Returns all field names for this model, including belongs_to FK fields.
+      # FK fields (e.g. company_id) are included because they are real DB columns that
+      # need to be readable for index FK-column rendering and writable for association_select forms.
+      # Note: this means `readable: all` / `writable: all` includes FK fields.
       def all_field_names
         model_def = LcpRuby.loader.model_definition(model_name)
-        model_def.fields.map(&:name)
+        names = model_def.fields.map(&:name)
+        names.concat(model_def.belongs_to_fk_map.keys)
+        names.uniq
       rescue MetadataError
         []
       end

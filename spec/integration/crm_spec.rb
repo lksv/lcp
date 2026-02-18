@@ -234,6 +234,57 @@ RSpec.describe "CRM App Integration", type: :request do
     end
   end
 
+  describe "Eager loading" do
+    before { stub_current_user(role: "admin") }
+
+    it "preloads company for deals index (avoids N+1)" do
+      company = company_model.create!(name: "Acme Corp", industry: "technology")
+      3.times { |i| deal_model.create!(title: "Deal #{i}", stage: "lead", company_id: company.id) }
+
+      queries = []
+      callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
+      begin
+        ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
+        get "/admin/deals"
+      ensure
+        ActiveSupport::Notifications.unsubscribe(callback)
+      end
+
+      expect(response).to have_http_status(:ok)
+      # Company name should appear in the response (resolved via association)
+      expect(response.body).to include("Acme Corp")
+
+      # There should be only one SELECT for companies (batched includes)
+      company_selects = queries.select { |q| q.include?("SELECT") && q.include?("companies") }
+      expect(company_selects.size).to eq(1)
+    end
+
+    it "preloads contacts and deals for company show page" do
+      company = company_model.create!(name: "Show Corp", industry: "technology")
+      contact_model.create!(first_name: "Jane", last_name: "Doe", company_id: company.id)
+      deal_model.create!(title: "Preloaded Deal", stage: "lead", company_id: company.id)
+
+      queries = []
+      callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
+      begin
+        ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
+        get "/admin/companies/#{company.id}"
+      ensure
+        ActiveSupport::Notifications.unsubscribe(callback)
+      end
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Jane")
+      expect(response.body).to include("Preloaded Deal")
+
+      # Contacts and deals should each be loaded in one query via preloader
+      contact_selects = queries.select { |q| q.include?("SELECT") && q.include?("contacts") }
+      deal_selects = queries.select { |q| q.include?("SELECT") && q.include?("deals") }
+      expect(contact_selects.size).to eq(1)
+      expect(deal_selects.size).to eq(1)
+    end
+  end
+
   describe "Search and filters" do
     before { stub_current_user(role: "admin") }
 

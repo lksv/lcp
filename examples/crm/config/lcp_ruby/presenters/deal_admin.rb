@@ -12,8 +12,9 @@ define_presenter :deal_admin do
     empty_message "No deals found"
     actions_position :dropdown
 
-    column :title, width: "30%", link_to: :show, sortable: true, display: :truncate, display_options: { max: 40 }
-    column :stage, width: "15%", display: :badge, display_options: { color_map: { lead: "blue", qualified: "cyan", proposal: "orange", negotiation: "purple", closed_won: "green", closed_lost: "red" } }, sortable: true
+    column :title, width: "25%", link_to: :show, sortable: true, display: :truncate, display_options: { max: 40 }
+    column :company_id, width: "15%"
+    column :stage, width: "10%", display: :badge, display_options: { color_map: { lead: "blue", qualified: "cyan", proposal: "orange", negotiation: "purple", closed_won: "green", closed_lost: "red" } }, sortable: true
     column :value, width: "15%", display: :currency, display_options: { currency: "EUR" }, sortable: true, summary: "sum"
     column :weighted_value, width: "10%", display: :currency, display_options: { currency: "EUR" }
     column :progress, width: "10%", display: :progress_bar

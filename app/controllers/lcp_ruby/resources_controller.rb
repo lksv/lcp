@@ -10,14 +10,21 @@ module LcpRuby
 
       @summaries = compute_summaries(scope) if summary_columns_present?
 
+      strategy = resolve_loading_strategy(:index)
+      scope = strategy.apply(scope)
+      scope = scope.strict_loading if LcpRuby.configuration.strict_loading_enabled?
+
       @records = scope.page(params[:page]).per(current_presenter.per_page)
 
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
+      @fk_map = @column_set.fk_association_map(current_model_definition)
       @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
     end
 
     def show
       authorize @record
+      preload_associations(@record, :show)
+      @record.strict_loading! if LcpRuby.configuration.strict_loading_enabled?
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
       @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
@@ -44,6 +51,8 @@ module LcpRuby
 
     def edit
       authorize @record
+      preload_associations(@record, :form)
+      @record.strict_loading! if LcpRuby.configuration.strict_loading_enabled?
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
     end
 
@@ -159,9 +168,25 @@ module LcpRuby
       direction = params[:direction] || sort_config&.dig("direction") || "asc"
       direction = "asc" unless %w[asc desc].include?(direction.to_s.downcase)
 
-      return scope unless @model_class.column_names.include?(field.to_s)
+      if field.to_s.include?(".")
+        parts = field.to_s.split(".")
+        assoc_name = parts[0]
+        assoc = current_model_definition.associations.find { |a| a.name == assoc_name }
+        return scope unless assoc
 
-      scope.order(field => direction)
+        target_def = LcpRuby.loader.model_definition(assoc.target_model)
+        return scope unless target_def
+
+        target_class = LcpRuby.registry.model_for(assoc.target_model)
+        col = parts.last
+        return scope unless target_class&.column_names&.include?(col)
+
+        conn = @model_class.connection
+        scope.order(Arel.sql("#{conn.quote_table_name(target_def.table_name)}.#{conn.quote_column_name(col)} #{direction}"))
+      else
+        return scope unless @model_class.column_names.include?(field.to_s)
+        scope.order(field => direction)
+      end
     end
 
     def summary_columns_present?
@@ -235,6 +260,31 @@ module LcpRuby
         end
       end
       results
+    end
+
+    def resolve_loading_strategy(context)
+      sort_field = params[:sort] if context == :index
+      search_fields = current_presenter.search_config["searchable_fields"] if context == :index && params[:q].present?
+      Presenter::IncludesResolver.resolve(
+        presenter_def: current_presenter,
+        model_def: current_model_definition,
+        context: context,
+        sort_field: sort_field,
+        search_fields: search_fields
+      )
+    rescue => e
+      Rails.logger.warn("[LcpRuby] Failed to resolve loading strategy for #{context}: #{e.message}")
+      Presenter::IncludesResolver::LoadingStrategy.new
+    end
+
+    def preload_associations(record, context)
+      strategy = resolve_loading_strategy(context)
+      return if strategy.empty?
+
+      assocs = strategy.includes + strategy.eager_load
+      ActiveRecord::Associations::Preloader.new(records: [ record ], associations: assocs).call if assocs.any?
+    rescue => e
+      Rails.logger.warn("[LcpRuby] Failed to preload associations for #{context}: #{e.message}")
     end
 
     # Pundit uses model class to find policy

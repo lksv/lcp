@@ -32,6 +32,15 @@ module LcpRuby
           readable.include?(field["field"])
         end
       end
+
+      # Build a mapping from FK field name to the belongs_to AssociationDefinition,
+      # filtered to only include FK fields the current user has permission to see.
+      # Returns a Hash: { "company_id" => AssociationDefinition, ... }
+      # Used by the index view to resolve associated objects instead of showing raw FK integers.
+      def fk_association_map(model_definition)
+        visible_fields = visible_table_columns.map { |c| c["field"] }
+        model_definition.belongs_to_fk_map.select { |k, _| visible_fields.include?(k) }
+      end
     end
   end
 end

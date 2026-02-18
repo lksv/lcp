@@ -16,6 +16,7 @@ Complete attribute reference for every YAML configuration file:
 - [View Groups](reference/view-groups.md) — Navigation menu, view switching, auto-creation
 - [Permissions](reference/permissions.md) — Roles, CRUD, field access, scopes, record rules
 - [Condition Operators](reference/condition-operators.md) — Shared operator reference for `visible_when`, `record_rules`, etc.
+- [Eager Loading](reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Engine Configuration](reference/engine-configuration.md) — `LcpRuby.configure` options
 
 ## DSL Reference
@@ -34,6 +35,7 @@ Complete attribute reference for every YAML configuration file:
 - [Custom Types](guides/custom-types.md) — Defining custom business types (percentage, postal_code, slug, hex_color)
 - [View Groups](guides/view-groups.md) — Multi-view navigation and view switcher setup
 - [Display Types](guides/display-types.md) — Visual guide to all display renderers
+- [Eager Loading](guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate` and `lcp_ruby:erd` rake tasks
 
 ## Internals

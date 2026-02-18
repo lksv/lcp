@@ -79,6 +79,29 @@ Default method called on records to generate display labels (e.g., in associatio
 
 The host application controller that LCP Ruby's controllers inherit from. Change this to inherit authentication, locale settings, or other before-filters from a different base controller.
 
+### `strict_loading`
+
+| | |
+|---|---|
+| **Type** | `Symbol` |
+| **Default** | `:never` |
+
+Controls whether ActiveRecord `strict_loading` is applied to records in index, show, and edit views. When enabled, accessing a lazy-loaded association raises `ActiveRecord::StrictLoadingViolationError`, helping catch N+1 queries during development.
+
+| Value | Behavior |
+|-------|----------|
+| `:never` | Disabled (default) |
+| `:development` | Enabled in `development` and `test` environments |
+| `:always` | Enabled in all environments |
+
+```ruby
+LcpRuby.configure do |config|
+  config.strict_loading = :development
+end
+```
+
+See [Eager Loading](eager-loading.md) for details on the auto-detection system.
+
 ## Service Auto-Discovery
 
 The engine automatically discovers and registers custom services from `app/lcp_services/` in your host application. Services are organized by category:

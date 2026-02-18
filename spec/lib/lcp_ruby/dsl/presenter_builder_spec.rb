@@ -179,6 +179,62 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(hash["index"]["empty_message"]).to eq("No deals yet.")
     end
 
+    it "produces includes list" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        index do
+          includes :company, :contact
+          column :title
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]["includes"]).to eq(%w[company contact])
+    end
+
+    it "produces eager_load list" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        index do
+          eager_load :company
+          column :title
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]["eager_load"]).to eq(%w[company])
+    end
+
+    it "handles hash paths in includes" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        index do
+          includes({ company: :industry })
+          column :title
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]["includes"]).to eq([ { "company" => "industry" } ])
+    end
+
+    it "omits includes/eager_load when not set" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        index do
+          column :title
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]).not_to have_key("includes")
+      expect(hash["index"]).not_to have_key("eager_load")
+    end
+
     it "produces actions_position" do
       builder = described_class.new(:test)
       builder.instance_eval do
@@ -314,6 +370,24 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       })
     end
 
+    it "produces includes and eager_load in show" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :company
+        show do
+          includes :contacts, :deals
+          eager_load :industry
+          section "Details" do
+            field :name
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["show"]["includes"]).to eq(%w[contacts deals])
+      expect(hash["show"]["eager_load"]).to eq(%w[industry])
+    end
+
     it "supports col_span, hidden_on, and display_options on fields" do
       builder = described_class.new(:test)
       builder.instance_eval do
@@ -403,6 +477,23 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(sections[0]["columns"]).to eq(2)
       expect(sections[1]["columns"]).to eq(1)
       expect(sections[2]["columns"]).to eq(3)
+    end
+
+    it "produces includes and eager_load in form" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :todo_list
+        form do
+          includes :todo_items
+          section "Items" do
+            field :title
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["form"]["includes"]).to eq(%w[todo_items])
+      expect(hash["form"]).not_to have_key("eager_load")
     end
 
     it "supports layout option" do

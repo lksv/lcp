@@ -11,9 +11,10 @@ presenter:
     per_page: 25
     actions_position: dropdown
     table_columns:
-      - { field: title, width: "30%", link_to: show, sortable: true, pinned: left }
-      - { field: stage, width: "20%", display: badge, sortable: true, hidden_on: mobile }
-      - { field: value, width: "20%", display: currency, sortable: true, summary: sum }
+      - { field: title, width: "25%", link_to: show, sortable: true, pinned: left }
+      - { field: company_id, width: "20%" }
+      - { field: stage, width: "15%", display: badge, sortable: true, hidden_on: mobile }
+      - { field: value, width: "15%", display: currency, sortable: true, summary: sum }
 
   show:
     layout:

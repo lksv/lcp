@@ -11,7 +11,8 @@ presenter:
     per_page: 50
     row_click: show
     table_columns:
-      - { field: title, width: "50%", link_to: show, sortable: true }
+      - { field: title, width: "35%", link_to: show, sortable: true }
+      - { field: todo_list_id, width: "15%" }
       - { field: completed, width: "15%", display: badge, display_options: { color_map: { "true": green, "false": gray } }, sortable: true }
       - { field: start_date, width: "15%", sortable: true }
       - { field: due_date, width: "15%", display: relative_date, sortable: true }

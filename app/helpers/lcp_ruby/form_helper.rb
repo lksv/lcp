@@ -72,7 +72,20 @@ module LcpRuby
       assoc = field_config["association"]
       if assoc&.lcp_model?
         target_class = LcpRuby.registry.model_for(assoc.target_model)
-        options = target_class.all.map { |r| [ r.respond_to?(:to_label) ? r.to_label : r.to_s, r.id ] }
+        target_model_def = begin
+          LcpRuby.loader.model_definition(assoc.target_model)
+        rescue LcpRuby::MetadataError => e
+          Rails.logger.warn("[LcpRuby] Could not load model definition for #{assoc.target_model}: #{e.message}")
+          nil
+        end
+        label_attr = target_model_def&.label_method || "to_s"
+
+        if label_attr != "to_s" && target_class.respond_to?(:column_names) && target_class.column_names.include?(label_attr)
+          options = target_class.select(:id, label_attr.to_sym).order(label_attr.to_sym)
+                                .map { |r| [ r.send(label_attr), r.id ] }
+        else
+          options = target_class.all.map { |r| [ r.respond_to?(:to_label) ? r.to_label : r.to_s, r.id ] }
+        end
         form.select(field_name, options, include_blank: "-- Select --")
       else
         form.number_field(field_name, placeholder: "ID")
