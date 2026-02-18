@@ -26,7 +26,15 @@ module LcpRuby
     end
 
     initializer "lcp_ruby.assets" do |app|
-      app.config.assets.precompile += %w[lcp_ruby/application.css] if app.config.respond_to?(:assets)
+      if app.config.respond_to?(:assets)
+        app.config.assets.precompile += %w[
+          lcp_ruby/application.css
+          lcp_ruby/tom-select.base.min.js
+          lcp_ruby/tom-select.css
+        ]
+        app.config.assets.paths << root.join("vendor", "assets", "javascripts")
+        app.config.assets.paths << root.join("vendor", "assets", "stylesheets")
+      end
     end
 
     class << self

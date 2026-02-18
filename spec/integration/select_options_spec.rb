@@ -116,6 +116,79 @@ RSpec.describe "Select Options API", type: :request do
     end
   end
 
+  describe "paginated search" do
+    before { stub_current_user(role: "admin") }
+
+    it "returns envelope format when q param is present" do
+      company_model.create!(name: "Acme Corp", industry: "technology")
+      company_model.create!(name: "Beta Inc", industry: "finance")
+
+      get "/admin/deals/select_options", params: {
+        field: "company_id", q: "Acme", page: 1, per_page: 10
+      }, headers: { "Accept" => "application/json" }
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json).to include("options", "has_more", "total")
+      expect(json["options"]).to be_an(Array)
+    end
+
+    it "returns envelope format when page param is present without q" do
+      company_model.create!(name: "Acme Corp", industry: "technology")
+
+      get "/admin/deals/select_options", params: {
+        field: "company_id", page: 1, per_page: 10
+      }, headers: { "Accept" => "application/json" }
+
+      json = JSON.parse(response.body)
+      expect(json).to include("options", "has_more", "total")
+    end
+
+    it "returns has_more: true when more results exist" do
+      5.times { |i| company_model.create!(name: "Company #{i}", industry: "technology") }
+
+      get "/admin/deals/select_options", params: {
+        field: "company_id", page: 1, per_page: 2
+      }, headers: { "Accept" => "application/json" }
+
+      json = JSON.parse(response.body)
+      expect(json["has_more"]).to be true
+      expect(json["total"]).to eq(5)
+      expect(json["options"].length).to eq(2)
+    end
+
+    it "returns has_more: false on last page" do
+      3.times { |i| company_model.create!(name: "Company #{i}", industry: "technology") }
+
+      get "/admin/deals/select_options", params: {
+        field: "company_id", page: 2, per_page: 2
+      }, headers: { "Accept" => "application/json" }
+
+      json = JSON.parse(response.body)
+      expect(json["has_more"]).to be false
+      expect(json["options"].length).to eq(1)
+    end
+
+    it "returns flat array for legacy requests without q or page" do
+      company_model.create!(name: "Acme Corp", industry: "technology")
+
+      get "/admin/deals/select_options", params: { field: "company_id" },
+        headers: { "Accept" => "application/json" }
+
+      json = JSON.parse(response.body)
+      expect(json).to be_an(Array)
+      expect(json.first).to include("group") # company_id has group_by configured
+    end
+
+    it "caps per_page at 100" do
+      get "/admin/deals/select_options", params: {
+        field: "company_id", page: 1, per_page: 999
+      }, headers: { "Accept" => "application/json" }
+
+      expect(response).to have_http_status(:ok)
+    end
+  end
+
   describe "authorization" do
     it "returns 403 when user cannot access the presenter" do
       stub_current_user(role: "viewer")

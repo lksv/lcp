@@ -35,6 +35,7 @@ module LcpRuby
     def new
       @record = @model_class.new
       authorize @record
+      apply_presenter_defaults(@record)
       build_nested_records(@record)
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
     end
@@ -43,7 +44,9 @@ module LcpRuby
       @record = @model_class.new(permitted_params)
       authorize @record
 
-      if @record.save
+      validate_association_values!(@record)
+
+      if @record.errors.none? && @record.save
         redirect_to resource_path(@record), notice: "#{current_model_definition.label} was successfully created."
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
@@ -60,8 +63,11 @@ module LcpRuby
 
     def update
       authorize @record
+      @record.assign_attributes(permitted_params)
 
-      if @record.update(permitted_params)
+      validate_association_values!(@record)
+
+      if @record.errors.none? && @record.save
         redirect_to resource_path(@record), notice: "#{current_model_definition.label} was successfully updated."
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
@@ -88,8 +94,15 @@ module LcpRuby
       return render(json: []) unless assoc&.lcp_model?
 
       input_options = field_config["input_options"] || {}
-      options = build_select_options_json(assoc, input_options)
-      render json: options
+
+      # Paginated search mode when q or page param present
+      if params[:q].present? || params[:page].present?
+        result = build_select_options_search(assoc, input_options)
+        render json: result
+      else
+        options = build_select_options_json(assoc, input_options)
+        render json: options
+      end
     end
 
     def evaluate_conditions
@@ -125,21 +138,7 @@ module LcpRuby
 
     def build_select_options_json(assoc, input_options)
       target_class = LcpRuby.registry.model_for(assoc.target_model)
-
-      # Apply role-based scope or simple scope
-      if input_options["scope_by_role"]
-        role = current_user_role_name
-        role_scope = input_options.dig("scope_by_role", role)
-        if role_scope && role_scope != "all" && target_class.respond_to?(role_scope)
-          query = target_class.send(role_scope)
-        else
-          query = target_class.all
-        end
-      elsif input_options["scope"] && target_class.respond_to?(input_options["scope"])
-        query = target_class.send(input_options["scope"])
-      else
-        query = target_class.all
-      end
+      query = apply_select_scope(target_class, input_options)
 
       query = query.where(input_options["filter"]) if input_options["filter"]
 
@@ -161,23 +160,102 @@ module LcpRuby
       )
       query = query.select(*select_cols) if select_cols
 
+      disabled_ids = resolve_disabled_values(assoc, input_options)
+
       if input_options["group_by"]
         group_attr = input_options["group_by"]
         grouped = query.group_by { |r| r.respond_to?(group_attr) ? r.send(group_attr) : "Other" }
         grouped.sort_by { |k, _| k.to_s }.map do |group_name, records|
           {
             group: group_name.to_s,
-            options: records.map { |r| { value: r.id, label: resolve_label(r, label_method) } }
+            options: records.map { |r|
+              opt = { value: r.id, label: resolve_label(r, label_method) }
+              opt[:disabled] = true if disabled_ids.include?(r.id)
+              opt
+            }
           }
         end
       else
-        query.map { |r| { value: r.id, label: resolve_label(r, label_method) } }
+        query.map { |r|
+          opt = { value: r.id, label: resolve_label(r, label_method) }
+          opt[:disabled] = true if disabled_ids.include?(r.id)
+          opt
+        }
+      end
+    end
+
+    def build_select_options_search(assoc, input_options)
+      target_class = LcpRuby.registry.model_for(assoc.target_model)
+      query = apply_select_scope(target_class, input_options)
+      query = query.where(input_options["filter"]) if input_options["filter"]
+
+      # Apply depends_on filtering from request params
+      depends_on = input_options["depends_on"]
+      if depends_on && params[:depends_on].present?
+        fk = depends_on["foreign_key"]
+        parent_value = params[:depends_on][depends_on["field"]]
+        query = query.where(fk => parent_value) if fk && parent_value.present?
+      end
+
+      # Fulltext LIKE search on configured search_fields
+      search_fields = Array(input_options["search_fields"])
+      if params[:q].present? && search_fields.any?
+        conn = target_class.connection
+        conditions = search_fields
+          .select { |f| target_class.column_names.include?(f.to_s) }
+          .map { |f| "#{conn.quote_column_name(f)} LIKE :q" }
+          .join(" OR ")
+        sanitized_q = ActiveRecord::Base.sanitize_sql_like(params[:q])
+        query = query.where(conditions, q: "%#{sanitized_q}%") if conditions.present?
+      end
+
+      query = query.order(input_options["sort"]) if input_options["sort"]
+
+      label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
+      disabled_ids = resolve_disabled_values(assoc, input_options)
+
+      # Pagination
+      page = [ (params[:page] || 1).to_i, 1 ].max
+      per_page = [ [ (params[:per_page] || input_options["per_page"] || 25).to_i, 1 ].max, 100 ].min
+      offset = (page - 1) * per_page
+
+      total = query.count
+      records = query.offset(offset).limit(per_page)
+
+      options = records.map do |r|
+        opt = { value: r.id, label: resolve_label(r, label_method) }
+        opt[:disabled] = true if disabled_ids.include?(r.id)
+        opt
+      end
+
+      {
+        options: options,
+        has_more: (offset + per_page) < total,
+        total: total
+      }
+    end
+
+    def apply_select_scope(target_class, input_options)
+      if input_options["scope_by_role"]
+        role = current_user_role_name
+        role_scope = input_options.dig("scope_by_role", role)
+        if role_scope && role_scope != "all" && target_class.respond_to?(role_scope)
+          return target_class.send(role_scope)
+        else
+          return target_class.all
+        end
+      end
+
+      if input_options["scope"] && target_class.respond_to?(input_options["scope"])
+        target_class.send(input_options["scope"])
+      else
+        target_class.all
       end
     end
 
     def current_user_role_name
       current_user&.send(LcpRuby.configuration.role_method).to_s
-    rescue
+    rescue StandardError
       ""
     end
 
@@ -254,7 +332,8 @@ module LcpRuby
         searchable = (search_config["searchable_fields"] || []).select { |f| @model_class.column_names.include?(f.to_s) }
         conn = @model_class.connection
         conditions = searchable.map { |f| "#{conn.quote_column_name(f)} LIKE :q" }.join(" OR ")
-        scope = scope.where(conditions, q: "%#{params[:q]}%") if conditions.present?
+        sanitized_q = ActiveRecord::Base.sanitize_sql_like(params[:q])
+        scope = scope.where(conditions, q: "%#{sanitized_q}%") if conditions.present?
       end
 
       scope
@@ -303,6 +382,67 @@ module LcpRuby
         when "sum"   then h[field] = scope.sum(field)
         when "avg"   then h[field] = scope.average(field)
         when "count" then h[field] = scope.where.not(field => nil).count
+        end
+      end
+    end
+
+    def validate_association_values!(record)
+      layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+      layout_builder.form_sections
+        .flat_map { |s| s["fields"] || [] }
+        .each do |field_config|
+          field_name = field_config["field"]
+          next unless field_name
+
+          assoc = field_config["association"] || field_config["multi_select_association"]
+          next unless assoc&.lcp_model?
+
+          submitted_value = record.send(field_name)
+          next if submitted_value.blank?
+
+          input_options = field_config["input_options"] || {}
+
+          # Build the allowed options using the same logic as the select builder
+          options = build_select_options_json(assoc, input_options)
+          allowed_ids = extract_allowed_ids(options)
+          disabled_ids = resolve_disabled_values(assoc, input_options)
+
+          submitted_ids = Array(submitted_value).map(&:to_i)
+
+          submitted_ids.each do |sid|
+            unless allowed_ids.include?(sid) && !disabled_ids.include?(sid)
+              record.errors.add(field_name, "contains a value that is not allowed")
+              break
+            end
+          end
+        end
+    end
+
+    def extract_allowed_ids(options)
+      ids = Set.new
+      if options.is_a?(Array) && options.first.is_a?(Hash) && options.first.key?(:group)
+        # Grouped format: [{group: "...", options: [{value:, label:}]}]
+        options.each { |g| g[:options].each { |o| ids << o[:value].to_i } }
+      elsif options.is_a?(Array)
+        # Flat format: [{value:, label:}]
+        options.each { |o| ids << o[:value].to_i }
+      end
+      ids
+    end
+
+    def apply_presenter_defaults(record)
+      layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+      layout_builder.form_sections.each do |section|
+        (section["fields"] || []).each do |field_config|
+          field_name = field_config["field"]
+          next unless field_name
+
+          default_value = field_config.dig("input_options", "default_value")
+          next if default_value.nil?
+
+          if record.respond_to?("#{field_name}=") && record.send(field_name).blank?
+            record.send("#{field_name}=", default_value)
+          end
         end
       end
     end

@@ -68,7 +68,7 @@ module LcpRuby
       input_options = field_config["input_options"] || {}
       values = field_def.enum_value_names
       values = apply_role_value_filters(values, input_options)
-      options = values.map { |v| [v.humanize, v] }
+      options = values.map { |v| [ v.humanize, v ] }
       include_blank = input_options.fetch("include_blank", true)
 
       form.select(field_name, options, include_blank: include_blank)
@@ -79,7 +79,6 @@ module LcpRuby
       return form.number_field(field_name, placeholder: "ID") unless assoc&.lcp_model?
 
       input_options = field_config["input_options"] || {}
-      options = build_association_options(assoc, input_options, record: form.object)
       include_blank = input_options.fetch("include_blank", "-- Select --")
 
       html_attrs = {}
@@ -91,7 +90,29 @@ module LcpRuby
         html_attrs["data-lcp-depends-reset"] = depends.fetch("reset_strategy", "clear")
       end
 
-      if input_options["group_by"]
+      # Tom Select integration
+      search_url = input_options["search"] ? select_options_url_for(field_name) : nil
+      if input_options["search"] && search_url
+        html_attrs["data-lcp-search"] = "remote"
+        html_attrs["data-lcp-search-url"] = search_url
+        html_attrs["data-lcp-per-page"] = input_options["per_page"] || 25
+        html_attrs["data-lcp-min-query"] = input_options["min_query_length"] || 1
+        # For remote mode, options are fetched on demand; render empty select
+        options = []
+        # If record already has a value, include that option so it displays correctly
+        if form.object&.send(field_name).present?
+          current_id = form.object.send(field_name)
+          target_class = LcpRuby.registry.model_for(assoc.target_model)
+          label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
+          current_record = target_class.find_by(id: current_id)
+          options = [ [ resolve_label(current_record, label_method), current_record.id ] ] if current_record
+        end
+      else
+        html_attrs["data-lcp-search"] = "local"
+        options = build_association_options(assoc, input_options, record: form.object)
+      end
+
+      if input_options["group_by"] && !input_options["search"]
         form.select(field_name, grouped_options_for_select(options, form.object&.send(field_name)),
                     { include_blank: include_blank }, html_attrs)
       else
@@ -108,6 +129,7 @@ module LcpRuby
       html_attrs = { multiple: true }
       html_attrs[:"data-min"] = input_options["min"] if input_options["min"]
       html_attrs[:"data-max"] = input_options["max"] if input_options["max"]
+      html_attrs["data-lcp-search"] = "local"
 
       form.select(field_name, options, { include_blank: false }, html_attrs)
     end
@@ -138,17 +160,35 @@ module LcpRuby
       )
       query = query.select(*select_cols) if select_cols
 
+      disabled_ids = resolve_disabled_values(assoc, input_options)
+
       if input_options["group_by"]
         group_attr = input_options["group_by"]
         query.group_by { |r| r.respond_to?(group_attr) ? r.send(group_attr) : "Other" }
           .sort_by { |group_name, _| group_name.to_s }
           .to_h
           .transform_values do |records|
-            records.map { |r| [resolve_label(r, label_method), r.id] }
+            records.map do |r|
+              option = [ resolve_label(r, label_method), r.id ]
+              option << { disabled: "disabled" } if disabled_ids.include?(r.id)
+              option
+            end
           end
       else
-        query.map { |r| [resolve_label(r, label_method), r.id] }
+        query.map do |r|
+          option = [ resolve_label(r, label_method), r.id ]
+          option << { disabled: "disabled" } if disabled_ids.include?(r.id)
+          option
+        end
       end
+    end
+
+    def select_options_url_for(field_name)
+      if respond_to?(:current_presenter) && current_presenter && respond_to?(:lcp_ruby)
+        lcp_ruby.select_options_path(lcp_slug: current_presenter.slug, field: field_name)
+      end
+    rescue StandardError
+      nil
     end
 
     def apply_role_value_filters(values, input_options)
@@ -187,7 +227,7 @@ module LcpRuby
 
     def current_user_role
       LcpRuby::Current.user&.send(LcpRuby.configuration.role_method).to_s
-    rescue
+    rescue StandardError
       ""
     end
 
