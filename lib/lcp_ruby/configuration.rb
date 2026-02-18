@@ -2,7 +2,7 @@ module LcpRuby
   class Configuration
     attr_accessor :metadata_path, :role_method, :user_class, :mount_path,
                   :auto_migrate, :label_method_default, :parent_controller,
-                  :strict_loading
+                  :strict_loading, :impersonation_roles
 
     def initialize
       @metadata_path = Rails.root.join("config", "lcp_ruby") if defined?(Rails)
@@ -13,6 +13,7 @@ module LcpRuby
       @label_method_default = :to_s
       @parent_controller = "::ApplicationController"
       @strict_loading = :never
+      @impersonation_roles = []
     end
 
     # Returns true when strict_loading should be enabled on AR scopes.

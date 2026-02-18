@@ -99,4 +99,37 @@ Add validation to your CI pipeline to catch configuration errors early:
   run: bundle exec rake lcp_ruby:validate
 ```
 
+## `lcp_ruby:permissions`
+
+Prints a permission matrix showing which roles have what access across all models.
+
+### Usage
+
+```bash
+bundle exec rake lcp_ruby:permissions
+```
+
+### Example Output
+
+```
+Permission Matrix
+=================
+
+Model: deal
+  Role        | CRUD                              | Fields (R/W) | Actions       | Scope       | Presenters
+  ------------|-----------------------------------|--------------|---------------|-------------|------------------
+  admin       | index show create update destroy   | all / all    | all           | all         | all
+  sales_rep   | index show create update           | all / 4      | close_won     | all         | deal_admin
+  viewer      | index show                         | 3 / 0        | none          | all         | deal_pipeline
+```
+
+The matrix displays one table per model with permission files. For each role it shows:
+- **CRUD** — allowed operations
+- **Fields (R/W)** — readable/writable field counts (or "all")
+- **Actions** — allowed custom actions (or "all"/"none")
+- **Scope** — scope type or "all"
+- **Presenters** — accessible presenters (or "all")
+
+This is useful for auditing permissions and verifying that roles have the expected access levels.
+
 Source: `lib/tasks/lcp_ruby.rake`, `lib/lcp_ruby/metadata/configuration_validator.rb`, `lib/lcp_ruby/metadata/erd_generator.rb`

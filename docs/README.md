@@ -36,7 +36,8 @@ Complete attribute reference for every YAML configuration file:
 - [View Groups](guides/view-groups.md) — Multi-view navigation and view switcher setup
 - [Display Types](guides/display-types.md) — Visual guide to all display renderers
 - [Eager Loading](guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
-- [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate` and `lcp_ruby:erd` rake tasks
+- [Impersonation](guides/impersonation.md) — "View as Role X" for testing permissions
+- [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate`, `lcp_ruby:erd`, and `lcp_ruby:permissions` rake tasks
 
 ## Internals
 

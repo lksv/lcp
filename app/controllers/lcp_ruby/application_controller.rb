@@ -17,7 +17,8 @@ module LcpRuby
                   :resource_path, :resources_path, :new_resource_path, :edit_resource_path,
                   :single_action_path,
                   :toggle_direction, :current_sort_field, :current_sort_direction,
-                  :current_view_group, :sibling_views
+                  :current_view_group, :sibling_views,
+                  :impersonating?, :impersonated_role, :available_roles_for_impersonation
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
     rescue_from LcpRuby::MetadataError, with: :metadata_error
@@ -43,6 +44,11 @@ module LcpRuby
       return unless @presenter_definition
 
       unless current_evaluator.can_access_presenter?(@presenter_definition.name)
+        log_authorization_denied(
+          action: "access_presenter",
+          resource: @presenter_definition.name,
+          detail: "presenter access denied"
+        )
         raise Pundit::NotAuthorizedError, "not allowed to access presenter #{@presenter_definition.name}"
       end
     end
@@ -58,8 +64,41 @@ module LcpRuby
     def current_evaluator
       @current_evaluator ||= begin
         perm_def = LcpRuby.loader.permission_definition(@presenter_definition.model)
-        Authorization::PermissionEvaluator.new(perm_def, current_user, @presenter_definition.model)
+        user = impersonating? ? impersonated_user : current_user
+        Authorization::PermissionEvaluator.new(perm_def, user, @presenter_definition.model)
       end
+    end
+
+    # -- Impersonation helpers --
+
+    def impersonating?
+      session[:lcp_impersonate_role].present? && can_impersonate_current_user?
+    end
+
+    def impersonated_role
+      session[:lcp_impersonate_role] if impersonating?
+    end
+
+    def available_roles_for_impersonation
+      return [] unless can_impersonate_current_user?
+
+      LcpRuby.loader.permission_definitions.values
+        .flat_map { |pd| pd.roles.keys }
+        .uniq.sort
+    end
+
+    def can_impersonate_current_user?
+      allowed = LcpRuby.configuration.impersonation_roles
+      return false if allowed.empty?
+
+      user_roles = Array(current_user&.send(LcpRuby.configuration.role_method)).map(&:to_s)
+      (user_roles & allowed.map(&:to_s)).any?
+    end
+
+    def impersonated_user
+      role = session[:lcp_impersonate_role]
+      # Build a proxy user object that returns the impersonated role
+      ImpersonatedUser.new(current_user, role)
     end
 
     # -- Path helpers --
@@ -131,7 +170,13 @@ module LcpRuby
 
     # -- Error handlers --
 
-    def user_not_authorized
+    def user_not_authorized(exception = nil)
+      log_authorization_denied(
+        action: action_name,
+        resource: @presenter_definition&.name || params[:lcp_slug],
+        detail: exception&.message || "not authorized"
+      )
+
       fallback = @presenter_definition ? resources_path : "/"
       respond_to do |format|
         format.html { redirect_to fallback, alert: "You are not authorized to perform this action." }
@@ -145,6 +190,31 @@ module LcpRuby
         format.html { render plain: "Configuration error: #{exception.message}", status: :internal_server_error }
         format.json { render json: { error: exception.message }, status: :internal_server_error }
       end
+    end
+
+    def log_authorization_denied(action:, resource:, detail: nil)
+      user_id = current_user&.id
+      user_roles = begin
+        current_evaluator&.roles
+      rescue LcpRuby::MetadataError, Pundit::NotAuthorizedError
+        nil
+      end
+
+      payload = {
+        user_id: user_id,
+        roles: user_roles,
+        action: action,
+        resource: resource,
+        detail: detail,
+        ip: request.remote_ip
+      }
+
+      Rails.logger.warn(
+        "[LcpRuby::Auth] Access denied: user=#{user_id} roles=#{user_roles&.join(',')}" \
+        " action=#{action} resource=#{resource} detail=#{detail}"
+      )
+
+      ActiveSupport::Notifications.instrument("authorization.lcp_ruby", payload)
     end
   end
 end

@@ -18,6 +18,7 @@ module LcpRuby
       LcpRuby.loader.view_group_definitions.values.filter_map do |vg|
         presenter = LcpRuby.loader.presenter_definitions[vg.primary_presenter]
         next unless presenter&.routable?
+        next unless presenter_accessible?(presenter)
 
         all_slugs = vg.presenter_names.filter_map do |name|
           LcpRuby.loader.presenter_definitions[name]&.slug
@@ -32,6 +33,20 @@ module LcpRuby
           all_slugs: all_slugs
         }
       end.sort_by { |entry| entry[:navigation]["position"] || 99 }
+    end
+
+    private
+
+    def presenter_accessible?(presenter)
+      user = LcpRuby::Current.user
+      return true unless user
+
+      perm_def = LcpRuby.loader.permission_definition(presenter.model)
+      evaluator = LcpRuby::Authorization::PermissionEvaluator.new(perm_def, user, presenter.model)
+      evaluator.can_access_presenter?(presenter.name)
+    rescue LcpRuby::MetadataError => e
+      Rails.logger.debug("[LcpRuby::Menu] No permissions for model '#{presenter.model}', showing menu item: #{e.message}")
+      true
     end
   end
 end
