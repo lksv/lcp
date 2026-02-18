@@ -1,10 +1,11 @@
 <% if action["_disabled"] %>
   <span class="<%= css_class %> lcp-action-disabled"><%= action["label"] || action["name"].humanize %></span>
 <% elsif action["type"] == "custom" %>
+  <% btn_class = "#{css_class} #{'btn-danger' if action['style'] == 'danger'}" %>
   <%= button_to action["label"] || action["name"].humanize,
         single_action_path(record, action_name: action["name"]),
         data: action["confirm"] ? { turbo_confirm: action["confirm_message"] || "Are you sure?" } : {},
-        class: "#{css_class} #{'btn-danger' if action['style'] == 'danger'}" %>
+        class: btn_class, form_class: css_class %>
 <% else %>
   <% case action["name"] %>
   <% when "show" %>
@@ -15,6 +16,6 @@
     <%= button_to "Delete", resource_path(record),
           method: :delete,
           data: { turbo_confirm: action["confirm_message"] || "Are you sure?" },
-          class: "#{css_class} btn-danger" %>
+          class: "#{css_class} btn-danger", form_class: css_class %>
   <% end %>
 <% end %>
