@@ -1,0 +1,13 @@
+view_group:
+  model: company
+  primary: company_admin
+  navigation:
+    menu: main
+    position: 1
+  views:
+    - presenter: company_admin
+      label: "Detailed"
+      icon: maximize
+    - presenter: company_short
+      label: "Short"
+      icon: list

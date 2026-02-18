@@ -38,7 +38,6 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(hash).not_to have_key("form")
       expect(hash).not_to have_key("search")
       expect(hash).not_to have_key("actions")
-      expect(hash).not_to have_key("navigation")
     end
 
     it "includes read_only at top level" do
@@ -780,30 +779,6 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
     end
   end
 
-  describe "navigation" do
-    it "produces navigation hash with menu and position" do
-      builder = described_class.new(:test)
-      builder.instance_eval do
-        model :deal
-        navigation menu: :main, position: 3
-      end
-      hash = builder.to_hash
-
-      expect(hash["navigation"]).to eq({ "menu" => "main", "position" => 3 })
-    end
-
-    it "supports navigation without position" do
-      builder = described_class.new(:test)
-      builder.instance_eval do
-        model :deal
-        navigation menu: :public
-      end
-      hash = builder.to_hash
-
-      expect(hash["navigation"]).to eq({ "menu" => "public" })
-    end
-  end
-
   describe "#to_hash_with_parent" do
     let(:parent_hash) do
       {
@@ -830,8 +805,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         "actions" => {
           "collection" => [ { "name" => "create", "type" => "built_in" } ],
           "single" => [ { "name" => "show", "type" => "built_in" } ]
-        },
-        "navigation" => { "menu" => "main", "position" => 3 }
+        }
       }
     end
 
@@ -904,7 +878,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       })
     end
 
-    it "inherits show, form, search, navigation from parent when child does not define them" do
+    it "inherits show, form, search from parent when child does not define them" do
       builder = described_class.new(:deal_pipeline)
       builder.instance_eval do
         label "Pipeline"
@@ -915,7 +889,6 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(merged["show"]).to eq(parent_hash["show"])
       expect(merged["form"]).to eq(parent_hash["form"])
       expect(merged["search"]).to eq(parent_hash["search"])
-      expect(merged["navigation"]).to eq(parent_hash["navigation"])
     end
 
     it "adds read_only option from child" do
@@ -1009,8 +982,6 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
           visible_when: { field: :status, operator: :not_in, value: [ :archived, :completed ] },
           style: :danger
         action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
-
-        navigation menu: :main, position: 1
       end
 
       yaml_definition = LcpRuby::Metadata::PresenterDefinition.from_hash(yaml_hash)
@@ -1040,9 +1011,6 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       # Actions
       expect(dsl_definition.collection_actions).to eq(yaml_definition.collection_actions)
       expect(dsl_definition.single_actions).to eq(yaml_definition.single_actions)
-
-      # Navigation
-      expect(dsl_definition.navigation_config).to eq(yaml_definition.navigation_config)
 
       # Options
       expect(dsl_definition.options).to eq(yaml_definition.options)

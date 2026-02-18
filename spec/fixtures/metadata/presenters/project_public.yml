@@ -25,7 +25,3 @@ presenter:
   search:
     enabled: true
     searchable_fields: [title]
-
-  navigation:
-    menu: public
-    position: 1

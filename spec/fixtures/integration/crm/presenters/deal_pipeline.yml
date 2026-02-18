@@ -31,7 +31,3 @@ presenter:
     collection: []
     single:
       - { name: show, type: built_in, icon: eye }
-
-  navigation:
-    menu: main
-    position: 4

@@ -48,5 +48,4 @@ define_presenter :contact_admin do
   action :edit, type: :built_in, on: :single, icon: "pencil"
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
 
-  navigation menu: :main, position: 2
 end

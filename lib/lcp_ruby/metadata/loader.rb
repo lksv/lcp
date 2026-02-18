@@ -3,13 +3,15 @@ require "yaml"
 module LcpRuby
   module Metadata
     class Loader
-      attr_reader :base_path, :model_definitions, :presenter_definitions, :permission_definitions
+      attr_reader :base_path, :model_definitions, :presenter_definitions,
+                  :permission_definitions, :view_group_definitions
 
       def initialize(base_path)
         @base_path = Pathname.new(base_path)
         @model_definitions = {}
         @presenter_definitions = {}
         @permission_definitions = {}
+        @view_group_definitions = {}
       end
 
       def load_all
@@ -17,7 +19,9 @@ module LcpRuby
         load_models
         load_presenters
         load_permissions
+        load_view_groups
         validate_references
+        auto_create_view_groups
       end
 
       def load_types
@@ -56,6 +60,28 @@ module LcpRuby
           definition = PermissionDefinition.from_hash(permission_data)
           @permission_definitions[definition.model] = definition
         end
+      end
+
+      def load_view_groups
+        @view_group_definitions = {}
+
+        load_yamls("views") do |data, file_path|
+          vg_data = data["view_group"] || raise(MetadataError, "Missing 'view_group' key in #{file_path}")
+          # Inject file-based name if not present
+          vg_data["name"] ||= File.basename(file_path, ".*")
+          definition = ViewGroupDefinition.from_hash({ "view_group" => vg_data })
+          @view_group_definitions[definition.name] = definition
+        end
+
+        load_dsl_view_groups("views")
+      end
+
+      def view_groups_for_model(model_name)
+        @view_group_definitions.values.select { |vg| vg.model == model_name.to_s }
+      end
+
+      def view_group_for_presenter(presenter_name)
+        @view_group_definitions.values.find { |vg| vg.presenter_names.include?(presenter_name.to_s) }
       end
 
       def model_definition(name)
@@ -129,11 +155,80 @@ module LcpRuby
         @presenter_definitions[definition.name] = definition
       end
 
+      def register_view_group_definition!(definition, source_path)
+        if @view_group_definitions.key?(definition.name)
+          raise MetadataError,
+            "Duplicate view group '#{definition.name}' — already loaded, conflict at #{source_path}"
+        end
+        @view_group_definitions[definition.name] = definition
+      end
+
+      def load_dsl_view_groups(subdirectory)
+        dir = base_path.join(subdirectory)
+        dsl_definitions = Dsl::DslLoader.load_view_groups(dir)
+        dsl_definitions.each do |name, definition|
+          register_view_group_definition!(definition, dir.join("#{name}.rb"))
+        end
+      end
+
+      def auto_create_view_groups
+        # Group presenters by model
+        presenters_by_model = {}
+        @presenter_definitions.each_value do |presenter|
+          (presenters_by_model[presenter.model] ||= []) << presenter
+        end
+
+        presenters_by_model.each do |model_name, presenters|
+          # Skip if an explicit view group already covers this model
+          next if view_groups_for_model(model_name).any?
+          # Only auto-create if exactly one presenter for this model
+          next unless presenters.length == 1
+
+          presenter = presenters.first
+          vg = ViewGroupDefinition.new(
+            name: "#{model_name}_auto",
+            model: model_name,
+            primary_presenter: presenter.name,
+            navigation_config: { "menu" => "main", "position" => 99 },
+            views: [ { "presenter" => presenter.name, "label" => presenter.label } ]
+          )
+          @view_group_definitions[vg.name] = vg
+
+          Rails.logger.info("Auto-created view group for model '#{model_name}' with presenter '#{presenter.name}'") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
+        end
+      end
+
       def validate_references
         @presenter_definitions.each_value do |presenter|
           unless @model_definitions.key?(presenter.model)
             raise MetadataError,
               "Presenter '#{presenter.name}' references unknown model '#{presenter.model}'"
+          end
+        end
+
+        validate_view_group_references
+      end
+
+      def validate_view_group_references
+        presenter_in_groups = {}
+
+        @view_group_definitions.each_value do |vg|
+          unless @model_definitions.key?(vg.model)
+            raise MetadataError,
+              "View group '#{vg.name}' references unknown model '#{vg.model}'"
+          end
+
+          vg.presenter_names.each do |pname|
+            unless @presenter_definitions.key?(pname)
+              raise MetadataError,
+                "View group '#{vg.name}' references unknown presenter '#{pname}'"
+            end
+
+            if presenter_in_groups.key?(pname)
+              raise MetadataError,
+                "Presenter '#{pname}' appears in multiple view groups: '#{presenter_in_groups[pname]}' and '#{vg.name}'"
+            end
+            presenter_in_groups[pname] = vg.name
           end
         end
       end

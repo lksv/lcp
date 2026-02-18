@@ -1,0 +1,9 @@
+view_group:
+  model: todo_item
+  primary: todo_item_admin
+  navigation:
+    menu: main
+    position: 2
+  views:
+    - presenter: todo_item_admin
+      label: "Todo Items"

@@ -149,6 +149,27 @@ module LcpRuby
       end
       private_class_method :topological_sort_presenters
 
+      def self.load_view_groups(dir)
+        definitions = {}
+        return definitions unless dir.exist?
+
+        Dir[dir.join("*.rb")].sort.each do |file_path|
+          context = ViewGroupEvalContext.new
+          context.instance_eval(File.read(file_path), file_path)
+          context.view_group_definitions.each do |vg_def|
+            if definitions.key?(vg_def.name)
+              raise MetadataError,
+                "Duplicate view group '#{vg_def.name}' in DSL files — conflict at #{file_path}"
+            end
+            definitions[vg_def.name] = vg_def
+          end
+        rescue SyntaxError => e
+          raise MetadataError, "Ruby DSL syntax error in #{file_path}: #{e.message}"
+        end
+
+        definitions
+      end
+
       # Isolated evaluation context to prevent DSL files from
       # accessing the DslLoader internals.
       class EvalContext
@@ -179,6 +200,22 @@ module LcpRuby
           builder.instance_eval(&block)
           hash = builder.to_hash
           @type_definitions << Types::TypeDefinition.from_hash(hash)
+        end
+      end
+
+      # Isolated evaluation context for view group DSL files.
+      class ViewGroupEvalContext
+        attr_reader :view_group_definitions
+
+        def initialize
+          @view_group_definitions = []
+        end
+
+        def define_view_group(name, &block)
+          builder = ViewGroupBuilder.new(name)
+          builder.instance_eval(&block)
+          hash = builder.to_hash
+          @view_group_definitions << Metadata::ViewGroupDefinition.from_hash(hash)
         end
       end
 

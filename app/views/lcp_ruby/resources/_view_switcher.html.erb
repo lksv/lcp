@@ -1,0 +1,16 @@
+<% if current_view_group&.has_switcher? %>
+  <div class="lcp-view-switcher">
+    <% sibling_views.each do |view| %>
+      <% active = view["presenter_name"] == current_presenter.name %>
+      <% if @record %>
+        <%= link_to view["label"] || view["presenter_name"],
+              lcp_ruby.resource_path(lcp_slug: view["slug"], id: @record.id),
+              class: "btn lcp-view-btn #{active ? 'active' : ''}" %>
+      <% else %>
+        <%= link_to view["label"] || view["presenter_name"],
+              lcp_ruby.resources_path(lcp_slug: view["slug"], **request.query_parameters.except("lcp_slug")),
+              class: "btn lcp-view-btn #{active ? 'active' : ''}" %>
+      <% end %>
+    <% end %>
+  </div>
+<% end %>

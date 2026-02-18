@@ -1,0 +1,13 @@
+view_group:
+  model: deal
+  primary: deal_admin
+  navigation:
+    menu: main
+    position: 3
+  views:
+    - presenter: deal_admin
+      label: "Detailed"
+      icon: maximize
+    - presenter: deal_short
+      label: "Short"
+      icon: list

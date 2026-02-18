@@ -61,7 +61,3 @@ presenter:
       - { name: show, type: built_in, icon: eye }
       - { name: edit, type: built_in, icon: pencil }
       - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }
-
-  navigation:
-    menu: main
-    position: 1

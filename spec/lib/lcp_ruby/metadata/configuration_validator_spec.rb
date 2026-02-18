@@ -9,9 +9,9 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
   before { loader.load_all }
 
   # Helper to create a temporary metadata directory with YAML files
-  def create_metadata(models: [], presenters: [], permissions: [])
+  def create_metadata(models: [], presenters: [], permissions: [], view_groups: [])
     dir = Dir.mktmpdir("lcp_test")
-    %w[models presenters permissions].each { |d| FileUtils.mkdir_p(File.join(dir, d)) }
+    %w[models presenters permissions views].each { |d| FileUtils.mkdir_p(File.join(dir, d)) }
 
     models.each_with_index do |yaml, i|
       File.write(File.join(dir, "models", "model_#{i}.yml"), yaml)
@@ -21,6 +21,9 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
     permissions.each_with_index do |yaml, i|
       File.write(File.join(dir, "permissions", "perm_#{i}.yml"), yaml)
+    end
+    view_groups.each_with_index do |yaml, i|
+      File.write(File.join(dir, "views", "vg_#{i}.yml"), yaml)
     end
 
     dir
@@ -735,6 +738,269 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       result = v.validate
       through_errors = result.errors.select { |e| e.include?("through") }
       expect(through_errors).to be_empty
+    end
+  end
+
+  # --- View group validations ---
+  # Note: Structural errors (unknown model/presenter, presenter in multiple groups,
+  # primary not in views list) are caught by Loader.validate_references at load time,
+  # before the ConfigurationValidator runs. Those are tested in loader_view_groups_spec.
+  # The ConfigurationValidator adds position uniqueness warnings.
+
+  context "view group references unknown model" do
+    let(:metadata_path) { "" }
+
+    it "is caught by loader.validate_references at load time" do
+      expect {
+        with_metadata(
+          models: [ <<~YAML ],
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+          YAML
+          presenters: [ <<~YAML ],
+            presenter:
+              name: project_admin
+              model: project
+              slug: projects
+          YAML
+          view_groups: [ <<~YAML ]
+            view_group:
+              name: bad_group
+              model: nonexistent
+              primary: project_admin
+              views:
+                - presenter: project_admin
+          YAML
+        )
+      }.to raise_error(LcpRuby::MetadataError, /unknown model/)
+    end
+  end
+
+  context "view group references unknown presenter" do
+    let(:metadata_path) { "" }
+
+    it "is caught by loader.validate_references at load time" do
+      expect {
+        with_metadata(
+          models: [ <<~YAML ],
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+          YAML
+          presenters: [ <<~YAML ],
+            presenter:
+              name: project_admin
+              model: project
+              slug: projects
+          YAML
+          view_groups: [ <<~YAML ]
+            view_group:
+              name: bad_group
+              model: project
+              primary: project_admin
+              views:
+                - presenter: project_admin
+                - presenter: ghost_presenter
+          YAML
+        )
+      }.to raise_error(LcpRuby::MetadataError, /unknown presenter/)
+    end
+  end
+
+  context "presenter in multiple view groups" do
+    let(:metadata_path) { "" }
+
+    it "is caught by loader.validate_references at load time" do
+      expect {
+        with_metadata(
+          models: [ <<~YAML ],
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+          YAML
+          presenters: [
+            <<~YAML,
+              presenter:
+                name: project_admin
+                model: project
+                slug: projects
+            YAML
+            <<~YAML
+              presenter:
+                name: project_public
+                model: project
+                slug: public-projects
+            YAML
+          ],
+          view_groups: [
+            <<~YAML,
+              view_group:
+                name: group_a
+                model: project
+                primary: project_admin
+                views:
+                  - presenter: project_admin
+            YAML
+            <<~YAML
+              view_group:
+                name: group_b
+                model: project
+                primary: project_public
+                views:
+                  - presenter: project_public
+                  - presenter: project_admin
+            YAML
+          ]
+        )
+      }.to raise_error(LcpRuby::MetadataError, /multiple view groups/)
+    end
+  end
+
+  context "view group primary not in views list" do
+    let(:metadata_path) { "" }
+
+    it "is caught by ViewGroupDefinition.validate! at load time" do
+      expect {
+        with_metadata(
+          models: [ <<~YAML ],
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+          YAML
+          presenters: [
+            <<~YAML,
+              presenter:
+                name: project_admin
+                model: project
+                slug: projects
+            YAML
+            <<~YAML
+              presenter:
+                name: project_public
+                model: project
+                slug: public-projects
+            YAML
+          ],
+          view_groups: [ <<~YAML ]
+            view_group:
+              name: bad_primary
+              model: project
+              primary: project_public
+              views:
+                - presenter: project_admin
+          YAML
+        )
+      }.to raise_error(LcpRuby::MetadataError, /primary presenter 'project_public'.*not in the views list/)
+    end
+  end
+
+  context "view group duplicate navigation positions" do
+    let(:metadata_path) { "" }
+
+    it "warns about duplicate positions" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [
+          <<~YAML,
+            presenter:
+              name: project_admin
+              model: project
+              slug: projects
+          YAML
+          <<~YAML
+            presenter:
+              name: project_public
+              model: project
+              slug: public-projects
+          YAML
+        ],
+        view_groups: [
+          <<~YAML,
+            view_group:
+              name: group_a
+              model: project
+              primary: project_admin
+              navigation:
+                menu: main
+                position: 1
+              views:
+                - presenter: project_admin
+          YAML
+          <<~YAML
+            view_group:
+              name: group_b
+              model: project
+              primary: project_public
+              navigation:
+                menu: main
+                position: 1
+              views:
+                - presenter: project_public
+          YAML
+        ]
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/navigation position 1.*also used by/)
+      )
+    end
+  end
+
+  context "valid view group configuration" do
+    let(:metadata_path) { "" }
+
+    it "passes validation" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [
+          <<~YAML,
+            presenter:
+              name: project_admin
+              model: project
+              slug: projects
+          YAML
+          <<~YAML
+            presenter:
+              name: project_public
+              model: project
+              slug: public-projects
+          YAML
+        ],
+        view_groups: [ <<~YAML ]
+          view_group:
+            name: projects
+            model: project
+            primary: project_admin
+            navigation:
+              menu: main
+              position: 1
+            views:
+              - presenter: project_admin
+                label: "Admin"
+              - presenter: project_public
+                label: "Public"
+        YAML
+      )
+
+      result = v.validate
+      vg_errors = result.errors.select { |e| e.include?("View group") || e.include?("view group") }
+      expect(vg_errors).to be_empty
     end
   end
 

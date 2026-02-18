@@ -3,7 +3,7 @@ module LcpRuby
     class PresenterDefinition
       attr_reader :name, :model, :label, :slug, :icon,
                   :index_config, :show_config, :form_config, :search_config,
-                  :actions_config, :navigation_config, :options
+                  :actions_config, :options
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -16,7 +16,6 @@ module LcpRuby
         @form_config = HashUtils.stringify_deep(attrs[:form_config] || {})
         @search_config = HashUtils.stringify_deep(attrs[:search_config] || {})
         @actions_config = HashUtils.stringify_deep(attrs[:actions_config] || {})
-        @navigation_config = HashUtils.stringify_deep(attrs[:navigation_config] || {})
         @options = HashUtils.stringify_deep(attrs[:options] || {})
 
         validate!
@@ -34,7 +33,6 @@ module LcpRuby
           form_config: hash["form"] || {},
           search_config: hash["search"] || {},
           actions_config: hash["actions"] || {},
-          navigation_config: hash["navigation"] || {},
           options: extract_options(hash)
         )
       end

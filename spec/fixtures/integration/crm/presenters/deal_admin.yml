@@ -70,7 +70,3 @@ presenter:
         visible_when: { field: stage, operator: not_in, value: [closed_won, closed_lost] }
         disable_when: { field: value, operator: blank }
       - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }
-
-  navigation:
-    menu: main
-    position: 3
