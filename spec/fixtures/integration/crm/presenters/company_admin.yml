@@ -24,6 +24,12 @@ presenter:
           - { field: industry, display: badge }
           - { field: website }
           - { field: phone }
+      - section: "Contacts"
+        type: association_list
+        association: contacts
+      - section: "Deals"
+        type: association_list
+        association: deals
 
   form:
     sections:

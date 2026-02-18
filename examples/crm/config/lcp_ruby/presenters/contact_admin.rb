@@ -10,8 +10,9 @@ define_presenter :contact_admin do
     per_page 25
     row_click :show
 
-    column :full_name, width: "30%", link_to: :show, sortable: true
-    column :email, width: "25%", display: :email_link
+    column :full_name, width: "25%", link_to: :show, sortable: true
+    column :company_id, width: "15%"
+    column :email, width: "20%", display: :email_link
     column :phone, width: "15%", display: :phone_link
     column :active, width: "10%", display: :boolean_icon
   end

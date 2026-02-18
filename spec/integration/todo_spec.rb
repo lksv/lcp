@@ -709,6 +709,82 @@ RSpec.describe "TODO App Integration", type: :request do
     end
   end
 
+  describe "Eager loading" do
+    let!(:list) { todo_list_model.create!(title: "My List") }
+
+    before { stub_current_user(role: "admin") }
+
+    it "preloads todo_list for items index (avoids N+1)" do
+      3.times { |i| todo_item_model.create!(title: "Item #{i}", todo_list_id: list.id) }
+
+      queries = []
+      callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
+      begin
+        ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
+        get "/admin/items"
+      ensure
+        ActiveSupport::Notifications.unsubscribe(callback)
+      end
+
+      expect(response).to have_http_status(:ok)
+      # The list name should appear in the response (resolved via association)
+      expect(response.body).to include("My List")
+
+      # There should be only one SELECT for todo_lists (batched includes),
+      # not one per item
+      todo_list_selects = queries.select { |q| q.include?("SELECT") && q.include?("todo_lists") }
+      expect(todo_list_selects.size).to eq(1)
+    end
+
+    it "preloads todo_items for list show page" do
+      3.times { |i| todo_item_model.create!(title: "Show Item #{i}", todo_list_id: list.id) }
+
+      queries = []
+      callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
+      begin
+        ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
+        get "/admin/lists/#{list.id}"
+      ensure
+        ActiveSupport::Notifications.unsubscribe(callback)
+      end
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Show Item 0")
+      expect(response.body).to include("Show Item 1")
+      expect(response.body).to include("Show Item 2")
+
+      # Preloader should batch-load todo_items in one query
+      todo_item_selects = queries.select { |q| q.include?("SELECT") && q.include?("todo_items") }
+      expect(todo_item_selects.size).to eq(1)
+    end
+  end
+
+  describe "Eager loading error handling" do
+    before { stub_current_user(role: "admin") }
+
+    it "falls back gracefully when loading strategy resolution fails on index" do
+      todo_list_model.create!(title: "Fallback List")
+
+      allow(LcpRuby::Presenter::IncludesResolver).to receive(:resolve).and_raise(StandardError, "resolver boom")
+
+      get "/admin/lists"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Fallback List")
+    end
+
+    it "falls back gracefully when preload_associations fails on show" do
+      list = todo_list_model.create!(title: "Show Fallback")
+
+      allow(ActiveRecord::Associations::Preloader).to receive(:new).and_raise(StandardError, "preloader boom")
+
+      get "/admin/lists/#{list.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Show Fallback")
+    end
+  end
+
   describe "Nested permits (build_nested_permits)" do
     it "permits nested attributes based on model association" do
       expect {

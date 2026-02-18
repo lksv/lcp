@@ -169,6 +169,8 @@ module LcpRuby
         @row_click_value = nil
         @empty_message_value = nil
         @actions_position_value = nil
+        @includes_list = nil
+        @eager_load_list = nil
       end
 
       def default_view(value)
@@ -207,6 +209,14 @@ module LcpRuby
         @columns << col
       end
 
+      def includes(*assocs)
+        @includes_list = assocs.flatten.map { |a| a.is_a?(Hash) ? HashUtils.stringify_deep(a) : a.to_s }
+      end
+
+      def eager_load(*assocs)
+        @eager_load_list = assocs.flatten.map { |a| a.is_a?(Hash) ? HashUtils.stringify_deep(a) : a.to_s }
+      end
+
       def to_hash
         hash = {}
         hash["default_view"] = @default_view if @default_view
@@ -217,6 +227,8 @@ module LcpRuby
         hash["row_click"] = @row_click_value if @row_click_value
         hash["empty_message"] = @empty_message_value if @empty_message_value
         hash["actions_position"] = @actions_position_value if @actions_position_value
+        hash["includes"] = @includes_list if @includes_list
+        hash["eager_load"] = @eager_load_list if @eager_load_list
         hash
       end
     end
@@ -248,6 +260,8 @@ module LcpRuby
     class ShowBuilder
       def initialize
         @layout = []
+        @includes_list = nil
+        @eager_load_list = nil
       end
 
       def section(title, columns: 1, responsive: nil, &block)
@@ -269,8 +283,19 @@ module LcpRuby
         }
       end
 
+      def includes(*assocs)
+        @includes_list = assocs.flatten.map { |a| a.is_a?(Hash) ? HashUtils.stringify_deep(a) : a.to_s }
+      end
+
+      def eager_load(*assocs)
+        @eager_load_list = assocs.flatten.map { |a| a.is_a?(Hash) ? HashUtils.stringify_deep(a) : a.to_s }
+      end
+
       def to_hash
-        { "layout" => @layout }
+        hash = { "layout" => @layout }
+        hash["includes"] = @includes_list if @includes_list
+        hash["eager_load"] = @eager_load_list if @eager_load_list
+        hash
       end
 
       private
@@ -284,6 +309,8 @@ module LcpRuby
       def initialize
         @sections = []
         @layout_value = nil
+        @includes_list = nil
+        @eager_load_list = nil
       end
 
       def layout(value)
@@ -332,9 +359,19 @@ module LcpRuby
         @sections << section_hash
       end
 
+      def includes(*assocs)
+        @includes_list = assocs.flatten.map { |a| a.is_a?(Hash) ? HashUtils.stringify_deep(a) : a.to_s }
+      end
+
+      def eager_load(*assocs)
+        @eager_load_list = assocs.flatten.map { |a| a.is_a?(Hash) ? HashUtils.stringify_deep(a) : a.to_s }
+      end
+
       def to_hash
         hash = { "sections" => @sections }
         hash["layout"] = @layout_value if @layout_value
+        hash["includes"] = @includes_list if @includes_list
+        hash["eager_load"] = @eager_load_list if @eager_load_list
         hash
       end
 

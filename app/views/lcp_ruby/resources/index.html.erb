@@ -36,10 +36,11 @@
       <p><%= current_presenter.index_config["empty_message"] %></p>
     </div>
   <% else %>
+    <% columns = @column_set.visible_table_columns %>
     <table class="lcp-table">
       <thead>
         <tr>
-          <% @column_set.visible_table_columns.each do |col| %>
+          <% columns.each do |col| %>
 
             <th style="<%= "width: #{col['width']}" if col['width'] %>"
                 class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
@@ -63,10 +64,16 @@
         <% @records.each do |record| %>
           <tr class="<%= 'lcp-row-clickable' if current_presenter.index_config['row_click'] %>"
               data-href="<%= resource_path(record) if current_presenter.index_config['row_click'] %>">
-            <% @column_set.visible_table_columns.each do |col| %>
-  
+            <% columns.each do |col| %>
+
               <td class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
-                <% value = record.send(col["field"]) rescue nil %>
+                <% assoc = @fk_map[col["field"].to_s] %>
+                <% if assoc %>
+                  <% assoc_record = record.send(assoc.name) %>
+                  <% value = assoc_record ? (assoc_record.respond_to?(:to_label) ? assoc_record.to_label : assoc_record.to_s) : nil %>
+                <% else %>
+                  <% value = record.respond_to?(col["field"]) ? record.send(col["field"]) : nil %>
+                <% end %>
                 <% if col["link_to"] == "show" %>
                   <%= link_to render_display_value(value, col["display"], col["display_options"]), resource_path(record) %>
                 <% elsif col["display"] %>
@@ -98,8 +105,8 @@
       <% if @summaries&.any? %>
         <tfoot>
           <tr class="lcp-summary-row">
-            <% @column_set.visible_table_columns.each do |col| %>
-  
+            <% columns.each do |col| %>
+
               <td>
                 <% if @summaries[col["field"]] %>
                   <strong><%= col["summary"] == "avg" ? number_with_precision(@summaries[col["field"]], precision: 2) : @summaries[col["field"]] %></strong>

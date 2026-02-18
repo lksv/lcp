@@ -194,6 +194,36 @@ index:
   actions_position: dropdown
 ```
 
+### `includes`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `[]` |
+| **Type** | array of strings or nested hashes |
+
+Manually specify associations to preload for display purposes. Auto-detection handles most cases, but this allows explicit overrides. See [Eager Loading](eager-loading.md).
+
+```yaml
+index:
+  includes: [company, contact]
+```
+
+### `eager_load`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `[]` |
+| **Type** | array of strings or nested hashes |
+
+Manually specify associations to eager load via LEFT JOIN. Use when associations are needed for sorting or filtering. See [Eager Loading](eager-loading.md).
+
+```yaml
+index:
+  eager_load: [company]
+```
+
 ### `table_columns`
 
 | | |
@@ -538,6 +568,7 @@ Controls the record detail view.
 
 ```yaml
 show:
+  includes: [contacts, deals]
   layout:
     - section: "Section Title"
       columns: 2
@@ -548,6 +579,10 @@ show:
       type: association_list
       association: contacts
 ```
+
+### `includes` / `eager_load`
+
+Same as index configuration. Manually specify associations to preload for the show page. Auto-detection handles `association_list` sections automatically. See [Eager Loading](eager-loading.md).
 
 ### `layout`
 
@@ -638,6 +673,7 @@ Controls the create and edit forms.
 ```yaml
 form:
   layout: flat
+  includes: [todo_items]
   sections:
     - title: "Section Title"
       columns: 2
@@ -647,6 +683,10 @@ form:
         - { field: value, input_type: number, prefix: "$" }
         - { field: company_id, input_type: association_select }
 ```
+
+### `includes` / `eager_load`
+
+Same as index configuration. Manually specify associations to preload for the form. Auto-detection handles `nested_fields` sections automatically. See [Eager Loading](eager-loading.md).
 
 ### `layout`
 

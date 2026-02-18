@@ -16,6 +16,7 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [View Groups Reference](docs/reference/view-groups.md) — Navigation menu, view switching, auto-creation
 - [Permissions Reference](docs/reference/permissions.md) — Complete permission YAML reference
 - [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
+- [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
 - [Presenter DSL Reference](docs/reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenters (with inheritance)
@@ -25,6 +26,7 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when` and `disable_when` on fields, sections, and actions
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
+- [Eager Loading Guide](docs/guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [View Groups Guide](docs/guides/view-groups.md) — Multi-view navigation and view switcher setup
 - [Developer Tools](docs/guides/developer-tools.md) — Validate and ERD rake tasks
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views
@@ -88,7 +90,7 @@ YAML metadata (config/lcp_ruby/)
 | `Metadata` | `lib/lcp_ruby/metadata/` | Parses YAML into definition objects (ModelDefinition, PresenterDefinition, etc.) |
 | `Types` | `lib/lcp_ruby/types/` | TypeRegistry, TypeDefinition, ServiceRegistry, built-in types (email, phone, url, color), transforms (strip, downcase, normalize_url, normalize_phone) |
 | `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator |
-| `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections), ColumnSet (visible columns), ActionSet (visible actions) |
+| `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections), ColumnSet (visible columns), ActionSet (visible actions), IncludesResolver (auto-detects and applies eager loading from presenter metadata) |
 | `Authorization` | `lib/lcp_ruby/authorization/` | PolicyFactory (dynamic Pundit policies), PermissionEvaluator (can?, readable_fields, writable_fields), ScopeBuilder |
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |
 | `Actions` | `lib/lcp_ruby/actions/` | ActionExecutor + ActionRegistry. Host apps define custom actions in `app/actions/` |

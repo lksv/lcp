@@ -179,6 +179,26 @@ Controls how row-level actions are displayed.
 actions_position :dropdown
 ```
 
+#### `includes(*associations)`
+
+Manually specify associations to preload for display. See [Eager Loading](eager-loading.md).
+
+```ruby
+index do
+  includes :company, :contact
+end
+```
+
+#### `eager_load(*associations)`
+
+Manually specify associations to eager load via LEFT JOIN. See [Eager Loading](eager-loading.md).
+
+```ruby
+index do
+  eager_load :company
+end
+```
+
 #### `column(field_name, **options)`
 
 Adds a table column.
@@ -211,6 +231,10 @@ end
 ```
 
 ### Show Methods
+
+#### `includes(*associations)` / `eager_load(*associations)`
+
+Same as index. Manually specify associations to preload for the show page. Auto-detection handles `association_list` sections automatically. See [Eager Loading](eager-loading.md).
 
 #### `section(title, columns: 1, responsive: nil, &block)`
 
@@ -268,6 +292,10 @@ end
 ```
 
 ### Form Methods
+
+#### `includes(*associations)` / `eager_load(*associations)`
+
+Same as index. Manually specify associations to preload for the form. Auto-detection handles `nested_fields` sections automatically. See [Eager Loading](eager-loading.md).
 
 #### `layout(value)`
 
@@ -563,6 +591,8 @@ Inheritance is purely a DSL convenience — the result is always a flat hash ide
 | `slug "deals"` | `slug: deals` |
 | `read_only true` | `read_only: true` |
 | `index do ... end` | `index: { ... }` |
+| `includes :company` | `index: { includes: [company] }` |
+| `eager_load :company` | `index: { eager_load: [company] }` |
 | `column :title, sortable: true` | `table_columns: [{ field: title, sortable: true }]` |
 | `row_click :show` | `index: { row_click: show }` |
 | `empty_message "No records."` | `index: { empty_message: "No records." }` |
