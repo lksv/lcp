@@ -102,4 +102,38 @@ RSpec.describe "Impersonation", type: :request do
       expect(response.body).to include("Impersonate")
     end
   end
+
+  describe "authorization audit logging" do
+    before { stub_current_user(role: "viewer") }
+
+    it "publishes ActiveSupport::Notifications event on access denial" do
+      events = []
+      subscription = ActiveSupport::Notifications.subscribe("authorization.lcp_ruby") do |*, payload|
+        events << payload
+      end
+
+      get "/admin/deals"
+
+      ActiveSupport::Notifications.unsubscribe(subscription)
+
+      # First event from authorize_presenter_access, second from user_not_authorized rescue
+      expect(events.size).to be >= 1
+      presenter_event = events.find { |e| e[:action] == "access_presenter" }
+      expect(presenter_event).to be_present
+      expect(presenter_event[:resource]).to eq("deal_admin")
+      expect(presenter_event[:detail]).to eq("presenter access denied")
+      expect(presenter_event[:user_id]).to eq(1)
+      expect(presenter_event[:roles]).to include("viewer")
+    end
+
+    it "logs denial to Rails.logger" do
+      allow(Rails.logger).to receive(:warn).and_call_original
+
+      get "/admin/deals"
+
+      expect(Rails.logger).to have_received(:warn).with(
+        a_string_including("[LcpRuby::Auth] Access denied")
+      ).at_least(:once)
+    end
+  end
 end
