@@ -399,7 +399,7 @@ module LcpRuby
           assoc = field_config["association"] || field_config["multi_select_association"]
           next unless assoc&.lcp_model?
 
-          submitted_value = record.send(field_name)
+          submitted_value = record.public_send(field_name)
           next if submitted_value.blank?
 
           input_options = field_config["input_options"] || {}
@@ -442,8 +442,8 @@ module LcpRuby
           default_value = field_config.dig("input_options", "default_value")
           next if default_value.nil?
 
-          if record.respond_to?("#{field_name}=") && record.send(field_name).blank?
-            record.send("#{field_name}=", default_value)
+          if record.respond_to?("#{field_name}=") && record.public_send(field_name).blank?
+            record.public_send("#{field_name}=", default_value)
           end
         end
       end
@@ -458,11 +458,11 @@ module LcpRuby
         min = (section["min"] || 0).to_i
         next unless min > 0
 
-        if record.respond_to?(assoc_name) && record.send(assoc_name).size < min
-          existing_count = record.send(assoc_name).size
+        if record.respond_to?(assoc_name) && record.public_send(assoc_name).size < min
+          existing_count = record.public_send(assoc_name).size
           pos = sortable_position_field(section)
           (min - existing_count).times do |i|
-            new_record = record.send(assoc_name).build
+            new_record = record.public_send(assoc_name).build
             if pos && new_record.respond_to?("#{pos}=")
               new_record[pos] = existing_count + i
             end
