@@ -60,8 +60,9 @@ module IntegrationHelper
   end
 
   # Stub the current_user method for integration tests
-  def stub_current_user(role: "admin", id: 1)
-    user = OpenStruct.new(id: id, lcp_role: role, name: "Test User")
+  def stub_current_user(role: ["admin"], id: 1)
+    roles = Array(role)
+    user = OpenStruct.new(id: id, lcp_role: roles, name: "Test User")
     allow_any_instance_of(LcpRuby::ApplicationController).to receive(:current_user).and_return(user)
     user
   end
