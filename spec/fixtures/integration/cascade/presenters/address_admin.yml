@@ -1,0 +1,60 @@
+presenter:
+  name: address_admin
+  model: address
+  label: "Addresses"
+  slug: addresses
+  navigable: true
+
+  index:
+    per_page: 25
+    table_columns:
+      - { field: street, width: "30%" }
+      - { field: region_id, width: "20%" }
+      - { field: city_id, width: "20%" }
+      - { field: district_id, width: "20%" }
+
+  show:
+    layout:
+      - section: "Address"
+        fields:
+          - { field: street }
+          - { field: region_id }
+          - { field: city_id }
+          - { field: district_id }
+
+  form:
+    sections:
+      - title: "Address Details"
+        columns: 2
+        fields:
+          - { field: street, placeholder: "Street address..." }
+          - field: region_id
+            input_type: association_select
+            input_options:
+              sort: { name: asc }
+          - field: city_id
+            input_type: association_select
+            input_options:
+              depends_on:
+                field: region_id
+                foreign_key: region_id
+              sort: { name: asc }
+          - field: district_id
+            input_type: association_select
+            input_options:
+              depends_on:
+                field: city_id
+                foreign_key: city_id
+              sort: { name: asc }
+
+  search:
+    enabled: true
+    searchable_fields: [street]
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Address" }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

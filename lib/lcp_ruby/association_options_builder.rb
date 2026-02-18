@@ -17,6 +17,25 @@ module LcpRuby
       "to_label"
     end
 
+    # Returns a Set of disabled IDs from static disabled_values or a named scope.
+    def resolve_disabled_values(assoc, input_options)
+      disabled = Set.new
+
+      if input_options["disabled_values"].is_a?(Array)
+        input_options["disabled_values"].each { |v| disabled << v.to_i }
+      end
+
+      if input_options["disabled_scope"]
+        target_class = LcpRuby.registry.model_for(assoc.target_model)
+        scope_name = input_options["disabled_scope"]
+        if target_class.respond_to?(scope_name)
+          target_class.send(scope_name).pluck(:id).each { |id| disabled << id }
+        end
+      end
+
+      disabled
+    end
+
     # Returns array of columns to SELECT, or nil when optimization is not safe.
     # Optimization is skipped when any referenced column (label, group_by, sort)
     # is not a real DB column (e.g. computed method like :to_label).
@@ -26,7 +45,7 @@ module LcpRuby
       label_col = label_method.to_s
       return nil unless target_class.column_names.include?(label_col)
 
-      cols = [:id, label_col.to_sym]
+      cols = [ :id, label_col.to_sym ]
 
       if group_by
         return nil unless target_class.column_names.include?(group_by.to_s)

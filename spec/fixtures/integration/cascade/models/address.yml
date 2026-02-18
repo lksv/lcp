@@ -1,0 +1,36 @@
+model:
+  name: address
+  label: "Address"
+  label_plural: "Addresses"
+
+  fields:
+    - name: street
+      type: string
+      label: "Street"
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+
+  associations:
+    - type: belongs_to
+      name: region
+      target_model: region
+      foreign_key: region_id
+      required: true
+    - type: belongs_to
+      name: city
+      target_model: city
+      foreign_key: city_id
+      required: true
+    - type: belongs_to
+      name: district
+      target_model: district
+      foreign_key: district_id
+      required: false
+
+  options:
+    timestamps: true
+    label_method: street
+    table_name: addresses
