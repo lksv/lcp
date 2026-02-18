@@ -157,7 +157,11 @@
     .lcp-actions-dropdown.open .lcp-dropdown-menu { display: block; }
     .lcp-dropdown-item { display: block; padding: 0.4rem 0.75rem; text-decoration: none; color: #333; font-size: 0.875rem; border: none; background: none; width: 100%; text-align: left; cursor: pointer; }
     .lcp-dropdown-item:hover { background: #f8f9fa; }
-    .lcp-dropdown-item.btn-danger { color: #dc3545; }
+    .lcp-dropdown-item.btn-danger, .lcp-dropdown-menu button.btn-danger { background: none; border: none; color: #dc3545; padding: 0.4rem 0.75rem; font-size: 0.875rem; width: 100%; text-align: left; cursor: pointer; }
+    .lcp-dropdown-menu button.btn-danger:hover { background: #f8f9fa; }
+    .lcp-dropdown-menu form.lcp-dropdown-item { padding: 0; margin: 0; }
+    .lcp-dropdown-menu button.lcp-dropdown-item { display: block; padding: 0.4rem 0.75rem; text-decoration: none; color: #333; font-size: 0.875rem; border: none; background: none; width: 100%; text-align: left; cursor: pointer; }
+    .lcp-dropdown-menu button.lcp-dropdown-item:hover { background: #f8f9fa; }
 
     /* Nested forms */
     .lcp-nested-section { background: #fff; }
