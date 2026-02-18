@@ -1,6 +1,7 @@
 require "lcp_ruby/version"
 require "lcp_ruby/hash_utils"
 require "lcp_ruby/configuration"
+require "lcp_ruby/association_options_builder"
 require "lcp_ruby/dynamic"
 require "lcp_ruby/current"
 require "lcp_ruby/condition_evaluator"

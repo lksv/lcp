@@ -38,7 +38,8 @@ define_presenter :contact_admin do
       field :phone, placeholder: "+1..."
       field :position, placeholder: "Job title..."
       field :active, input_type: :toggle
-      field :company_id, input_type: :association_select
+      field :company_id, input_type: :association_select,
+        input_options: { sort: { name: :asc }, group_by: :industry }
     end
   end
 

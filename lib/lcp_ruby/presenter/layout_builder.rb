@@ -34,6 +34,21 @@ module LcpRuby
 
       def normalize_section(section)
         fields = (section["fields"] || []).map do |f|
+          # Handle multi_select fields with has_many through associations
+          if f["input_type"] == "multi_select" && f.dig("input_options", "association")
+            assoc_name = f.dig("input_options", "association")
+            through_assoc = model_definition.associations.find { |a| a.name == assoc_name && a.through? }
+            if through_assoc
+              f = f.merge(
+                "field_definition" => Metadata::FieldDefinition.new(
+                  name: f["field"], type: "integer", label: assoc_name.to_s.humanize
+                ),
+                "multi_select_association" => through_assoc
+              )
+              next f
+            end
+          end
+
           field_def = model_definition.field(f["field"])
 
           if field_def.nil?

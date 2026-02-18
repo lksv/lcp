@@ -3,6 +3,7 @@
 <head>
   <title>LCP Ruby</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <%= stylesheet_link_tag "lcp_ruby/tom-select", media: "all" if Rails.application.config.respond_to?(:assets) %>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #333; background: #f5f5f5; line-height: 1.5; }
@@ -192,6 +193,25 @@
 
     /* Disabled action */
     .btn.lcp-action-disabled { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
+
+    /* Loading state for dependent selects */
+    .lcp-loading { opacity: 0.5; cursor: wait; }
+
+    /* Multi-select validation error */
+    .lcp-multi-select-error { display: block; color: #dc3545; font-size: 0.75rem; margin-top: 0.2rem; }
+
+    /* Tom Select overrides */
+    .ts-wrapper { font-size: 0.875rem; }
+    .ts-wrapper .ts-control { border: 1px solid #ccc; border-radius: 4px; padding: 0.3rem 0.5rem; min-height: 34px; background: #fff; }
+    .ts-wrapper .ts-control input { font-size: 0.875rem; }
+    .ts-wrapper.focus .ts-control { border-color: #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25); }
+    .ts-wrapper .ts-dropdown { border: 1px solid #ccc; border-radius: 4px; font-size: 0.875rem; }
+    .ts-wrapper .ts-dropdown .active { background: #e9ecef; color: #333; }
+    .ts-wrapper .ts-dropdown .option[data-disabled] { opacity: 0.5; cursor: not-allowed; }
+    .ts-wrapper .ts-dropdown .no-results { padding: 0.5rem 0.75rem; color: #6c757d; font-style: italic; }
+    .ts-wrapper .ts-dropdown .loading-more-results { padding: 0.5rem 0.75rem; color: #6c757d; text-align: center; }
+    .ts-wrapper.multi .ts-control .item { background: #e9ecef; border: 1px solid #ccc; border-radius: 3px; padding: 0.1rem 0.4rem; font-size: 0.8rem; }
+    .ts-wrapper.multi .ts-control .item .remove { border-left: 1px solid #ccc; margin-left: 0.3rem; }
 
     /* Navigation */
     .lcp-nav { background: #fff; border-bottom: 1px solid #dee2e6; margin-bottom: 1rem; padding: 0 2rem; }
@@ -567,28 +587,29 @@
       });
     });
 
-    /* Conditional rendering (visible_when / disable_when) */
-    (function() {
-      function getFieldValue(form, fieldName) {
-        /* Handle checkboxes (Rails hidden+checkbox pattern) */
-        const checkboxes = form.querySelectorAll('input[type="checkbox"][name$="[' + fieldName + ']"]');
-        if (checkboxes.length > 0) {
-          return checkboxes[checkboxes.length - 1].checked ? 'true' : 'false';
+    /* Shared field value reader — used by conditional rendering and cascading selects */
+    function getFieldValue(form, fieldName) {
+      /* Handle checkboxes (Rails hidden+checkbox pattern) */
+      var checkboxes = form.querySelectorAll('input[type="checkbox"][name$="[' + fieldName + ']"]');
+      if (checkboxes.length > 0) {
+        return checkboxes[checkboxes.length - 1].checked ? 'true' : 'false';
+      }
+      /* Handle radio buttons */
+      var radios = form.querySelectorAll('input[type="radio"][name$="[' + fieldName + ']"]');
+      if (radios.length > 0) {
+        for (var i = 0; i < radios.length; i++) {
+          if (radios[i].checked) return radios[i].value;
         }
-        /* Handle radio buttons */
-        const radios = form.querySelectorAll('input[type="radio"][name$="[' + fieldName + ']"]');
-        if (radios.length > 0) {
-          for (let i = 0; i < radios.length; i++) {
-            if (radios[i].checked) return radios[i].value;
-          }
-          return '';
-        }
-        /* Handle select and other inputs */
-        const input = form.querySelector('[name$="[' + fieldName + ']"]');
-        if (input) return input.value || '';
         return '';
       }
+      /* Handle select and other inputs */
+      var input = form.querySelector('[name$="[' + fieldName + ']"]');
+      if (input) return input.value || '';
+      return '';
+    }
 
+    /* Conditional rendering (visible_when / disable_when) */
+    (function() {
       function evaluateCondition(value, operator, conditionValue) {
         switch (operator) {
           case 'eq':
@@ -747,6 +768,262 @@
             });
           }).catch(function(err) { console.warn('[LcpRuby] Service condition evaluation failed:', err); });
         }, 300);
+      });
+    })();
+
+    // Dependent (cascading) select
+    (function() {
+      var form = document.querySelector('form.lcp-form');
+      if (!form) return;
+
+      var dependents = form.querySelectorAll('[data-lcp-depends-on]');
+      if (!dependents.length) return;
+
+      var selectOptionsPath = form.dataset.lcpSelectOptionsPath;
+      if (!selectOptionsPath) return;
+
+      dependents.forEach(function(dep) {
+        var parentFieldName = dep.getAttribute('data-lcp-depends-on');
+        var resetStrategy = dep.getAttribute('data-lcp-depends-reset') || 'clear';
+
+        // Find ALL parent inputs (supports select, radio buttons, checkboxes)
+        var parentInputs = form.querySelectorAll(
+          '[name="record[' + parentFieldName + ']"], ' +
+          'input[type="radio"][name="record[' + parentFieldName + ']"], ' +
+          'input[type="checkbox"][name$="[' + parentFieldName + ']"]'
+        );
+        if (!parentInputs.length) return;
+
+        function handleParentChange() {
+          var parentValue = getFieldValue(form, parentFieldName);
+          var fieldName = dep.name.replace(/^record\[/, '').replace(/\]$/, '');
+          var url = selectOptionsPath + '?field=' + encodeURIComponent(fieldName) +
+                    '&depends_on[' + encodeURIComponent(parentFieldName) + ']=' + encodeURIComponent(parentValue);
+
+          // Disable select and show loading indicator during fetch
+          dep.disabled = true;
+          dep.classList.add('lcp-loading');
+
+          fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+              var currentValue = dep.value;
+              var includeBlank = dep.querySelector('option[value=""]');
+
+              // Handle Tom Select integration
+              if (dep.tomselect) {
+                dep.tomselect.clear(true);
+                dep.tomselect.clearOptions();
+                if (includeBlank) {
+                  dep.tomselect.addOption({ value: '', text: includeBlank.textContent });
+                }
+              } else {
+                dep.innerHTML = '';
+                if (includeBlank) {
+                  dep.appendChild(includeBlank.cloneNode(true));
+                }
+              }
+
+              // Detect grouped vs flat response format
+              var allValues = [];
+              if (Array.isArray(data) && data.length > 0 && data[0].group !== undefined) {
+                // Grouped: [{group: "...", options: [{value, label}]}]
+                data.forEach(function(g) {
+                  if (dep.tomselect) {
+                    g.options.forEach(function(opt) {
+                      dep.tomselect.addOption({ value: String(opt.value), text: opt.label, optgroup: g.group, disabled: !!opt.disabled });
+                      allValues.push(String(opt.value));
+                    });
+                  } else {
+                    var optgroup = document.createElement('optgroup');
+                    optgroup.label = g.group;
+                    g.options.forEach(function(opt) {
+                      var el = document.createElement('option');
+                      el.value = opt.value;
+                      el.textContent = opt.label;
+                      if (opt.disabled) el.disabled = true;
+                      optgroup.appendChild(el);
+                      allValues.push(String(opt.value));
+                    });
+                    dep.appendChild(optgroup);
+                  }
+                });
+              } else if (Array.isArray(data)) {
+                // Flat: [{value, label}] or envelope: {options: [...]}
+                var opts = data;
+                opts.forEach(function(opt) {
+                  if (dep.tomselect) {
+                    dep.tomselect.addOption({ value: String(opt.value), text: opt.label, disabled: !!opt.disabled });
+                  } else {
+                    var el = document.createElement('option');
+                    el.value = opt.value;
+                    el.textContent = opt.label;
+                    if (opt.disabled) el.disabled = true;
+                    dep.appendChild(el);
+                  }
+                  allValues.push(String(opt.value));
+                });
+              }
+
+              if (dep.tomselect) {
+                dep.tomselect.refreshOptions(false);
+                if (resetStrategy === 'keep_if_valid' && allValues.indexOf(currentValue) !== -1) {
+                  dep.tomselect.setValue(currentValue, true);
+                } else {
+                  dep.tomselect.setValue('', true);
+                }
+              } else {
+                if (resetStrategy === 'keep_if_valid') {
+                  if (allValues.indexOf(currentValue) !== -1) {
+                    dep.value = currentValue;
+                  } else {
+                    dep.value = '';
+                  }
+                } else {
+                  dep.value = '';
+                }
+              }
+
+              dep.dispatchEvent(new Event('change', { bubbles: true }));
+            })
+            .catch(function(err) { console.warn('[LcpRuby] Dependent select fetch failed:', err); })
+            .finally(function() {
+              dep.disabled = false;
+              dep.classList.remove('lcp-loading');
+            });
+        }
+
+        // Bind change listener to each parent input
+        parentInputs.forEach(function(parentInput) {
+          parentInput.addEventListener('change', handleParentChange);
+        });
+      });
+    })();
+
+    // Multi-select min/max validation via native constraint API
+    (function() {
+      var form = document.querySelector('form.lcp-form');
+      if (!form) return;
+
+      var multiSelects = form.querySelectorAll('select[multiple][data-min], select[multiple][data-max]');
+      if (!multiSelects.length) return;
+
+      function validate(sel) {
+        var count = sel.selectedOptions.length;
+        var min = sel.getAttribute('data-min');
+        var max = sel.getAttribute('data-max');
+        var msgs = [];
+
+        if (min && count < parseInt(min, 10)) {
+          msgs.push('Select at least ' + min + ' item(s)');
+        }
+        if (max && count > parseInt(max, 10)) {
+          msgs.push('Select at most ' + max + ' item(s)');
+        }
+
+        var msgEl = sel.parentElement.querySelector('.lcp-multi-select-error');
+        if (msgs.length > 0) {
+          if (!msgEl) {
+            msgEl = document.createElement('span');
+            msgEl.className = 'lcp-multi-select-error lcp-field-error';
+            sel.parentElement.appendChild(msgEl);
+          }
+          msgEl.textContent = msgs.join('. ');
+          sel.setCustomValidity(msgs.join('. '));
+        } else {
+          if (msgEl) msgEl.remove();
+          sel.setCustomValidity('');
+        }
+      }
+
+      multiSelects.forEach(function(sel) {
+        sel.addEventListener('change', function() { validate(sel); });
+        validate(sel); // validate initial state (e.g. editing existing record)
+      });
+    })();
+  </script>
+  <%= javascript_include_tag "lcp_ruby/tom-select.base.min" if Rails.application.config.respond_to?(:assets) %>
+  <script>
+    // Tom Select initialization
+    (function() {
+      if (typeof TomSelect === 'undefined') return;
+
+      document.addEventListener('DOMContentLoaded', function() {
+        var selects = document.querySelectorAll('select[data-lcp-search]');
+        selects.forEach(function(selectEl) {
+          var mode = selectEl.getAttribute('data-lcp-search');
+
+          if (mode === 'remote') {
+            // Remote mode: AJAX search with pagination
+            var searchUrl = selectEl.getAttribute('data-lcp-search-url');
+            var perPage = parseInt(selectEl.getAttribute('data-lcp-per-page')) || 25;
+            var minQuery = parseInt(selectEl.getAttribute('data-lcp-min-query')) || 1;
+            var isMultiple = selectEl.hasAttribute('multiple');
+            var plugins = ['virtual_scroll'];
+            if (isMultiple) plugins.push('remove_button');
+
+            // Clear pre-rendered options for remote mode (fetched on demand)
+            var blankOpt = selectEl.querySelector('option[value=""]');
+            selectEl.innerHTML = '';
+            if (blankOpt) selectEl.appendChild(blankOpt);
+
+            var lastQuery = '';
+            new TomSelect(selectEl, {
+              valueField: 'value',
+              labelField: 'text',
+              searchField: 'text',
+              plugins: plugins,
+              maxOptions: null,
+              load: function(query, callback) {
+                if (query.length < minQuery) return callback();
+                var self = this;
+                // Reset page counter when query changes
+                if (query !== lastQuery) {
+                  self.currentPage = 1;
+                  lastQuery = query;
+                }
+                var page = self.currentPage || 1;
+                var url = searchUrl + '&q=' + encodeURIComponent(query) + '&page=' + page + '&per_page=' + perPage;
+
+                fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+                  .then(function(resp) { return resp.json(); })
+                  .then(function(data) {
+                    var options = data.options || data;
+                    var items = options.map(function(opt) {
+                      return { value: String(opt.value), text: opt.label, disabled: !!opt.disabled };
+                    });
+                    callback(items);
+                    if (data.has_more) {
+                      self.currentPage = page + 1;
+                    }
+                  })
+                  .catch(function() { callback(); });
+              },
+              shouldLoad: function(query) {
+                return query.length >= minQuery;
+              },
+              render: {
+                no_results: function() {
+                  return '<div class="no-results">No results found</div>';
+                },
+                loading_more: function() {
+                  return '<div class="loading-more-results">Loading more...</div>';
+                }
+              }
+            });
+          } else {
+            // Local mode: client-side filtering of inline options
+            var isMultiple = selectEl.hasAttribute('multiple');
+            var plugins = [];
+            if (isMultiple) plugins.push('remove_button');
+
+            new TomSelect(selectEl, {
+              plugins: plugins,
+              create: false,
+              allowEmptyOption: true
+            });
+          }
+        });
       });
     })();
   </script>
