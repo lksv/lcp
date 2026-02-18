@@ -185,6 +185,72 @@ RSpec.describe LcpRuby::DisplayHelper, type: :helper do
       expect(render_display_value("hello", "unknown_type")).to eq("hello")
     end
 
+    describe "collection display type" do
+      it "renders array items joined by separator" do
+        result = render_display_value(%w[Alice Bob Charlie], "collection")
+        expect(result).to include("Alice")
+        expect(result).to include("Bob")
+        expect(result).to include("Charlie")
+      end
+
+      it "renders with custom separator" do
+        result = render_display_value(%w[A B C], "collection", { "separator" => " | " })
+        expect(result.to_s).to include(" | ")
+      end
+
+      it "applies limit and overflow" do
+        result = render_display_value(%w[A B C D E], "collection", { "limit" => 3, "overflow" => "..." })
+        expect(result.to_s).to include("A")
+        expect(result.to_s).to include("B")
+        expect(result.to_s).to include("C")
+        expect(result.to_s).to include("...")
+        expect(result.to_s).not_to include("D")
+      end
+
+      it "does not show overflow when items fit within limit" do
+        result = render_display_value(%w[A B], "collection", { "limit" => 3 })
+        expect(result.to_s).not_to include("...")
+      end
+
+      it "handles empty array" do
+        result = render_display_value([], "collection")
+        expect(result.to_s).to eq("")
+      end
+
+      it "wraps non-array value in array" do
+        result = render_display_value("solo", "collection")
+        expect(result.to_s).to include("solo")
+      end
+
+      it "applies item_display to each item" do
+        result = render_display_value(%w[active inactive], "collection", {
+          "item_display" => "badge"
+        })
+        expect(result.to_s).to include("badge")
+      end
+    end
+
+    describe "custom renderer delegation" do
+      before { LcpRuby::Display::RendererRegistry.clear! }
+
+      it "delegates to registered custom renderer" do
+        test_class = Class.new(LcpRuby::Display::BaseRenderer) do
+          def render(value, options = {}, record: nil, view_context: nil)
+            "custom:#{value}"
+          end
+        end
+        LcpRuby::Display::RendererRegistry.register("my_renderer", test_class)
+
+        result = render_display_value("test", "my_renderer")
+        expect(result).to eq("custom:test")
+      end
+
+      it "falls back to value when renderer not found" do
+        result = render_display_value("test", "nonexistent_renderer")
+        expect(result).to eq("test")
+      end
+    end
+
     context "XSS protection" do
       it "strips script tags from rich_text" do
         result = render_display_value('<script>alert("xss")</script><p>Safe</p>', "rich_text")

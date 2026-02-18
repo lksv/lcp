@@ -47,13 +47,13 @@
               <% if col["sortable"] %>
                 <%= link_to url_for(sort: col["field"], direction: toggle_direction(col["field"])),
                       class: "#{'lcp-sorted' if current_sort_field == col['field']}" do %>
-                  <%= col["field"].humanize %>
+                  <%= col["label"] || col["field"].to_s.split(".").last.humanize %>
                   <% if current_sort_field == col["field"] %>
                     <span class="lcp-sort-icon lcp-sort-<%= current_sort_direction %>"></span>
                   <% end %>
                 <% end %>
               <% else %>
-                <%= col["field"].humanize %>
+                <%= col["label"] || col["field"].to_s.split(".").last.humanize %>
               <% end %>
             </th>
           <% end %>
@@ -67,17 +67,13 @@
             <% columns.each do |col| %>
 
               <td class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
-                <% assoc = @fk_map[col["field"].to_s] %>
-                <% if assoc %>
-                  <% assoc_record = record.send(assoc.name) %>
-                  <% value = assoc_record ? (assoc_record.respond_to?(:to_label) ? assoc_record.to_label : assoc_record.to_s) : nil %>
-                <% else %>
-                  <% value = record.respond_to?(col["field"]) ? record.send(col["field"]) : nil %>
-                <% end %>
+                <% value = @field_resolver.resolve(record, col["field"], fk_map: @fk_map) %>
                 <% if col["link_to"] == "show" %>
-                  <%= link_to render_display_value(value, col["display"], col["display_options"]), resource_path(record) %>
+                  <%= link_to render_display_value(value, col["display"], col["display_options"], nil, record: record), resource_path(record) %>
                 <% elsif col["display"] %>
-                  <%= render_display_value(value, col["display"], col["display_options"]) %>
+                  <%= render_display_value(value, col["display"], col["display_options"], nil, record: record) %>
+                <% elsif value.is_a?(Array) %>
+                  <%= render_display_value(value, "collection", {}) %>
                 <% else %>
                   <%= value %>
                 <% end %>

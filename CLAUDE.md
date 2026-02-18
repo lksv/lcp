@@ -26,6 +26,7 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when` and `disable_when` on fields, sections, and actions
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
+- [Custom Renderers Guide](docs/guides/custom-renderers.md) — Custom display renderers for host applications
 - [Eager Loading Guide](docs/guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [View Groups Guide](docs/guides/view-groups.md) — Multi-view navigation and view switcher setup
 - [Developer Tools](docs/guides/developer-tools.md) — Validate and ERD rake tasks
@@ -78,6 +79,7 @@ YAML metadata (config/lcp_ruby/)
               LcpRuby.registry.register(name, model_class)
                                 ↓
               ConditionServiceRegistry.discover! → condition services from app/condition_services/
+              Display::RendererRegistry.discover! → custom renderers from app/renderers/
                                 ↓
               Engine routes (/:lcp_slug/*) → ResourcesController
               (CRUD with Pundit authorization, presenter-driven UI, conditional rendering)
@@ -90,7 +92,8 @@ YAML metadata (config/lcp_ruby/)
 | `Metadata` | `lib/lcp_ruby/metadata/` | Parses YAML into definition objects (ModelDefinition, PresenterDefinition, etc.) |
 | `Types` | `lib/lcp_ruby/types/` | TypeRegistry, TypeDefinition, ServiceRegistry, built-in types (email, phone, url, color), transforms (strip, downcase, normalize_url, normalize_phone) |
 | `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator |
-| `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections), ColumnSet (visible columns), ActionSet (visible actions), IncludesResolver (auto-detects and applies eager loading from presenter metadata) |
+| `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections), ColumnSet (visible columns), ActionSet (visible actions), IncludesResolver (auto-detects and applies eager loading from presenter metadata), FieldValueResolver (dot-path, template, FK, and simple field resolution with permission checks) |
+| `Display` | `lib/lcp_ruby/display/` | BaseRenderer (custom renderer base class), RendererRegistry (auto-discovers host renderers from `app/renderers/`) |
 | `Authorization` | `lib/lcp_ruby/authorization/` | PolicyFactory (dynamic Pundit policies), PermissionEvaluator (can?, readable_fields, writable_fields), ScopeBuilder |
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |
 | `Actions` | `lib/lcp_ruby/actions/` | ActionExecutor + ActionRegistry. Host apps define custom actions in `app/actions/` |

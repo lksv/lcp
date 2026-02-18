@@ -14,6 +14,7 @@ presenter:
     table_columns:
       - { field: title, width: "50%", link_to: show, sortable: true }
       - { field: description, width: "50%" }
+      - { field: "todo_items.title", label: "Items", display: collection, display_options: { limit: 3, separator: ", " } }
 
   show:
     layout:

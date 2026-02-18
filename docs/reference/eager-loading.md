@@ -11,8 +11,22 @@ The resolver scans presenter configuration based on the current context:
 | Context | Source | Detection Rule | Example |
 |---------|--------|----------------|---------|
 | `:index` | `table_columns` | FK column matching a `belongs_to` association | `company_id` column detects `:company` |
+| `:index` | `table_columns` | Dot-path field referencing an association | `company.name` column detects `:company` |
+| `:index` | `table_columns` | Template field with dot-path references | `{company.name}: {title}` detects `:company` |
 | `:show` | `layout` | Section with `type: association_list` | `association: contacts` detects `:contacts` |
+| `:show` | `layout` | Dot-path field in section fields | `company.name` field detects `:company` |
+| `:show` | `layout` | Template field in section fields | `{company.name}` detects `:company` |
 | `:form` | `sections` | Section with `type: nested_fields` | `association: todo_items` detects `:todo_items` |
+
+### Dot-Path Detection
+
+Dot-path fields like `company.name` are automatically split into association segments. The first segment is used as the association name for eager loading:
+
+- `company.name` → preloads `:company`
+- `company.industry.name` → preloads `{ company: :industry }`
+- `contacts.full_name` → preloads `:contacts`
+
+Template fields (e.g., `{company.name}: {title}`) are scanned for all `{ref}` placeholders, and any dot-path references within are collected as dependencies.
 
 ## Manual Configuration
 

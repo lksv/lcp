@@ -14,6 +14,7 @@ presenter:
       - { field: industry, width: "20%", display: badge, sortable: true }
       - { field: website, width: "25%" }
       - { field: phone, width: "25%" }
+      - { field: "contacts.first_name", label: "Contacts", display: collection, display_options: { limit: 3, separator: ", " } }
 
   show:
     layout:

@@ -7,7 +7,7 @@ LCP Ruby generates full CRUD applications from YAML metadata, but real-world sys
 LCP Ruby provides extensibility through two systems:
 
 1. **Services::Registry** — unified auto-discover registry for transforms, validators, defaults, computed fields, and conditions. Services live in `app/lcp_services/{category}/` and are discovered automatically.
-2. **Dedicated registries** — custom actions (`app/actions/`), event handlers (`app/event_handlers/`), and condition services (`app/condition_services/`) use their own registries with auto-discovery.
+2. **Dedicated registries** — custom actions (`app/actions/`), event handlers (`app/event_handlers/`), condition services (`app/condition_services/`), and custom renderers (`app/renderers/`) use their own registries with auto-discovery.
 
 ### Service Categories
 
@@ -25,6 +25,7 @@ LCP Ruby provides extensibility through two systems:
 |-----------|----------|---------------|------------|------|
 | Custom Actions | `(record, user, params) -> Result` | Yes | `Actions::BaseAction` | [Guide](custom-actions.md) |
 | Event Handlers | `(record, changes) -> void` | Yes | `Events::HandlerBase` | [Guide](event-handlers.md) |
+| Custom Renderers | `(value, options) -> HTML` | No | `Display::BaseRenderer` | [Guide](custom-renderers.md) |
 | Custom Validations | `(record, field) -> errors` | No | `ActiveModel::Validator` | [Reference](../reference/models.md#validations) |
 | Scopes | `(relation) -> relation` | No | YAML/DSL config | [Reference](../reference/models.md#scopes) |
 
@@ -457,6 +458,9 @@ Rails.application.config.after_initialize do
   # Discover condition services from app/condition_services/
   LcpRuby::ConditionServiceRegistry.discover!(app_path.to_s)
 
+  # Discover custom renderers from app/renderers/
+  LcpRuby::Display::RendererRegistry.discover!(app_path.to_s)
+
   # Discover services (transforms, validators, defaults, computed, conditions)
   # from app/lcp_services/
   LcpRuby::Services::Registry.discover!(app_path.to_s)
@@ -473,6 +477,10 @@ app/
   event_handlers/
     deal/
       on_stage_change.rb        # LcpRuby::HostEventHandlers::Deal::OnStageChange
+  renderers/
+    conditional_badge.rb        # LcpRuby::HostRenderers::ConditionalBadge
+    charts/
+      sparkline.rb              # LcpRuby::HostRenderers::Charts::Sparkline
   condition_services/
     credit_check.rb             # LcpRuby::HostConditionServices::CreditCheck
   lcp_services/

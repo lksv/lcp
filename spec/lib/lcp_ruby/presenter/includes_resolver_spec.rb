@@ -332,6 +332,109 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
       end
     end
 
+    describe "dot-path and template column detection" do
+      it "detects dot-path column as display dependency" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "deal_admin",
+          "model" => "deal",
+          "index" => {
+            "table_columns" => [
+              { "field" => "title" },
+              { "field" => "company.name" }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, deal_model_def, :index)
+
+        expect(collector.dependencies.size).to eq(1)
+        dep = collector.dependencies.first
+        expect(dep.association_name).to eq(:company)
+        expect(dep.reason).to eq(:display)
+      end
+
+      it "detects has_many dot-path column as display dependency" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "company_admin",
+          "model" => "company",
+          "index" => {
+            "table_columns" => [
+              { "field" => "name" },
+              { "field" => "contacts.first_name" }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, company_model_def, :index)
+
+        expect(collector.dependencies.size).to eq(1)
+        dep = collector.dependencies.first
+        expect(dep.association_name).to eq(:contacts)
+        expect(dep.reason).to eq(:display)
+      end
+
+      it "detects template with dot-path as dependency" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "deal_admin",
+          "model" => "deal",
+          "index" => {
+            "table_columns" => [
+              { "field" => "{company.name}: {title}" }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, deal_model_def, :index)
+
+        expect(collector.dependencies.size).to eq(1)
+        dep = collector.dependencies.first
+        expect(dep.association_name).to eq(:company)
+      end
+
+      it "ignores template refs without dot-path" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "deal_admin",
+          "model" => "deal",
+          "index" => {
+            "table_columns" => [
+              { "field" => "{title} ({value})" }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, deal_model_def, :index)
+
+        expect(collector.dependencies).to be_empty
+      end
+    end
+
+    describe "dot-path in show fields" do
+      it "detects dot-path fields in show layout sections" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "deal_admin",
+          "model" => "deal",
+          "show" => {
+            "layout" => [
+              {
+                "section" => "Details",
+                "fields" => [
+                  { "field" => "title" },
+                  { "field" => "company.name" }
+                ]
+              }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, deal_model_def, :show)
+
+        expect(collector.dependencies.size).to eq(1)
+        dep = collector.dependencies.first
+        expect(dep.association_name).to eq(:company)
+        expect(dep.reason).to eq(:display)
+      end
+    end
+
     describe "#from_manual" do
       it "reads includes as display dependencies" do
         collector.from_manual("includes" => [ "company" ])

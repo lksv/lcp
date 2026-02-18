@@ -994,8 +994,126 @@ end
 | `color_swatch` | Visual | No | Color hex values |
 | `link` | Text | No | Association references |
 
+## Advanced Display Features
+
+### Dot-Notation Fields
+
+Access fields on associated records using dot-notation. Works with `belongs_to`, `has_one`, and `has_many` associations.
+
+**YAML:**
+
+```yaml
+index:
+  table_columns:
+    - { field: "company.name", sortable: true }
+    - { field: "company.industry", display: badge }
+```
+
+**Ruby DSL:**
+
+```ruby
+index do
+  column "company.name", sortable: true
+  column "company.industry", display: :badge
+end
+```
+
+Dot-path fields automatically trigger eager loading for the referenced associations, preventing N+1 queries. Permission checks are applied at each level of the path -- if the user cannot read the target field on the associated model, the value is hidden.
+
+---
+
+### Collection Display
+
+Renders an array of values (typically from a `has_many` association via dot-notation) as a joined list.
+
+**YAML:**
+
+```yaml
+index:
+  table_columns:
+    - field: "contacts.first_name"
+      display: collection
+      display_options:
+        limit: 3
+        separator: ", "
+        overflow: "..."
+```
+
+**Ruby DSL:**
+
+```ruby
+index do
+  column "contacts.first_name", display: :collection, display_options: {
+    limit: 3, separator: ", ", overflow: "..."
+  }
+end
+```
+
+**Display options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `separator` | string | `", "` | String between items |
+| `limit` | integer | none | Maximum number of items to display |
+| `overflow` | string | `"..."` | Text appended when items exceed the limit |
+| `item_display` | string | none | Display type to apply to each item before joining |
+| `item_display_options` | hash | `{}` | Options passed to the item display type |
+
+**Appearance:** Items are rendered as a comma-separated list (or with the specified separator). When the number of items exceeds the limit, the list is truncated and the overflow indicator is appended.
+
+---
+
+### Template Display
+
+Interpolate multiple field values into a single display string using `{field_name}` syntax. Supports dot-notation references inside braces.
+
+**YAML:**
+
+```yaml
+index:
+  table_columns:
+    - { field: "{first_name} {last_name}" }
+    - { field: "{company.name}: {title}" }
+```
+
+**Ruby DSL:**
+
+```ruby
+index do
+  column "{first_name} {last_name}"
+  column "{company.name}: {title}"
+end
+```
+
+Template fields check readability of every referenced field. If any reference is not readable by the current user, the entire column is hidden.
+
+---
+
+### Custom Renderers
+
+Host applications can define custom display types by creating renderer classes in `app/renderers/`. See the [Custom Renderers Guide](custom-renderers.md) for details.
+
+```ruby
+# app/renderers/sparkline.rb
+module LcpRuby::HostRenderers
+  class Sparkline < LcpRuby::Display::BaseRenderer
+    def render(value, options = {}, record: nil, view_context: nil)
+      # Custom rendering logic
+    end
+  end
+end
+```
+
+```yaml
+table_columns:
+  - { field: weekly_sales, display: sparkline }
+```
+
+---
+
 ## What's Next
 
 - [Presenters Reference](../reference/presenters.md) -- Full attribute reference for presenter YAML
 - [Presenter DSL Reference](../reference/presenter-dsl.md) -- Ruby DSL alternative for presenters
+- [Custom Renderers](custom-renderers.md) -- Creating host app custom display renderers
 - [Custom Types](custom-types.md) -- Types can set a default `display_type` (e.g., `color` type uses `color_swatch`)

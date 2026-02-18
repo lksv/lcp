@@ -33,16 +33,19 @@
           <% visible_fields.each do |field_config| %>
 
             <% field_name = field_config["field"] %>
-            <% next unless @record.respond_to?(field_name) %>
-            <% value = @record.send(field_name) %>
+            <% next unless field_name %>
+            <% next unless @record.respond_to?(field_name) || field_name.include?(".") || field_name.include?("{") %>
+            <% value = @field_resolver.resolve(@record, field_name) %>
 
             <div class="lcp-field <%= hidden_on_classes(field_config) %>"
                  <%= "style=\"grid-column: span #{field_config['col_span']}\"" if field_config["col_span"] %>>
               <% field_def = field_config["field_definition"] %>
-              <label><%= field_def&.label || field_name.humanize %></label>
+              <label><%= field_config["label"] || field_def&.label || field_name.to_s.split(".").last.humanize %></label>
               <div class="lcp-field-value">
                 <% if field_config["display"] %>
-                  <%= render_display_value(value, field_config["display"], field_config["display_options"], field_def) %>
+                  <%= render_display_value(value, field_config["display"], field_config["display_options"], field_def, record: @record) %>
+                <% elsif value.is_a?(Array) %>
+                  <%= render_display_value(value, "collection", {}) %>
                 <% else %>
                   <%= value %>
                 <% end %>

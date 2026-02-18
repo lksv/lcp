@@ -19,6 +19,13 @@ module LcpRuby
       LcpRuby.configuration.metadata_path ||= Rails.root.join("config", "lcp_ruby")
     end
 
+    initializer "lcp_ruby.ignore_renderers", before: :set_autoload_paths do |app|
+      renderers_path = Rails.root.join("app", "renderers")
+      if renderers_path.directory?
+        Rails.autoloaders.main.ignore(renderers_path)
+      end
+    end
+
     initializer "lcp_ruby.load_metadata", after: :load_config_initializers do
       ActiveSupport.on_load(:active_record) do
         LcpRuby::Engine.load_metadata!
@@ -37,6 +44,7 @@ module LcpRuby
         Services::BuiltInTransforms.register_all!
         Services::BuiltInDefaults.register_all!
         Services::Registry.discover!(Rails.root.join("app").to_s)
+        Display::RendererRegistry.discover!(Rails.root.join("app").to_s)
 
         loader = LcpRuby.loader
         loader.load_all

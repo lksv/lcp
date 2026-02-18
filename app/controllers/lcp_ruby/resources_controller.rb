@@ -19,6 +19,7 @@ module LcpRuby
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
       @fk_map = @column_set.fk_association_map(current_model_definition)
       @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
+      @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
     end
 
     def show
@@ -28,6 +29,7 @@ module LcpRuby
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
       @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
+      @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
     end
 
     def new

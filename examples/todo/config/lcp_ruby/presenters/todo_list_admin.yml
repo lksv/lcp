@@ -14,6 +14,7 @@ presenter:
     table_columns:
       - { field: title, width: "50%", link_to: show, sortable: true }
       - { field: description, width: "50%", display: truncate, display_options: { max: 60 } }
+      - { field: "todo_items.title", label: "Items", display: collection, display_options: { limit: 3, separator: ", ", overflow: "..." } }
 
   show:
     layout:
@@ -22,6 +23,7 @@ presenter:
         fields:
           - { field: title, display: heading, col_span: 2 }
           - { field: description }
+          - { field: "todo_items.title", label: "Items", display: collection, display_options: { limit: 5, separator: " | " } }
       - section: "Items"
         type: association_list
         association: todo_items

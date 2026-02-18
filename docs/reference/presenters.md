@@ -246,7 +246,8 @@ table_columns:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `field` | string | Model field name to display |
+| `field` | string | Model field name to display. Supports dot-notation (e.g., `"company.name"`) and template syntax (e.g., `"{first_name} {last_name}"`) |
+| `label` | string | Custom column header label. Defaults to humanized last segment of the field name. Useful for dot-path fields (e.g., `"company.name"` → label `"Company"`) |
 | `width` | string | CSS width (e.g., `"30%"`, `"200px"`) |
 | `link_to` | string | Makes the cell a link. Value `show` links to the record's show page |
 | `sortable` | boolean | Enables column header sorting |
@@ -285,6 +286,87 @@ table_columns:
     summary: count
     hidden_on: mobile
 ```
+
+## Field Path Syntax
+
+The `field` attribute in `table_columns` and show `fields` supports three syntaxes beyond simple field names:
+
+### Dot-Notation (Association Traversal)
+
+Use dot-notation to display fields from associated records:
+
+```yaml
+table_columns:
+  - { field: "company.name", sortable: true }        # belongs_to traversal
+  - { field: "company.industry", display: badge }     # with display type
+  - { field: "contacts.full_name", display: collection }  # has_many traversal
+```
+
+For `belongs_to`/`has_one`, the resolved value is a scalar. For `has_many`, the resolved value is an array (use the `collection` display type).
+
+Dot-paths can be nested: `company.industry.name` traverses `company` → `industry` → `name`.
+
+**Permissions:** Each segment in the dot-path is checked against `readable_fields` on the target model. If any segment is not readable, the column is hidden.
+
+**Eager loading:** Dot-path fields are automatically detected by the `IncludesResolver` and the required associations are preloaded to prevent N+1 queries.
+
+### Template Syntax (Multi-Field Interpolation)
+
+Use `{field}` syntax to combine multiple fields into a single display value:
+
+```yaml
+table_columns:
+  - { field: "{first_name} {last_name}" }
+  - { field: "{company.name}: {title}" }     # dot-paths inside templates
+```
+
+Template fields extract all `{ref}` references and resolve each one individually. Dot-paths inside templates work the same as standalone dot-paths.
+
+**Permissions:** All referenced fields must be readable for the template column to be visible.
+
+### Collection Display Type
+
+The `collection` display type renders arrays (typically from `has_many` dot-paths) as formatted lists:
+
+```yaml
+table_columns:
+  - field: "contacts.full_name"
+    display: collection
+    display_options:
+      separator: ", "          # default: ", "
+      limit: 3                 # max items to show
+      overflow: "..."          # text appended when truncated (default: "...")
+      item_display: badge      # apply a display type to each item
+      item_display_options:    # options for the per-item display
+        color_map: { ... }
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `separator` | string | `", "` | Separator between items |
+| `limit` | integer | all | Maximum number of items to display |
+| `overflow` | string | `"..."` | Text appended when items are truncated |
+| `item_display` | string | none | Display type to apply to each item before joining |
+| `item_display_options` | hash | `{}` | Options for the per-item display type |
+
+### Custom Renderers
+
+Custom renderers defined in `app/renderers/` can be referenced by name in the `display` attribute:
+
+```yaml
+table_columns:
+  - field: stage
+    display: conditional_badge
+    display_options:
+      rules:
+        - match: { in: [closed_won] }
+          display: badge
+          display_options: { color_map: { closed_won: green } }
+        - default:
+            display: badge
+```
+
+See [Custom Renderers Guide](../guides/custom-renderers.md) for creating custom renderers.
 
 ## Display Types
 
@@ -633,7 +715,8 @@ Use `responsive` to override the number of columns at different breakpoints:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `field` | string | Model field name |
+| `field` | string | Model field name. Supports dot-notation and template syntax |
+| `label` | string | Custom field label. Defaults to humanized last segment of the field name. Useful for dot-path fields (e.g., `"company.name"` → label `"Company"`) |
 | `display` | string | Display type (see [Display Types](#display-types)) |
 | `display_options` | hash | Options passed to the display renderer (see [Display Types](#display-types) for per-type options) |
 | `col_span` | integer | Number of grid columns this field spans (defaults to 1) |

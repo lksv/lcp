@@ -234,6 +234,123 @@ RSpec.describe "CRM App Integration", type: :request do
     end
   end
 
+  describe "Extended display features" do
+    before { stub_current_user(role: "admin") }
+
+    describe "dot-notation on index" do
+      it "shows company name via dot-notation on deals index" do
+        company = company_model.create!(name: "Acme Corp", industry: "technology")
+        deal_model.create!(title: "Deal 1", stage: "lead", company_id: company.id)
+
+        get "/admin/deals"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Acme Corp")
+      end
+
+      it "shows company name for multiple deals without N+1" do
+        company = company_model.create!(name: "Test Corp", industry: "finance")
+        3.times { |i| deal_model.create!(title: "Deal #{i}", stage: "lead", company_id: company.id) }
+
+        queries = []
+        callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
+        begin
+          ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
+          get "/admin/deals"
+        ensure
+          ActiveSupport::Notifications.unsubscribe(callback)
+        end
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Test Corp")
+
+        company_selects = queries.select { |q| q.include?("SELECT") && q.include?("companies") }
+        expect(company_selects.size).to eq(1)
+      end
+    end
+
+    describe "dot-notation on show" do
+      it "shows company name via dot-notation on deal show" do
+        company = company_model.create!(name: "Show Corp", industry: "technology")
+        deal = deal_model.create!(title: "Show Deal", stage: "lead", company_id: company.id)
+
+        get "/admin/deals/#{deal.id}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Show Corp")
+      end
+    end
+
+    describe "custom renderer on show" do
+      it "delegates to a registered custom renderer" do
+        renderer_class = Class.new(LcpRuby::Display::BaseRenderer) do
+          def render(value, options = {}, record: nil, view_context: nil)
+            "<span class=\"test-highlighted\">#{ERB::Util.html_escape(value)}</span>".html_safe
+          end
+        end
+        LcpRuby::Display::RendererRegistry.register("test_highlight", renderer_class)
+
+        company = company_model.create!(name: "Highlight Corp", industry: "technology")
+        deal = deal_model.create!(title: "Renderer Deal", stage: "lead", company_id: company.id)
+
+        get "/admin/deals/#{deal.id}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("test-highlighted")
+        expect(response.body).to include("Highlight Corp")
+      end
+
+      it "falls back to raw value when custom renderer is not registered" do
+        company = company_model.create!(name: "Fallback Corp", industry: "technology")
+        deal = deal_model.create!(title: "Fallback Deal", stage: "lead", company_id: company.id)
+
+        get "/admin/deals/#{deal.id}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Fallback Corp")
+      end
+    end
+
+    describe "label support for dot-path columns" do
+      it "shows custom label in index column header" do
+        company = company_model.create!(name: "Label Corp", industry: "technology")
+        deal_model.create!(title: "Label Deal", stage: "lead", company_id: company.id)
+
+        get "/admin/deals"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Company")
+      end
+    end
+
+    describe "collection display on index" do
+      it "shows contact names as collection on companies index" do
+        company = company_model.create!(name: "Collection Corp", industry: "technology")
+        contact_model.create!(first_name: "Alice", last_name: "Smith", company_id: company.id)
+        contact_model.create!(first_name: "Bob", last_name: "Jones", company_id: company.id)
+
+        get "/admin/companies"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Alice")
+        expect(response.body).to include("Bob")
+      end
+
+      it "respects collection limit" do
+        company = company_model.create!(name: "Big Corp", industry: "technology")
+        5.times { |i| contact_model.create!(first_name: "Contact#{i}", last_name: "Test", company_id: company.id) }
+
+        get "/admin/companies"
+
+        expect(response).to have_http_status(:ok)
+        # Limit is 3, so we should see the first 3 contacts
+        expect(response.body).to include("Contact0")
+        expect(response.body).to include("Contact1")
+        expect(response.body).to include("Contact2")
+      end
+    end
+  end
+
   describe "Eager loading" do
     before { stub_current_user(role: "admin") }
 

@@ -34,7 +34,8 @@ Complete attribute reference for every YAML configuration file:
 - [Event Handlers](guides/event-handlers.md) — Responding to lifecycle events and field changes
 - [Custom Types](guides/custom-types.md) — Defining custom business types (percentage, postal_code, slug, hex_color)
 - [View Groups](guides/view-groups.md) — Multi-view navigation and view switcher setup
-- [Display Types](guides/display-types.md) — Visual guide to all display renderers
+- [Display Types](guides/display-types.md) — Visual guide to all display renderers (including dot-notation, templates, and collections)
+- [Custom Renderers](guides/custom-renderers.md) — Creating custom display renderers for host applications
 - [Eager Loading](guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate` and `lcp_ruby:erd` rake tasks
 
