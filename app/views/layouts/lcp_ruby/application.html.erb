@@ -179,8 +179,18 @@
       content: ""; position: absolute; inset: 0; cursor: not-allowed;
     }
 
+    /* Inline action buttons in tables (rendered without .btn class) */
+    .lcp-actions form button { cursor: pointer; }
+
     /* Disabled action */
     .btn.lcp-action-disabled { opacity: 0.5; pointer-events: none; cursor: not-allowed; }
+
+    /* Navigation */
+    .lcp-nav { background: #fff; border-bottom: 1px solid #dee2e6; margin-bottom: 1rem; padding: 0 2rem; }
+    .lcp-nav-list { display: flex; gap: 0; list-style: none; margin: 0; padding: 0; }
+    .lcp-nav-item a { display: block; padding: 0.75rem 1rem; text-decoration: none; color: #6c757d; font-size: 0.875rem; font-weight: 500; border-bottom: 2px solid transparent; }
+    .lcp-nav-item a:hover { color: #333; }
+    .lcp-nav-item a.active { color: #0d6efd; border-bottom-color: #0d6efd; }
 
     /* View switcher */
     .lcp-view-switcher { display: inline-flex; gap: 0; margin-right: 0.5rem; }
@@ -203,6 +213,16 @@
   </style>
 </head>
 <body>
+  <nav class="lcp-nav">
+    <ul class="lcp-nav-list">
+      <% navigable_presenters.each do |entry| %>
+        <li class="lcp-nav-item">
+          <%= link_to entry[:label], lcp_ruby.resources_path(lcp_slug: entry[:slug]),
+                class: entry[:all_slugs].include?(params[:lcp_slug]) ? "active" : "" %>
+        </li>
+      <% end %>
+    </ul>
+  </nav>
   <div class="lcp-container">
     <% flash.each do |type, message| %>
       <div class="lcp-flash lcp-flash-<%= type %>"><%= message %></div>
