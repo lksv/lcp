@@ -1070,6 +1070,130 @@ Input options provide type-specific configuration for form inputs.
     max: 5
 ```
 
+**Select (enum):**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `include_blank` | boolean/string | Show a blank option. `true` (default) adds an empty option, `false` removes it, a string uses custom text |
+| `include_values` | hash | Role-based whitelist. Keys are role names, values are arrays of allowed enum values |
+| `exclude_values` | hash | Role-based blacklist. Keys are role names, values are arrays of excluded enum values |
+
+When both `include_values` and `exclude_values` are specified for the same role, `include_values` is applied first (whitelist), then `exclude_values` removes from the remaining set.
+
+```yaml
+# Viewers can only see active and archived statuses
+- field: status
+  input_type: select
+  input_options:
+    include_blank: false
+    include_values:
+      viewer: [active, archived]
+    exclude_values:
+      editor: [deleted]
+```
+
+**Association Select:**
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `include_blank` | boolean/string | Blank option text. Default: `"-- Select --"`. Set to `false` to remove |
+| `scope` | string | Named scope to apply on the target model (e.g., `"active"`) |
+| `filter` | hash | Hash of field-value pairs passed to `.where()` |
+| `sort` | hash | Hash of field-direction pairs passed to `.order()` (e.g., `{ name: asc }`) |
+| `label_method` | string | Method to call on each record for display text. Default: `to_label` |
+| `group_by` | string | Group options by this field (renders `<optgroup>` tags) |
+| `depends_on` | hash | Cascading select configuration (see below) |
+| `scope_by_role` | hash | Role-based scope selection. Keys are role names, values are scope names or `"all"` |
+
+```yaml
+# Sorted, with custom label and blank text
+- field: company_id
+  input_type: association_select
+  input_options:
+    sort: { name: asc }
+    label_method: full_name
+    include_blank: "-- Choose company --"
+
+# Grouped by industry
+- field: company_id
+  input_type: association_select
+  input_options:
+    sort: { name: asc }
+    group_by: industry
+
+# Scoped to active records
+- field: contact_id
+  input_type: association_select
+  input_options:
+    scope: active_contacts
+    sort: { last_name: asc }
+    label_method: full_name
+```
+
+**Dependent (cascading) selects:**
+
+Use `depends_on` to create cascading select relationships. When the parent field changes, the dependent select options are refreshed via AJAX.
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `field` | string | Parent field name that this select depends on |
+| `foreign_key` | string | FK column on the target model to filter by |
+| `reset_strategy` | string | What happens to the current value when parent changes: `"clear"` (default) or `"keep_if_valid"` |
+
+```yaml
+- field: company_id
+  input_type: association_select
+
+- field: contact_id
+  input_type: association_select
+  input_options:
+    depends_on:
+      field: company_id
+      foreign_key: company_id
+    sort: { last_name: asc }
+    label_method: full_name
+```
+
+**Role-based scope:**
+
+Use `scope_by_role` to apply different scopes depending on the current user's role. The special value `"all"` means no scope is applied (returns all records).
+
+```yaml
+- field: company_id
+  input_type: association_select
+  input_options:
+    scope_by_role:
+      admin: all
+      editor: active_companies
+      viewer: my_companies
+```
+
+When `scope_by_role` is present, the `scope` option is ignored.
+
+**Multi Select:**
+
+For `has_many :through` associations, use `input_type: multi_select` to render a `<select multiple>`.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `association` | string | Name of the `has_many :through` association |
+| `scope` | string | Named scope on the target model |
+| `sort` | hash | Ordering for the options |
+| `label_method` | string | Method for display text |
+| `min` | integer | Minimum required selections |
+| `max` | integer | Maximum allowed selections |
+
+```yaml
+- field: tag_ids
+  input_type: multi_select
+  input_options:
+    association: tags
+    scope: active
+    sort: { name: asc }
+    min: 1
+    max: 5
+```
+
 #### Divider Pseudo-Field
 
 Use a divider to visually separate groups of fields within a section:

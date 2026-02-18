@@ -1,0 +1,18 @@
+model:
+  name: region
+  label: "Region"
+  label_plural: "Regions"
+
+  fields:
+    - name: name
+      type: string
+      label: "Name"
+      column_options:
+        limit: 100
+        "null": false
+      validations:
+        - type: presence
+
+  options:
+    timestamps: true
+    label_method: name

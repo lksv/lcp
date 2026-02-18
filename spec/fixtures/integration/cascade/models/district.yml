@@ -1,0 +1,25 @@
+model:
+  name: district
+  label: "District"
+  label_plural: "Districts"
+
+  fields:
+    - name: name
+      type: string
+      label: "Name"
+      column_options:
+        limit: 100
+        "null": false
+      validations:
+        - type: presence
+
+  associations:
+    - type: belongs_to
+      name: city
+      target_model: city
+      foreign_key: city_id
+      required: true
+
+  options:
+    timestamps: true
+    label_method: name

@@ -1,0 +1,26 @@
+model:
+  name: city
+  label: "City"
+  label_plural: "Cities"
+
+  fields:
+    - name: name
+      type: string
+      label: "Name"
+      column_options:
+        limit: 100
+        "null": false
+      validations:
+        - type: presence
+
+  associations:
+    - type: belongs_to
+      name: region
+      target_model: region
+      foreign_key: region_id
+      required: true
+
+  options:
+    timestamps: true
+    label_method: name
+    table_name: cities

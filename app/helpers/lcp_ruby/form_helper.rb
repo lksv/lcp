@@ -1,5 +1,7 @@
 module LcpRuby
   module FormHelper
+    include LcpRuby::AssociationOptionsBuilder
+
     def render_form_input(form, field_name, input_type, field_config, field_def)
       input_options = field_config["input_options"] || {}
 
@@ -29,6 +31,8 @@ module LcpRuby
         form.check_box(field_name)
       when "association_select"
         render_association_select(form, field_name, field_config)
+      when "multi_select"
+        render_multi_select(form, field_name, field_config, field_def)
       when "email"
         form.email_field(field_name,
           placeholder: field_config["placeholder"],
@@ -59,37 +63,172 @@ module LcpRuby
     private
 
     def render_select_input(form, field_name, field_config, field_def)
-      if field_def&.enum?
-        form.select(field_name,
-          field_def.enum_value_names.map { |v| [ v.humanize, v ] },
-          include_blank: true)
-      else
-        form.text_field(field_name, placeholder: field_config["placeholder"])
-      end
+      return form.text_field(field_name, placeholder: field_config["placeholder"]) unless field_def&.enum?
+
+      input_options = field_config["input_options"] || {}
+      values = field_def.enum_value_names
+      values = apply_role_value_filters(values, input_options)
+      options = values.map { |v| [ v.humanize, v ] }
+      include_blank = input_options.fetch("include_blank", true)
+
+      form.select(field_name, options, include_blank: include_blank)
     end
 
     def render_association_select(form, field_name, field_config)
       assoc = field_config["association"]
-      if assoc&.lcp_model?
-        target_class = LcpRuby.registry.model_for(assoc.target_model)
-        target_model_def = begin
-          LcpRuby.loader.model_definition(assoc.target_model)
-        rescue LcpRuby::MetadataError => e
-          Rails.logger.warn("[LcpRuby] Could not load model definition for #{assoc.target_model}: #{e.message}")
-          nil
-        end
-        label_attr = target_model_def&.label_method || "to_s"
+      return form.number_field(field_name, placeholder: "ID") unless assoc&.lcp_model?
 
-        if label_attr != "to_s" && target_class.respond_to?(:column_names) && target_class.column_names.include?(label_attr)
-          options = target_class.select(:id, label_attr.to_sym).order(label_attr.to_sym)
-                                .map { |r| [ r.send(label_attr), r.id ] }
-        else
-          options = target_class.all.map { |r| [ r.respond_to?(:to_label) ? r.to_label : r.to_s, r.id ] }
-        end
-        form.select(field_name, options, include_blank: "-- Select --")
-      else
-        form.number_field(field_name, placeholder: "ID")
+      input_options = field_config["input_options"] || {}
+      include_blank = input_options.fetch("include_blank", "-- Select --")
+
+      html_attrs = {}
+
+      if input_options["depends_on"]
+        depends = input_options["depends_on"]
+        html_attrs["data-lcp-depends-on"] = depends["field"]
+        html_attrs["data-lcp-depends-fk"] = depends["foreign_key"]
+        html_attrs["data-lcp-depends-reset"] = depends.fetch("reset_strategy", "clear")
       end
+
+      # Tom Select integration
+      search_url = input_options["search"] ? select_options_url_for(field_name) : nil
+      if input_options["search"] && search_url
+        html_attrs["data-lcp-search"] = "remote"
+        html_attrs["data-lcp-search-url"] = search_url
+        html_attrs["data-lcp-per-page"] = input_options["per_page"] || 25
+        html_attrs["data-lcp-min-query"] = input_options["min_query_length"] || 1
+        # For remote mode, options are fetched on demand; render empty select
+        options = []
+        # If record already has a value, include that option so it displays correctly
+        if form.object&.send(field_name).present?
+          current_id = form.object.send(field_name)
+          target_class = LcpRuby.registry.model_for(assoc.target_model)
+          label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
+          current_record = target_class.find_by(id: current_id)
+          options = [ [ resolve_label(current_record, label_method), current_record.id ] ] if current_record
+        end
+      else
+        html_attrs["data-lcp-search"] = "local"
+        options = build_association_options(assoc, input_options, record: form.object)
+      end
+
+      if input_options["group_by"] && !input_options["search"]
+        form.select(field_name, grouped_options_for_select(options, form.object&.send(field_name)),
+                    { include_blank: include_blank }, html_attrs)
+      else
+        form.select(field_name, options, { include_blank: include_blank }, html_attrs)
+      end
+    end
+
+    def render_multi_select(form, field_name, field_config, field_def)
+      input_options = field_config["input_options"] || {}
+      assoc = field_config["multi_select_association"]
+      return form.text_field(field_name) unless assoc&.lcp_model?
+
+      options = build_association_options(assoc, input_options, record: form.object)
+      html_attrs = { multiple: true }
+      html_attrs[:"data-min"] = input_options["min"] if input_options["min"]
+      html_attrs[:"data-max"] = input_options["max"] if input_options["max"]
+      html_attrs["data-lcp-search"] = "local"
+
+      form.select(field_name, options, { include_blank: false }, html_attrs)
+    end
+
+    def build_association_options(assoc, input_options, record: nil)
+      target_class = LcpRuby.registry.model_for(assoc.target_model)
+      query = apply_role_scope(target_class, input_options)
+      query = query.where(input_options["filter"]) if input_options["filter"]
+
+      # Filter dependent options by parent FK when record already has a value
+      if input_options["depends_on"] && record
+        depends = input_options["depends_on"]
+        fk = depends["foreign_key"]
+        parent_field = depends["field"]
+        if fk && record.respond_to?(parent_field)
+          parent_value = record.send(parent_field)
+          query = query.where(fk => parent_value) if parent_value.present?
+        end
+      end
+
+      query = query.order(input_options["sort"]) if input_options["sort"]
+
+      label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
+
+      # Only load :id + label column (+ group/sort columns) when all are real DB columns
+      select_cols = optimize_select_columns(
+        target_class, label_method, input_options["group_by"], sort: input_options["sort"]
+      )
+      query = query.select(*select_cols) if select_cols
+
+      disabled_ids = resolve_disabled_values(assoc, input_options)
+
+      if input_options["group_by"]
+        group_attr = input_options["group_by"]
+        query.group_by { |r| r.respond_to?(group_attr) ? r.send(group_attr) : "Other" }
+          .sort_by { |group_name, _| group_name.to_s }
+          .to_h
+          .transform_values do |records|
+            records.map do |r|
+              option = [ resolve_label(r, label_method), r.id ]
+              option << { disabled: "disabled" } if disabled_ids.include?(r.id)
+              option
+            end
+          end
+      else
+        query.map do |r|
+          option = [ resolve_label(r, label_method), r.id ]
+          option << { disabled: "disabled" } if disabled_ids.include?(r.id)
+          option
+        end
+      end
+    end
+
+    def select_options_url_for(field_name)
+      if respond_to?(:current_presenter) && current_presenter && respond_to?(:lcp_ruby)
+        lcp_ruby.select_options_path(lcp_slug: current_presenter.slug, field: field_name)
+      end
+    rescue StandardError
+      nil
+    end
+
+    def apply_role_value_filters(values, input_options)
+      role = current_user_role
+
+      if input_options["include_values"]&.key?(role)
+        allowed = Array(input_options.dig("include_values", role))
+        values = values.select { |v| allowed.include?(v) }
+      end
+
+      if input_options["exclude_values"]&.key?(role)
+        denied = Array(input_options.dig("exclude_values", role))
+        values = values.reject { |v| denied.include?(v) }
+      end
+
+      values
+    end
+
+    def apply_role_scope(target_class, input_options)
+      if input_options["scope_by_role"]
+        role = current_user_role
+        role_scope = input_options.dig("scope_by_role", role)
+        if role_scope && role_scope != "all" && target_class.respond_to?(role_scope)
+          return target_class.send(role_scope)
+        else
+          return target_class.all
+        end
+      end
+
+      if input_options["scope"] && target_class.respond_to?(input_options["scope"])
+        target_class.send(input_options["scope"])
+      else
+        target_class.all
+      end
+    end
+
+    def current_user_role
+      LcpRuby::Current.user&.send(LcpRuby.configuration.role_method).to_s
+    rescue StandardError
+      ""
     end
 
     def render_slider_input(form, field_name, input_options)
