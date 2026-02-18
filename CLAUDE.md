@@ -29,7 +29,8 @@ LCP Ruby is a **Rails mountable engine** that generates full CRUD information sy
 - [Custom Renderers Guide](docs/guides/custom-renderers.md) — Custom display renderers for host applications
 - [Eager Loading Guide](docs/guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [View Groups Guide](docs/guides/view-groups.md) — Multi-view navigation and view switcher setup
-- [Developer Tools](docs/guides/developer-tools.md) — Validate and ERD rake tasks
+- [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
+- [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views
 - [Examples](docs/examples.md) — TODO and CRM app walkthroughs
 

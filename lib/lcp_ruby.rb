@@ -60,6 +60,7 @@ require "lcp_ruby/model_factory/builder"
 require "lcp_ruby/authorization/scope_builder"
 require "lcp_ruby/authorization/permission_evaluator"
 require "lcp_ruby/authorization/policy_factory"
+require "lcp_ruby/authorization/impersonated_user"
 
 # Events
 require "lcp_ruby/events/handler_base"

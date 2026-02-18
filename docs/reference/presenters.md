@@ -1360,7 +1360,7 @@ actions:
 | `type` | string | `built_in` or `custom` |
 | `label` | string | Display text |
 | `icon` | string | Icon name |
-| `confirm` | boolean | Show a confirmation dialog before executing |
+| `confirm` | boolean or hash | Show a confirmation dialog before executing (see [Confirm Per Role](#confirm-per-role)) |
 | `confirm_message` | string | Custom text for the confirmation dialog |
 | `style` | string | CSS style hint (e.g., `danger` for destructive actions) |
 | `visible_when` | object | Condition controlling visibility (see below) |
@@ -1401,6 +1401,40 @@ single:
 ```
 
 An action can use both `visible_when` and `disable_when` together. The visibility condition is evaluated first — if the action is hidden, `disable_when` has no effect.
+
+### Confirm Per Role
+
+The `confirm` attribute supports role-based resolution. Instead of a simple boolean, you can use a hash with `except` or `only` keys to control which roles see the confirmation dialog:
+
+```yaml
+actions:
+  single:
+    # Confirm for everyone (existing behavior):
+    - name: destroy
+      type: built_in
+      confirm: true
+
+    # Confirm for all EXCEPT these roles (admin skips confirm):
+    - name: archive
+      type: custom
+      confirm:
+        except: [admin]
+
+    # Confirm ONLY for these roles (others skip):
+    - name: force_delete
+      type: custom
+      confirm:
+        only: [viewer, sales_rep]
+```
+
+| Value | Behavior |
+|-------|----------|
+| `true` | Confirm for all roles (backward compatible) |
+| `false` or omitted | No confirm for any role (backward compatible) |
+| `{ except: [roles] }` | Confirm for all roles EXCEPT the listed ones |
+| `{ only: [roles] }` | Confirm ONLY for the listed roles |
+
+The resolved `confirm` value (true/false) is set on the action before rendering, so view templates work unchanged.
 
 ## Navigation
 

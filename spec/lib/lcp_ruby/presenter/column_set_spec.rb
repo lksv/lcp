@@ -41,7 +41,7 @@ RSpec.describe LcpRuby::Presenter::ColumnSet do
   end
 
   def make_user(role)
-    double("User", lcp_role: role)
+    double("User", lcp_role: Array(role))
   end
 
   describe "#fk_association_map" do

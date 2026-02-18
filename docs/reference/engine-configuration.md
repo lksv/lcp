@@ -32,7 +32,17 @@ Directory containing `models/`, `presenters/`, and `permissions/` YAML subdirect
 | **Type** | `Symbol` |
 | **Default** | `:lcp_role` |
 
-Method called on the current user object to determine their role. The return value is matched against role names in [permissions YAML](permissions.md). Your User model must implement this method.
+Method called on the current user object to determine their roles. Must return an **array of role name strings** (e.g., `["admin", "sales_rep"]`). The values are matched against role names in [permissions YAML](permissions.md). Your User model must implement this method.
+
+```ruby
+class User < ApplicationRecord
+  def lcp_role
+    roles.pluck(:name)  # => ["admin", "sales_rep"]
+  end
+end
+```
+
+See [Multiple Roles](permissions.md#multiple-roles) for merge semantics when a user has more than one role.
 
 ### `user_class`
 
@@ -101,6 +111,23 @@ end
 ```
 
 See [Eager Loading](eager-loading.md) for details on the auto-detection system.
+
+### `impersonation_roles`
+
+| | |
+|---|---|
+| **Type** | `Array` |
+| **Default** | `[]` |
+
+List of role names allowed to impersonate other roles. When empty (default), impersonation is disabled. Only users whose real role is in this list can activate impersonation.
+
+```ruby
+LcpRuby.configure do |config|
+  config.impersonation_roles = ["admin"]
+end
+```
+
+See the [Impersonation Guide](../guides/impersonation.md) for setup and usage details.
 
 ## Service Auto-Discovery
 
