@@ -5,7 +5,6 @@ module LcpRuby
         "enum" => :string,
         "rich_text" => :text,
         "uuid" => :string,
-        "json" => :jsonb,
         "file" => :string
       }.freeze
 
@@ -40,6 +39,7 @@ module LcpRuby
       end
 
       def column_type
+        return LcpRuby.json_column_type if base_type == "json"
         BASE_TYPE_COLUMN_MAP[base_type] || base_type.to_sym
       end
 

@@ -53,9 +53,9 @@ RSpec.describe LcpRuby::Types::TypeDefinition do
       expect(type_def.column_type).to eq(:string)
     end
 
-    it "maps json to jsonb" do
+    it "maps json to adapter-appropriate column type" do
       type_def = described_class.from_hash("name" => "custom_json", "base_type" => "json")
-      expect(type_def.column_type).to eq(:jsonb)
+      expect(type_def.column_type).to eq(LcpRuby.json_column_type)
     end
 
     it "maps rich_text to text" do

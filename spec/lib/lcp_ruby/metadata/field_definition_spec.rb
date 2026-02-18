@@ -49,9 +49,9 @@ RSpec.describe LcpRuby::Metadata::FieldDefinition do
       expect(field.column_type).to eq(:text)
     end
 
-    it "maps json to jsonb column type" do
+    it "maps json to adapter-appropriate column type" do
       field = described_class.from_hash("name" => "meta", "type" => "json")
-      expect(field.column_type).to eq(:jsonb)
+      expect(field.column_type).to eq(LcpRuby.json_column_type)
     end
 
     it "defaults label to humanized name" do
