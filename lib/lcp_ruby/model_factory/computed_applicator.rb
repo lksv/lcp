@@ -13,7 +13,7 @@ module LcpRuby
         @model_class.before_save do |record|
           computed_fields.each do |field_name, config|
             value = ComputedApplicator.compute(record, config)
-            record.send("#{field_name}=", value) unless value.nil?
+            record.send("#{field_name}=", value)
           end
         end
       end

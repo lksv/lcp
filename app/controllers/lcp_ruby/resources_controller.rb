@@ -85,9 +85,13 @@ module LcpRuby
     def permitted_params
       writable = current_evaluator.writable_fields.map(&:to_sym)
 
-      # Also permit belongs_to foreign keys
+      # Also permit belongs_to foreign keys that appear in writable presenter form fields
+      presenter_fields = (current_presenter.form_config["sections"] || [])
+        .flat_map { |s| (s["fields"] || []).map { |f| f["field"] } }.compact
+
       fk_fields = current_model_definition.associations
         .select { |a| a.type == "belongs_to" && a.foreign_key.present? }
+        .select { |a| presenter_fields.include?(a.foreign_key) || presenter_fields.include?(a.name) }
         .map { |a| a.foreign_key.to_sym }
 
       flat_fields = (writable + fk_fields).uniq
@@ -133,12 +137,14 @@ module LcpRuby
 
       if params[:filter].present?
         predefined = search_config["predefined_filters"]&.find { |f| f["name"] == params[:filter] }
-        scope = scope.send(predefined["scope"]) if predefined&.dig("scope")
+        scope_name = predefined&.dig("scope")
+        scope = scope.send(scope_name) if scope_name && @model_class.respond_to?(scope_name)
       end
 
       if params[:q].present?
-        searchable = search_config["searchable_fields"] || []
-        conditions = searchable.map { |f| "#{f} LIKE :q" }.join(" OR ")
+        searchable = (search_config["searchable_fields"] || []).select { |f| @model_class.column_names.include?(f.to_s) }
+        conn = @model_class.connection
+        conditions = searchable.map { |f| "#{conn.quote_column_name(f)} LIKE :q" }.join(" OR ")
         scope = scope.where(conditions, q: "%#{params[:q]}%") if conditions.present?
       end
 
@@ -152,6 +158,8 @@ module LcpRuby
       field = params[:sort] || sort_config["field"]
       direction = params[:direction] || sort_config["direction"] || "asc"
       direction = "asc" unless %w[asc desc].include?(direction.to_s.downcase)
+
+      return scope unless @model_class.column_names.include?(field.to_s)
 
       scope.order(field => direction)
     end

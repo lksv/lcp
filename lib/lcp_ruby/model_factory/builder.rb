@@ -20,6 +20,9 @@ module LcpRuby
         apply_computed(model_class)
         apply_label_method(model_class)
         model_class
+      rescue => e
+        raise LcpRuby::MetadataError,
+          "Failed to build model '#{model_definition.name}': #{e.message}"
       end
 
       private

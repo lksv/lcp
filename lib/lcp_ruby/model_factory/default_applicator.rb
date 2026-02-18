@@ -14,7 +14,7 @@ module LcpRuby
           next unless record.new_record?
 
           dynamic_defaults.each do |field_name, default_config|
-            next if record.send(field_name).present?
+            next unless record.send(field_name).nil?
 
             value = DefaultApplicator.resolve_default(record, field_name, default_config)
             record.send("#{field_name}=", value) unless value.nil?
