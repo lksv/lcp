@@ -1,0 +1,42 @@
+presenter:
+  name: feature_dsl
+  model: feature_dsl
+  label: "DSL Records"
+  slug: dsl-records
+  icon: code
+
+  index:
+    default_view: table
+    default_sort: { field: created_at, direction: desc }
+    per_page: 25
+    row_click: show
+    table_columns:
+      - { field: title, width: "40%", link_to: show, sortable: true }
+      - { field: body, width: "40%" }
+      - { field: active, display: boolean_icon }
+
+  show:
+    layout:
+      - section: "Details"
+        columns: 1
+        fields:
+          - { field: title, display: heading }
+          - { field: body }
+          - { field: active, display: boolean_icon }
+
+  form:
+    sections:
+      - title: "Record"
+        columns: 1
+        fields:
+          - { field: title, placeholder: "Enter title..." }
+          - { field: body, input_type: text }
+          - { field: active, input_type: boolean }
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New", icon: plus }
+    single:
+      - { name: show, type: built_in, icon: eye }
+      - { name: edit, type: built_in, icon: pencil }
+      - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }
