@@ -1,9 +1,7 @@
 view_group:
   model: contact
   primary: contact
-  navigation:
-    menu: main
-    position: 2
+  navigation: false
   breadcrumb:
     relation: company
   views:

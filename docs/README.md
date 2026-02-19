@@ -14,6 +14,7 @@ Complete attribute reference for every YAML configuration file:
 - [Types](reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters](reference/presenters.md) — Index, show, form, search, actions, navigation
 - [View Groups](reference/view-groups.md) — Navigation menu, view switching, auto-creation
+- [Menu](reference/menu.md) — Configurable navigation: top bar, sidebar, dropdowns, role visibility
 - [Permissions](reference/permissions.md) — Roles, CRUD, field access, scopes, record rules
 - [Condition Operators](reference/condition-operators.md) — Shared operator reference for `visible_when`, `record_rules`, etc.
 - [Eager Loading](reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
@@ -34,6 +35,7 @@ Complete attribute reference for every YAML configuration file:
 - [Event Handlers](guides/event-handlers.md) — Responding to lifecycle events and field changes
 - [Custom Types](guides/custom-types.md) — Defining custom business types (percentage, postal_code, slug, hex_color)
 - [View Groups](guides/view-groups.md) — Multi-view navigation and view switcher setup
+- [Menu](guides/menu.md) — Custom navigation menus: dropdowns, sidebar, combined layouts
 - [Display Types](guides/display-types.md) — Visual guide to all display renderers (including dot-notation, templates, and collections)
 - [Custom Renderers](guides/custom-renderers.md) — Creating custom display renderers for host applications
 - [Attachments](guides/attachments.md) — File upload with Active Storage

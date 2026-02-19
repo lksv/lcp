@@ -4,7 +4,7 @@ module LcpRuby
   module Metadata
     class Loader
       attr_reader :base_path, :model_definitions, :presenter_definitions,
-                  :permission_definitions, :view_group_definitions
+                  :permission_definitions, :view_group_definitions, :menu_definition
 
       def initialize(base_path)
         @base_path = Pathname.new(base_path)
@@ -12,6 +12,7 @@ module LcpRuby
         @presenter_definitions = {}
         @permission_definitions = {}
         @view_group_definitions = {}
+        @menu_definition = nil
       end
 
       def load_all
@@ -22,6 +23,16 @@ module LcpRuby
         load_view_groups
         validate_references
         auto_create_view_groups
+        load_menu
+      end
+
+      def menu_defined?
+        !@menu_definition.nil?
+      end
+
+      # Returns navigable view groups (those not opted out with navigation: false)
+      def navigable_view_groups
+        @view_group_definitions.values.select(&:navigable?)
       end
 
       def load_types
@@ -230,6 +241,113 @@ module LcpRuby
             end
             presenter_in_groups[pname] = vg.name
           end
+        end
+      end
+
+      def load_menu
+        menu_mode = LcpRuby.configuration.menu_mode
+        menu_file = find_menu_file
+
+        if menu_mode == :strict
+          validate_strict_mode!
+          unless menu_file
+            raise MetadataError, "menu.yml is required when menu_mode is :strict"
+          end
+        end
+
+        return unless menu_file
+
+        data = YAML.safe_load_file(menu_file, permitted_classes: [ Symbol, Regexp ])
+        return unless data
+
+        @menu_definition = MenuDefinition.from_hash(data)
+        validate_menu_references!
+
+        auto_append_unreferenced_view_groups! if menu_mode == :auto
+      rescue Psych::SyntaxError => e
+        raise MetadataError, "YAML syntax error in #{menu_file}: #{e.message}"
+      end
+
+      def find_menu_file
+        %w[menu.yml menu.yaml].each do |filename|
+          path = base_path.join(filename)
+          return path if path.exist?
+        end
+        nil
+      end
+
+      def validate_strict_mode!
+        @view_group_definitions.each_value do |vg|
+          next unless vg.navigable?
+
+          nav = vg.navigation_config
+          if nav.is_a?(Hash) && nav.any?
+            raise MetadataError,
+              "View group '#{vg.name}' has navigation config but menu_mode is :strict. " \
+              "Use navigation: false or remove navigation config."
+          end
+        end
+      end
+
+      def validate_menu_references!
+        validate_menu_items!(@menu_definition.top_menu) if @menu_definition.has_top_menu?
+        validate_menu_items!(@menu_definition.sidebar_menu) if @menu_definition.has_sidebar_menu?
+      end
+
+      def validate_menu_items!(items)
+        items.each do |item|
+          if item.view_group?
+            unless @view_group_definitions.key?(item.view_group_name)
+              raise MetadataError,
+                "Menu references unknown view group '#{item.view_group_name}'"
+            end
+          end
+
+          validate_menu_items!(item.children) if item.group?
+        end
+      end
+
+      # In :auto mode, append navigable view groups not referenced in menu.yml
+      def auto_append_unreferenced_view_groups!
+        referenced = collect_referenced_view_groups(@menu_definition)
+
+        unreferenced = navigable_view_groups.reject { |vg| referenced.include?(vg.name) }
+        return if unreferenced.empty?
+
+        sorted = unreferenced.sort_by do |vg|
+          nav = vg.navigation_config
+          nav.is_a?(Hash) ? (nav["position"] || 99) : 99
+        end
+
+        appended_items = sorted.map do |vg|
+          MenuItem.new(type: :view_group, view_group_name: vg.name)
+        end
+
+        # Append to top_menu (create it if only sidebar exists)
+        if @menu_definition.has_top_menu?
+          @menu_definition = MenuDefinition.new(
+            top_menu: @menu_definition.top_menu + appended_items,
+            sidebar_menu: @menu_definition.sidebar_menu
+          )
+        else
+          @menu_definition = MenuDefinition.new(
+            top_menu: appended_items,
+            sidebar_menu: @menu_definition.sidebar_menu
+          )
+        end
+      end
+
+      def collect_referenced_view_groups(menu_def)
+        names = Set.new
+        collect_vg_names(menu_def.top_menu || [], names)
+        collect_vg_names(menu_def.sidebar_menu || [], names)
+        names
+      end
+
+      def collect_vg_names(items, names)
+        items.each do |item|
+          names << item.view_group_name if item.view_group?
+          collect_vg_names(item.children, names) if item.group?
         end
       end
     end

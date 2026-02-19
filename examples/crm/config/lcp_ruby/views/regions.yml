@@ -1,6 +1,7 @@
 view_group:
   model: region
   primary: region
+  navigation: false
   breadcrumb:
     relation: country
   views:

@@ -1,0 +1,15 @@
+model:
+  name: setting
+  label: "Setting"
+  fields:
+    - name: key
+      type: string
+      label: "Key"
+      validations:
+        - type: presence
+    - name: value
+      type: string
+      label: "Value"
+  options:
+    timestamps: true
+    label_method: key

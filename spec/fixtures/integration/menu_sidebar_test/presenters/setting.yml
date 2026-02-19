@@ -1,0 +1,26 @@
+presenter:
+  name: setting
+  model: setting
+  label: "Settings"
+  slug: settings
+  icon: settings
+
+  index:
+    table_columns:
+      - { field: key, link_to: show }
+      - { field: value }
+
+  form:
+    sections:
+      - title: "Setting"
+        fields:
+          - { field: key }
+          - { field: value }
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Setting" }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

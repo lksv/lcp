@@ -1,0 +1,12 @@
+model:
+  name: project
+  label: "Project"
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      validations:
+        - type: presence
+  options:
+    timestamps: true
+    label_method: title

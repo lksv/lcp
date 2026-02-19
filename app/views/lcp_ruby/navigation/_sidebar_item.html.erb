@@ -1,0 +1,25 @@
+<%# Recursive sidebar item rendering — expects local: item %>
+<% if item.separator? %>
+  <li class="lcp-sidebar-separator"></li>
+<% elsif item.group? %>
+  <li class="lcp-sidebar-group<%= ' lcp-sidebar-group-active' if menu_item_active?(item, params[:lcp_slug]) %>">
+    <button class="lcp-sidebar-group-toggle" type="button" data-lcp-toggle="sidebar-group">
+      <span class="lcp-sidebar-group-label"><%= item.label %></span>
+      <span class="lcp-sidebar-group-arrow"></span>
+    </button>
+    <ul class="lcp-sidebar-group-children">
+      <% item.children.each do |child| %>
+        <%= render partial: "lcp_ruby/navigation/sidebar_item", locals: { item: child } %>
+      <% end %>
+    </ul>
+  </li>
+<% else %>
+  <li class="lcp-sidebar-item">
+    <% path = menu_item_path(item) %>
+    <% if path %>
+      <%= link_to path, class: "lcp-sidebar-link#{' active' if menu_item_active?(item, params[:lcp_slug])}" do %>
+        <span class="lcp-sidebar-label"><%= menu_item_label(item) %></span>
+      <% end %>
+    <% end %>
+  </li>
+<% end %>

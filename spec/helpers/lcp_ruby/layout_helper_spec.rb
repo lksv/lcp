@@ -65,7 +65,8 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
         LcpRuby::Metadata::ViewGroupDefinition,
         primary_presenter: "project",
         presenter_names: [ "project" ],
-        navigation_config: { "position" => 1 }
+        navigation_config: { "position" => 1 },
+        navigable?: true
       )
     end
 
@@ -74,7 +75,8 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
         LcpRuby::Metadata::ViewGroupDefinition,
         primary_presenter: "project_public",
         presenter_names: [ "project_public" ],
-        navigation_config: { "position" => 2 }
+        navigation_config: { "position" => 2 },
+        navigable?: true
       )
     end
 
@@ -96,6 +98,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
         "project" => view_group,
         "project_public" => view_group_restricted
       )
+      allow(loader).to receive(:navigable_view_groups).and_return([ view_group, view_group_restricted ])
       allow(loader).to receive(:presenter_definitions).and_return(
         "project" => presenter_admin,
         "project_public" => presenter_restricted

@@ -1,0 +1,6 @@
+view_group:
+  model: project
+  primary: project
+  navigation: false
+  views:
+    - presenter: project

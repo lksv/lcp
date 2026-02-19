@@ -1,9 +1,7 @@
 view_group:
   model: deal
   primary: deal
-  navigation:
-    menu: main
-    position: 3
+  navigation: false
   breadcrumb:
     relation: company
   views:

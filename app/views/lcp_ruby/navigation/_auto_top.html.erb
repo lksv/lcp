@@ -1,0 +1,10 @@
+<nav class="lcp-nav">
+  <ul class="lcp-nav-list">
+    <% navigable_presenters.each do |entry| %>
+      <li class="lcp-nav-item">
+        <%= link_to entry[:label], lcp_ruby.resources_path(lcp_slug: entry[:slug]),
+              class: entry[:all_slugs].include?(params[:lcp_slug]) ? "active" : "" %>
+      </li>
+    <% end %>
+  </ul>
+</nav>

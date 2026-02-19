@@ -1,0 +1,40 @@
+<%# Menu-driven top navigation with dropdown support %>
+<nav class="lcp-nav">
+  <ul class="lcp-nav-list">
+    <% visible_menu_items(menu_definition.top_menu).each do |item| %>
+      <% if item.separator? %>
+        <li class="lcp-nav-separator"></li>
+      <% elsif item.group? %>
+        <li class="lcp-nav-item lcp-nav-dropdown<%= ' active' if menu_item_active?(item, params[:lcp_slug]) %>">
+          <button class="lcp-nav-dropdown-toggle" type="button">
+            <%= item.label %>
+            <span class="lcp-nav-caret"></span>
+          </button>
+          <ul class="lcp-nav-dropdown-menu">
+            <% item.children.each do |child| %>
+              <% if child.separator? %>
+                <li class="lcp-nav-dropdown-separator"></li>
+              <% else %>
+                <li class="lcp-nav-dropdown-item">
+                  <% path = menu_item_path(child) %>
+                  <% if path %>
+                    <%= link_to(menu_item_label(child), path,
+                          class: menu_item_active?(child, params[:lcp_slug]) ? "active" : "") %>
+                  <% end %>
+                </li>
+              <% end %>
+            <% end %>
+          </ul>
+        </li>
+      <% else %>
+        <li class="lcp-nav-item">
+          <% path = menu_item_path(item) %>
+          <% if path %>
+            <%= link_to(menu_item_label(item), path,
+                  class: menu_item_active?(item, params[:lcp_slug]) ? "active" : "") %>
+          <% end %>
+        </li>
+      <% end %>
+    <% end %>
+  </ul>
+</nav>

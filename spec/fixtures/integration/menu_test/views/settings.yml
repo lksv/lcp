@@ -1,0 +1,7 @@
+view_group:
+  model: setting
+  primary: setting
+  navigation:
+    position: 3
+  views:
+    - presenter: setting

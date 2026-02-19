@@ -1,0 +1,24 @@
+presenter:
+  name: project
+  model: project
+  label: "Projects"
+  slug: projects
+  icon: folder
+
+  index:
+    table_columns:
+      - { field: title, link_to: show }
+
+  form:
+    sections:
+      - title: "Project"
+        fields:
+          - { field: title }
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Project" }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }
