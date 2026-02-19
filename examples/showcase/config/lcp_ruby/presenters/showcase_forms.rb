@@ -10,31 +10,31 @@ define_presenter :showcase_forms do
     per_page 25
 
     column :name, link_to: :show, sortable: true
-    column :form_type, display: :badge, display_options: {
+    column :form_type, renderer: :badge, options: {
       color_map: { simple: "blue", advanced: "purple", special: "orange" }
     }
-    column :priority, display: :number
-    column :is_premium, display: :boolean_icon
+    column :priority, renderer: :number
+    column :is_premium, renderer: :boolean_icon
   end
 
   show do
     section "Overview", columns: 2 do
-      field :name, display: :heading
-      field :form_type, display: :badge, display_options: {
+      field :name, renderer: :heading
+      field :form_type, renderer: :badge, options: {
         color_map: { simple: "blue", advanced: "purple", special: "orange" }
       }
-      field :priority, display: :number
-      field :satisfaction, display: :rating, display_options: { max: 5 }
-      field :is_premium, display: :boolean_icon
+      field :priority, renderer: :number
+      field :satisfaction, renderer: :rating, options: { max: 5 }
+      field :is_premium, renderer: :boolean_icon
     end
 
     section "Details" do
-      field :detailed_notes, display: :rich_text
+      field :detailed_notes, renderer: :rich_text
       field :reason
       field :rejection_reason
       field :advanced_field_1
       field :advanced_field_2
-      field :config_data, display: :code
+      field :config_data, renderer: :code
     end
   end
 

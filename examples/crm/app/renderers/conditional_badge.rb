@@ -4,14 +4,14 @@ module LcpRuby::HostRenderers
       rules = options["rules"] || []
       rules.each do |rule|
         if rule.key?("default")
-          sub_opts = rule.dig("default", "display_options") || {}
-          display = rule.dig("default", "display") || "badge"
-          return view_context.render_display_value(value, display, sub_opts) if view_context
+          sub_opts = rule.dig("default", "options") || {}
+          renderer = rule.dig("default", "renderer") || "badge"
+          return view_context.render_display_value(value, renderer, sub_opts) if view_context
           return value.to_s
         elsif matches?(value, rule["match"])
-          sub_opts = rule["display_options"] || {}
-          display = rule["display"] || "badge"
-          return view_context.render_display_value(value, display, sub_opts) if view_context
+          sub_opts = rule["options"] || {}
+          renderer = rule["renderer"] || "badge"
+          return view_context.render_display_value(value, renderer, sub_opts) if view_context
           return value.to_s
         end
       end

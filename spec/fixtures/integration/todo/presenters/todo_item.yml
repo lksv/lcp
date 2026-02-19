@@ -12,7 +12,7 @@ presenter:
     table_columns:
       - { field: title, width: "40%", link_to: show, sortable: true }
       - { field: "todo_list.title", label: "List", width: "20%", sortable: true }
-      - { field: completed, width: "15%", display: badge, sortable: true }
+      - { field: completed, width: "15%", renderer: badge, sortable: true }
       - { field: due_date, width: "15%", sortable: true }
 
   show:
@@ -20,8 +20,8 @@ presenter:
       - section: "Item Details"
         columns: 2
         fields:
-          - { field: title, display: heading }
-          - { field: completed, display: badge }
+          - { field: title, renderer: heading }
+          - { field: completed, renderer: badge }
           - { field: due_date }
 
   form:

@@ -9,14 +9,14 @@ define_presenter :project_public, inherits: :project do
     views_available :tiles
     per_page 12
     column :title, sortable: true
-    column :status, display: :badge
+    column :status, renderer: :badge
   end
 
   show do
     section "Project", columns: 2 do
-      field :title, display: :heading
-      field :status, display: :badge
-      field :description, display: :rich_text
+      field :title, renderer: :heading
+      field :status, renderer: :badge
+      field :description, renderer: :rich_text
     end
   end
 

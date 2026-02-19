@@ -10,13 +10,13 @@ define_presenter :tags do
     per_page 50
 
     column :name, link_to: :show, sortable: true
-    column :color, display: :color_swatch
+    column :color, renderer: :color_swatch
   end
 
   show do
     section "Tag Details", columns: 2 do
-      field :name, display: :heading
-      field :color, display: :color_swatch
+      field :name, renderer: :heading
+      field :color, renderer: :color_swatch
     end
   end
 

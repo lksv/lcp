@@ -10,27 +10,27 @@ define_presenter :showcase_attachments do
     per_page 25
 
     column :title, link_to: :show, sortable: true
-    column :avatar, display: :attachment_preview
+    column :avatar, renderer: :attachment_preview
   end
 
   show do
     description "Each section shows a different attachment configuration."
 
     section "Single Image (Avatar)", columns: 2, description: "Single image with variants: thumbnail (80x80) and medium (300x300)." do
-      field :title, display: :heading
-      field :avatar, display: :attachment_preview
+      field :title, renderer: :heading
+      field :avatar, renderer: :attachment_preview
     end
 
     section "Single File (Resume)", columns: 1, description: "Single file restricted to PDF. Max size: 10MB." do
-      field :resume, display: :attachment_link
+      field :resume, renderer: :attachment_link
     end
 
     section "Multiple Images (Gallery)", columns: 1, description: "Up to 10 images with thumbnail and medium variants." do
-      field :gallery, display: :attachment_preview
+      field :gallery, renderer: :attachment_preview
     end
 
     section "Multiple Files (Documents)", columns: 1, description: "Up to 20 files. PDF and images only." do
-      field :documents, display: :attachment_list
+      field :documents, renderer: :attachment_list
     end
   end
 

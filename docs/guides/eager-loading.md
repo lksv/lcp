@@ -49,7 +49,7 @@ show:
     - section: "Company Information"
       columns: 2
       fields:
-        - { field: name, display: heading }
+        - { field: name, renderer: heading }
         - { field: industry }
     - section: "Contacts"
       type: association_list
@@ -103,8 +103,8 @@ Displaying has_many fields in the index table also triggers eager loading:
 ```yaml
 table_columns:
   - field: "contacts.full_name"           # Auto-detects has_many :contacts
-    display: collection
-    display_options: { limit: 3 }
+    renderer: collection
+    options: { limit: 3 }
 ```
 
 ## Enabling strict_loading for Development

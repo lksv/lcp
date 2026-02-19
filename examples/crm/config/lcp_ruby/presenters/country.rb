@@ -12,15 +12,15 @@ define_presenter :country do
 
     column :name, width: "50%", link_to: :show, sortable: true
     column :code, width: "20%", sortable: true
-    column :active, width: "30%", display: :boolean_icon, sortable: true
+    column :active, width: "30%", renderer: :boolean_icon, sortable: true
   end
 
   show do
     section "Country Information", columns: 2 do
-      field :name, display: :heading
+      field :name, renderer: :heading
       field :code
-      field :active, display: :boolean_icon
-      field :created_at, display: :relative_date
+      field :active, renderer: :boolean_icon
+      field :created_at, renderer: :relative_date
     end
     association_list "Regions", association: :regions
   end

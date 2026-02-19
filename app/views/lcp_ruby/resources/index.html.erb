@@ -72,9 +72,11 @@
               <td class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
                 <% value = @field_resolver.resolve(record, col["field"], fk_map: @fk_map) %>
                 <% if col["link_to"] == "show" %>
-                  <%= link_to render_display_value(value, col["display"], col["display_options"], nil, record: record), resource_path(record) %>
-                <% elsif col["display"] %>
-                  <%= render_display_value(value, col["display"], col["display_options"], nil, record: record) %>
+                  <%= link_to render_display_value(value, col["renderer"], col["options"], nil, record: record), resource_path(record) %>
+                <% elsif col["partial"] %>
+                  <%= render partial: col["partial"], locals: { value: value, record: record, options: col["options"] || {} } %>
+                <% elsif col["renderer"] %>
+                  <%= render_display_value(value, col["renderer"], col["options"], nil, record: record) %>
                 <% elsif value.is_a?(Array) %>
                   <%= render_display_value(value, "collection", {}) %>
                 <% else %>

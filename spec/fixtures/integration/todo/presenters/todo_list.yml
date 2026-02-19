@@ -14,14 +14,14 @@ presenter:
     table_columns:
       - { field: title, width: "50%", link_to: show, sortable: true }
       - { field: description, width: "50%" }
-      - { field: "todo_items.title", label: "Items", display: collection, display_options: { limit: 3, separator: ", " } }
+      - { field: "todo_items.title", label: "Items", renderer: collection, options: { limit: 3, separator: ", " } }
 
   show:
     layout:
       - section: "Details"
         columns: 1
         fields:
-          - { field: title, display: heading }
+          - { field: title, renderer: heading }
           - { field: description }
       - section: "Items"
         type: association_list

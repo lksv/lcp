@@ -214,11 +214,11 @@ When `direct_upload: true` is enabled, files are uploaded directly to the storag
 
 ## Display Configuration
 
-Attachment fields support three display types for show pages and index tables.
+Attachment fields support three renderers for show pages and index tables.
 
 ### `attachment_preview`
 
-Renders an image preview for image attachments, with a fallback to a download link for non-image files. Use the `variant` display option to control which image variant is shown.
+Renders an image preview for image attachments, with a fallback to a download link for non-image files. Use the `variant` option to control which image variant is shown.
 
 ```yaml
 show:
@@ -226,8 +226,8 @@ show:
     - section: "Details"
       fields:
         - field: photo
-          display: attachment_preview
-          display_options:
+          renderer: attachment_preview
+          options:
             variant: medium
 ```
 
@@ -241,7 +241,7 @@ show:
     - section: "Documents"
       fields:
         - field: files
-          display: attachment_list
+          renderer: attachment_list
 ```
 
 ### `attachment_link`
@@ -254,7 +254,7 @@ show:
     - section: "Contract"
       fields:
         - field: contract
-          display: attachment_link
+          renderer: attachment_link
 ```
 
 ### Complete Presenter Example
@@ -269,20 +269,20 @@ presenter:
   index:
     table_columns:
       - { field: title, link_to: show, sortable: true }
-      - { field: photo, display: attachment_preview, display_options: { variant: thumbnail } }
-      - { field: created_at, display: relative_date }
+      - { field: photo, renderer: attachment_preview, options: { variant: thumbnail } }
+      - { field: created_at, renderer: relative_date }
 
   show:
     layout:
       - section: "Details"
         columns: 2
         fields:
-          - { field: title, display: heading }
+          - { field: title, renderer: heading }
           - field: photo
-            display: attachment_preview
-            display_options: { variant: medium }
+            renderer: attachment_preview
+            options: { variant: medium }
           - field: files
-            display: attachment_list
+            renderer: attachment_list
 
   form:
     sections:

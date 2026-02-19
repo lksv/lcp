@@ -335,7 +335,7 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
               "section" => "Contacts",
               "type" => "association_list",
               "association" => "contacts",
-              "display" => "default",
+              "display_template" => "default",
               "link" => true,
               "limit" => 5,
               "empty_message" => "No contacts."
@@ -376,7 +376,7 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
       sections = show_builder.show_sections
       assoc_section = sections.find { |s| s["type"] == "association_list" }
 
-      expect(assoc_section["display"]).to eq("default")
+      expect(assoc_section["display_template"]).to eq("default")
       expect(assoc_section["link"]).to eq(true)
       expect(assoc_section["limit"]).to eq(5)
       expect(assoc_section["empty_message"]).to eq("No contacts.")

@@ -10,7 +10,7 @@ define_presenter :projects do
     per_page 25
 
     column :name, link_to: :show, sortable: true
-    column :status, display: :badge, display_options: {
+    column :status, renderer: :badge, options: {
       color_map: { active: "green", completed: "blue", archived: "gray" }
     }, sortable: true
     column "department.name", label: "Department"
@@ -21,8 +21,8 @@ define_presenter :projects do
 
   show do
     section "Project Details", columns: 2 do
-      field :name, display: :heading
-      field :status, display: :badge, display_options: {
+      field :name, renderer: :heading
+      field :status, renderer: :badge, options: {
         color_map: { active: "green", completed: "blue", archived: "gray" }
       }
       field "department.name", label: "Department"

@@ -10,7 +10,7 @@ module LcpRuby
             { "type" => "format", "options" => { "with" => '\A[^@\s]+@[^@\s]+\z', "allow_blank" => true } }
           ],
           input_type: "email",
-          display_type: "email_link",
+          renderer: "email_link",
           column_options: { limit: 255 }
         },
         "phone" => {
@@ -21,7 +21,7 @@ module LcpRuby
             { "type" => "format", "options" => { "with" => '\A\+?\d{7,15}\z', "allow_blank" => true } }
           ],
           input_type: "tel",
-          display_type: "phone_link",
+          renderer: "phone_link",
           column_options: { limit: 50 }
         },
         "url" => {
@@ -32,7 +32,7 @@ module LcpRuby
             { "type" => "format", "options" => { "with" => '\A(https?|ftp)://[^\s/$.?#].[^\s]*\z', "allow_blank" => true } }
           ],
           input_type: "url",
-          display_type: "url_link",
+          renderer: "url_link",
           column_options: { limit: 2048 }
         },
         "color" => {
@@ -43,7 +43,7 @@ module LcpRuby
             { "type" => "format", "options" => { "with" => '\A#[0-9a-f]{6}\z', "allow_blank" => true } }
           ],
           input_type: "color",
-          display_type: "color_swatch",
+          renderer: "color_swatch",
           column_options: { limit: 7 }
         }
       }.freeze

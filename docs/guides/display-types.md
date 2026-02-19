@@ -1,12 +1,12 @@
-# Display Types Guide
+# Renderers Guide
 
-Display types control how field values are rendered in index tables and show pages. Each display type transforms raw data into a visual representation -- a badge, a progress bar, a formatted currency value, etc.
+Renderers control how field values are rendered in index tables and show pages. Each renderer transforms raw data into a visual representation -- a badge, a progress bar, a formatted currency value, etc.
 
-Display types are set on presenter fields via the `display` attribute (YAML) or `display:` option (DSL). They only affect read-only views (index columns and show fields), not form inputs.
+Renderers are set on presenter fields via the `renderer` attribute (YAML) or `renderer:` option (DSL). They only affect read-only views (index columns and show fields), not form inputs. You can also use `partial: "path/to/partial"` to render a field with a custom view partial instead of a renderer class.
 
 For the full presenter attribute reference, see [Presenters Reference](../reference/presenters.md).
 
-## Text Display Types
+## Text Renderers
 
 ### `heading`
 
@@ -20,7 +20,7 @@ show:
   layout:
     - section: "Project Details"
       fields:
-        - { field: title, display: heading }
+        - { field: title, renderer: heading }
 ```
 
 **Ruby DSL:**
@@ -28,12 +28,12 @@ show:
 ```ruby
 show do
   section "Project Details" do
-    field :title, display: :heading
+    field :title, renderer: :heading
   end
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** The value is rendered in a larger, bold font weight, visually distinguishing it from regular fields.
 
@@ -49,19 +49,19 @@ Truncates long text to a maximum length and shows the full value in a tooltip on
 index:
   table_columns:
     - field: description
-      display: truncate
-      display_options: { max: 80 }
+      renderer: truncate
+      options: { max: 80 }
 ```
 
 **Ruby DSL:**
 
 ```ruby
 index do
-  column :description, display: :truncate, display_options: { max: 80 }
+  column :description, renderer: :truncate, options: { max: 80 }
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -82,8 +82,8 @@ show:
   layout:
     - section: "Technical Details"
       fields:
-        - { field: api_key, display: code }
-        - { field: tracking_id, display: code }
+        - { field: api_key, renderer: code }
+        - { field: tracking_id, renderer: code }
 ```
 
 **Ruby DSL:**
@@ -91,13 +91,13 @@ show:
 ```ruby
 show do
   section "Technical Details" do
-    field :api_key, display: :code
-    field :tracking_id, display: :code
+    field :api_key, renderer: :code
+    field :tracking_id, renderer: :code
   end
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** Value is displayed in a monospace font with a subtle background, similar to inline `<code>` styling.
 
@@ -114,7 +114,7 @@ show:
   layout:
     - section: "Content"
       fields:
-        - { field: body, display: rich_text }
+        - { field: body, renderer: rich_text }
 ```
 
 **Ruby DSL:**
@@ -122,18 +122,18 @@ show:
 ```ruby
 show do
   section "Content" do
-    field :body, display: :rich_text
+    field :body, renderer: :rich_text
   end
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** HTML is rendered directly, supporting headings, lists, bold/italic, links, and other standard HTML elements. Content is sanitized before display.
 
 ---
 
-## Status & Boolean
+## Status & Boolean Renderers
 
 ### `badge`
 
@@ -145,8 +145,8 @@ Renders the value as a colored pill/badge. Ideal for enum or status fields where
 index:
   table_columns:
     - field: status
-      display: badge
-      display_options:
+      renderer: badge
+      options:
         color_map:
           draft: gray
           active: green
@@ -158,8 +158,8 @@ show:
     - section: "Details"
       fields:
         - field: priority
-          display: badge
-          display_options:
+          renderer: badge
+          options:
             color_map:
               low: blue
               medium: yellow
@@ -171,21 +171,21 @@ show:
 
 ```ruby
 index do
-  column :status, display: :badge, display_options: {
+  column :status, renderer: :badge, options: {
     color_map: { draft: :gray, active: :green, paused: :yellow, archived: :red }
   }
 end
 
 show do
   section "Details" do
-    field :priority, display: :badge, display_options: {
+    field :priority, renderer: :badge, options: {
       color_map: { low: :blue, medium: :yellow, high: :orange, critical: :red }
     }
   end
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -207,11 +207,11 @@ Renders a boolean value as a colored icon instead of "true"/"false". Provides a 
 index:
   table_columns:
     - field: active
-      display: boolean_icon
+      renderer: boolean_icon
 
     - field: verified
-      display: boolean_icon
-      display_options:
+      renderer: boolean_icon
+      options:
         true_icon: check-circle
         false_icon: x-circle
 ```
@@ -220,25 +220,25 @@ index:
 
 ```ruby
 index do
-  column :active, display: :boolean_icon
-  column :verified, display: :boolean_icon, display_options: {
+  column :active, renderer: :boolean_icon
+  column :verified, renderer: :boolean_icon, options: {
     true_icon: "check-circle", false_icon: "x-circle"
   }
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `true_icon` | string | `"Yes"` | Text or icon label for `true` values |
 | `false_icon` | string | `"No"` | Text or icon label for `false` values |
 
-**Appearance:** `true` shows a green "Yes" label; `false` shows a red "No" label. Override the defaults with custom text via `display_options`.
+**Appearance:** `true` shows a green "Yes" label; `false` shows a red "No" label. Override the defaults with custom text via `options`.
 
 ---
 
-## Numeric
+## Numeric Renderers
 
 ### `currency`
 
@@ -250,8 +250,8 @@ Formats a numeric value as currency with symbol, thousands separator, and decima
 index:
   table_columns:
     - field: price
-      display: currency
-      display_options:
+      renderer: currency
+      options:
         currency: USD
         precision: 2
 
@@ -260,8 +260,8 @@ show:
     - section: "Financial"
       fields:
         - field: total_revenue
-          display: currency
-          display_options:
+          renderer: currency
+          options:
             currency: EUR
 ```
 
@@ -269,17 +269,17 @@ show:
 
 ```ruby
 index do
-  column :price, display: :currency, display_options: { currency: "USD", precision: 2 }
+  column :price, renderer: :currency, options: { currency: "USD", precision: 2 }
 end
 
 show do
   section "Financial" do
-    field :total_revenue, display: :currency, display_options: { currency: "EUR" }
+    field :total_revenue, renderer: :currency, options: { currency: "EUR" }
   end
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -302,8 +302,8 @@ show:
     - section: "Performance"
       fields:
         - field: completion_rate
-          display: percentage
-          display_options:
+          renderer: percentage
+          options:
             precision: 1
 ```
 
@@ -312,12 +312,12 @@ show:
 ```ruby
 show do
   section "Performance" do
-    field :completion_rate, display: :percentage, display_options: { precision: 1 }
+    field :completion_rate, renderer: :percentage, options: { precision: 1 }
   end
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -337,8 +337,8 @@ Formats a numeric value with delimiter and decimal precision. Useful for large n
 index:
   table_columns:
     - field: population
-      display: number
-      display_options:
+      renderer: number
+      options:
         delimiter: ","
         precision: 0
 ```
@@ -347,11 +347,11 @@ index:
 
 ```ruby
 index do
-  column :population, display: :number, display_options: { delimiter: ",", precision: 0 }
+  column :population, renderer: :number, options: { delimiter: ",", precision: 0 }
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -372,18 +372,18 @@ Converts a byte count into a human-readable file size string.
 index:
   table_columns:
     - field: attachment_size
-      display: file_size
+      renderer: file_size
 ```
 
 **Ruby DSL:**
 
 ```ruby
 index do
-  column :attachment_size, display: :file_size
+  column :attachment_size, renderer: :file_size
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** `1048576` renders as `1.0 MB`. `2048` renders as `2.0 KB`. Automatically selects the appropriate unit (Bytes, KB, MB, GB).
 
@@ -399,8 +399,8 @@ Renders a numeric value as a visual progress bar. The value should represent a p
 index:
   table_columns:
     - field: completion
-      display: progress_bar
-      display_options:
+      renderer: progress_bar
+      options:
         max: 100
 ```
 
@@ -408,11 +408,11 @@ index:
 
 ```ruby
 index do
-  column :completion, display: :progress_bar, display_options: { max: 100 }
+  column :completion, renderer: :progress_bar, options: { max: 100 }
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -432,8 +432,8 @@ Renders a numeric value as a row of stars. Useful for review scores or priority 
 index:
   table_columns:
     - field: score
-      display: rating
-      display_options:
+      renderer: rating
+      options:
         max: 5
 
 show:
@@ -441,8 +441,8 @@ show:
     - section: "Review"
       fields:
         - field: score
-          display: rating
-          display_options:
+          renderer: rating
+          options:
             max: 10
 ```
 
@@ -450,17 +450,17 @@ show:
 
 ```ruby
 index do
-  column :score, display: :rating, display_options: { max: 5 }
+  column :score, renderer: :rating, options: { max: 5 }
 end
 
 show do
   section "Review" do
-    field :score, display: :rating, display_options: { max: 10 }
+    field :score, renderer: :rating, options: { max: 10 }
   end
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -470,7 +470,7 @@ end
 
 ---
 
-## Date & Time
+## Date & Time Renderers
 
 ### `date`
 
@@ -482,8 +482,8 @@ Formats a date value according to a format string.
 index:
   table_columns:
     - field: due_date
-      display: date
-      display_options:
+      renderer: date
+      options:
         format: "%B %d, %Y"
 ```
 
@@ -491,11 +491,11 @@ index:
 
 ```ruby
 index do
-  column :due_date, display: :date, display_options: { format: "%B %d, %Y" }
+  column :due_date, renderer: :date, options: { format: "%B %d, %Y" }
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -526,8 +526,8 @@ show:
     - section: "Audit"
       fields:
         - field: created_at
-          display: datetime
-          display_options:
+          renderer: datetime
+          options:
             format: "%B %d, %Y at %H:%M"
 ```
 
@@ -536,12 +536,12 @@ show:
 ```ruby
 show do
   section "Audit" do
-    field :created_at, display: :datetime, display_options: { format: "%B %d, %Y at %H:%M" }
+    field :created_at, renderer: :datetime, options: { format: "%B %d, %Y at %H:%M" }
   end
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -561,24 +561,24 @@ Displays a date or datetime as a human-readable relative time string.
 index:
   table_columns:
     - field: updated_at
-      display: relative_date
+      renderer: relative_date
 ```
 
 **Ruby DSL:**
 
 ```ruby
 index do
-  column :updated_at, display: :relative_date
+  column :updated_at, renderer: :relative_date
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** Renders as natural language relative to the current time: `"3 days ago"`, `"2 hours ago"`, `"just now"`, `"in 5 minutes"`. The exact date may be available in a tooltip on hover.
 
 ---
 
-## Links
+## Link Renderers
 
 ### `email_link`
 
@@ -590,30 +590,30 @@ Renders an email address as a clickable `mailto:` link.
 index:
   table_columns:
     - field: email
-      display: email_link
+      renderer: email_link
 
 show:
   layout:
     - section: "Contact Info"
       fields:
-        - { field: email, display: email_link }
+        - { field: email, renderer: email_link }
 ```
 
 **Ruby DSL:**
 
 ```ruby
 index do
-  column :email, display: :email_link
+  column :email, renderer: :email_link
 end
 
 show do
   section "Contact Info" do
-    field :email, display: :email_link
+    field :email, renderer: :email_link
   end
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** The email address is displayed as a clickable link. Clicking opens the user's default email client with the address pre-filled.
 
@@ -630,7 +630,7 @@ show:
   layout:
     - section: "Contact Info"
       fields:
-        - { field: phone, display: phone_link }
+        - { field: phone, renderer: phone_link }
 ```
 
 **Ruby DSL:**
@@ -638,12 +638,12 @@ show:
 ```ruby
 show do
   section "Contact Info" do
-    field :phone, display: :phone_link
+    field :phone, renderer: :phone_link
   end
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** The phone number is displayed as a clickable link. Clicking initiates a phone call on supported devices or opens a dialer application.
 
@@ -659,36 +659,36 @@ Renders a URL as a clickable external link that opens in a new tab.
 index:
   table_columns:
     - field: website
-      display: url_link
+      renderer: url_link
 
 show:
   layout:
     - section: "Company Info"
       fields:
-        - { field: website, display: url_link }
+        - { field: website, renderer: url_link }
 ```
 
 **Ruby DSL:**
 
 ```ruby
 index do
-  column :website, display: :url_link
+  column :website, renderer: :url_link
 end
 
 show do
   section "Company Info" do
-    field :website, display: :url_link
+    field :website, renderer: :url_link
   end
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** The URL is displayed as a clickable link with `target="_blank"` and `rel="noopener noreferrer"`. An external link icon may be shown alongside the text.
 
 ---
 
-## Visual
+## Visual Renderers
 
 ### `image`
 
@@ -702,8 +702,8 @@ show:
     - section: "Media"
       fields:
         - field: photo_url
-          display: image
-          display_options:
+          renderer: image
+          options:
             size: medium
 ```
 
@@ -712,12 +712,12 @@ show:
 ```ruby
 show do
   section "Media" do
-    field :photo_url, display: :image, display_options: { size: :medium }
+    field :photo_url, renderer: :image, options: { size: :medium }
   end
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -745,8 +745,8 @@ Renders an image URL as a circular avatar. Useful for profile photos or user thu
 index:
   table_columns:
     - field: profile_image
-      display: avatar
-      display_options:
+      renderer: avatar
+      options:
         size: 32
 
 show:
@@ -754,8 +754,8 @@ show:
     - section: "Profile"
       fields:
         - field: profile_image
-          display: avatar
-          display_options:
+          renderer: avatar
+          options:
             size: 64
 ```
 
@@ -763,17 +763,17 @@ show:
 
 ```ruby
 index do
-  column :profile_image, display: :avatar, display_options: { size: 32 }
+  column :profile_image, renderer: :avatar, options: { size: 32 }
 end
 
 show do
   section "Profile" do
-    field :profile_image, display: :avatar, display_options: { size: 64 }
+    field :profile_image, renderer: :avatar, options: { size: 64 }
   end
 end
 ```
 
-**Display options:**
+\*\*Options:\*\*
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -793,32 +793,32 @@ Renders a hex color value as a small colored square alongside the hex code text.
 index:
   table_columns:
     - field: brand_color
-      display: color_swatch
+      renderer: color_swatch
 
 show:
   layout:
     - section: "Branding"
       fields:
-        - { field: primary_color, display: color_swatch }
-        - { field: secondary_color, display: color_swatch }
+        - { field: primary_color, renderer: color_swatch }
+        - { field: secondary_color, renderer: color_swatch }
 ```
 
 **Ruby DSL:**
 
 ```ruby
 index do
-  column :brand_color, display: :color_swatch
+  column :brand_color, renderer: :color_swatch
 end
 
 show do
   section "Branding" do
-    field :primary_color, display: :color_swatch
-    field :secondary_color, display: :color_swatch
+    field :primary_color, renderer: :color_swatch
+    field :secondary_color, renderer: :color_swatch
   end
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** A small filled square showing the actual color, followed by the hex value text (e.g., `[##] #3B82F6`). Works with any valid CSS color string stored in the field.
 
@@ -835,7 +835,7 @@ show:
   layout:
     - section: "Reference"
       fields:
-        - { field: reference, display: link }
+        - { field: reference, renderer: link }
 ```
 
 **Ruby DSL:**
@@ -843,12 +843,12 @@ show:
 ```ruby
 show do
   section "Reference" do
-    field :reference, display: :link
+    field :reference, renderer: :link
   end
 end
 ```
 
-**Display options:** none
+\*\*Options:\*\* none
 
 **Appearance:** Plain text output. If the value responds to `to_label`, that method is called; otherwise `to_s` is used.
 
@@ -856,7 +856,7 @@ end
 
 ## Complete Example
 
-A product catalog presenter using a variety of display types:
+A product catalog presenter using a variety of renderers:
 
 **YAML:**
 
@@ -872,39 +872,39 @@ presenter:
     default_sort: { field: name, direction: asc }
     per_page: 20
     table_columns:
-      - { field: thumbnail, display: avatar, display_options: { size: 32 } }
+      - { field: thumbnail, renderer: avatar, options: { size: 32 } }
       - { field: name, width: "25%", link_to: show, sortable: true }
-      - { field: status, display: badge, display_options: { color_map: { draft: gray, active: green, discontinued: red } } }
-      - { field: price, display: currency, display_options: { currency: USD, precision: 2 }, sortable: true }
-      - { field: stock_count, display: number, display_options: { delimiter: "," } }
-      - { field: rating, display: rating, display_options: { max: 5 } }
-      - { field: updated_at, display: relative_date, sortable: true }
+      - { field: status, renderer: badge, options: { color_map: { draft: gray, active: green, discontinued: red } } }
+      - { field: price, renderer: currency, options: { currency: USD, precision: 2 }, sortable: true }
+      - { field: stock_count, renderer: number, options: { delimiter: "," } }
+      - { field: rating, renderer: rating, options: { max: 5 } }
+      - { field: updated_at, renderer: relative_date, sortable: true }
 
   show:
     layout:
       - section: "Product Information"
         columns: 2
         fields:
-          - { field: name, display: heading }
-          - { field: status, display: badge, display_options: { color_map: { draft: gray, active: green, discontinued: red } } }
-          - { field: sku, display: code }
-          - { field: price, display: currency, display_options: { currency: USD } }
-          - { field: discount_percent, display: percentage, display_options: { precision: 1 } }
-          - { field: rating, display: rating, display_options: { max: 5 } }
-          - { field: in_stock, display: boolean_icon }
-          - { field: brand_color, display: color_swatch }
+          - { field: name, renderer: heading }
+          - { field: status, renderer: badge, options: { color_map: { draft: gray, active: green, discontinued: red } } }
+          - { field: sku, renderer: code }
+          - { field: price, renderer: currency, options: { currency: USD } }
+          - { field: discount_percent, renderer: percentage, options: { precision: 1 } }
+          - { field: rating, renderer: rating, options: { max: 5 } }
+          - { field: in_stock, renderer: boolean_icon }
+          - { field: brand_color, renderer: color_swatch }
       - section: "Media"
         fields:
-          - { field: hero_image, display: image, display_options: { size: large } }
+          - { field: hero_image, renderer: image, options: { size: large } }
       - section: "Description"
         fields:
-          - { field: description, display: rich_text }
+          - { field: description, renderer: rich_text }
       - section: "Links"
         columns: 2
         fields:
-          - { field: website, display: url_link }
-          - { field: support_email, display: email_link }
-          - { field: support_phone, display: phone_link }
+          - { field: website, renderer: url_link }
+          - { field: support_email, renderer: email_link }
+          - { field: support_phone, renderer: phone_link }
 
   navigation:
     menu: main
@@ -923,43 +923,43 @@ define_presenter :product_catalog do
   index do
     default_sort :name, :asc
     per_page 20
-    column :thumbnail, display: :avatar, display_options: { size: 32 }
+    column :thumbnail, renderer: :avatar, options: { size: 32 }
     column :name, width: "25%", link_to: :show, sortable: true
-    column :status, display: :badge, display_options: {
+    column :status, renderer: :badge, options: {
       color_map: { draft: :gray, active: :green, discontinued: :red }
     }
-    column :price, display: :currency, display_options: { currency: "USD", precision: 2 }, sortable: true
-    column :stock_count, display: :number, display_options: { delimiter: "," }
-    column :rating, display: :rating, display_options: { max: 5 }
-    column :updated_at, display: :relative_date, sortable: true
+    column :price, renderer: :currency, options: { currency: "USD", precision: 2 }, sortable: true
+    column :stock_count, renderer: :number, options: { delimiter: "," }
+    column :rating, renderer: :rating, options: { max: 5 }
+    column :updated_at, renderer: :relative_date, sortable: true
   end
 
   show do
     section "Product Information", columns: 2 do
-      field :name, display: :heading
-      field :status, display: :badge, display_options: {
+      field :name, renderer: :heading
+      field :status, renderer: :badge, options: {
         color_map: { draft: :gray, active: :green, discontinued: :red }
       }
-      field :sku, display: :code
-      field :price, display: :currency, display_options: { currency: "USD" }
-      field :discount_percent, display: :percentage, display_options: { precision: 1 }
-      field :rating, display: :rating, display_options: { max: 5 }
-      field :in_stock, display: :boolean_icon
-      field :brand_color, display: :color_swatch
+      field :sku, renderer: :code
+      field :price, renderer: :currency, options: { currency: "USD" }
+      field :discount_percent, renderer: :percentage, options: { precision: 1 }
+      field :rating, renderer: :rating, options: { max: 5 }
+      field :in_stock, renderer: :boolean_icon
+      field :brand_color, renderer: :color_swatch
     end
 
     section "Media" do
-      field :hero_image, display: :image, display_options: { size: :large }
+      field :hero_image, renderer: :image, options: { size: :large }
     end
 
     section "Description" do
-      field :description, display: :rich_text
+      field :description, renderer: :rich_text
     end
 
     section "Links", columns: 2 do
-      field :website, display: :url_link
-      field :support_email, display: :email_link
-      field :support_phone, display: :phone_link
+      field :website, renderer: :url_link
+      field :support_email, renderer: :email_link
+      field :support_phone, renderer: :phone_link
     end
   end
 
@@ -969,7 +969,7 @@ end
 
 ## Quick Reference Table
 
-| Display Type | Category | Has Options | Best For |
+| Renderer | Category | Has Options | Best For |
 |-------------|----------|-------------|----------|
 | `heading` | Text | No | Primary record identifier |
 | `truncate` | Text | Yes (`max`) | Long text in table columns |
@@ -994,7 +994,7 @@ end
 | `color_swatch` | Visual | No | Color hex values |
 | `link` | Text | No | Association references |
 
-## Advanced Display Features
+## Advanced Features
 
 ### Dot-Notation Fields
 
@@ -1006,7 +1006,7 @@ Access fields on associated records using dot-notation. Works with `belongs_to`,
 index:
   table_columns:
     - { field: "company.name", sortable: true }
-    - { field: "company.industry", display: badge }
+    - { field: "company.industry", renderer: badge }
 ```
 
 **Ruby DSL:**
@@ -1014,7 +1014,7 @@ index:
 ```ruby
 index do
   column "company.name", sortable: true
-  column "company.industry", display: :badge
+  column "company.industry", renderer: :badge
 end
 ```
 
@@ -1022,7 +1022,7 @@ Dot-path fields automatically trigger eager loading for the referenced associati
 
 ---
 
-### Collection Display
+### Collection Renderer
 
 Renders an array of values (typically from a `has_many` association via dot-notation) as a joined list.
 
@@ -1032,8 +1032,8 @@ Renders an array of values (typically from a `has_many` association via dot-nota
 index:
   table_columns:
     - field: "contacts.first_name"
-      display: collection
-      display_options:
+      renderer: collection
+      options:
         limit: 3
         separator: ", "
         overflow: "..."
@@ -1043,27 +1043,27 @@ index:
 
 ```ruby
 index do
-  column "contacts.first_name", display: :collection, display_options: {
+  column "contacts.first_name", renderer: :collection, options: {
     limit: 3, separator: ", ", overflow: "..."
   }
 end
 ```
 
-**Display options:**
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `separator` | string | `", "` | String between items |
 | `limit` | integer | none | Maximum number of items to display |
 | `overflow` | string | `"..."` | Text appended when items exceed the limit |
-| `item_display` | string | none | Display type to apply to each item before joining |
-| `item_display_options` | hash | `{}` | Options passed to the item display type |
+| `item_renderer` | string | none | Renderer to apply to each item before joining |
+| `item_options` | hash | `{}` | Options passed to the item renderer |
 
 **Appearance:** Items are rendered as a comma-separated list (or with the specified separator). When the number of items exceeds the limit, the list is truncated and the overflow indicator is appended.
 
 ---
 
-### Template Display
+### Template Fields
 
 Interpolate multiple field values into a single display string using `{field_name}` syntax. Supports dot-notation references inside braces.
 
@@ -1091,7 +1091,7 @@ Template fields check readability of every referenced field. If any reference is
 
 ### Custom Renderers
 
-Host applications can define custom display types by creating renderer classes in `app/renderers/`. See the [Custom Renderers Guide](custom-renderers.md) for details.
+Host applications can define custom renderers by creating renderer classes in `app/renderers/`. See the [Custom Renderers Guide](custom-renderers.md) for details.
 
 ```ruby
 # app/renderers/sparkline.rb
@@ -1106,14 +1106,14 @@ end
 
 ```yaml
 table_columns:
-  - { field: weekly_sales, display: sparkline }
+  - { field: weekly_sales, renderer: sparkline }
 ```
 
 ---
 
 ## Display Templates
 
-Display types apply to individual fields in index columns and show sections. For rendering **entire records** as rich HTML blocks (with title, subtitle, icon, and badge), see [Display Templates](../reference/models.md#display-templates). Display templates are used in `association_list` sections to render each associated record with a structured layout instead of plain text.
+Renderers apply to individual fields in index columns and show sections. For rendering **entire records** as rich HTML blocks (with title, subtitle, icon, and badge), see [Display Templates](../reference/models.md#display-templates). Display templates are used in `association_list` sections to render each associated record with a structured layout instead of plain text.
 
 ---
 
@@ -1122,5 +1122,5 @@ Display types apply to individual fields in index columns and show sections. For
 - [Presenters Reference](../reference/presenters.md) -- Full attribute reference for presenter YAML
 - [Presenter DSL Reference](../reference/presenter-dsl.md) -- Ruby DSL alternative for presenters
 - [Display Templates](../reference/models.md#display-templates) -- Rich record representations for association lists
-- [Custom Renderers](custom-renderers.md) -- Creating host app custom display renderers
-- [Custom Types](custom-types.md) -- Types can set a default `display_type` (e.g., `color` type uses `color_swatch`)
+- [Custom Renderers](custom-renderers.md) -- Creating host app custom renderers
+- [Custom Types](custom-types.md) -- Types can set a default `renderer` (e.g., `color` type uses `color_swatch`)

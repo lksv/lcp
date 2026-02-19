@@ -9,13 +9,13 @@ define_presenter :company_short, inherits: :company do
     row_click :show
 
     column :name, width: "50%", link_to: :show, sortable: true
-    column :industry, width: "50%", display: :badge, sortable: true
+    column :industry, width: "50%", renderer: :badge, sortable: true
   end
 
   show do
     section "Company Summary" do
-      field :name, display: :heading
-      field :industry, display: :badge
+      field :name, renderer: :heading
+      field :industry, renderer: :badge
     end
   end
 end

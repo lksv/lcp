@@ -13,16 +13,16 @@ presenter:
     table_columns:
       - { field: title, width: "40%", link_to: show, sortable: true }
       - { field: body, width: "40%" }
-      - { field: active, display: boolean_icon }
+      - { field: active, renderer: boolean_icon }
 
   show:
     layout:
       - section: "Details"
         columns: 1
         fields:
-          - { field: title, display: heading }
+          - { field: title, renderer: heading }
           - { field: body }
-          - { field: active, display: boolean_icon }
+          - { field: active, renderer: boolean_icon }
 
   form:
     sections:

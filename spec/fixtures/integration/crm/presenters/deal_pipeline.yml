@@ -12,17 +12,17 @@ presenter:
     per_page: 50
     table_columns:
       - { field: title, width: "30%", link_to: show, sortable: true }
-      - { field: stage, width: "20%", display: badge, sortable: true }
-      - { field: value, width: "20%", display: currency, sortable: true }
+      - { field: stage, width: "20%", renderer: badge, sortable: true }
+      - { field: value, width: "20%", renderer: currency, sortable: true }
 
   show:
     layout:
       - section: "Deal Information"
         columns: 2
         fields:
-          - { field: title, display: heading }
-          - { field: stage, display: badge }
-          - { field: value, display: currency }
+          - { field: title, renderer: heading }
+          - { field: stage, renderer: badge }
+          - { field: value, renderer: currency }
 
   search:
     enabled: false

@@ -291,14 +291,14 @@ module LcpRuby
         @layout << section_hash
       end
 
-      def association_list(title, association:, display: nil, link: nil, sort: nil,
+      def association_list(title, association:, display_template: nil, link: nil, sort: nil,
                                 limit: nil, empty_message: nil, scope: nil)
         entry = {
           "section" => title,
           "type" => "association_list",
           "association" => association.to_s
         }
-        entry["display"] = display.to_s if display
+        entry["display_template"] = display_template.to_s if display_template
         entry["link"] = link unless link.nil?
         entry["sort"] = stringify_deep(sort) if sort
         entry["limit"] = limit if limit

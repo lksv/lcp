@@ -155,7 +155,7 @@ module LcpRuby
           target_def = LcpRuby.loader.model_definition(assoc.target_model)
           return [] unless target_def
 
-          template_name = section["display"] || "default"
+          template_name = section["display_template"] || "default"
           template_def = target_def.display_template(template_name)
           return [] unless template_def
 

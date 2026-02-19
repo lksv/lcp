@@ -10,21 +10,21 @@ define_presenter :showcase_extensibility do
     per_page 25
 
     column :name, link_to: :show, sortable: true
-    column :currency, display: :badge
-    column :amount, display: :currency, display_options: { currency: "USD" }
-    column :score, display: :number
-    column :normalized_name, display: :code
+    column :currency, renderer: :badge
+    column :amount, renderer: :currency, options: { currency: "USD" }
+    column :score, renderer: :number
+    column :normalized_name, renderer: :code
   end
 
   show do
     description "Computed fields update automatically based on other field values."
 
     section "Record Details", columns: 2 do
-      field :name, display: :heading
-      field :currency, display: :badge
-      field :amount, display: :currency, display_options: { currency: "USD" }
-      field :score, display: :number
-      field :normalized_name, display: :code
+      field :name, renderer: :heading
+      field :currency, renderer: :badge
+      field :amount, renderer: :currency, options: { currency: "USD" }
+      field :score, renderer: :number
+      field :normalized_name, renderer: :code
     end
   end
 

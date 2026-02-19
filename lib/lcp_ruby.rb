@@ -80,6 +80,7 @@ require "lcp_ruby/actions/action_executor"
 # Display
 require "lcp_ruby/display/base_renderer"
 require "lcp_ruby/display/renderer_registry"
+require "lcp_ruby/display/renderers"
 
 # Presenter
 require "lcp_ruby/presenter/metadata_lookup"

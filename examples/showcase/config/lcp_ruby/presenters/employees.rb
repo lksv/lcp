@@ -11,12 +11,12 @@ define_presenter :employees do
     row_click :show
 
     column :name, link_to: :show, sortable: true
-    column :email, display: :email_link
-    column :role, display: :badge, display_options: {
+    column :email, renderer: :email_link
+    column :role, renderer: :badge, options: {
       color_map: { admin: "red", manager: "purple", developer: "blue", designer: "cyan", intern: "gray" }
     }, sortable: true
     column "department.name", label: "Department"
-    column :status, display: :badge, display_options: {
+    column :status, renderer: :badge, options: {
       color_map: { active: "green", on_leave: "orange", terminated: "red", archived: "gray" }
     }
 
@@ -27,12 +27,12 @@ define_presenter :employees do
     description "Employee details with associations and skills."
 
     section "Employee Information", columns: 2 do
-      field :name, display: :heading
-      field :email, display: :email_link
-      field :role, display: :badge, display_options: {
+      field :name, renderer: :heading
+      field :email, renderer: :email_link
+      field :role, renderer: :badge, options: {
         color_map: { admin: "red", manager: "purple", developer: "blue", designer: "cyan", intern: "gray" }
       }
-      field :status, display: :badge, display_options: {
+      field :status, renderer: :badge, options: {
         color_map: { active: "green", on_leave: "orange", terminated: "red", archived: "gray" }
       }
       field "department.name", label: "Department"

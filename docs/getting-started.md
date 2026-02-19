@@ -112,7 +112,7 @@ presenter:
       - section: "Task Details"
         columns: 2
         fields:
-          - { field: title, display: heading }
+          - { field: title, renderer: heading }
           - { field: completed }
           - { field: due_date }
 

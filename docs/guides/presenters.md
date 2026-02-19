@@ -39,14 +39,14 @@ presenter:
   index:
     table_columns:
       - { field: name, link_to: show, sortable: true }
-      - { field: created_at, display: relative_date }
+      - { field: created_at, renderer: relative_date }
 
   show:
     layout:
       - section: "Details"
         fields:
-          - { field: name, display: heading }
-          - { field: created_at, display: datetime }
+          - { field: name, renderer: heading }
+          - { field: created_at, renderer: datetime }
 
   form:
     sections:
@@ -75,13 +75,13 @@ define_presenter :todo_list do
 
   index do
     column :name, link_to: :show, sortable: true
-    column :created_at, display: :relative_date
+    column :created_at, renderer: :relative_date
   end
 
   show do
     section "Details" do
-      field :name, display: :heading
-      field :created_at, display: :datetime
+      field :name, renderer: :heading
+      field :created_at, renderer: :datetime
     end
   end
 
@@ -122,25 +122,25 @@ index:
       sortable: true
     - field: email
       width: "25%"
-      display: email_link
+      renderer: email_link
       sortable: true
     - field: status
       width: "15%"
-      display: badge
-      display_options:
+      renderer: badge
+      options:
         color_map:
           active: green
           inactive: gray
       sortable: true
     - field: revenue
       width: "15%"
-      display: currency
-      display_options:
+      renderer: currency
+      options:
         currency: "$"
         precision: 2
       sortable: true
       summary: sum
-    - { field: updated_at, display: relative_date }
+    - { field: updated_at, renderer: relative_date }
 ```
 
 **Ruby DSL:**
@@ -152,12 +152,12 @@ index do
   row_click :show
 
   column :name, width: "30%", link_to: :show, sortable: true
-  column :email, width: "25%", display: :email_link, sortable: true
-  column :status, width: "15%", display: :badge, sortable: true,
-    display_options: { color_map: { active: "green", inactive: "gray" } }
-  column :revenue, width: "15%", display: :currency, sortable: true, summary: :sum,
-    display_options: { currency: "$", precision: 2 }
-  column :updated_at, display: :relative_date
+  column :email, width: "25%", renderer: :email_link, sortable: true
+  column :status, width: "15%", renderer: :badge, sortable: true,
+    options: { color_map: { active: "green", inactive: "gray" } }
+  column :revenue, width: "15%", renderer: :currency, sortable: true, summary: :sum,
+    options: { currency: "$", precision: 2 }
+  column :updated_at, renderer: :relative_date
 end
 ```
 
@@ -170,7 +170,7 @@ Key options:
 | `row_click: show` | Makes the entire table row clickable |
 | `link_to: show` | Makes a specific column's cell a link to the show page |
 | `sortable` | Enables column-header sort toggle |
-| `display` | Visual renderer for the cell value (see [Display Types Guide](display-types.md)) |
+| `renderer` | Visual renderer for the cell value (see [Renderers Guide](display-types.md)) |
 | `summary` | Adds a footer row with `sum`, `avg`, or `count` |
 
 ### Empty State and Actions Position
@@ -210,7 +210,7 @@ table_columns:
   - field: phone
     hidden_on: mobile
   - field: status
-    display: badge
+    renderer: badge
 ```
 
 **Ruby DSL:**
@@ -220,7 +220,7 @@ index do
   column :name, pinned: :left, sortable: true
   column :email, hidden_on: [:mobile, :tablet]
   column :phone, hidden_on: :mobile
-  column :status, display: :badge
+  column :status, renderer: :badge
 end
 ```
 
@@ -240,18 +240,18 @@ show:
     - section: "Contact Details"
       columns: 2
       fields:
-        - { field: name, display: heading, col_span: 2 }
-        - { field: email, display: email_link }
-        - { field: phone, display: phone_link }
+        - { field: name, renderer: heading, col_span: 2 }
+        - { field: email, renderer: email_link }
+        - { field: phone, renderer: phone_link }
         - field: status
-          display: badge
-          display_options:
+          renderer: badge
+          options:
             color_map:
               active: green
               inactive: gray
     - section: "Notes"
       fields:
-        - { field: notes, display: rich_text }
+        - { field: notes, renderer: rich_text }
 ```
 
 **Ruby DSL:**
@@ -259,15 +259,15 @@ show:
 ```ruby
 show do
   section "Contact Details", columns: 2 do
-    field :name, display: :heading, col_span: 2
-    field :email, display: :email_link
-    field :phone, display: :phone_link
-    field :status, display: :badge,
-      display_options: { color_map: { active: "green", inactive: "gray" } }
+    field :name, renderer: :heading, col_span: 2
+    field :email, renderer: :email_link
+    field :phone, renderer: :phone_link
+    field :status, renderer: :badge,
+      options: { color_map: { active: "green", inactive: "gray" } }
   end
 
   section "Notes" do
-    field :notes, display: :rich_text
+    field :notes, renderer: :rich_text
   end
 end
 ```
@@ -291,10 +291,10 @@ show:
         mobile:
           columns: 1
       fields:
-        - { field: title, display: heading, col_span: 3 }
-        - { field: stage, display: badge }
-        - { field: value, display: currency }
-        - { field: close_date, display: date }
+        - { field: title, renderer: heading, col_span: 3 }
+        - { field: stage, renderer: badge }
+        - { field: value, renderer: currency }
+        - { field: close_date, renderer: date }
 ```
 
 **Ruby DSL:**
@@ -302,10 +302,10 @@ show:
 ```ruby
 show do
   section "Deal Overview", columns: 3, responsive: { tablet: 2, mobile: 1 } do
-    field :title, display: :heading, col_span: 3
-    field :stage, display: :badge
-    field :value, display: :currency
-    field :close_date, display: :date
+    field :title, renderer: :heading, col_span: 3
+    field :stage, renderer: :badge
+    field :value, renderer: :currency
+    field :close_date, renderer: :date
   end
 end
 ```
@@ -321,12 +321,12 @@ show:
   layout:
     - section: "Company Info"
       fields:
-        - { field: name, display: heading }
+        - { field: name, renderer: heading }
     - section: "Contacts"
       type: association_list
       association: contacts
-      display: default       # Uses display template from contact model
-      link: true             # Wrap each record in a link to its show page
+      display_template: default    # Uses display template from contact model
+      link: true                   # Wrap each record in a link to its show page
       sort: { last_name: asc }
       limit: 10
       empty_message: "No contacts yet."
@@ -340,11 +340,11 @@ show:
 ```ruby
 show do
   section "Company Info" do
-    field :name, display: :heading
+    field :name, renderer: :heading
   end
 
   association_list "Contacts", association: :contacts,
-    display: :default, link: true,
+    display_template: :default, link: true,
     sort: { last_name: :asc }, limit: 10,
     empty_message: "No contacts yet."
   association_list "Deals", association: :deals
@@ -1034,13 +1034,13 @@ presenter:
     table_columns:
       - { field: title, link_to: show, sortable: true }
       - field: stage
-        display: badge
-        display_options:
+        renderer: badge
+        options:
           color_map:
             open: blue
             closed_won: green
             closed_lost: red
-      - { field: value, display: currency, summary: sum }
+      - { field: value, renderer: currency, summary: sum }
 ```
 
 **Ruby DSL:**
@@ -1055,9 +1055,9 @@ define_presenter :deal_pipeline do
 
   index do
     column :title, link_to: :show, sortable: true
-    column :stage, display: :badge,
-      display_options: { color_map: { open: "blue", closed_won: "green", closed_lost: "red" } }
-    column :value, display: :currency, summary: :sum
+    column :stage, renderer: :badge,
+      options: { color_map: { open: "blue", closed_won: "green", closed_lost: "red" } }
+    column :value, renderer: :currency, summary: :sum
   end
 
   action :show, type: :built_in, on: :single, icon: "eye"
@@ -1109,16 +1109,16 @@ define_presenter :deal do
     default_sort :created_at, :desc
     per_page 25
     column :title, link_to: :show, sortable: true
-    column :stage, display: :badge, sortable: true
-    column :value, display: :currency, sortable: true
-    column :updated_at, display: :relative_date
+    column :stage, renderer: :badge, sortable: true
+    column :value, renderer: :currency, sortable: true
+    column :updated_at, renderer: :relative_date
   end
 
   show do
     section "Deal Information", columns: 2 do
-      field :title, display: :heading
-      field :stage, display: :badge
-      field :value, display: :currency
+      field :title, renderer: :heading
+      field :stage, renderer: :badge
+      field :value, renderer: :currency
     end
   end
 
@@ -1159,8 +1159,8 @@ define_presenter :deal_pipeline, inherits: :deal do
     default_view :table
     per_page 50
     column :title, link_to: :show, sortable: true
-    column :stage, display: :badge, sortable: true
-    column :value, display: :currency, summary: :sum
+    column :stage, renderer: :badge, sortable: true
+    column :value, renderer: :currency, summary: :sum
   end
 
   # Disables search
@@ -1189,7 +1189,7 @@ Inheritance is a DSL-only convenience -- YAML files cannot inherit. The result i
 
 ### CRM Contact List
 
-A contact list with search, filters, responsive columns, and multiple display types.
+A contact list with search, filters, responsive columns, and multiple renderers.
 
 **YAML:**
 
@@ -1207,14 +1207,14 @@ presenter:
     row_click: show
     table_columns:
       - { field: name, width: "25%", link_to: show, sortable: true, pinned: left }
-      - { field: email, display: email_link, hidden_on: mobile }
-      - { field: phone, display: phone_link, hidden_on: [mobile, tablet] }
+      - { field: email, renderer: email_link, hidden_on: mobile }
+      - { field: phone, renderer: phone_link, hidden_on: [mobile, tablet] }
       - field: company_name
         sortable: true
         hidden_on: mobile
       - field: status
-        display: badge
-        display_options:
+        renderer: badge
+        options:
           color_map:
             active: green
             inactive: gray
@@ -1227,12 +1227,12 @@ presenter:
           mobile:
             columns: 1
         fields:
-          - { field: name, display: heading, col_span: 2 }
-          - { field: email, display: email_link }
-          - { field: phone, display: phone_link }
+          - { field: name, renderer: heading, col_span: 2 }
+          - { field: email, renderer: email_link }
+          - { field: phone, renderer: phone_link }
           - { field: company_name }
           - field: status
-            display: badge
+            renderer: badge
       - section: "Deals"
         type: association_list
         association: deals
@@ -1292,11 +1292,11 @@ define_presenter :order do
     per_page 20
     column :order_number, link_to: :show, sortable: true
     column :customer_name, sortable: true
-    column :total, display: :currency, sortable: true, summary: :sum,
-      display_options: { currency: "$", precision: 2 }
-    column :status, display: :badge,
-      display_options: { color_map: { pending: "yellow", shipped: "blue", delivered: "green" } }
-    column :created_at, display: :relative_date, hidden_on: :mobile
+    column :total, renderer: :currency, sortable: true, summary: :sum,
+      options: { currency: "$", precision: 2 }
+    column :status, renderer: :badge,
+      options: { color_map: { pending: "yellow", shipped: "blue", delivered: "green" } }
+    column :created_at, renderer: :relative_date, hidden_on: :mobile
   end
 
   form do
@@ -1342,7 +1342,7 @@ end
 
 - [Presenters Reference](../reference/presenters.md) -- complete attribute reference for all presenter YAML options
 - [Presenter DSL Reference](../reference/presenter-dsl.md) -- complete reference for the Ruby DSL with inheritance
-- [Display Types Guide](display-types.md) -- visual guide to all display renderers
+- [Renderers Guide](display-types.md) -- visual guide to all built-in renderers
 - [Conditional Rendering Guide](conditional-rendering.md) -- deep dive into `visible_when` and `disable_when`
 - [Custom Actions Guide](custom-actions.md) -- writing domain-specific action classes
 - [View Groups Guide](view-groups.md) -- navigation menu and view switching between presenters

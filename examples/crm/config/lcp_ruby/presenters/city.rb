@@ -17,10 +17,10 @@ define_presenter :city do
 
   show do
     section "City Information", columns: 2 do
-      field :name, display: :heading
+      field :name, renderer: :heading
       field "region.name", label: "Region"
       field :population
-      field :created_at, display: :relative_date
+      field :created_at, renderer: :relative_date
     end
   end
 

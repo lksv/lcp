@@ -9,7 +9,7 @@ module LcpRuby
       }.freeze
 
       attr_reader :name, :base_type, :transforms, :validations,
-                  :input_type, :display_type, :column_options, :html_input_attrs
+                  :input_type, :renderer, :column_options, :html_input_attrs
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -17,7 +17,7 @@ module LcpRuby
         @transforms = Array(attrs[:transforms]).map(&:to_s)
         @validations = Array(attrs[:validations]).map { |v| normalize_validation(v) }
         @input_type = attrs[:input_type]&.to_s
-        @display_type = attrs[:display_type]&.to_s
+        @renderer = attrs[:renderer]&.to_s
         @column_options = attrs[:column_options] || {}
         @html_input_attrs = attrs[:html_input_attrs] || {}
 
@@ -32,7 +32,7 @@ module LcpRuby
           transforms: hash["transforms"],
           validations: hash["validations"],
           input_type: hash["input_type"],
-          display_type: hash["display_type"],
+          renderer: hash["renderer"],
           column_options: symbolize_keys(hash["column_options"]),
           html_input_attrs: symbolize_keys(hash["html_input_attrs"])
         )

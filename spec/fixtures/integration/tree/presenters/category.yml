@@ -10,7 +10,7 @@ presenter:
     table_columns:
       - { field: name, width: "40%", link_to: show }
       - { field: "parent.name", label: "Parent", width: "30%" }
-      - { field: active, width: "15%", display: boolean }
+      - { field: active, width: "15%", renderer: boolean }
 
   show:
     layout:

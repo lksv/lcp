@@ -20,8 +20,8 @@ For step-by-step examples of defining custom types, see the [Custom Types Guide]
 
 LCP Ruby ships with 4 built-in business types:
 
-| Type | Base | Transforms | Validation | Input | Display | Limit |
-|------|------|------------|------------|-------|---------|-------|
+| Type | Base | Transforms | Validation | Input | Renderer | Limit |
+|------|------|------------|------------|-------|----------|-------|
 | `email` | string | strip, downcase | email format regex | `email` | `email_link` | 255 |
 | `phone` | string | strip, normalize_phone | phone format regex | `tel` | `phone_link` | 50 |
 | `url` | string | strip, normalize_url | URL format regex | `url` | `url_link` | 2048 |
@@ -129,7 +129,7 @@ type:
         greater_than_or_equal_to: 0
         allow_blank: true
   input_type: number
-  display_type: currency
+  renderer: currency
 ```
 
 ### Type Attributes
@@ -192,7 +192,7 @@ HTML input type hint used in form rendering. The form template resolves the inpu
 
 Supported values: `email`, `tel`, `url`, `color`, `number`, `text`, `date`, `datetime`, `select`, `boolean`, `association_select`.
 
-#### `display_type`
+#### `renderer`
 
 | | |
 |---|---|
@@ -200,7 +200,7 @@ Supported values: `email`, `tel`, `url`, `color`, `number`, `text`, `date`, `dat
 | **Default** | `nil` |
 | **Type** | string |
 
-Display hint for show and index views. Reserved for use by view partials (PR3 of the Type Registry feature).
+Default renderer for show and index views. When a type specifies a renderer, fields using that type will automatically use it unless the presenter overrides it with an explicit `renderer:` on the field.
 
 #### `column_options`
 
@@ -234,7 +234,7 @@ define_type :currency do
   transform :strip
   validate :numericality, greater_than_or_equal_to: 0, allow_blank: true
   input_type :number
-  display_type :currency
+  renderer :currency
 end
 ```
 
@@ -246,7 +246,7 @@ end
 | `transform(key)` | `TypeDefinition.transforms` | Add a transform to the chain. Can be called multiple times. |
 | `validate(type, **options)` | `TypeDefinition.validations` | Add a default validation. Can be called multiple times. |
 | `input_type(value)` | `TypeDefinition.input_type` | Set the HTML input type hint. |
-| `display_type(value)` | `TypeDefinition.display_type` | Set the display type hint. |
+| `renderer(value)` | `TypeDefinition.renderer` | Set the default renderer. |
 | `column_option(key, value)` | `TypeDefinition.column_options` | Add a column option. Can be called multiple times. |
 | `html_attr(key, value)` | `TypeDefinition.html_input_attrs` | Add an HTML input attribute. Can be called multiple times. |
 
@@ -340,7 +340,7 @@ type:
         greater_than_or_equal_to: 0
         allow_blank: true
   input_type: number
-  display_type: currency
+  renderer: currency
 ```
 
 **Model using the type** (`config/lcp_ruby/models/invoice.yml`):

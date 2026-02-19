@@ -12,34 +12,34 @@ define_presenter :deal do
     empty_message "No deals found"
     actions_position :dropdown
 
-    column :title, width: "25%", link_to: :show, sortable: true, display: :truncate, display_options: { max: 40 }
+    column :title, width: "25%", link_to: :show, sortable: true, renderer: :truncate, options: { max: 40 }
     column "company.name", label: "Company", width: "15%", sortable: true
-    column :stage, width: "10%", display: :badge, display_options: { color_map: { lead: "blue", qualified: "cyan", proposal: "orange", negotiation: "purple", closed_won: "green", closed_lost: "red" } }, sortable: true
-    column :value, width: "15%", display: :currency, display_options: { currency: "EUR" }, sortable: true, summary: "sum"
-    column :weighted_value, width: "10%", display: :currency, display_options: { currency: "EUR" }
-    column :progress, width: "10%", display: :progress_bar
+    column :stage, width: "10%", renderer: :badge, options: { color_map: { lead: "blue", qualified: "cyan", proposal: "orange", negotiation: "purple", closed_won: "green", closed_lost: "red" } }, sortable: true
+    column :value, width: "15%", renderer: :currency, options: { currency: "EUR" }, sortable: true, summary: "sum"
+    column :weighted_value, width: "10%", renderer: :currency, options: { currency: "EUR" }
+    column :progress, width: "10%", renderer: :progress_bar
     column :priority, width: "10%", sortable: true
   end
 
   show do
     section "Deal Information", columns: 2, responsive: { mobile: { columns: 1 } } do
-      field :title, display: :heading
-      field :stage, display: :conditional_badge, display_options: {
+      field :title, renderer: :heading
+      field :stage, renderer: :conditional_badge, options: {
         rules: [
-          { match: { in: %w[closed_won] }, display: "badge", display_options: { "color_map" => { "closed_won" => "green" } } },
-          { match: { in: %w[closed_lost] }, display: "badge", display_options: { "color_map" => { "closed_lost" => "red" } } },
-          { match: { in: %w[negotiation] }, display: "badge", display_options: { "color_map" => { "negotiation" => "purple" } } },
-          { "default" => { display: "badge", display_options: { "color_map" => {} } } }
+          { match: { in: %w[closed_won] }, renderer: "badge", options: { "color_map" => { "closed_won" => "green" } } },
+          { match: { in: %w[closed_lost] }, renderer: "badge", options: { "color_map" => { "closed_lost" => "red" } } },
+          { match: { in: %w[negotiation] }, renderer: "badge", options: { "color_map" => { "negotiation" => "purple" } } },
+          { "default" => { renderer: "badge", options: { "color_map" => {} } } }
         ]
       }
-      field :value, display: :currency, display_options: { currency: "EUR" }
-      field :weighted_value, display: :currency, display_options: { currency: "EUR" }
-      field :progress, display: :progress_bar
-      field :priority, display: :rating, display_options: { max: 5 }
+      field :value, renderer: :currency, options: { currency: "EUR" }
+      field :weighted_value, renderer: :currency, options: { currency: "EUR" }
+      field :progress, renderer: :progress_bar
+      field :priority, renderer: :rating, options: { max: 5 }
       field :expected_close_date
-      field :created_at, display: :relative_date
+      field :created_at, renderer: :relative_date
       field "company.name", label: "Company"
-      field :documents, display: :attachment_list
+      field :documents, renderer: :attachment_list
     end
   end
 

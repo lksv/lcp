@@ -18,7 +18,7 @@ define_presenter :departments do
 
   show do
     section "Department Details", columns: 2 do
-      field :name, display: :heading
+      field :name, renderer: :heading
       field :code
       field "parent.name", label: "Parent Department"
     end

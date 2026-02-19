@@ -1,6 +1,6 @@
 # Custom Renderers
 
-Custom renderers allow host applications to define their own display types beyond the built-in types. Renderers are auto-discovered from `app/renderers/` and can be used in presenter YAML/DSL configurations.
+Custom renderers allow host applications to define their own renderers beyond the built-in ones. Renderers are auto-discovered from `app/renderers/` and can be used in presenter YAML/DSL configurations.
 
 ## Creating a Custom Renderer
 
@@ -27,25 +27,32 @@ end
 
 ```yaml
 table_columns:
-  - { field: notes, display: markdown_display }
+  - { field: notes, renderer: markdown_display }
 
 show:
   layout:
     - section: "Details"
       fields:
-        - { field: notes, display: markdown_display }
+        - { field: notes, renderer: markdown_display }
+```
+
+You can also use `partial:` instead of `renderer:` to render with a custom view partial:
+
+```yaml
+table_columns:
+  - { field: notes, partial: "shared/markdown_notes" }
 ```
 
 ### Usage in DSL
 
 ```ruby
 index do
-  column :notes, display: :markdown_display
+  column :notes, renderer: :markdown_display
 end
 
 show do
   section "Details" do
-    field :notes, display: :markdown_display
+    field :notes, renderer: :markdown_display
   end
 end
 ```
@@ -59,7 +66,7 @@ def render(value, options = {}, record: nil, view_context: nil)
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `value` | Object | The resolved field value |
-| `options` | Hash | `display_options` from presenter config |
+| `options` | Hash | `options` from presenter config |
 | `record` | ActiveRecord::Base or nil | Full record for context-aware rendering |
 | `view_context` | ActionView::Base or nil | Rails view context for HTML helpers |
 
@@ -86,14 +93,14 @@ module LcpRuby::HostRenderers
       rules = options["rules"] || []
       rules.each do |rule|
         if rule.key?("default")
-          sub_opts = rule.dig("default", "display_options") || {}
-          display = rule.dig("default", "display") || "badge"
-          return view_context.render_display_value(value, display, sub_opts) if view_context
+          sub_opts = rule.dig("default", "options") || {}
+          renderer = rule.dig("default", "renderer") || "badge"
+          return view_context.render_display_value(value, renderer, sub_opts) if view_context
           return value.to_s
         elsif matches?(value, rule["match"])
-          sub_opts = rule["display_options"] || {}
-          display = rule["display"] || "badge"
-          return view_context.render_display_value(value, display, sub_opts) if view_context
+          sub_opts = rule["options"] || {}
+          renderer = rule["renderer"] || "badge"
+          return view_context.render_display_value(value, renderer, sub_opts) if view_context
           return value.to_s
         end
       end
@@ -121,17 +128,17 @@ Usage in YAML:
 ```yaml
 table_columns:
   - field: stage
-    display: conditional_badge
-    display_options:
+    renderer: conditional_badge
+    options:
       rules:
         - match: { in: [closed_won] }
-          display: badge
-          display_options: { color_map: { closed_won: green } }
+          renderer: badge
+          options: { color_map: { closed_won: green } }
         - match: { in: [closed_lost] }
-          display: badge
-          display_options: { color_map: { closed_lost: red } }
+          renderer: badge
+          options: { color_map: { closed_lost: red } }
         - default:
-            display: badge
+            renderer: badge
 ```
 
 ## Usage in Display Templates
@@ -156,13 +163,13 @@ define_model :contact do
 end
 ```
 
-The renderer class must be registered in `app/renderers/` as described above. When an `association_list` references `display: card`, the renderer receives the full record and renders it as HTML.
+The renderer class must be registered in `app/renderers/` as described above. When an `association_list` references `display_template: card`, the renderer receives the full record and renders it as HTML.
 
 ---
 
 ## What's Next
 
-- [Display Types Guide](display-types.md) -- Built-in display types and advanced features
-- [Display Templates](../reference/models.md#display-templates) -- Rich record representations using structured templates or custom renderers
-- [Presenters Reference](../reference/presenters.md) -- Full presenter configuration reference
+- [Renderers Guide](display-types.md) -- Built-in renderers and advanced features
+- [Display Templates](../reference/models.md#display-templates) -- Rich record representations using structured templates
+- [Presenters Reference](../reference/presenters.md) -- Full presenter configuration reference (including [Renderers](../reference/presenters.md#renderers))
 - [Extensibility Guide](extensibility.md) -- All extension mechanisms

@@ -12,26 +12,26 @@ define_presenter :contact do
 
     column :full_name, width: "25%", link_to: :show, sortable: true
     column "company.name", label: "Company", width: "15%"
-    column "company.industry", label: "Industry", width: "10%", display: :badge
-    column :email, width: "20%", display: :email_link
-    column :phone, width: "15%", display: :phone_link
-    column :active, width: "10%", display: :boolean_icon
+    column "company.industry", label: "Industry", width: "10%", renderer: :badge
+    column :email, width: "20%", renderer: :email_link
+    column :phone, width: "15%", renderer: :phone_link
+    column :active, width: "10%", renderer: :boolean_icon
   end
 
   show do
     section "Contact Information", columns: 2, responsive: { mobile: { columns: 1 } } do
-      field :full_name, display: :heading
-      field :email, display: :email_link
-      field :phone, display: :phone_link
+      field :full_name, renderer: :heading
+      field :email, renderer: :email_link
+      field :phone, renderer: :phone_link
       field :position
-      field :active, display: :boolean_icon
-      field :avatar, display: :attachment_preview, display_options: { variant: "medium" }
+      field :active, renderer: :boolean_icon
+      field :avatar, renderer: :attachment_preview, options: { variant: "medium" }
       field "company.name", label: "Company"
-      field "company.industry", label: "Industry", display: :badge
+      field "company.industry", label: "Industry", renderer: :badge
     end
 
     section "Documents" do
-      field :documents, display: :attachment_list
+      field :documents, renderer: :attachment_list
     end
   end
 
