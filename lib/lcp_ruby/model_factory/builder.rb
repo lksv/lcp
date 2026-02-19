@@ -14,6 +14,7 @@ module LcpRuby
         apply_validations(model_class)
         apply_transforms(model_class)
         apply_associations(model_class)
+        apply_attachments(model_class)
         apply_scopes(model_class)
         apply_callbacks(model_class)
         apply_defaults(model_class)
@@ -58,6 +59,10 @@ module LcpRuby
 
       def apply_associations(model_class)
         AssociationApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_attachments(model_class)
+        AttachmentApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_scopes(model_class)

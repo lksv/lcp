@@ -644,6 +644,39 @@ Renders the value as a clickable link. Uses `to_label` (if defined on the model)
 { field: reference, display: link }
 ```
 
+### `attachment_preview`
+
+Renders an image preview for attachment fields. For image files, displays the image (optionally using a named variant). For non-image files, falls back to a download link.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `variant` | string | Named variant to use for the image (e.g., `"thumbnail"`, `"medium"`) |
+
+```yaml
+- field: photo
+  display: attachment_preview
+  display_options:
+    variant: medium
+```
+
+### `attachment_list`
+
+Renders a list of download links with filenames and file sizes. Designed for multiple attachment fields.
+
+```yaml
+- field: files
+  display: attachment_list
+```
+
+### `attachment_link`
+
+Renders a single download link with the filename. Designed for single non-image attachment fields.
+
+```yaml
+- field: contract
+  display: attachment_link
+```
+
 ## Show Configuration
 
 Controls the record detail view.
@@ -1019,6 +1052,7 @@ Field-value conditions use client-side JavaScript for instant reactivity. Servic
 | `slider` | Range slider input | - |
 | `toggle` | Toggle switch (on/off) | - |
 | `rating` | Star rating input | - |
+| `file_upload` | File upload input with optional preview, drag-and-drop, and direct upload | `attachment` fields |
 
 #### Input Options
 
@@ -1088,6 +1122,23 @@ Input options provide type-specific configuration for form inputs.
   input_type: rating
   input_options:
     max: 5
+```
+
+**File Upload:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `preview` | boolean | `false` | Show a preview of the current file (image thumbnail or filename) |
+| `drag_drop` | boolean | `false` | Enable drag-and-drop upload zone |
+| `direct_upload` | boolean | `false` | Use Active Storage direct upload (uploads before form submission) |
+
+```yaml
+- field: photo
+  input_type: file_upload
+  input_options:
+    preview: true
+    drag_drop: true
+    direct_upload: true
 ```
 
 **Select (enum):**

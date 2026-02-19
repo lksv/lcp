@@ -31,6 +31,7 @@ LCP Ruby is a **low-code platform** implemented as a Rails mountable engine for 
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
 - [Custom Renderers Guide](docs/guides/custom-renderers.md) — Custom display renderers for host applications
+- [Attachments Guide](docs/guides/attachments.md) — File upload with Active Storage
 - [Eager Loading Guide](docs/guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [View Groups Guide](docs/guides/view-groups.md) — Multi-view navigation and view switcher setup
 - [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
@@ -103,6 +104,7 @@ YAML metadata (config/lcp_ruby/)
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |
 | `Actions` | `lib/lcp_ruby/actions/` | ActionExecutor + ActionRegistry. Host apps define custom actions in `app/actions/` |
 | `Conditions` | `lib/lcp_ruby/condition_evaluator.rb`, `lib/lcp_ruby/condition_service_registry.rb` | ConditionEvaluator (field-value + service conditions), ConditionServiceRegistry. Host apps define condition services in `app/condition_services/` |
+| `Attachments` | `lib/lcp_ruby/model_factory/attachment_applicator.rb` | Applies Active Storage macros (has_one_attached/has_many_attached), validations (size, content_type, max_files), and variant config to dynamic models |
 
 ### Controller Stack
 
@@ -152,7 +154,7 @@ Permissions YAML defines roles with: `crud` list, `fields` (readable/writable), 
 
 ## YAML Metadata Conventions
 
-**Model fields**: base types are `string`, `text`, `integer`, `float`, `decimal`, `boolean`, `date`, `datetime`, `enum`, `file`, `rich_text`, `json`, `uuid`. Built-in business types: `email`, `phone`, `url`, `color`. Custom types can be defined in `config/lcp_ruby/types/`.
+**Model fields**: base types are `string`, `text`, `integer`, `float`, `decimal`, `boolean`, `date`, `datetime`, `enum`, `file`, `rich_text`, `json`, `uuid`, `attachment`. Built-in business types: `email`, `phone`, `url`, `color`. Custom types can be defined in `config/lcp_ruby/types/`.
 
 **Scopes**: support `where`, `where_not`, `order`, `limit`. The `where_not` key generates `scope :name, -> { where.not(...) }`.
 

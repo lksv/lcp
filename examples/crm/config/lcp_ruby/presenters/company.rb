@@ -23,6 +23,7 @@ define_presenter :company do
       field :industry, display: :badge
       field :website, display: :url_link
       field :phone, display: :phone_link
+      field :logo, display: :attachment_preview
       field :created_at, display: :relative_date
       field "contacts.first_name", label: "Contacts", display: :collection, display_options: { limit: 5 }
     end
@@ -38,6 +39,7 @@ define_presenter :company do
       field :industry, input_type: :select
       field :website, placeholder: "https://..."
       field :phone, placeholder: "+1..."
+      field :logo, input_options: { preview: true, drag_drop: true }
     end
 
     section "Address", columns: 2 do

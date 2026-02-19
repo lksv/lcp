@@ -34,6 +34,13 @@ define_model :deal do
       message: "cannot be before deal creation"
   end
 
+  field :documents, :attachment, label: "Documents", options: {
+    multiple: true,
+    max_files: 20,
+    max_size: "25MB",
+    content_types: %w[application/pdf image/jpeg image/png application/vnd.openxmlformats-officedocument.wordprocessingml.document]
+  }
+
   belongs_to :company, model: :company, required: true
   belongs_to :contact, model: :contact, required: false
   belongs_to :deal_category, model: :deal_category, required: false

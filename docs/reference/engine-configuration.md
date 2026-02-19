@@ -129,6 +129,41 @@ end
 
 See the [Impersonation Guide](../guides/impersonation.md) for setup and usage details.
 
+### `attachment_max_size`
+
+| | |
+|---|---|
+| **Type** | `String` |
+| **Default** | `"50MB"` |
+
+Global default maximum file size for attachment fields. Individual fields can override this with their own `max_size` option. Supports `KB`, `MB`, and `GB` suffixes.
+
+```ruby
+LcpRuby.configure do |config|
+  config.attachment_max_size = "50MB"
+end
+```
+
+### `attachment_allowed_content_types`
+
+| | |
+|---|---|
+| **Type** | `Array` or `nil` |
+| **Default** | `nil` (allow all) |
+
+Global default list of allowed MIME types for attachment fields. When `nil`, all content types are accepted. Individual fields can override this with their own `content_types` option. Supports wildcards like `"image/*"`.
+
+```ruby
+LcpRuby.configure do |config|
+  config.attachment_allowed_content_types = %w[
+    image/jpeg image/png image/webp image/gif
+    application/pdf
+    application/msword
+    application/vnd.openxmlformats-officedocument.wordprocessingml.document
+  ]
+end
+```
+
 ## Service Auto-Discovery
 
 The engine automatically discovers and registers custom services from `app/lcp_services/` in your host application. Services are organized by category:

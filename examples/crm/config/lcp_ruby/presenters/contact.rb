@@ -25,6 +25,7 @@ define_presenter :contact do
       field :phone, display: :phone_link
       field :position
       field :active, display: :boolean_icon
+      field :avatar, display: :attachment_preview, display_options: { variant: "medium" }
       field "company.name", label: "Company"
       field "company.industry", label: "Industry", display: :badge
     end
@@ -38,6 +39,7 @@ define_presenter :contact do
       field :phone, placeholder: "+1..."
       field :position, placeholder: "Job title..."
       field :active, input_type: :toggle
+      field :avatar, input_options: { preview: true, drag_drop: true }
       field :company_id, input_type: :association_select,
         input_options: { sort: { name: :asc }, group_by: :industry }
     end

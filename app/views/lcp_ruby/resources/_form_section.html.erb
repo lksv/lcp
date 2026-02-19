@@ -102,7 +102,7 @@
                <% if field_style_parts.any? %>style="<%= field_style_parts.join('; ') %>"<% end %>>
             <%= form.label field_name, field_def.label %>
 
-            <% resolved_input = field_config["input_type"] || field_def.type_definition&.input_type || field_def.type %>
+            <% resolved_input = field_config["input_type"] || field_def.type_definition&.input_type || (field_def.attachment? ? "file_upload" : nil) || field_def.type %>
 
             <% if field_config["readonly"] %>
               <div class="lcp-readonly-value"><%= @record.send(field_name) %></div>

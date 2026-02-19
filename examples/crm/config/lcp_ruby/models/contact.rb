@@ -20,6 +20,16 @@ define_model :contact do
   field :position, :string, label: "Position"
   field :active, :boolean, label: "Active", default: true
 
+  field :avatar, :attachment, label: "Avatar", options: {
+    accept: "image/*",
+    max_size: "5MB",
+    content_types: %w[image/jpeg image/png image/webp],
+    variants: {
+      thumbnail: { resize_to_fill: [40, 40] },
+      medium: { resize_to_limit: [200, 200] }
+    }
+  }
+
   belongs_to :company, model: :company, required: true
 
   scope :active_contacts, where: { active: true }

@@ -28,6 +28,16 @@ define_model :company do
 
   field :street, :string, label: "Street"
 
+  field :logo, :attachment, label: "Logo", options: {
+    accept: "image/*",
+    max_size: "2MB",
+    content_types: %w[image/jpeg image/png image/svg+xml image/webp],
+    variants: {
+      thumbnail: { resize_to_limit: [60, 60] },
+      medium: { resize_to_limit: [200, 200] }
+    }
+  }
+
   has_many :contacts, model: :contact, foreign_key: :company_id, dependent: :destroy
   has_many :deals, model: :deal, foreign_key: :company_id, dependent: :destroy
 

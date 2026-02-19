@@ -29,6 +29,7 @@ presenter:
           - { field: completed, display: boolean_icon }
           - { field: start_date }
           - { field: due_date }
+          - { field: attachment, display: attachment_link }
 
   form:
     sections:
@@ -44,6 +45,10 @@ presenter:
             input_options:
               sort: { title: asc }
               include_blank: "-- Pick a list --"
+          - field: attachment
+            input_options:
+              preview: true
+              drag_drop: true
 
   search:
     enabled: true

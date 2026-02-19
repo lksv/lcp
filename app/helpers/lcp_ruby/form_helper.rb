@@ -51,6 +51,8 @@ module LcpRuby
           autofocus: field_config["autofocus"])
       when "color"
         form.color_field(field_name)
+      when "file_upload"
+        render_file_upload_input(form, field_name, field_config, field_def)
       when "slider"
         render_slider_input(form, field_name, input_options)
       when "toggle"
@@ -65,6 +67,122 @@ module LcpRuby
     end
 
     private
+
+    def render_file_upload_input(form, field_name, field_config, field_def)
+      input_options = field_config["input_options"] || {}
+      options = field_def&.attachment_options || {}
+      multiple = options["multiple"] == true
+      accept = options["accept"]
+      max_size = options["max_size"]
+      preview = input_options["preview"]
+      drag_drop = input_options["drag_drop"]
+      direct_upload = input_options["direct_upload"]
+
+      data_attrs = { "lcp-file-upload" => true }
+      data_attrs["lcp-max-size"] = max_size if max_size
+      data_attrs["lcp-multiple"] = multiple if multiple
+      data_attrs["lcp-preview"] = preview if preview
+
+      content_tag(:div, class: "lcp-file-upload", data: data_attrs) do
+        parts = ActiveSupport::SafeBuffer.new
+
+        # Show existing attachment(s)
+        if form.object && form.object.respond_to?(field_name)
+          attachment = form.object.send(field_name)
+          if multiple && attachment.respond_to?(:attached?) && attachment.attached?
+            parts << render_existing_multiple_attachments(form, field_name, attachment)
+          elsif !multiple && attachment.respond_to?(:attached?) && attachment.attached?
+            parts << render_existing_single_attachment(form, field_name, attachment)
+          end
+        end
+
+        # File input
+        file_opts = {}
+        file_opts[:multiple] = true if multiple
+        file_opts[:accept] = accept if accept
+        file_opts[:direct_upload] = true if direct_upload
+        file_opts[:class] = "lcp-file-input"
+        file_opts[:data] = { lcp_file_input: true }
+
+        if drag_drop
+          # Hide the actual file input, show drop zone
+          file_opts[:style] = "display: none"
+          parts << form.file_field(field_name, **file_opts)
+          parts << content_tag(:div, class: "lcp-drop-zone", data: { lcp_drop_zone: true }) do
+            content_tag(:span, I18n.t("lcp_ruby.file_upload.drop_zone", default: "Drop files here or click to browse"))
+          end
+        else
+          parts << form.file_field(field_name, **file_opts)
+        end
+
+        # Preview container
+        if preview
+          parts << content_tag(:div, "", class: "lcp-file-preview-container", data: { lcp_preview_container: true })
+        end
+
+        parts
+      end
+    end
+
+    def render_existing_single_attachment(form, field_name, attachment)
+      content_tag(:div, class: "lcp-existing-attachment") do
+        parts = ActiveSupport::SafeBuffer.new
+        blob = attachment.blob
+
+        if blob.image?
+          parts << image_tag(url_for(attachment), class: "lcp-attachment-thumbnail", style: "max-width: 120px; max-height: 120px;")
+        else
+          parts << content_tag(:span, blob.filename.to_s, class: "lcp-attachment-filename")
+          parts << " "
+          parts << content_tag(:span, "(#{number_to_human_size(blob.byte_size)})", class: "lcp-attachment-size")
+        end
+
+        # Remove checkbox
+        parts << content_tag(:label, class: "lcp-attachment-remove") do
+          check_box_tag("record[remove_#{field_name}]", "1", false) +
+            " ".html_safe +
+            I18n.t("lcp_ruby.file_upload.remove", default: "Remove")
+        end
+
+        parts
+      end
+    rescue StandardError
+      # If URL generation fails (e.g., in test), show filename only
+      content_tag(:div, class: "lcp-existing-attachment") do
+        blob = attachment.blob
+        content_tag(:span, blob.filename.to_s, class: "lcp-attachment-filename") +
+          content_tag(:label, class: "lcp-attachment-remove") do
+            check_box_tag("record[remove_#{field_name}]", "1", false) +
+              " ".html_safe +
+              I18n.t("lcp_ruby.file_upload.remove", default: "Remove")
+          end
+      end
+    end
+
+    def render_existing_multiple_attachments(form, field_name, attachments)
+      content_tag(:div, class: "lcp-existing-attachments") do
+        safe_join(attachments.map { |att|
+          content_tag(:div, class: "lcp-existing-attachment") do
+            blob = att.blob
+            parts = ActiveSupport::SafeBuffer.new
+
+            if blob.image?
+              parts << begin
+                image_tag(url_for(att), class: "lcp-attachment-thumbnail", style: "max-width: 80px; max-height: 80px;")
+              rescue StandardError
+                content_tag(:span, blob.filename.to_s)
+              end
+            else
+              parts << content_tag(:span, blob.filename.to_s, class: "lcp-attachment-filename")
+              parts << " "
+              parts << content_tag(:span, "(#{number_to_human_size(blob.byte_size)})", class: "lcp-attachment-size")
+            end
+
+            parts
+          end
+        })
+      end
+    end
 
     def render_radio_input(form, field_name, field_config, field_def)
       return form.text_field(field_name, placeholder: field_config["placeholder"]) unless field_def&.enum?

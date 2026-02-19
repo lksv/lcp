@@ -27,6 +27,7 @@ module LcpRuby
 
         ActiveRecord::Base.connection.create_table(table) do |t|
           fields.each do |field|
+            next if field.attachment?
             add_column_to_table(t, field)
           end
 
@@ -55,6 +56,7 @@ module LcpRuby
         existing_columns = connection.columns(table).map(&:name)
 
         model_definition.fields.each do |field|
+          next if field.attachment?
           column_name = field.name
           next if existing_columns.include?(column_name)
 
