@@ -138,6 +138,79 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
     end
   end
 
+  describe "#display_templates" do
+    it "parses display_templates from hash" do
+      definition = described_class.from_hash(
+        "name" => "contact",
+        "fields" => [ { "name" => "first_name", "type" => "string" } ],
+        "display_templates" => {
+          "default" => {
+            "template" => "{first_name} {last_name}",
+            "subtitle" => "{position} at {company.name}",
+            "icon" => "user"
+          },
+          "compact" => {
+            "template" => "{last_name}, {first_name}"
+          },
+          "card" => {
+            "renderer" => "ContactCardRenderer"
+          }
+        }
+      )
+
+      expect(definition.display_templates).to be_a(Hash)
+      expect(definition.display_templates.size).to eq(3)
+
+      default_tmpl = definition.display_template("default")
+      expect(default_tmpl).to be_a(LcpRuby::Metadata::DisplayTemplateDefinition)
+      expect(default_tmpl.template).to eq("{first_name} {last_name}")
+      expect(default_tmpl.subtitle).to eq("{position} at {company.name}")
+      expect(default_tmpl.icon).to eq("user")
+      expect(default_tmpl).to be_structured
+
+      compact_tmpl = definition.display_template("compact")
+      expect(compact_tmpl.template).to eq("{last_name}, {first_name}")
+
+      card_tmpl = definition.display_template("card")
+      expect(card_tmpl).to be_renderer
+    end
+
+    it "returns nil for unknown template name" do
+      definition = described_class.from_hash(
+        "name" => "contact",
+        "fields" => [ { "name" => "name", "type" => "string" } ],
+        "display_templates" => {
+          "default" => { "template" => "{name}" }
+        }
+      )
+
+      expect(definition.display_template("nonexistent")).to be_nil
+    end
+
+    it "defaults display_template to look up 'default' name" do
+      definition = described_class.from_hash(
+        "name" => "contact",
+        "fields" => [ { "name" => "name", "type" => "string" } ],
+        "display_templates" => {
+          "default" => { "template" => "{name}" }
+        }
+      )
+
+      expect(definition.display_template).to be_a(LcpRuby::Metadata::DisplayTemplateDefinition)
+      expect(definition.display_template.name).to eq("default")
+    end
+
+    it "returns empty hash when no display_templates defined" do
+      definition = described_class.from_hash(
+        "name" => "simple",
+        "fields" => [ { "name" => "name", "type" => "string" } ]
+      )
+
+      expect(definition.display_templates).to eq({})
+      expect(definition.display_template).to be_nil
+    end
+  end
+
   describe "validation" do
     it "raises on missing name" do
       expect {

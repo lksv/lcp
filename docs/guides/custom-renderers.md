@@ -134,8 +134,35 @@ table_columns:
             display: badge
 ```
 
+## Usage in Display Templates
+
+Custom renderers can also be referenced from model [display templates](../reference/models.md#display-templates) using the `renderer` form. This allows records to be rendered with a custom renderer in `association_list` sections:
+
+**YAML:**
+
+```yaml
+model:
+  name: contact
+  display_templates:
+    card:
+      renderer: contact_card
+```
+
+**Ruby DSL:**
+
+```ruby
+define_model :contact do
+  display_template :card, renderer: "contact_card"
+end
+```
+
+The renderer class must be registered in `app/renderers/` as described above. When an `association_list` references `display: card`, the renderer receives the full record and renders it as HTML.
+
+---
+
 ## What's Next
 
 - [Display Types Guide](display-types.md) -- Built-in display types and advanced features
+- [Display Templates](../reference/models.md#display-templates) -- Rich record representations using structured templates or custom renderers
 - [Presenters Reference](../reference/presenters.md) -- Full presenter configuration reference
 - [Extensibility Guide](extensibility.md) -- All extension mechanisms

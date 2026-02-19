@@ -28,6 +28,11 @@ presenter:
       - section: "Contacts"
         type: association_list
         association: contacts
+        display: default
+        link: true
+        sort: { last_name: asc }
+        limit: 5
+        empty_message: "No contacts yet."
       - section: "Deals"
         type: association_list
         association: deals

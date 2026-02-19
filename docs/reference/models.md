@@ -17,6 +17,7 @@ model:
   associations: []
   scopes: []
   events: []
+  display_templates: {}
   options: {}
 ```
 
@@ -1184,6 +1185,83 @@ on_field_change :on_stage_change, field: :stage,
 | `after_update` | After an existing record is updated |
 | `before_destroy` | Before a record is destroyed |
 | `after_destroy` | After a record is destroyed |
+
+## Display Templates
+
+Display templates define rich HTML representations for records when displayed in contexts like `association_list`. Unlike `to_label` (which remains plain text), display templates support structured layouts with titles, subtitles, icons, and badges — or delegate to custom renderers/partials.
+
+Templates live on the **model** (not the presenter), so the same record can be rendered consistently across different presenters. The presenter selects which template to use by name.
+
+### YAML Syntax
+
+```yaml
+display_templates:
+  default:
+    template: "{first_name} {last_name}"
+    subtitle: "{position} at {company.name}"
+    icon: user
+    badge: "{status}"
+  compact:
+    template: "{last_name}, {first_name}"
+  card:
+    renderer: ContactCardRenderer
+  mini:
+    partial: "contacts/mini_label"
+```
+
+### Three Forms
+
+| Form | Detected by | Description |
+|------|-------------|-------------|
+| **Structured** | `template` key | Title, optional subtitle/icon/badge with `{field}` interpolation |
+| **Renderer** | `renderer` key | Delegates to a registered `Display::BaseRenderer` subclass |
+| **Partial** | `partial` key | Renders a Rails partial with `record` local |
+
+### Structured Template Keys
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `template` | string | **Required.** Main text with `{field}` placeholders |
+| `subtitle` | string | Secondary text below the title |
+| `icon` | string | Icon identifier (rendered as text; style via CSS) |
+| `badge` | string | Small label, supports `{field}` placeholders |
+
+Field placeholders use the same dot-path syntax as presenter fields: `{field_name}` for direct fields, `{association.field}` for related records.
+
+### Renderer Form
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `renderer` | string | Class name of a registered `Display::BaseRenderer` |
+| `options` | hash | Passed to the renderer's `render` method |
+
+### Partial Form
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `partial` | string | Rails partial path (e.g., `"contacts/mini_label"`) |
+
+### DSL Syntax
+
+```ruby
+define_model :contact do
+  display_template :default,
+    template: "{first_name} {last_name}",
+    subtitle: "{position} at {company.name}",
+    icon: "user"
+
+  display_template :card, renderer: "ContactCardRenderer"
+  display_template :mini, partial: "contacts/mini_label"
+end
+```
+
+### Permission Filtering
+
+Fields referenced in templates are resolved through `FieldValueResolver`, which respects the current user's `PermissionEvaluator`. If a field is not readable, it renders as blank rather than exposing unauthorized data.
+
+### Eager Loading
+
+The `IncludesResolver` automatically detects dot-path fields in display templates (e.g., `{company.name}`) and generates nested eager loading (e.g., `{ contacts: :company }`) to prevent N+1 queries.
 
 ## Options
 

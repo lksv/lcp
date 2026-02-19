@@ -683,15 +683,35 @@ Array of section objects. Each section is rendered as a card or panel.
 
 #### Association List Sections
 
-Use `type: association_list` to render a table of associated records within the show page:
+Use `type: association_list` to render a list of associated records within the show page:
 
 ```yaml
 - section: "Contacts"
   type: association_list
   association: contacts
+  display: default
+  link: true
+  sort: { last_name: asc }
+  limit: 5
+  empty_message: "No contacts yet."
+  scope: active
 ```
 
-This renders a list of records from the `contacts` has_many association.
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `association` | string | — | **Required.** Association name from the model |
+| `display` | string | `"default"` | Name of the display template defined on the target model |
+| `link` | boolean | `false` | Wrap each record in a link to its show page |
+| `sort` | hash | — | Sort field and direction (e.g., `{ last_name: asc }`) |
+| `limit` | integer | — | Maximum number of records to display |
+| `empty_message` | string | `"No records."` | Message when no associated records exist |
+| `scope` | string | — | Named scope to apply on the association |
+
+When `display` references a display template defined on the target model (see [Models Reference — Display Templates](models.md#display-templates)), records render with rich HTML including title, subtitle, icon, and badge. Without a display template, records fall back to `to_label`.
+
+When `link: true`, each record is wrapped in a link to the target model's show page (the first presenter for that model is used for routing).
+
+Sort and limit operate in-memory on preloaded records (unless `scope` is specified, which triggers a SQL query).
 
 #### Responsive Sections
 

@@ -521,6 +521,58 @@ on_field_change :on_priority_change, field: :priority, condition: "priority_incr
 | `field:` | yes | Field to monitor for changes. |
 | `condition:` | no | Method name string for additional filtering. |
 
+## Display Templates
+
+Display templates define rich HTML representations for records. See [Models Reference — Display Templates](models.md#display-templates) for full documentation.
+
+```ruby
+display_template :name, template: nil, subtitle: nil, icon: nil,
+                        badge: nil, renderer: nil, partial: nil, options: nil
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name` | yes | Template identifier (symbol). Use `:default` for the auto-selected template. |
+| `template:` | conditional | Main text with `{field}` placeholders. Required for structured form. |
+| `subtitle:` | no | Secondary text. Supports `{field}` and `{assoc.field}` placeholders. |
+| `icon:` | no | Icon identifier string. |
+| `badge:` | no | Badge text. Supports `{field}` placeholders. |
+| `renderer:` | conditional | Renderer class name. Required for renderer form. |
+| `partial:` | conditional | Rails partial path. Required for partial form. |
+| `options:` | no | Hash passed to the renderer's `render` method (renderer form only). |
+
+Exactly one of `template:`, `renderer:`, or `partial:` must be provided.
+
+### Examples
+
+```ruby
+define_model :contact do
+  field :first_name, :string
+  field :last_name, :string
+  field :position, :string
+
+  belongs_to :company, model: :company
+
+  # Structured: title + subtitle + icon
+  display_template :default,
+    template: "{first_name} {last_name}",
+    subtitle: "{position} at {company.name}",
+    icon: "user"
+
+  # Structured: compact single-line
+  display_template :compact,
+    template: "{last_name}, {first_name}"
+
+  # Renderer: delegates to a registered BaseRenderer subclass
+  display_template :card, renderer: "ContactCardRenderer", options: { size: "large" }
+
+  # Partial: renders a Rails partial
+  display_template :mini, partial: "contacts/mini_label"
+end
+```
+
 ## DSL vs YAML Equivalence
 
 The DSL produces the exact same hash structure as parsed YAML. Every DSL construct has a 1:1 YAML equivalent:
@@ -540,6 +592,8 @@ The DSL produces the exact same hash structure as parsed YAML. Every DSL constru
 | `scope :a, where: { ... }` | `scopes: [{ name: a, where: { ... } }]` |
 | `after_create` | `events: [{ name: after_create }]` |
 | `on_field_change :e, field: :f` | `events: [{ name: e, type: field_change, field: f }]` |
+| `display_template :default, template: "{name}"` | `display_templates: { default: { template: "{name}" } }` |
+| `display_template :card, renderer: "X"` | `display_templates: { card: { renderer: X } }` |
 | `timestamps true` | `options: { timestamps: true }` |
 
 For the full YAML attribute reference, see [Models Reference](models.md).

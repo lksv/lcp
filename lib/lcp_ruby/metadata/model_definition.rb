@@ -2,7 +2,8 @@ module LcpRuby
   module Metadata
     class ModelDefinition
       attr_reader :name, :label, :label_plural, :table_name, :fields,
-                  :validations, :associations, :scopes, :events, :options
+                  :validations, :associations, :scopes, :events, :options,
+                  :display_templates
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -15,6 +16,7 @@ module LcpRuby
         @scopes = attrs[:scopes] || []
         @events = attrs[:events] || []
         @options = attrs[:options] || {}
+        @display_templates = attrs[:display_templates] || {}
 
         validate!
       end
@@ -30,7 +32,8 @@ module LcpRuby
           associations: parse_associations(hash["associations"]),
           scopes: (hash["scopes"] || []).map { |s| HashUtils.stringify_deep(s) },
           events: parse_events(hash["events"]),
-          options: hash["options"] || {}
+          options: hash["options"] || {},
+          display_templates: parse_display_templates(hash["display_templates"])
         )
       end
 
@@ -48,6 +51,10 @@ module LcpRuby
 
       def enum_fields
         fields.select(&:enum?)
+      end
+
+      def display_template(name = "default")
+        display_templates[name.to_s]
       end
 
       # Returns a Hash mapping FK field name to its belongs_to AssociationDefinition.
@@ -92,6 +99,13 @@ module LcpRuby
       def self.parse_events(events_data)
         return [] unless events_data.is_a?(Array)
         events_data.map { |e| EventDefinition.from_hash(e) }
+      end
+
+      def self.parse_display_templates(data)
+        return {} unless data.is_a?(Hash)
+        data.each_with_object({}) do |(name, hash), result|
+          result[name.to_s] = DisplayTemplateDefinition.from_hash(name, hash)
+        end
       end
     end
   end

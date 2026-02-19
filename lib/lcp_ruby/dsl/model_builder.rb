@@ -13,6 +13,7 @@ module LcpRuby
         @associations = []
         @scopes = []
         @events = []
+        @display_templates = {}
         @options = {}
       end
 
@@ -144,6 +145,20 @@ module LcpRuby
         @events << { "name" => event_name }
       end
 
+      # Display templates
+      def display_template(name, template: nil, subtitle: nil, icon: nil,
+                           badge: nil, renderer: nil, partial: nil, options: nil)
+        tmpl = {}
+        tmpl["template"] = template if template
+        tmpl["subtitle"] = subtitle if subtitle
+        tmpl["icon"] = icon.to_s if icon
+        tmpl["badge"] = badge if badge
+        tmpl["renderer"] = renderer.to_s if renderer
+        tmpl["partial"] = partial.to_s if partial
+        tmpl["options"] = stringify_keys(options) if options
+        @display_templates[name.to_s] = tmpl
+      end
+
       # Field change events
       def on_field_change(name, field:, condition: nil)
         event_hash = {
@@ -170,6 +185,7 @@ module LcpRuby
         hash["associations"] = @associations unless @associations.empty?
         hash["scopes"] = @scopes unless @scopes.empty?
         hash["events"] = @events unless @events.empty?
+        hash["display_templates"] = @display_templates unless @display_templates.empty?
         hash["options"] = @options unless @options.empty?
 
         hash

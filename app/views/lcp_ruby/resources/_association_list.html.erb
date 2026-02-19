@@ -1,0 +1,79 @@
+<%# Renders an association_list section on the show page.
+    Locals:
+      section  - the enriched section hash from LayoutBuilder
+      record   - the parent record
+%>
+<% assoc_name = section["association"] %>
+<% return unless record.respond_to?(assoc_name) %>
+
+<%
+  has_scope = section["scope"].present?
+  has_sort = section["sort"].is_a?(Hash)
+  has_limit = section["limit"].present?
+
+  if has_scope
+    # Scope requires a SQL query, so build the full relation
+    associated = record.public_send(assoc_name)
+    associated = associated.public_send(section["scope"]) if associated.respond_to?(section["scope"])
+    sort_field, sort_dir = section["sort"].first if has_sort
+    associated = associated.reorder(sort_field => sort_dir) if has_sort
+    associated = associated.limit(section["limit"].to_i) if has_limit
+    records = associated.to_a
+  else
+    # No scope: use preloaded collection and do in-memory sort/limit
+    records = record.public_send(assoc_name).to_a
+
+    if has_sort
+      sort_field, sort_dir = section["sort"].first
+      records = records.sort_by { |r| r.respond_to?(sort_field) ? (r.public_send(sort_field).to_s) : "" }
+      records = records.reverse if sort_dir.to_s.downcase == "desc"
+    end
+
+    records = records.first(section["limit"].to_i) if has_limit
+  end
+
+  # Resolve target model definition for display templates
+  target_model_def = section["target_model_definition"]
+  template_name = section["display"] || "default"
+  link_enabled = section["link"] == true
+
+  # Build permission evaluator for the target model
+  target_evaluator = nil
+  if target_model_def && LcpRuby::Current.user
+    target_perm_def = LcpRuby.loader.permission_definition(target_model_def.name)
+    target_evaluator = LcpRuby::Authorization::PermissionEvaluator.new(
+      target_perm_def, LcpRuby::Current.user, target_model_def.name
+    )
+  end
+
+  # Resolve presenter slug for links
+  presenter_slug = nil
+  if link_enabled
+    target_presenters = LcpRuby::Presenter::Resolver.presenters_for_model(target_model_def&.name.to_s)
+    presenter_slug = target_presenters.first&.slug
+  end
+%>
+
+<div class="lcp-association-list">
+  <% if records.empty? %>
+    <div class="lcp-association-list__empty">
+      <%= section["empty_message"] || "No records." %>
+    </div>
+  <% else %>
+    <% records.each do |assoc_record| %>
+      <div class="lcp-association-item">
+        <% if target_model_def %>
+          <%= render_display_template(
+                assoc_record, target_model_def,
+                template_name: template_name,
+                permission_evaluator: target_evaluator,
+                link_to_record: link_enabled,
+                presenter_slug: presenter_slug
+              ) %>
+        <% else %>
+          <%= assoc_record.respond_to?(:to_label) ? assoc_record.to_label : assoc_record.to_s %>
+        <% end %>
+      </div>
+    <% end %>
+  <% end %>
+</div>

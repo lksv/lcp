@@ -288,6 +288,121 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
     end
   end
 
+  describe "#show_sections with association_list enrichment" do
+    let(:company_model_hash) do
+      {
+        "name" => "company",
+        "fields" => [
+          { "name" => "name", "type" => "string" }
+        ],
+        "associations" => [
+          {
+            "type" => "has_many",
+            "name" => "contacts",
+            "target_model" => "contact",
+            "foreign_key" => "company_id",
+            "dependent" => "destroy"
+          }
+        ]
+      }
+    end
+    let(:company_model_def) { LcpRuby::Metadata::ModelDefinition.from_hash(company_model_hash) }
+
+    let(:contact_model_def) do
+      LcpRuby::Metadata::ModelDefinition.from_hash(
+        "name" => "contact",
+        "fields" => [
+          { "name" => "first_name", "type" => "string" },
+          { "name" => "last_name", "type" => "string" }
+        ],
+        "display_templates" => {
+          "default" => { "template" => "{first_name} {last_name}" }
+        }
+      )
+    end
+
+    let(:show_presenter_hash) do
+      {
+        "name" => "company_admin",
+        "model" => "company",
+        "label" => "Companies",
+        "slug" => "companies",
+        "index" => { "default_view" => "table", "per_page" => 25, "table_columns" => [] },
+        "show" => {
+          "layout" => [
+            { "section" => "Info", "fields" => [ { "field" => "name" } ] },
+            {
+              "section" => "Contacts",
+              "type" => "association_list",
+              "association" => "contacts",
+              "display" => "default",
+              "link" => true,
+              "limit" => 5,
+              "empty_message" => "No contacts."
+            }
+          ]
+        },
+        "form" => { "sections" => [] },
+        "search" => { "enabled" => false },
+        "actions" => { "collection" => [], "single" => [] }
+      }
+    end
+    let(:show_presenter_def) { LcpRuby::Metadata::PresenterDefinition.from_hash(show_presenter_hash) }
+
+    before do
+      loader = instance_double(LcpRuby::Metadata::Loader)
+      allow(LcpRuby).to receive(:loader).and_return(loader)
+      allow(loader).to receive(:model_definition).with("contact").and_return(contact_model_def)
+    end
+
+    subject(:show_builder) { described_class.new(show_presenter_def, company_model_def) }
+
+    it "attaches association_definition to association_list section" do
+      sections = show_builder.show_sections
+      assoc_section = sections.find { |s| s["type"] == "association_list" }
+
+      expect(assoc_section["association_definition"]).to be_a(LcpRuby::Metadata::AssociationDefinition)
+      expect(assoc_section["association_definition"].name).to eq("contacts")
+    end
+
+    it "attaches target_model_definition to association_list section" do
+      sections = show_builder.show_sections
+      assoc_section = sections.find { |s| s["type"] == "association_list" }
+
+      expect(assoc_section["target_model_definition"]).to eq(contact_model_def)
+    end
+
+    it "preserves original section keys" do
+      sections = show_builder.show_sections
+      assoc_section = sections.find { |s| s["type"] == "association_list" }
+
+      expect(assoc_section["display"]).to eq("default")
+      expect(assoc_section["link"]).to eq(true)
+      expect(assoc_section["limit"]).to eq(5)
+      expect(assoc_section["empty_message"]).to eq("No contacts.")
+    end
+
+    it "does not enrich non-association_list sections" do
+      sections = show_builder.show_sections
+      info_section = sections.find { |s| s["section"] == "Info" }
+
+      expect(info_section).not_to have_key("association_definition")
+      expect(info_section).not_to have_key("target_model_definition")
+    end
+
+    it "returns section unchanged when association not found" do
+      bad_hash = show_presenter_hash.deep_dup
+      bad_hash["show"]["layout"][1]["association"] = "nonexistent"
+      bad_def = LcpRuby::Metadata::PresenterDefinition.from_hash(bad_hash)
+      builder = described_class.new(bad_def, company_model_def)
+
+      sections = builder.show_sections
+      assoc_section = sections.find { |s| s["type"] == "association_list" }
+
+      expect(assoc_section).not_to have_key("association_definition")
+    end
+  end
+
   describe "#form_sections with multi_select" do
     let(:through_model_hash) do
       {

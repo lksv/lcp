@@ -706,6 +706,78 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
     end
   end
 
+  describe "display_templates" do
+    it "produces display_templates hash with structured template" do
+      builder = described_class.new(:contact)
+      builder.instance_eval do
+        display_template :default,
+          template: "{first_name} {last_name}",
+          subtitle: "{position} at {company.name}",
+          icon: "user"
+      end
+
+      hash = builder.to_hash
+      expect(hash["display_templates"]).to be_a(Hash)
+      tmpl = hash["display_templates"]["default"]
+      expect(tmpl["template"]).to eq("{first_name} {last_name}")
+      expect(tmpl["subtitle"]).to eq("{position} at {company.name}")
+      expect(tmpl["icon"]).to eq("user")
+    end
+
+    it "produces display_templates hash with renderer" do
+      builder = described_class.new(:contact)
+      builder.instance_eval do
+        display_template :card, renderer: "ContactCardRenderer"
+      end
+
+      tmpl = builder.to_hash["display_templates"]["card"]
+      expect(tmpl["renderer"]).to eq("ContactCardRenderer")
+    end
+
+    it "produces display_templates hash with partial" do
+      builder = described_class.new(:contact)
+      builder.instance_eval do
+        display_template :mini, partial: "contacts/mini_label"
+      end
+
+      tmpl = builder.to_hash["display_templates"]["mini"]
+      expect(tmpl["partial"]).to eq("contacts/mini_label")
+    end
+
+    it "supports options" do
+      builder = described_class.new(:contact)
+      builder.instance_eval do
+        display_template :card, renderer: "ContactCardRenderer", options: { size: "large" }
+      end
+
+      tmpl = builder.to_hash["display_templates"]["card"]
+      expect(tmpl["options"]).to eq({ "size" => "large" })
+    end
+
+    it "omits display_templates key when empty" do
+      builder = described_class.new(:contact)
+      hash = builder.to_hash
+
+      expect(hash).not_to have_key("display_templates")
+    end
+
+    it "produces valid ModelDefinition via define_model" do
+      defn = LcpRuby.define_model(:contact) do
+        field :first_name, :string
+        field :last_name, :string
+        display_template :default,
+          template: "{first_name} {last_name}",
+          subtitle: "{position}",
+          icon: "user"
+        display_template :card, renderer: "ContactCardRenderer"
+      end
+
+      expect(defn.display_templates.size).to eq(2)
+      expect(defn.display_template("default")).to be_structured
+      expect(defn.display_template("card")).to be_renderer
+    end
+  end
+
   describe "scopes with array values" do
     it "handles where_not with array values" do
       builder = described_class.new(:deal)

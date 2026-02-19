@@ -273,6 +273,21 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .lcp-impersonation-banner .btn { padding: 0.2rem 0.6rem; font-size: 0.8rem; }
 .lcp-impersonation-selector { background: #e9ecef; border-color: #dee2e6; color: #6c757d; }
 
+/* Display templates */
+.lcp-display-template { display: flex; align-items: center; gap: 0.5rem; }
+.lcp-display-template__icon { flex-shrink: 0; font-size: 0.85rem; color: #6c757d; }
+.lcp-display-template__title { font-weight: 500; font-size: 0.9rem; }
+.lcp-display-template__title a { color: #0d6efd; text-decoration: none; }
+.lcp-display-template__title a:hover { text-decoration: underline; }
+.lcp-display-template__subtitle { font-size: 0.8rem; color: #6c757d; }
+.lcp-display-template__badge { display: inline-block; padding: 0.1rem 0.4rem; border-radius: 8px; background: #e9ecef; color: #495057; font-size: 0.7rem; font-weight: 500; }
+
+/* Association list */
+.lcp-association-list { }
+.lcp-association-item { padding: 0.35rem 0; border-bottom: 1px solid #f0f0f0; }
+.lcp-association-item:last-child { border-bottom: none; }
+.lcp-association-list__empty { font-style: italic; color: #6c757d; padding: 0.5rem 0; }
+
 /* Responsive breakpoints */
 @media (max-width: 640px) {
   .lcp-grid[data-responsive-mobile="1"] { grid-template-columns: 1fr !important; }

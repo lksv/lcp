@@ -51,6 +51,14 @@ model:
       foreign_key: company_id
       required: true
 
+  display_templates:
+    default:
+      template: "{first_name} {last_name}"
+      subtitle: "{position} at {company.name}"
+      icon: user
+    compact:
+      template: "{last_name}, {first_name}"
+
   options:
     timestamps: true
     label_method: full_name

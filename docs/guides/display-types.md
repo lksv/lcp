@@ -1111,9 +1111,16 @@ table_columns:
 
 ---
 
+## Display Templates
+
+Display types apply to individual fields in index columns and show sections. For rendering **entire records** as rich HTML blocks (with title, subtitle, icon, and badge), see [Display Templates](../reference/models.md#display-templates). Display templates are used in `association_list` sections to render each associated record with a structured layout instead of plain text.
+
+---
+
 ## What's Next
 
 - [Presenters Reference](../reference/presenters.md) -- Full attribute reference for presenter YAML
 - [Presenter DSL Reference](../reference/presenter-dsl.md) -- Ruby DSL alternative for presenters
+- [Display Templates](../reference/models.md#display-templates) -- Rich record representations for association lists
 - [Custom Renderers](custom-renderers.md) -- Creating host app custom display renderers
 - [Custom Types](custom-types.md) -- Types can set a default `display_type` (e.g., `color` type uses `color_swatch`)

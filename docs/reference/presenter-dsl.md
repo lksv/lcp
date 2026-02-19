@@ -250,14 +250,33 @@ show do
 end
 ```
 
-#### `association_list(title, association:)`
+#### `association_list(title, association:, display: nil, link: nil, sort: nil, limit: nil, empty_message: nil, scope: nil)`
 
-Renders a list of associated records. The `association:` must match a `has_many` association on the model.
+Renders a list of associated records with optional display templates, links, sorting, and limits. The `association:` must match a `has_many` association on the model.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `association:` | symbol | The `has_many` association name (required) |
+| `display:` | symbol or string | Name of the display template defined on the target model (e.g., `:default`) |
+| `link:` | boolean | Wrap each record in a link to its show page |
+| `sort:` | hash | Sort associated records by field and direction (e.g., `{ last_name: :asc }`) |
+| `limit:` | integer | Maximum number of records to display |
+| `empty_message:` | string | Message shown when there are no associated records |
+| `scope:` | symbol | Named scope to apply on the association before rendering |
 
 ```ruby
-association_list "Contacts", association: :contacts
+# Basic
 association_list "Deals", association: :deals
+
+# With all options
+association_list "Contacts", association: :contacts,
+  display: :default, link: true,
+  sort: { last_name: :asc }, limit: 10,
+  empty_message: "No contacts yet.",
+  scope: :active
 ```
+
+When `display:` references a display template defined on the target model (see [Models Reference — Display Templates](models.md#display-templates)), each record is rendered with the template's structured layout (title, subtitle, icon, badge). Without `display:`, records fall back to plain `to_label` text.
 
 ### Section Fields (Show)
 
@@ -715,6 +734,7 @@ end
 | `actions_position :inline` | `index: { actions_position: inline }` |
 | `show do section "Info", responsive: {...} do ... end end` | `show: { layout: [{ section: "Info", responsive: {...}, ... }] }` |
 | `association_list "X", association: :y` | `{ section: "X", type: association_list, association: y }` |
+| `association_list "X", association: :y, display: :default, link: true, sort: { name: :asc }, limit: 5, empty_message: "None.", scope: :active` | `{ section: "X", type: association_list, association: y, display: default, link: true, sort: { name: asc }, limit: 5, empty_message: "None.", scope: active }` |
 | `form do layout :tabs end` | `form: { layout: tabs }` |
 | `form do section "Details", collapsible: true do ... end end` | `form: { sections: [{ title: "Details", collapsible: true, ... }] }` |
 | `nested_fields "Items", association: :items do ... end` | `form: { sections: [{ type: nested_fields, title: "Items", association: items, ... }] }` |
