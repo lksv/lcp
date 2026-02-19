@@ -1,0 +1,9 @@
+view_group:
+  model: feature_record
+  primary: feature_record
+  navigation:
+    menu: main
+    position: 1
+  views:
+    - presenter: feature_record
+      label: "Feature Records"

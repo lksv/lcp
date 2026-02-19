@@ -37,6 +37,10 @@ module IntegrationHelper
     # Discover services from fixture path
     LcpRuby::ConditionServiceRegistry.discover!(fixture_path)
     LcpRuby::Services::Registry.discover!(fixture_path)
+
+    # Discover actions and event handlers from fixture path
+    LcpRuby::Actions::ActionRegistry.discover!(fixture_path)
+    LcpRuby::Events::HandlerRegistry.discover!(fixture_path)
   end
 
   # Drop tables for the given fixture's models
@@ -55,6 +59,13 @@ module IntegrationHelper
 
       model_name = data["model"]["name"]
       table_name = data["model"]["table_name"] || model_name.pluralize
+      connection.drop_table(table_name, if_exists: true)
+    end
+
+    # Also handle DSL model files (.rb)
+    Dir[File.join(models_dir, "*.rb")].each do |file|
+      model_name = File.basename(file, ".rb")
+      table_name = model_name.pluralize
       connection.drop_table(table_name, if_exists: true)
     end
   end

@@ -73,6 +73,7 @@ module LcpRuby
     end
 
     def handle_result(result)
+      fallback = result.redirect_to || resources_path
       respond_to do |format|
         if result.success?
           if result.data&.dig(:csv)
@@ -82,11 +83,11 @@ module LcpRuby
                 type: "text/csv"
             }
           else
-            format.html { redirect_back(fallback_location: root_path, notice: result.message) }
+            format.html { redirect_back(fallback_location: fallback, notice: result.message) }
           end
           format.json { render json: { success: true, message: result.message, data: result.data } }
         else
-          format.html { redirect_back(fallback_location: root_path, alert: result.message) }
+          format.html { redirect_back(fallback_location: fallback, alert: result.message) }
           format.json { render json: { success: false, message: result.message, errors: result.errors }, status: :unprocessable_entity }
         end
       end

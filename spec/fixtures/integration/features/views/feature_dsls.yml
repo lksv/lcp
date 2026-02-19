@@ -1,0 +1,9 @@
+view_group:
+  model: feature_dsl
+  primary: feature_dsl
+  navigation:
+    menu: main
+    position: 2
+  views:
+    - presenter: feature_dsl
+      label: "DSL Records"

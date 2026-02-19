@@ -1,0 +1,130 @@
+model:
+  name: feature_record
+  label: "Feature Record"
+  label_plural: "Feature Records"
+
+  fields:
+    - name: name
+      type: string
+      label: "Name"
+      column_options:
+        limit: 100
+        "null": false
+      transforms: [strip]
+      validations:
+        - type: presence
+        - type: uniqueness
+
+    - name: code
+      type: string
+      label: "Code"
+      column_options:
+        limit: 50
+      transforms: [strip, downcase]
+      validations:
+        - type: format
+          options:
+            with: "\\A[a-z0-9_-]+\\z"
+            message: "only lowercase letters, numbers, hyphens and underscores"
+
+    - name: status
+      type: enum
+      label: "Status"
+      enum_values:
+        - { value: draft, label: "Draft" }
+        - { value: active, label: "Active" }
+        - { value: completed, label: "Completed" }
+        - { value: cancelled, label: "Cancelled" }
+        - { value: locked, label: "Locked" }
+      default: draft
+
+    - name: amount
+      type: decimal
+      label: "Amount"
+      column_options: { precision: 10, scale: 2 }
+      validations:
+        - type: numericality
+          options: { greater_than_or_equal_to: 0, allow_nil: true }
+        - type: presence
+          when: { field: status, operator: in, value: [active, completed] }
+
+    - name: email
+      type: email
+      label: "Email"
+
+    - name: phone
+      type: phone
+      label: "Phone"
+
+    - name: website
+      type: url
+      label: "Website"
+
+    - name: brand_color
+      type: color
+      label: "Brand Color"
+
+    - name: due_date
+      type: date
+      label: "Due Date"
+      default: current_date
+
+    - name: auto_date
+      type: date
+      label: "Auto Date"
+      default:
+        service: one_week_from_now
+
+    - name: computed_label
+      type: string
+      label: "Computed Label"
+      computed: "{name} ({code})"
+
+    - name: computed_score
+      type: decimal
+      label: "Computed Score"
+      column_options: { precision: 10, scale: 2 }
+      computed:
+        service: feature_score
+
+    - name: min_value
+      type: integer
+      label: "Min Value"
+      validations:
+        - type: comparison
+          field_ref: max_value
+          operator: lt
+          message: "must be less than Max Value"
+
+    - name: max_value
+      type: integer
+      label: "Max Value"
+      default: 100
+
+    - name: is_active
+      type: boolean
+      label: "Active"
+      default: true
+
+    - name: rating_value
+      type: float
+      label: "Rating"
+
+    - name: description
+      type: text
+      label: "Description"
+
+  scopes:
+    - name: active
+      where: { status: "active" }
+    - name: draft
+      where: { status: "draft" }
+
+  events:
+    - name: on_status_change
+      type: field_change
+      field: status
+
+  options:
+    timestamps: true
+    label_method: name
