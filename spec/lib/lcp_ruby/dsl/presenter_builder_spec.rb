@@ -328,6 +328,53 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       })
     end
 
+    it "supports enhanced association_list with display, link, sort, limit, empty_message, scope" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :company
+        show do
+          association_list "Contacts", association: :contacts,
+            display: :default,
+            link: true,
+            sort: { last_name: :asc },
+            limit: 5,
+            empty_message: "No contacts yet.",
+            scope: :active
+        end
+      end
+      hash = builder.to_hash
+
+      entry = hash["show"]["layout"][0]
+      expect(entry["section"]).to eq("Contacts")
+      expect(entry["type"]).to eq("association_list")
+      expect(entry["association"]).to eq("contacts")
+      expect(entry["display"]).to eq("default")
+      expect(entry["link"]).to eq(true)
+      expect(entry["sort"]).to eq({ "last_name" => "asc" })
+      expect(entry["limit"]).to eq(5)
+      expect(entry["empty_message"]).to eq("No contacts yet.")
+      expect(entry["scope"]).to eq("active")
+    end
+
+    it "omits optional association_list keys when not provided" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :company
+        show do
+          association_list "Contacts", association: :contacts
+        end
+      end
+      hash = builder.to_hash
+
+      entry = hash["show"]["layout"][0]
+      expect(entry).not_to have_key("display")
+      expect(entry).not_to have_key("link")
+      expect(entry).not_to have_key("sort")
+      expect(entry).not_to have_key("limit")
+      expect(entry).not_to have_key("empty_message")
+      expect(entry).not_to have_key("scope")
+    end
+
     it "supports multiple sections" do
       builder = described_class.new(:test)
       builder.instance_eval do

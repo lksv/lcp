@@ -312,7 +312,7 @@ end
 
 ### Association Lists
 
-Display related records as a table within the show page using `type: association_list`.
+Display related records as a list within the show page using `type: association_list`. Records can render with rich display templates (title, subtitle, icon, badge), links, sorting, and limits.
 
 **YAML:**
 
@@ -325,6 +325,11 @@ show:
     - section: "Contacts"
       type: association_list
       association: contacts
+      display: default       # Uses display template from contact model
+      link: true             # Wrap each record in a link to its show page
+      sort: { last_name: asc }
+      limit: 10
+      empty_message: "No contacts yet."
     - section: "Deals"
       type: association_list
       association: deals
@@ -338,12 +343,44 @@ show do
     field :name, display: :heading
   end
 
-  association_list "Contacts", association: :contacts
+  association_list "Contacts", association: :contacts,
+    display: :default, link: true,
+    sort: { last_name: :asc }, limit: 10,
+    empty_message: "No contacts yet."
   association_list "Deals", association: :deals
 end
 ```
 
-The association must be defined as `has_many` in the model. The table renders the associated model's fields.
+The association must be defined as `has_many` in the model.
+
+**Display templates** are defined on the target model (see [Models Reference](../reference/models.md#display-templates)). For example, the contact model might define:
+
+**YAML:**
+
+```yaml
+display_templates:
+  default:
+    template: "{first_name} {last_name}"
+    subtitle: "{position} at {company.name}"
+    icon: user
+```
+
+**Ruby DSL:**
+
+```ruby
+define_model :contact do
+  # ... fields, associations ...
+
+  display_template :default,
+    template: "{first_name} {last_name}",
+    subtitle: "{position} at {company.name}",
+    icon: "user"
+end
+```
+
+This renders each contact with a structured layout showing the name, position, and company. Without a display template, records fall back to plain `to_label` text.
+
+Options reference: `display`, `link`, `sort`, `limit`, `empty_message`, `scope` — see [Presenters Reference](../reference/presenters.md#association-list-sections).
 
 ---
 

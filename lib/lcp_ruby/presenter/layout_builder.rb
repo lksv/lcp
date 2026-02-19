@@ -27,10 +27,32 @@ module LcpRuby
       def show_sections
         config = presenter_definition.show_config
         layout = config["layout"] || []
-        layout.map { |s| normalize_section(s) }
+        layout.map do |s|
+          if s["type"] == "association_list"
+            enrich_association_list_section(s)
+          else
+            normalize_section(s)
+          end
+        end
       end
 
       private
+
+      def enrich_association_list_section(section)
+        assoc_name = section["association"]
+        assoc = model_definition.associations.find { |a| a.name == assoc_name }
+        return section unless assoc&.target_model
+
+        target_def = LcpRuby.loader.model_definition(assoc.target_model)
+        return section unless target_def
+
+        section.merge(
+          "association_definition" => assoc,
+          "target_model_definition" => target_def
+        )
+      rescue LcpRuby::MetadataError
+        section
+      end
 
       def normalize_section(section)
         fields = (section["fields"] || []).map do |f|

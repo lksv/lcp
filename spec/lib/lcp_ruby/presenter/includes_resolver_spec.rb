@@ -435,6 +435,107 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
       end
     end
 
+    describe "nested eager loading from display templates" do
+      let(:contact_model_def) do
+        LcpRuby::Metadata::ModelDefinition.from_hash(
+          "name" => "contact",
+          "fields" => [
+            { "name" => "first_name", "type" => "string" },
+            { "name" => "last_name", "type" => "string" },
+            { "name" => "position", "type" => "string" }
+          ],
+          "associations" => [
+            { "type" => "belongs_to", "name" => "company", "target_model" => "company", "foreign_key" => "company_id" }
+          ],
+          "display_templates" => {
+            "default" => {
+              "template" => "{first_name} {last_name}",
+              "subtitle" => "{position} at {company.name}"
+            },
+            "compact" => {
+              "template" => "{last_name}, {first_name}"
+            }
+          }
+        )
+      end
+
+      before do
+        loader = instance_double(LcpRuby::Metadata::Loader)
+        allow(LcpRuby).to receive(:loader).and_return(loader)
+        allow(loader).to receive(:model_definition).with("contact").and_return(contact_model_def)
+        allow(loader).to receive(:model_definition).with("deal").and_raise(LcpRuby::MetadataError, "not found")
+      end
+
+      it "detects nested includes from display template dot-paths" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "company_admin",
+          "model" => "company",
+          "show" => {
+            "layout" => [
+              {
+                "section" => "Contacts",
+                "type" => "association_list",
+                "association" => "contacts",
+                "display" => "default"
+              }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, company_model_def, :show)
+
+        expect(collector.dependencies.size).to eq(1)
+        dep = collector.dependencies.first
+        expect(dep.path).to eq({ contacts: [ :company ] })
+        expect(dep.reason).to eq(:display)
+      end
+
+      it "falls back to simple include when template has no dot-paths" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "company_admin",
+          "model" => "company",
+          "show" => {
+            "layout" => [
+              {
+                "section" => "Contacts",
+                "type" => "association_list",
+                "association" => "contacts",
+                "display" => "compact"
+              }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, company_model_def, :show)
+
+        expect(collector.dependencies.size).to eq(1)
+        dep = collector.dependencies.first
+        expect(dep.path).to eq(:contacts)
+      end
+
+      it "falls back to simple include when target model has no display templates" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "company_admin",
+          "model" => "company",
+          "show" => {
+            "layout" => [
+              {
+                "section" => "Deals",
+                "type" => "association_list",
+                "association" => "deals"
+              }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, company_model_def, :show)
+
+        expect(collector.dependencies.size).to eq(1)
+        dep = collector.dependencies.first
+        expect(dep.path).to eq(:deals)
+      end
+    end
+
     describe "#from_manual" do
       it "reads includes as display dependencies" do
         collector.from_manual("includes" => [ "company" ])

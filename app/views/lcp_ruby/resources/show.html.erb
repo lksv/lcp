@@ -15,16 +15,8 @@
       <h2><%= section["section"] || section["title"] %></h2>
 
       <% if section["type"] == "association_list" %>
-        <% assoc_name = section["association"] %>
-        <% if @record.respond_to?(assoc_name) %>
-          <div class="lcp-association-list">
-            <% @record.send(assoc_name).each do |assoc_record| %>
-              <div class="lcp-association-item">
-                <%= assoc_record.respond_to?(:to_label) ? assoc_record.to_label : assoc_record.to_s %>
-              </div>
-            <% end %>
-          </div>
-        <% end %>
+        <%= render "lcp_ruby/resources/association_list",
+                   section: section, record: @record %>
       <% else %>
         <div class="lcp-fields lcp-grid" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;"
              <%= "data-responsive-mobile=\"#{section.dig('responsive', 'mobile', 'columns')}\"" if section.dig('responsive', 'mobile', 'columns') %>

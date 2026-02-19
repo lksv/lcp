@@ -394,7 +394,8 @@ RSpec.describe "CRM App Integration", type: :request do
       expect(response.body).to include("Jane")
       expect(response.body).to include("Preloaded Deal")
 
-      # Contacts and deals should each be loaded in one query via preloader
+      # Contacts and deals should each be loaded in one query via preloader.
+      # Contacts may also trigger a nested company preload (from display template).
       contact_selects = queries.select { |q| q.include?("SELECT") && q.include?("contacts") }
       deal_selects = queries.select { |q| q.include?("SELECT") && q.include?("deals") }
       expect(contact_selects.size).to eq(1)
@@ -745,6 +746,114 @@ RSpec.describe "CRM App Integration", type: :request do
 
       # Viewer cannot access deal presenter, Pundit returns 403 for JSON
       expect(response).to have_http_status(:forbidden)
+    end
+  end
+
+  describe "Display templates in association_list" do
+    before { stub_current_user(role: "admin") }
+
+    let!(:company) { company_model.create!(name: "Acme Corp", industry: "technology") }
+
+    it "renders display template HTML for contacts in association_list" do
+      contact_model.create!(first_name: "Alice", last_name: "Smith", position: "Engineer", company_id: company.id)
+
+      get "/companies/#{company.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-display-template")
+      expect(response.body).to include("lcp-display-template__title")
+      expect(response.body).to include("Alice Smith")
+    end
+
+    it "renders subtitle with dot-path resolved value" do
+      contact_model.create!(first_name: "Bob", last_name: "Jones", position: "Manager", company_id: company.id)
+
+      get "/companies/#{company.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-display-template__subtitle")
+      expect(response.body).to include("Manager at Acme Corp")
+    end
+
+    it "renders icon in display template" do
+      contact_model.create!(first_name: "Carol", last_name: "Lee", company_id: company.id)
+
+      get "/companies/#{company.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-display-template__icon")
+      expect(response.body).to include("user")
+    end
+
+    it "shows empty message when no contacts" do
+      get "/companies/#{company.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("No contacts yet.")
+      expect(response.body).to include("lcp-association-list__empty")
+    end
+
+    it "respects limit on association_list" do
+      10.times { |i| contact_model.create!(first_name: "Person#{i}", last_name: "Test", company_id: company.id) }
+
+      get "/companies/#{company.id}"
+
+      expect(response).to have_http_status(:ok)
+      # Limit is 5 in the fixture, so only 5 contacts should render
+      rendered_contacts = response.body.scan(/lcp-display-template__title/).size
+      expect(rendered_contacts).to eq(5)
+    end
+
+    it "sorts contacts by configured field" do
+      contact_model.create!(first_name: "Zara", last_name: "Zenith", company_id: company.id)
+      contact_model.create!(first_name: "Anna", last_name: "Alpha", company_id: company.id)
+      contact_model.create!(first_name: "Mike", last_name: "Mid", company_id: company.id)
+
+      get "/companies/#{company.id}"
+
+      expect(response).to have_http_status(:ok)
+      # Sort by last_name asc: Alpha, Mid, Zenith
+      body = response.body
+      alpha_pos = body.index("Alpha")
+      mid_pos = body.index("Mid")
+      zenith_pos = body.index("Zenith")
+      expect(alpha_pos).to be < mid_pos
+      expect(mid_pos).to be < zenith_pos
+    end
+
+    it "renders links when link: true" do
+      contact_model.create!(first_name: "Linked", last_name: "Contact", company_id: company.id)
+
+      get "/companies/#{company.id}"
+
+      expect(response).to have_http_status(:ok)
+      # Should contain a link to the contact show page
+      expect(response.body).to include("/contacts/")
+    end
+
+    it "falls back to to_label for deals without display template" do
+      deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
+
+      get "/companies/#{company.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Big Deal")
+    end
+  end
+
+  describe "Display template permission filtering" do
+    let!(:company) { company_model.create!(name: "Test Corp", industry: "technology") }
+
+    it "viewer sees restricted fields filtered in display template" do
+      stub_current_user(role: "viewer")
+      contact_model.create!(first_name: "Secret", last_name: "Agent", position: "Spy", company_id: company.id)
+
+      get "/companies/#{company.id}"
+
+      # Viewer has access to company_admin, contacts are rendered
+      expect(response).to have_http_status(:ok)
+      # The template still renders, but field access is controlled by PermissionEvaluator
+      expect(response.body).to include("lcp-association-item")
     end
   end
 

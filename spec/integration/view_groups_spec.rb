@@ -87,8 +87,8 @@ RSpec.describe "View Groups Integration", type: :request do
       entries = helper.navigable_presenters
 
       slugs = entries.map { |e| e[:slug] }
-      # companies (position 1) should come before deals (position 3)
-      expect(slugs).to eq(%w[companies deals])
+      # companies (position 1), contacts (auto, position 100), deals (position 3)
+      expect(slugs).to eq(%w[companies deals contacts])
     end
 
     it "excludes view groups whose primary presenter has no slug" do
@@ -122,8 +122,8 @@ RSpec.describe "View Groups Integration", type: :request do
     it "loads the correct number of view groups from CRM fixtures" do
       view_groups = LcpRuby.loader.view_group_definitions
 
-      # CRM has 2 explicit view groups: deals and companies
-      expect(view_groups.keys).to contain_exactly("deals", "companies")
+      # CRM has 2 explicit view groups: deals and companies, plus auto-created contact_auto
+      expect(view_groups.keys).to contain_exactly("deals", "companies", "contact_auto")
     end
 
     it "deals view group has two views" do

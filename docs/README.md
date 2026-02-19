@@ -10,7 +10,7 @@ LCP Ruby is a Rails mountable engine that generates full CRUD information system
 
 Complete attribute reference for every YAML configuration file:
 
-- [Models](reference/models.md) — Fields, validations, associations, scopes, events
+- [Models](reference/models.md) — Fields, validations, associations, scopes, events, display templates
 - [Types](reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters](reference/presenters.md) — Index, show, form, search, actions, navigation
 - [View Groups](reference/view-groups.md) — Navigation menu, view switching, auto-creation

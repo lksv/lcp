@@ -1,0 +1,53 @@
+presenter:
+  name: contact
+  model: contact
+  label: "Contacts"
+  slug: contacts
+  icon: user
+
+  index:
+    default_view: table
+    default_sort: { field: last_name, direction: asc }
+    per_page: 25
+    table_columns:
+      - { field: first_name, sortable: true }
+      - { field: last_name, sortable: true }
+      - { field: email }
+      - { field: position }
+
+  show:
+    layout:
+      - section: "Contact Information"
+        columns: 2
+        fields:
+          - { field: first_name }
+          - { field: last_name }
+          - { field: email }
+          - { field: phone }
+          - { field: position }
+          - { field: "company.name", label: "Company" }
+
+  form:
+    sections:
+      - title: "Contact Details"
+        columns: 2
+        fields:
+          - { field: first_name, placeholder: "First name..." }
+          - { field: last_name, placeholder: "Last name..." }
+          - { field: email, placeholder: "email@example.com" }
+          - { field: phone }
+          - { field: position }
+          - { field: company_id, input_type: association_select }
+
+  search:
+    enabled: true
+    searchable_fields: [first_name, last_name, email]
+    placeholder: "Search contacts..."
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Contact", icon: plus }
+    single:
+      - { name: show, type: built_in, icon: eye }
+      - { name: edit, type: built_in, icon: pencil }
+      - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }

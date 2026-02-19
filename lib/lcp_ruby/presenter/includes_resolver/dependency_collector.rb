@@ -108,7 +108,12 @@ module LcpRuby
               assoc = find_association(model_def, assoc_name)
               next unless assoc
 
-              add_dependency(path: assoc_name.to_sym, reason: :display)
+              nested_includes = collect_template_nested_includes(assoc, section)
+              if nested_includes.any?
+                add_dependency(path: { assoc_name.to_sym => nested_includes }, reason: :display)
+              else
+                add_dependency(path: assoc_name.to_sym, reason: :display)
+              end
             else
               # Scan section fields for dot-paths and templates
               (section["fields"] || []).each do |field_config|
@@ -140,6 +145,27 @@ module LcpRuby
 
             add_dependency(path: assoc_name.to_sym, reason: :display)
           end
+        end
+
+        # Inspect the target model's display template for dot-path fields
+        # and return association names needed for nested eager loading.
+        def collect_template_nested_includes(assoc, section)
+          return [] unless assoc.target_model
+
+          target_def = LcpRuby.loader.model_definition(assoc.target_model)
+          return [] unless target_def
+
+          template_name = section["display"] || "default"
+          template_def = target_def.display_template(template_name)
+          return [] unless template_def
+
+          # Extract association names from dot-path fields in the template
+          template_def.referenced_fields
+            .select { |f| f.include?(".") }
+            .map { |f| f.split(".").first.to_sym }
+            .uniq
+        rescue LcpRuby::MetadataError
+          []
         end
 
         def collect_dot_path_dep(field_path, model_def)

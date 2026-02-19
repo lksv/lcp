@@ -3,6 +3,7 @@ module LcpRuby
     include Pundit::Authorization
 
     helper LcpRuby::DisplayHelper
+    helper LcpRuby::DisplayTemplateHelper
     helper LcpRuby::FormHelper
     helper LcpRuby::LayoutHelper
     helper LcpRuby::ConditionHelper
