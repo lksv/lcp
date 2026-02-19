@@ -57,5 +57,4 @@ define_presenter :project_admin do
     visible_when: { field: :status, operator: :not_in, value: [ :archived, :completed ] },
     style: :danger
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
-
 end

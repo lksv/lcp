@@ -17,8 +17,8 @@ RSpec.describe LcpRuby::HashUtils do
     end
 
     it "recurses into arrays" do
-      input = [{ foo: :bar }, { baz: "qux" }]
-      expected = [{ "foo" => "bar" }, { "baz" => "qux" }]
+      input = [ { foo: :bar }, { baz: "qux" } ]
+      expected = [ { "foo" => "bar" }, { "baz" => "qux" } ]
       expect(described_class.stringify_deep(input)).to eq(expected)
     end
 
@@ -40,8 +40,8 @@ RSpec.describe LcpRuby::HashUtils do
     end
 
     it "handles deeply nested mixed structures" do
-      input = { a: [{ b: :c }, "d"], e: { f: { g: :h } } }
-      expected = { "a" => [{ "b" => "c" }, "d"], "e" => { "f" => { "g" => "h" } } }
+      input = { a: [ { b: :c }, "d" ], e: { f: { g: :h } } }
+      expected = { "a" => [ { "b" => "c" }, "d" ], "e" => { "f" => { "g" => "h" } } }
       expect(described_class.stringify_deep(input)).to eq(expected)
     end
 

@@ -1,0 +1,10 @@
+view_group:
+  model: country
+  primary: country_admin
+  navigation:
+    menu: main
+    position: 5
+  views:
+    - presenter: country_admin
+      label: "Countries"
+      icon: globe

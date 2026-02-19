@@ -1,0 +1,50 @@
+<% fields.each do |field| %>
+  <div class="lcp-form-field">
+    <label for="inline_record_<%= field[:name] %>"><%= field[:label] %><%= " *" if field[:required] %></label>
+    <% case field[:type] %>
+    <% when "string", "email", "phone", "url", "color" %>
+      <input type="<%= field[:type] == 'string' ? 'text' : field[:type] %>"
+             name="inline_record[<%= field[:name] %>]"
+             id="inline_record_<%= field[:name] %>"
+             placeholder="<%= field[:placeholder] %>"
+             <%= "required" if field[:required] %>>
+    <% when "text" %>
+      <textarea name="inline_record[<%= field[:name] %>]"
+                id="inline_record_<%= field[:name] %>"
+                rows="3"
+                placeholder="<%= field[:placeholder] %>"
+                <%= "required" if field[:required] %>></textarea>
+    <% when "integer", "float", "decimal" %>
+      <input type="number"
+             name="inline_record[<%= field[:name] %>]"
+             id="inline_record_<%= field[:name] %>"
+             step="<%= field[:type] == 'integer' ? '1' : 'any' %>"
+             <%= "required" if field[:required] %>>
+    <% when "boolean" %>
+      <input type="hidden" name="inline_record[<%= field[:name] %>]" value="0">
+      <input type="checkbox"
+             name="inline_record[<%= field[:name] %>]"
+             id="inline_record_<%= field[:name] %>"
+             value="1">
+    <% when "date" %>
+      <input type="date"
+             name="inline_record[<%= field[:name] %>]"
+             id="inline_record_<%= field[:name] %>"
+             <%= "required" if field[:required] %>>
+    <% when "datetime" %>
+      <input type="datetime-local"
+             name="inline_record[<%= field[:name] %>]"
+             id="inline_record_<%= field[:name] %>"
+             <%= "required" if field[:required] %>>
+    <% when "enum" %>
+      <select name="inline_record[<%= field[:name] %>]"
+              id="inline_record_<%= field[:name] %>"
+              <%= "required" if field[:required] %>>
+        <option value=""><%= I18n.t("lcp_ruby.select.include_blank") %></option>
+        <% (field[:enum_values] || []).each do |v| %>
+          <option value="<%= v %>"><%= v.humanize %></option>
+        <% end %>
+      </select>
+    <% end %>
+  </div>
+<% end %>

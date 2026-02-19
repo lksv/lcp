@@ -1,0 +1,33 @@
+model:
+  name: category
+  label: "Category"
+  label_plural: "Categories"
+
+  fields:
+    - name: name
+      type: string
+      label: "Name"
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+
+    - name: active
+      type: boolean
+      label: "Active"
+
+  associations:
+    - type: belongs_to
+      name: parent
+      target_model: category
+      foreign_key: parent_id
+      required: false
+    - type: has_many
+      name: children
+      target_model: category
+      foreign_key: parent_id
+
+  options:
+    timestamps: true
+    label_method: name

@@ -1,0 +1,10 @@
+view_group:
+  model: deal_category
+  primary: deal_category_admin
+  navigation:
+    menu: main
+    position: 8
+  views:
+    - presenter: deal_category_admin
+      label: "Deal Categories"
+      icon: folder

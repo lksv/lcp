@@ -119,7 +119,7 @@ RSpec.describe LcpRuby::Services::Checker do
         {
           "name" => "task",
           "fields" => [
-            { "name" => "email", "type" => "string", "transforms" => ["strip", "downcase"] }
+            { "name" => "email", "type" => "string", "transforms" => [ "strip", "downcase" ] }
           ]
         }
       ])
@@ -133,7 +133,7 @@ RSpec.describe LcpRuby::Services::Checker do
         {
           "name" => "task",
           "fields" => [
-            { "name" => "title", "type" => "string", "transforms" => ["nonexistent_transform"] }
+            { "name" => "title", "type" => "string", "transforms" => [ "nonexistent_transform" ] }
           ]
         }
       ])
@@ -213,7 +213,7 @@ RSpec.describe LcpRuby::Services::Checker do
           "name" => "task",
           "fields" => [
             { "name" => "title", "type" => "string", "default" => { "service" => "missing_a" } },
-            { "name" => "body", "type" => "text", "transforms" => ["missing_b"] }
+            { "name" => "body", "type" => "text", "transforms" => [ "missing_b" ] }
           ]
         }
       ])
@@ -225,7 +225,7 @@ RSpec.describe LcpRuby::Services::Checker do
 
     it "has a meaningful to_s for valid results" do
       definitions = build_model_definitions([
-        { "name" => "task", "fields" => [{ "name" => "title", "type" => "string" }] }
+        { "name" => "task", "fields" => [ { "name" => "title", "type" => "string" } ] }
       ])
 
       result = described_class.new(definitions).check
@@ -282,7 +282,7 @@ RSpec.describe LcpRuby::Services::Checker do
 
     it "does not raise when all services are valid" do
       definitions = build_model_definitions([
-        { "name" => "task", "fields" => [{ "name" => "title", "type" => "string" }] }
+        { "name" => "task", "fields" => [ { "name" => "title", "type" => "string" } ] }
       ])
 
       loader = instance_double(LcpRuby::Metadata::Loader, model_definitions: definitions)

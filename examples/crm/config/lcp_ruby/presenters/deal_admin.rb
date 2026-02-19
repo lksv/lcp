@@ -48,7 +48,7 @@ define_presenter :deal_admin do
     section "Deal Details", columns: 2 do
       field :title, placeholder: "Deal title...", autofocus: true, col_span: 2
       field :stage, input_type: :select,
-        input_options: { exclude_values: { viewer: ["lead"] } }
+        input_options: { exclude_values: { viewer: [ "lead" ] } }
       field :value, input_type: :number, prefix: "EUR", hint: "Deal value without VAT",
         disable_when: { field: :stage, operator: :in, value: [ :closed_won, :closed_lost ] }
       field :expected_close_date, input_type: :date_picker
@@ -61,6 +61,12 @@ define_presenter :deal_admin do
           label_method: :full_name
         },
         visible_when: { field: :stage, operator: :not_in, value: [ :lead ] }
+      field :deal_category_id, input_type: :tree_select,
+        input_options: {
+          parent_field: :parent_id,
+          label_method: :name,
+          max_depth: 5
+        }
     end
 
     section "Advanced", columns: 2, collapsible: true, collapsed: true,
@@ -89,5 +95,4 @@ define_presenter :deal_admin do
     visible_when: { field: :stage, operator: :not_in, value: [ :closed_won, :closed_lost ] },
     disable_when: { field: :value, operator: :blank }
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
-
 end

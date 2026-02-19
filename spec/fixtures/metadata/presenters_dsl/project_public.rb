@@ -23,5 +23,4 @@ define_presenter :project_public, inherits: :project_admin do
   search do
     searchable_fields :title
   end
-
 end

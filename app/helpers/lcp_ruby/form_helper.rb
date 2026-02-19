@@ -18,6 +18,8 @@ module LcpRuby
         result
       when "select"
         render_select_input(form, field_name, field_config, field_def)
+      when "radio"
+        render_radio_input(form, field_name, field_config, field_def)
       when "number"
         opts = { step: input_options["step"] || "any", placeholder: field_config["placeholder"] }
         opts[:min] = input_options["min"] if input_options["min"]
@@ -33,6 +35,8 @@ module LcpRuby
         render_association_select(form, field_name, field_config)
       when "multi_select"
         render_multi_select(form, field_name, field_config, field_def)
+      when "tree_select"
+        render_tree_select(form, field_name, field_config)
       when "email"
         form.email_field(field_name,
           placeholder: field_config["placeholder"],
@@ -62,13 +66,43 @@ module LcpRuby
 
     private
 
+    def render_radio_input(form, field_name, field_config, field_def)
+      return form.text_field(field_name, placeholder: field_config["placeholder"]) unless field_def&.enum?
+
+      input_options = field_config["input_options"] || {}
+      values = field_def.enum_value_names
+      values = apply_role_value_filters(values, input_options)
+      i18n_scope = input_options["label_i18n_scope"]
+
+      content_tag(:div, class: "lcp-radio-group") do
+        values.map do |v|
+          label_text = if i18n_scope
+            I18n.t("#{i18n_scope}.#{v}", default: v.humanize)
+          else
+            v.humanize
+          end
+          content_tag(:label, class: "lcp-radio-label") do
+            form.radio_button(field_name, v) + " ".html_safe + label_text
+          end
+        end.join.html_safe
+      end
+    end
+
     def render_select_input(form, field_name, field_config, field_def)
       return form.text_field(field_name, placeholder: field_config["placeholder"]) unless field_def&.enum?
 
       input_options = field_config["input_options"] || {}
       values = field_def.enum_value_names
       values = apply_role_value_filters(values, input_options)
-      options = values.map { |v| [ v.humanize, v ] }
+      i18n_scope = input_options["label_i18n_scope"]
+      options = values.map do |v|
+        label = if i18n_scope
+          I18n.t("#{i18n_scope}.#{v}", default: v.humanize)
+        else
+          v.humanize
+        end
+        [ label, v ]
+      end
       include_blank = input_options.fetch("include_blank", true)
 
       form.select(field_name, options, include_blank: include_blank)
@@ -79,7 +113,7 @@ module LcpRuby
       return form.number_field(field_name, placeholder: "ID") unless assoc&.lcp_model?
 
       input_options = field_config["input_options"] || {}
-      include_blank = input_options.fetch("include_blank", "-- Select --")
+      include_blank = input_options.fetch("include_blank", I18n.t("lcp_ruby.select.include_blank"))
 
       html_attrs = {}
 
@@ -88,6 +122,15 @@ module LcpRuby
         html_attrs["data-lcp-depends-on"] = depends["field"]
         html_attrs["data-lcp-depends-fk"] = depends["foreign_key"]
         html_attrs["data-lcp-depends-reset"] = depends.fetch("reset_strategy", "clear")
+      end
+
+      # Inline create integration
+      if input_options["allow_inline_create"] && respond_to?(:current_presenter) && current_presenter
+        html_attrs["data-lcp-inline-create"] = "true"
+        html_attrs["data-lcp-inline-create-url"] = lcp_ruby.inline_create_path(lcp_slug: current_presenter.slug)
+        html_attrs["data-lcp-inline-create-form-url"] = lcp_ruby.inline_create_form_path(lcp_slug: current_presenter.slug)
+        html_attrs["data-lcp-target-model"] = assoc.target_model
+        html_attrs["data-lcp-label-method"] = input_options["label_method"] || ""
       end
 
       # Tom Select integration
@@ -112,6 +155,17 @@ module LcpRuby
         options = build_association_options(assoc, input_options, record: form.object)
       end
 
+      # Legacy scope: inject disabled option for archived/deactivated records on edit
+      if input_options["legacy_scope"] && form.object && !form.object.new_record?
+        current_value = form.object.send(field_name)
+        if current_value.present? && !option_ids_include?(options, current_value)
+          legacy = resolve_legacy_record(assoc, input_options, current_value)
+          if legacy
+            options = inject_legacy_option(options, legacy)
+          end
+        end
+      end
+
       if input_options["group_by"] && !input_options["search"]
         form.select(field_name, grouped_options_for_select(options, form.object&.send(field_name)),
                     { include_blank: include_blank }, html_attrs)
@@ -131,55 +185,28 @@ module LcpRuby
       html_attrs[:"data-max"] = input_options["max"] if input_options["max"]
       html_attrs["data-lcp-search"] = "local"
 
+      display_mode = input_options["display_mode"]
+      html_attrs["data-lcp-display-mode"] = display_mode if display_mode
+
       form.select(field_name, options, { include_blank: false }, html_attrs)
     end
 
     def build_association_options(assoc, input_options, record: nil)
-      target_class = LcpRuby.registry.model_for(assoc.target_model)
-      query = apply_role_scope(target_class, input_options)
-      query = query.where(input_options["filter"]) if input_options["filter"]
+      depends_on_values = extract_depends_on_from_record(input_options, record)
+      oq = build_options_query(assoc, input_options, role: current_user_role, depends_on_values: depends_on_values)
+      format_options_for_select(oq, input_options)
+    end
 
-      # Filter dependent options by parent FK when record already has a value
-      if input_options["depends_on"] && record
-        depends = input_options["depends_on"]
-        fk = depends["foreign_key"]
-        parent_field = depends["field"]
-        if fk && record.respond_to?(parent_field)
-          parent_value = record.send(parent_field)
-          query = query.where(fk => parent_value) if parent_value.present?
-        end
-      end
+    def extract_depends_on_from_record(input_options, record)
+      depends_on = input_options["depends_on"]
+      return {} unless depends_on && record
 
-      query = query.order(input_options["sort"]) if input_options["sort"]
-
-      label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
-
-      # Only load :id + label column (+ group/sort columns) when all are real DB columns
-      select_cols = optimize_select_columns(
-        target_class, label_method, input_options["group_by"], sort: input_options["sort"]
-      )
-      query = query.select(*select_cols) if select_cols
-
-      disabled_ids = resolve_disabled_values(assoc, input_options)
-
-      if input_options["group_by"]
-        group_attr = input_options["group_by"]
-        query.group_by { |r| r.respond_to?(group_attr) ? r.send(group_attr) : "Other" }
-          .sort_by { |group_name, _| group_name.to_s }
-          .to_h
-          .transform_values do |records|
-            records.map do |r|
-              option = [ resolve_label(r, label_method), r.id ]
-              option << { disabled: "disabled" } if disabled_ids.include?(r.id)
-              option
-            end
-          end
+      parent_field = depends_on["field"]
+      if parent_field && record.respond_to?(parent_field)
+        parent_value = record.send(parent_field)
+        parent_value.present? ? { parent_field => parent_value } : {}
       else
-        query.map do |r|
-          option = [ resolve_label(r, label_method), r.id ]
-          option << { disabled: "disabled" } if disabled_ids.include?(r.id)
-          option
-        end
+        {}
       end
     end
 
@@ -205,24 +232,6 @@ module LcpRuby
       end
 
       values
-    end
-
-    def apply_role_scope(target_class, input_options)
-      if input_options["scope_by_role"]
-        role = current_user_role
-        role_scope = input_options.dig("scope_by_role", role)
-        if role_scope && role_scope != "all" && target_class.respond_to?(role_scope)
-          return target_class.send(role_scope)
-        else
-          return target_class.all
-        end
-      end
-
-      if input_options["scope"] && target_class.respond_to?(input_options["scope"])
-        target_class.send(input_options["scope"])
-      else
-        target_class.all
-      end
     end
 
     def current_user_role
@@ -258,6 +267,78 @@ module LcpRuby
     def render_rating_input(form, field_name, input_options)
       max = (input_options["max"] || 5).to_i
       form.select(field_name, (0..max).map { |i| [ i.to_s, i ] }, include_blank: false)
+    end
+
+    # Check if the current value exists in the flat or grouped options array
+    def option_ids_include?(options, value)
+      value_i = value.to_i
+      if options.is_a?(Hash)
+        # Grouped: { "group" => [[label, id], ...] }
+        options.values.flatten(1).any? { |opt| opt.is_a?(Array) && opt[1].to_i == value_i }
+      elsif options.is_a?(Array)
+        options.any? { |opt| opt.is_a?(Array) && opt[1].to_i == value_i }
+      else
+        false
+      end
+    end
+
+    # Inject a legacy (archived) option as disabled into the flat options list
+    def inject_legacy_option(options, legacy_option)
+      label, id = legacy_option
+      disabled_opt = [ "#{label} (#{I18n.t('lcp_ruby.select.legacy_group')})", id, { disabled: "disabled", class: "lcp-legacy-option" } ]
+      if options.is_a?(Array)
+        options + [ disabled_opt ]
+      else
+        options
+      end
+    end
+
+    def render_tree_select(form, field_name, field_config)
+      assoc = field_config["association"]
+      return form.number_field(field_name, placeholder: "ID") unless assoc&.lcp_model?
+
+      input_options = field_config["input_options"] || {}
+      parent_field = input_options["parent_field"] || "parent_id"
+      label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
+      max_depth = (input_options["max_depth"] || 10).to_i
+
+      target_class = LcpRuby.registry.model_for(assoc.target_model)
+      records = target_class.all
+      records = records.order(input_options["sort"]) if input_options["sort"]
+
+      tree_data = build_tree_data(records, parent_field, label_method, max_depth)
+      current_value = form.object&.send(field_name)
+      current_label = resolve_tree_current_label(records, current_value, label_method)
+      include_blank = input_options.fetch("include_blank", I18n.t("lcp_ruby.select.include_blank"))
+
+      hidden = form.hidden_field(field_name, data: {
+        lcp_tree_select: true,
+        lcp_tree_data: tree_data.to_json,
+        lcp_tree_include_blank: include_blank
+      })
+      trigger = content_tag(:button, current_label || include_blank,
+        type: "button", class: "lcp-tree-trigger", data: { lcp_tree_trigger: field_name })
+      dropdown = content_tag(:div, "", class: "lcp-tree-dropdown", data: { lcp_tree_dropdown: field_name })
+
+      content_tag(:div, hidden + trigger + dropdown, class: "lcp-tree-select-wrapper")
+    end
+
+    def build_tree_data(records, parent_field, label_method, max_depth, parent_id = nil, depth = 0)
+      return [] if depth >= max_depth
+
+      records.select { |r| r.send(parent_field) == parent_id }.map do |r|
+        {
+          id: r.id,
+          label: resolve_label(r, label_method),
+          children: build_tree_data(records, parent_field, label_method, max_depth, r.id, depth + 1)
+        }
+      end
+    end
+
+    def resolve_tree_current_label(records, current_value, label_method)
+      return nil unless current_value.present?
+      record = records.find { |r| r.id == current_value.to_i }
+      record ? resolve_label(record, label_method) : nil
     end
   end
 end

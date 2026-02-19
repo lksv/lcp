@@ -3,7 +3,7 @@
    end %>
 <% form_data = {}
    form_data["lcp-conditions-url"] = conditions_url if conditions_url
-   form_data["lcp-select-options-path"] = select_options_path if defined?(select_options_path)
+   form_data["lcp-select-options-path"] = lcp_ruby.select_options_path(lcp_slug: current_presenter.slug)
 %>
 <%= form_with(model: @record, url: @record.new_record? ? resources_path : resource_path(@record), scope: :record, method: @record.new_record? ? :post : :patch, class: "lcp-form", data: form_data) do |form| %>
   <% if @record.errors.any? %>
@@ -48,7 +48,7 @@
   <% end %>
 
   <div class="lcp-form-actions">
-    <%= form.submit @record.new_record? ? "Create" : "Update", class: "btn btn-primary" %>
-    <%= link_to "Cancel", resources_path, class: "btn" %>
+    <%= form.submit @record.new_record? ? I18n.t("lcp_ruby.form.create") : I18n.t("lcp_ruby.form.update"), class: "btn btn-primary" %>
+    <%= link_to I18n.t("lcp_ruby.form.cancel"), resources_path, class: "btn" %>
   </div>
 <% end %>

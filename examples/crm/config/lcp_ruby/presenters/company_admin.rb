@@ -31,11 +31,52 @@ define_presenter :company_admin do
   end
 
   form do
+    layout :tabs
+
     section "Company Details", columns: 2 do
       field :name, placeholder: "Enter company name...", autofocus: true
       field :industry, input_type: :select
       field :website, placeholder: "https://..."
       field :phone, placeholder: "+1..."
+    end
+
+    section "Address", columns: 2 do
+      field :address_type, input_type: :radio
+
+      field :country_id, input_type: :association_select,
+        visible_when: { field: :address_type, operator: :eq, value: "known" },
+        input_options: {
+          scope: "active",
+          legacy_scope: "with_archived",
+          sort: { name: :asc },
+          allow_inline_create: true,
+          label_method: :name
+        }
+
+      field :region_id, input_type: :association_select,
+        visible_when: { field: :address_type, operator: :eq, value: "known" },
+        input_options: {
+          depends_on: { field: :country_id, foreign_key: :country_id },
+          sort: { name: :asc },
+          label_method: :name
+        }
+
+      field :city_id, input_type: :association_select,
+        visible_when: { field: :address_type, operator: :eq, value: "known" },
+        input_options: {
+          depends_on: { field: :region_id, foreign_key: :region_id },
+          search: true,
+          search_fields: [ "name" ],
+          per_page: 20,
+          min_query_length: 1,
+          sort: { name: :asc },
+          disabled_scope: "small_cities",
+          label_method: :name
+        }
+
+      field :street,
+        visible_when: { field: :address_type, operator: :eq, value: "known" },
+        placeholder: "Street address..."
     end
   end
 
@@ -48,5 +89,4 @@ define_presenter :company_admin do
   action :show, type: :built_in, on: :single, icon: "eye"
   action :edit, type: :built_in, on: :single, icon: "pencil"
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
-
 end

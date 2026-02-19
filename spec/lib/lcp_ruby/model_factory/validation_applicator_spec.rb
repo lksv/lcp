@@ -153,7 +153,7 @@ RSpec.describe LcpRuby::ModelFactory::ValidationApplicator do
       hash = model_hash.dup
       hash["fields"] = hash["fields"].map(&:dup)
       hash["fields"][2] = hash["fields"][2].merge(
-        "validations" => [{ "type" => "comparison", "operator" => "gt", "field_ref" => "start_date" }]
+        "validations" => [ { "type" => "comparison", "operator" => "gt", "field_ref" => "start_date" } ]
       )
 
       model_class = build_model(hash)

@@ -21,6 +21,9 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
       allow(form).to receive(:range_field).and_return("<input type='range'>".html_safe)
       allow(form).to receive(:select).and_return("<select></select>".html_safe)
       allow(form).to receive(:object).and_return(nil)
+
+      # build_options_query calls .limit() on queries; stub it for Array results
+      allow_any_instance_of(Array).to receive(:limit) { |arr, _n| arr }
     end
 
     it "renders text input as textarea" do
@@ -162,6 +165,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           allow(target_class).to receive(:send).with("active").and_return(scoped)
           allow(scoped).to receive(:where).and_return(scoped)
           allow(scoped).to receive(:order).and_return(scoped)
+          allow(scoped).to receive(:limit).and_return(scoped)
           allow(scoped).to receive(:map).and_return([ [ "Active Co", 1 ] ])
           allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -179,6 +183,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           allow(target_class).to receive(:all).and_return(query)
           allow(target_class).to receive(:respond_to?).and_return(false)
           allow(query).to receive(:where).with({ "industry" => "technology" }).and_return(filtered)
+          allow(filtered).to receive(:limit).and_return(filtered)
           allow(filtered).to receive(:map).and_return([ [ "Tech Co", 1 ] ])
           allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -196,6 +201,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           allow(target_class).to receive(:all).and_return(query)
           allow(target_class).to receive(:respond_to?).and_return(false)
           allow(query).to receive(:order).with({ "name" => "asc" }).and_return(sorted)
+          allow(sorted).to receive(:limit).and_return(sorted)
           allow(sorted).to receive(:map).and_return([ [ "Alpha", 1 ], [ "Beta", 2 ] ])
           allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -348,6 +354,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           allow(target_class).to receive(:all).and_return(all_query)
           allow(target_class).to receive(:respond_to?).and_return(false)
           allow(all_query).to receive(:where).with("company_id" => 5).and_return(filtered_query)
+          allow(filtered_query).to receive(:limit).and_return(filtered_query)
           allow(filtered_query).to receive(:map).and_return([ [ "John Doe", 10 ] ])
           allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
           allow(record_obj).to receive(:respond_to?).with("company_id").and_return(true)
@@ -374,6 +381,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
 
           allow(target_class).to receive(:all).and_return(all_query)
           allow(target_class).to receive(:respond_to?).and_return(false)
+          allow(all_query).to receive(:limit).and_return(all_query)
           allow(all_query).to receive(:map).and_return([ [ "John Doe", 10 ], [ "Jane Smith", 11 ] ])
           allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
           allow(record_obj).to receive(:respond_to?).with("company_id").and_return(true)
@@ -399,6 +407,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
 
           allow(target_class).to receive(:all).and_return(all_query)
           allow(target_class).to receive(:respond_to?).and_return(false)
+          allow(all_query).to receive(:limit).and_return(all_query)
           allow(all_query).to receive(:map).and_return([ [ "John", 10 ] ])
           allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -430,6 +439,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           allow(target_class).to receive(:respond_to?).and_return(false)
           allow(target_class).to receive(:respond_to?).with("active_companies").and_return(true)
           allow(target_class).to receive(:send).with("active_companies").and_return(scoped)
+          allow(scoped).to receive(:limit).and_return(scoped)
           allow(scoped).to receive(:map).and_return([ [ "Active Co", 1 ] ])
           allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -450,6 +460,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           target_class = double("target_class")
           all_query = double("all_query")
           allow(target_class).to receive(:all).and_return(all_query)
+          allow(all_query).to receive(:limit).and_return(all_query)
           allow(all_query).to receive(:map).and_return([])
           allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -470,6 +481,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           allow(target_class).to receive(:respond_to?).and_return(false)
           allow(target_class).to receive(:respond_to?).with("active").and_return(true)
           allow(target_class).to receive(:send).with("active").and_return(scoped)
+          allow(scoped).to receive(:limit).and_return(scoped)
           allow(scoped).to receive(:map).and_return([])
           allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -671,6 +683,42 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
         render_form_input(form, :tag_ids, "multi_select", config, field_def)
       end
 
+      it "renders with display_mode data attribute" do
+        target_class = double("target_class")
+        allow(target_class).to receive(:all).and_return([])
+        allow(target_class).to receive(:respond_to?).and_return(false)
+        allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("tag").and_return(target_class)
+
+        config = {
+          "multi_select_association" => through_assoc,
+          "input_options" => { "display_mode" => "single_line" }
+        }
+        expect(form).to receive(:select).with(
+          :tag_ids, [],
+          { include_blank: false },
+          hash_including(multiple: true, "data-lcp-display-mode" => "single_line")
+        )
+        render_form_input(form, :tag_ids, "multi_select", config, field_def)
+      end
+
+      it "does not add display_mode attribute when not configured" do
+        target_class = double("target_class")
+        allow(target_class).to receive(:all).and_return([])
+        allow(target_class).to receive(:respond_to?).and_return(false)
+        allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("tag").and_return(target_class)
+
+        config = {
+          "multi_select_association" => through_assoc,
+          "input_options" => {}
+        }
+        expect(form).to receive(:select).with(
+          :tag_ids, [],
+          { include_blank: false },
+          hash_not_including("data-lcp-display-mode")
+        )
+        render_form_input(form, :tag_ids, "multi_select", config, field_def)
+      end
+
       it "renders text_field when association is nil" do
         config = { "multi_select_association" => nil, "input_options" => {} }
         expect(form).to receive(:text_field).with(:tag_ids)
@@ -685,6 +733,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
         allow(target_class).to receive(:respond_to?).with("active").and_return(true)
         allow(target_class).to receive(:send).with("active").and_return(scoped)
         allow(scoped).to receive(:order).with({ "name" => "asc" }).and_return(sorted)
+        allow(sorted).to receive(:limit).and_return(sorted)
         allow(sorted).to receive(:map).and_return([ [ "Active Tag", 1 ] ])
         allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("tag").and_return(target_class)
 
@@ -712,6 +761,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
         allow(target_class).to receive(:respond_to?).with(:column_names).and_return(true)
         allow(target_class).to receive(:column_names).and_return(%w[id name email])
         allow(all_query).to receive(:select).with(:id, :name).and_return(selected_query)
+        allow(selected_query).to receive(:limit).and_return(selected_query)
         allow(selected_query).to receive(:map).and_return([ [ "Acme", 1 ] ])
         allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -733,6 +783,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
         allow(target_class).to receive(:respond_to?).with(:column_names).and_return(true)
         allow(target_class).to receive(:column_names).and_return(%w[id full_name email])
         allow(all_query).to receive(:select).with(:id, :full_name).and_return(selected_query)
+        allow(selected_query).to receive(:limit).and_return(selected_query)
         allow(selected_query).to receive(:map).and_return([ [ "John Doe", 1 ] ])
         allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -749,6 +800,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
         allow(target_class).to receive(:respond_to?).and_return(false)
         allow(target_class).to receive(:respond_to?).with(:column_names).and_return(true)
         allow(target_class).to receive(:column_names).and_return(%w[id name email])
+        allow(all_query).to receive(:limit).and_return(all_query)
         allow(all_query).to receive(:map).and_return([ [ "John", 1 ] ])
         allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
         allow(LcpRuby).to receive_message_chain(:loader, :model_definition).and_raise(LcpRuby::MetadataError, "not found")
@@ -769,6 +821,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
         allow(target_class).to receive(:respond_to?).with(:column_names).and_return(true)
         allow(target_class).to receive(:column_names).and_return(%w[id name industry])
         allow(all_query).to receive(:select).with(:id, :name, :industry).and_return(selected_query)
+        allow(selected_query).to receive(:limit).and_return(selected_query)
         allow(selected_query).to receive(:group_by).and_return({ "tech" => [] })
         allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -799,6 +852,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
         allow(target_class).to receive(:column_names).and_return(%w[id name last_name])
         allow(all_query).to receive(:order).with({ "last_name" => "asc" }).and_return(sorted_query)
         allow(sorted_query).to receive(:select).with(:id, :name, :last_name).and_return(selected_query)
+        allow(selected_query).to receive(:limit).and_return(selected_query)
         allow(selected_query).to receive(:map).and_return([ [ "Acme", 1 ] ])
         allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
 
@@ -818,6 +872,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
         allow(target_class).to receive(:respond_to?).and_return(false)
         allow(target_class).to receive(:respond_to?).with(:column_names).and_return(true)
         allow(target_class).to receive(:column_names).and_return(%w[id name])
+        allow(all_query).to receive(:limit).and_return(all_query)
         allow(all_query).to receive(:map).and_return([])
         allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
         allow(LcpRuby).to receive_message_chain(:loader, :model_definition).and_raise(LcpRuby::MetadataError, "not found")
@@ -994,6 +1049,345 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           )
         )
         render_form_input(form, :contact_id, "association_select", config, field_def)
+      end
+    end
+
+    context "with label_i18n_scope for enum select" do
+      let(:field_def) do
+        double("field_def",
+          enum?: true,
+          enum_value_names: %w[lead qualified proposal],
+          type_definition: nil,
+          type: "enum")
+      end
+
+      it "translates enum labels via i18n scope" do
+        I18n.backend.store_translations(:en, {
+          deals: { stages: { lead: "New Lead", qualified: "Qualified Lead", proposal: "Proposal Sent" } }
+        })
+
+        config = { "input_options" => { "label_i18n_scope" => "deals.stages" } }
+        expect(form).to receive(:select).with(:stage,
+          [ [ "New Lead", "lead" ], [ "Qualified Lead", "qualified" ], [ "Proposal Sent", "proposal" ] ],
+          include_blank: true)
+        render_form_input(form, :stage, "select", config, field_def)
+      end
+
+      it "falls back to humanize when i18n key is missing" do
+        config = { "input_options" => { "label_i18n_scope" => "nonexistent.scope" } }
+        expect(form).to receive(:select).with(:stage,
+          [ [ "Lead", "lead" ], [ "Qualified", "qualified" ], [ "Proposal", "proposal" ] ],
+          include_blank: true)
+        render_form_input(form, :stage, "select", config, field_def)
+      end
+
+      it "uses humanize when no label_i18n_scope is set" do
+        config = { "input_options" => {} }
+        expect(form).to receive(:select).with(:stage,
+          [ [ "Lead", "lead" ], [ "Qualified", "qualified" ], [ "Proposal", "proposal" ] ],
+          include_blank: true)
+        render_form_input(form, :stage, "select", config, field_def)
+      end
+    end
+
+    context "with legacy_scope" do
+      let(:lcp_assoc) do
+        double("association", lcp_model?: true, target_model: "contact")
+      end
+
+      before do
+        allow(LcpRuby).to receive_message_chain(:loader, :model_definition)
+          .and_raise(LcpRuby::MetadataError, "not found")
+      end
+
+      it "includes disabled legacy option when editing and current value is not in options" do
+        target_class = double("target_class")
+        r1 = double("r1", id: 1, to_label: "Active")
+        allow(r1).to receive(:respond_to?).with(:to_label).and_return(true)
+        allow(r1).to receive(:send).with(:to_label).and_return("Active")
+
+        record_obj = double("record", contact_id: 99, new_record?: false)
+        allow(record_obj).to receive(:send).with(:contact_id).and_return(99)
+
+        allow(target_class).to receive(:all).and_return([ r1 ])
+        allow(target_class).to receive(:respond_to?).and_return(false)
+        allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
+
+        # Legacy scope finds the archived record
+        legacy_query = double("legacy_query")
+        allow(target_class).to receive(:respond_to?).with("with_archived").and_return(true)
+        allow(target_class).to receive(:send).with("with_archived").and_return(legacy_query)
+        legacy_record = double("legacy_record", id: 99)
+        allow(legacy_record).to receive(:respond_to?).with(:to_label).and_return(true)
+        allow(legacy_record).to receive(:send).with(:to_label).and_return("Archived Co")
+        allow(legacy_query).to receive(:find_by).with(id: 99).and_return(legacy_record)
+
+        allow(form).to receive(:object).and_return(record_obj)
+
+        config = {
+          "association" => lcp_assoc,
+          "input_options" => { "legacy_scope" => "with_archived" }
+        }
+
+        expect(form).to receive(:select).with(
+          :contact_id,
+          [
+            [ "Active", 1 ],
+            [ "Archived Co (Archived)", 99, { disabled: "disabled", class: "lcp-legacy-option" } ]
+          ],
+          { include_blank: I18n.t("lcp_ruby.select.include_blank") },
+          hash_including("data-lcp-search" => "local")
+        )
+        render_form_input(form, :contact_id, "association_select", config, field_def)
+      end
+
+      it "does not inject legacy option for new records" do
+        target_class = double("target_class")
+        allow(target_class).to receive(:all).and_return([])
+        allow(target_class).to receive(:respond_to?).and_return(false)
+        allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
+
+        record_obj = double("record", contact_id: nil, new_record?: true)
+        allow(record_obj).to receive(:send).with(:contact_id).and_return(nil)
+        allow(form).to receive(:object).and_return(record_obj)
+
+        config = {
+          "association" => lcp_assoc,
+          "input_options" => { "legacy_scope" => "with_archived" }
+        }
+
+        expect(form).to receive(:select).with(
+          :contact_id, [],
+          { include_blank: I18n.t("lcp_ruby.select.include_blank") },
+          hash_including("data-lcp-search" => "local")
+        )
+        render_form_input(form, :contact_id, "association_select", config, field_def)
+      end
+
+      it "does not inject legacy option when current value is in normal options" do
+        target_class = double("target_class")
+        r1 = double("r1", id: 5, to_label: "Active")
+        allow(r1).to receive(:respond_to?).with(:to_label).and_return(true)
+        allow(r1).to receive(:send).with(:to_label).and_return("Active")
+
+        record_obj = double("record", contact_id: 5, new_record?: false)
+        allow(record_obj).to receive(:send).with(:contact_id).and_return(5)
+
+        allow(target_class).to receive(:all).and_return([ r1 ])
+        allow(target_class).to receive(:respond_to?).and_return(false)
+        allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
+        allow(form).to receive(:object).and_return(record_obj)
+
+        config = {
+          "association" => lcp_assoc,
+          "input_options" => { "legacy_scope" => "with_archived" }
+        }
+
+        expect(form).to receive(:select).with(
+          :contact_id,
+          [ [ "Active", 5 ] ],
+          { include_blank: I18n.t("lcp_ruby.select.include_blank") },
+          hash_including("data-lcp-search" => "local")
+        )
+        render_form_input(form, :contact_id, "association_select", config, field_def)
+      end
+    end
+
+    context "with allow_inline_create" do
+      let(:lcp_assoc) do
+        double("association", lcp_model?: true, target_model: "company")
+      end
+
+      before do
+        allow(LcpRuby).to receive_message_chain(:loader, :model_definition)
+          .and_raise(LcpRuby::MetadataError, "not found")
+      end
+
+      it "adds inline create data attributes when configured" do
+        target_class = double("target_class")
+        allow(target_class).to receive(:all).and_return([])
+        allow(target_class).to receive(:respond_to?).and_return(false)
+        allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("company").and_return(target_class)
+
+        presenter = double("presenter", slug: "deals")
+        allow(self).to receive(:respond_to?).and_call_original
+        allow(self).to receive(:respond_to?).with(:current_presenter).and_return(true)
+        allow(self).to receive(:current_presenter).and_return(presenter)
+
+        lcp_engine = double("lcp_engine")
+        allow(self).to receive(:lcp_ruby).and_return(lcp_engine)
+        allow(lcp_engine).to receive(:inline_create_path).with(lcp_slug: "deals").and_return("/admin/deals/inline_create")
+        allow(lcp_engine).to receive(:inline_create_form_path).with(lcp_slug: "deals").and_return("/admin/deals/inline_create_form")
+
+        config = {
+          "association" => lcp_assoc,
+          "input_options" => {
+            "allow_inline_create" => true,
+            "label_method" => "name"
+          }
+        }
+
+        expect(form).to receive(:select).with(
+          :company_id, [],
+          { include_blank: I18n.t("lcp_ruby.select.include_blank") },
+          hash_including(
+            "data-lcp-inline-create" => "true",
+            "data-lcp-inline-create-url" => "/admin/deals/inline_create",
+            "data-lcp-inline-create-form-url" => "/admin/deals/inline_create_form",
+            "data-lcp-target-model" => "company",
+            "data-lcp-label-method" => "name"
+          )
+        )
+        render_form_input(form, :company_id, "association_select", config, field_def)
+      end
+
+      it "does not add inline create attrs when allow_inline_create is false" do
+        target_class = double("target_class")
+        allow(target_class).to receive(:all).and_return([])
+        allow(target_class).to receive(:respond_to?).and_return(false)
+        allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("company").and_return(target_class)
+
+        config = {
+          "association" => lcp_assoc,
+          "input_options" => {}
+        }
+
+        expect(form).to receive(:select) do |_name, _opts, _html_opts, attrs|
+          expect(attrs).not_to have_key("data-lcp-inline-create")
+        end
+        render_form_input(form, :company_id, "association_select", config, field_def)
+      end
+    end
+
+    context "with radio" do
+      let(:field_def) do
+        double("field_def",
+          enum?: true,
+          enum_value_names: %w[unknown known],
+          type_definition: nil,
+          type: "enum")
+      end
+
+      before do
+        allow(form).to receive(:radio_button).and_return("<input type='radio'>".html_safe)
+      end
+
+      it "renders radio buttons for enum field" do
+        expect(form).to receive(:radio_button).with(:address_type, "unknown")
+        expect(form).to receive(:radio_button).with(:address_type, "known")
+        result = render_form_input(form, :address_type, "radio", {}, field_def)
+        expect(result).to include("lcp-radio-group")
+        expect(result).to include("lcp-radio-label")
+        expect(result).to include("Unknown")
+        expect(result).to include("Known")
+      end
+
+      it "falls back to text_field when field_def is nil" do
+        expect(form).to receive(:text_field)
+        render_form_input(form, :address_type, "radio", {}, nil)
+      end
+
+      it "falls back to text_field when field is not enum" do
+        non_enum = double("field_def", enum?: false)
+        expect(form).to receive(:text_field)
+        render_form_input(form, :address_type, "radio", {}, non_enum)
+      end
+
+      context "with role-based value filtering" do
+        let(:field_def) do
+          double("field_def",
+            enum?: true,
+            enum_value_names: %w[unknown known archived],
+            type_definition: nil,
+            type: "enum")
+        end
+
+        before do
+          user = double("user", lcp_role: "editor")
+          allow(LcpRuby::Current).to receive(:user).and_return(user)
+        end
+
+        it "excludes values based on role" do
+          config = {
+            "input_options" => {
+              "exclude_values" => { "editor" => %w[archived] }
+            }
+          }
+          expect(form).to receive(:radio_button).with(:address_type, "unknown")
+          expect(form).to receive(:radio_button).with(:address_type, "known")
+          expect(form).not_to receive(:radio_button).with(:address_type, "archived")
+          render_form_input(form, :address_type, "radio", config, field_def)
+        end
+      end
+
+      context "with label_i18n_scope" do
+        it "translates radio labels via i18n scope" do
+          I18n.backend.store_translations(:en, {
+            address: { types: { unknown: "Not Set", known: "Has Address" } }
+          })
+
+          config = { "input_options" => { "label_i18n_scope" => "address.types" } }
+          result = render_form_input(form, :address_type, "radio", config, field_def)
+          expect(result).to include("Not Set")
+          expect(result).to include("Has Address")
+        end
+      end
+    end
+
+    context "with tree_select" do
+      let(:lcp_assoc) do
+        double("association", lcp_model?: true, target_model: "category")
+      end
+
+      before do
+        model_def = double("model_def", label_method: "name")
+        allow(LcpRuby).to receive_message_chain(:loader, :model_definition)
+          .with("category").and_return(model_def)
+      end
+
+      it "renders hidden field, trigger, and dropdown wrapper" do
+        target_class = double("target_class")
+        root = double("root", id: 1, name: "Root", parent_id: nil)
+        child = double("child", id: 2, name: "Child", parent_id: 1)
+
+        allow(root).to receive(:respond_to?).with(:name).and_return(true)
+        allow(root).to receive(:send).with(:name).and_return("Root")
+        allow(root).to receive(:send).with("parent_id").and_return(nil)
+        allow(child).to receive(:respond_to?).with(:name).and_return(true)
+        allow(child).to receive(:send).with(:name).and_return("Child")
+        allow(child).to receive(:send).with("parent_id").and_return(1)
+
+        query = [ root, child ]
+        allow(target_class).to receive(:all).and_return(query)
+        allow(query).to receive(:order).and_return(query)
+        allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("category").and_return(target_class)
+
+        record_obj = double("record", parent_id: nil)
+        allow(record_obj).to receive(:send).with(:parent_id).and_return(nil)
+        allow(form).to receive(:object).and_return(record_obj)
+        allow(form).to receive(:hidden_field).and_return("<input type='hidden'>".html_safe)
+
+        config = {
+          "association" => lcp_assoc,
+          "input_options" => {
+            "parent_field" => "parent_id",
+            "label_method" => "name",
+            "max_depth" => 5,
+            "sort" => { "name" => "asc" }
+          }
+        }
+
+        result = render_form_input(form, :parent_id, "tree_select", config, field_def)
+        expect(result).to include("lcp-tree-select-wrapper")
+        expect(result).to include("lcp-tree-trigger")
+        expect(result).to include("lcp-tree-dropdown")
+      end
+
+      it "renders number field for non-LCP association" do
+        non_lcp = double("association", lcp_model?: false, target_model: "user")
+        config = { "association" => non_lcp, "input_options" => {} }
+        expect(form).to receive(:number_field).with(:parent_id, placeholder: "ID")
+        render_form_input(form, :parent_id, "tree_select", config, field_def)
       end
     end
   end

@@ -16,5 +16,4 @@ define_presenter :deal_pipeline, inherits: :deal_admin do
   search enabled: false
 
   action :show, type: :built_in, on: :single, icon: "eye"
-
 end

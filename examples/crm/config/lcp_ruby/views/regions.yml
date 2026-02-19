@@ -1,0 +1,10 @@
+view_group:
+  model: region
+  primary: region_admin
+  navigation:
+    menu: main
+    position: 6
+  views:
+    - presenter: region_admin
+      label: "Regions"
+      icon: map
