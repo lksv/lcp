@@ -8,7 +8,7 @@ RSpec.describe LcpRuby::Presenter::ActionSet do
     evaluator = double("PermissionEvaluator")
     allow(evaluator).to receive(:can?).and_return(true)
     allow(evaluator).to receive(:can_execute_action?).and_return(true)
-    allow(evaluator).to receive(:roles).and_return(["admin"])
+    allow(evaluator).to receive(:roles).and_return([ "admin" ])
     evaluator
   end
 
@@ -237,7 +237,7 @@ RSpec.describe LcpRuby::Presenter::ActionSet do
         presenter = build_presenter({
           "single" => [
             { "name" => "archive", "type" => "custom",
-              "confirm" => { "except" => ["admin"] } }
+              "confirm" => { "except" => [ "admin" ] } }
           ]
         })
         action_set = described_class.new(presenter, permission_evaluator)
@@ -250,12 +250,12 @@ RSpec.describe LcpRuby::Presenter::ActionSet do
         viewer_evaluator = double("PermissionEvaluator")
         allow(viewer_evaluator).to receive(:can?).and_return(true)
         allow(viewer_evaluator).to receive(:can_execute_action?).and_return(true)
-        allow(viewer_evaluator).to receive(:roles).and_return(["viewer"])
+        allow(viewer_evaluator).to receive(:roles).and_return([ "viewer" ])
 
         presenter = build_presenter({
           "single" => [
             { "name" => "archive", "type" => "custom",
-              "confirm" => { "except" => ["admin"] } }
+              "confirm" => { "except" => [ "admin" ] } }
           ]
         })
         action_set = described_class.new(presenter, viewer_evaluator)
@@ -270,12 +270,12 @@ RSpec.describe LcpRuby::Presenter::ActionSet do
         viewer_evaluator = double("PermissionEvaluator")
         allow(viewer_evaluator).to receive(:can?).and_return(true)
         allow(viewer_evaluator).to receive(:can_execute_action?).and_return(true)
-        allow(viewer_evaluator).to receive(:roles).and_return(["viewer"])
+        allow(viewer_evaluator).to receive(:roles).and_return([ "viewer" ])
 
         presenter = build_presenter({
           "single" => [
             { "name" => "force_delete", "type" => "custom",
-              "confirm" => { "only" => ["viewer", "sales_rep"] } }
+              "confirm" => { "only" => [ "viewer", "sales_rep" ] } }
           ]
         })
         action_set = described_class.new(presenter, viewer_evaluator)
@@ -289,7 +289,7 @@ RSpec.describe LcpRuby::Presenter::ActionSet do
         presenter = build_presenter({
           "single" => [
             { "name" => "force_delete", "type" => "custom",
-              "confirm" => { "only" => ["viewer", "sales_rep"] } }
+              "confirm" => { "only" => [ "viewer", "sales_rep" ] } }
           ]
         })
         action_set = described_class.new(presenter, permission_evaluator)
@@ -304,12 +304,12 @@ RSpec.describe LcpRuby::Presenter::ActionSet do
         multi_evaluator = double("PermissionEvaluator")
         allow(multi_evaluator).to receive(:can?).and_return(true)
         allow(multi_evaluator).to receive(:can_execute_action?).and_return(true)
-        allow(multi_evaluator).to receive(:roles).and_return(["viewer", "admin"])
+        allow(multi_evaluator).to receive(:roles).and_return([ "viewer", "admin" ])
 
         presenter = build_presenter({
           "single" => [
             { "name" => "archive", "type" => "custom",
-              "confirm" => { "except" => ["admin"] } }
+              "confirm" => { "except" => [ "admin" ] } }
           ]
         })
         action_set = described_class.new(presenter, multi_evaluator)
@@ -322,12 +322,12 @@ RSpec.describe LcpRuby::Presenter::ActionSet do
         multi_evaluator = double("PermissionEvaluator")
         allow(multi_evaluator).to receive(:can?).and_return(true)
         allow(multi_evaluator).to receive(:can_execute_action?).and_return(true)
-        allow(multi_evaluator).to receive(:roles).and_return(["admin", "viewer"])
+        allow(multi_evaluator).to receive(:roles).and_return([ "admin", "viewer" ])
 
         presenter = build_presenter({
           "single" => [
             { "name" => "force_delete", "type" => "custom",
-              "confirm" => { "only" => ["viewer"] } }
+              "confirm" => { "only" => [ "viewer" ] } }
           ]
         })
         action_set = described_class.new(presenter, multi_evaluator)

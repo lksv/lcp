@@ -33,8 +33,8 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
   end
 
   describe "#navigable_presenters" do
-    let(:admin_user) { double("User", lcp_role: ["admin"], id: 1) }
-    let(:viewer_user) { double("User", lcp_role: ["viewer"], id: 2) }
+    let(:admin_user) { double("User", lcp_role: [ "admin" ], id: 1) }
+    let(:viewer_user) { double("User", lcp_role: [ "viewer" ], id: 2) }
 
     let(:presenter_admin) do
       instance_double(
@@ -64,7 +64,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
       instance_double(
         LcpRuby::Metadata::ViewGroupDefinition,
         primary_presenter: "project",
-        presenter_names: ["project"],
+        presenter_names: [ "project" ],
         navigation_config: { "position" => 1 }
       )
     end
@@ -73,7 +73,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
       instance_double(
         LcpRuby::Metadata::ViewGroupDefinition,
         primary_presenter: "project_public",
-        presenter_names: ["project_public"],
+        presenter_names: [ "project_public" ],
         navigation_config: { "position" => 2 }
       )
     end
@@ -83,7 +83,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
         model: "project",
         roles: {
           "admin" => { "crud" => %w[index show create update destroy], "presenters" => "all" },
-          "viewer" => { "crud" => %w[index show], "presenters" => ["project_public"] }
+          "viewer" => { "crud" => %w[index show], "presenters" => [ "project_public" ] }
         },
         default_role: "viewer"
       )
@@ -114,7 +114,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
       LcpRuby::Current.user = viewer_user
 
       entries = navigable_presenters
-      expect(entries.map { |e| e[:slug] }).to eq(["projects-public"])
+      expect(entries.map { |e| e[:slug] }).to eq([ "projects-public" ])
     end
 
     it "shows all menu items when no user is set" do
@@ -125,11 +125,11 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
     end
 
     it "filters based on default role for unknown role" do
-      no_access_user = double("User", lcp_role: ["unknown"], id: 99)
+      no_access_user = double("User", lcp_role: [ "unknown" ], id: 99)
       LcpRuby::Current.user = no_access_user
 
       entries = navigable_presenters
-      expect(entries.map { |e| e[:slug] }).to eq(["projects-public"])
+      expect(entries.map { |e| e[:slug] }).to eq([ "projects-public" ])
     end
   end
 end

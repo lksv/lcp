@@ -9,7 +9,7 @@ RSpec.describe "Impersonation", type: :request do
 
   before do
     load_integration_metadata!("crm")
-    LcpRuby.configuration.impersonation_roles = ["admin"]
+    LcpRuby.configuration.impersonation_roles = [ "admin" ]
   end
 
   after { LcpRuby.configuration.impersonation_roles = [] }

@@ -32,8 +32,8 @@ RSpec.describe LcpRuby::Configuration do
     end
 
     it "is configurable" do
-      config.impersonation_roles = ["admin", "super_admin"]
-      expect(config.impersonation_roles).to eq(["admin", "super_admin"])
+      config.impersonation_roles = [ "admin", "super_admin" ]
+      expect(config.impersonation_roles).to eq([ "admin", "super_admin" ])
     end
   end
 
