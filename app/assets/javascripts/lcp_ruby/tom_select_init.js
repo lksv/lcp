@@ -16,6 +16,16 @@
         var plugins = [];
         if (isMultiple) plugins.push('remove_button');
 
+        // Capture pre-selected value before clearing options
+        var initialOptions = [];
+        var initialItems = [];
+        Array.prototype.forEach.call(selectEl.options, function(opt) {
+          if (opt.value && opt.selected) {
+            initialOptions.push({ value: String(opt.value), text: opt.textContent });
+            initialItems.push(String(opt.value));
+          }
+        });
+
         // Clear pre-rendered options for remote mode (fetched on demand)
         var blankOpt = selectEl.querySelector('option[value=""]');
         selectEl.innerHTML = '';
@@ -23,6 +33,8 @@
 
         var lastQuery = '';
         new TomSelect(selectEl, {
+          options: initialOptions,
+          items: initialItems,
           valueField: 'value',
           labelField: 'text',
           searchField: 'text',
