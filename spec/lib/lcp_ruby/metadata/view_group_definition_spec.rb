@@ -143,6 +143,118 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
     end
   end
 
+  describe "#breadcrumb_config" do
+    it "defaults to nil when not provided" do
+      group = described_class.new(valid_attrs)
+
+      expect(group.breadcrumb_config).to be_nil
+    end
+
+    it "accepts false to disable breadcrumbs" do
+      group = described_class.new(valid_attrs(breadcrumb_config: false))
+
+      expect(group.breadcrumb_config).to eq(false)
+    end
+
+    it "accepts a hash with relation key" do
+      group = described_class.new(valid_attrs(breadcrumb_config: { "relation" => "company" }))
+
+      expect(group.breadcrumb_config).to eq("relation" => "company")
+    end
+
+    it "stringifies symbol keys in the hash" do
+      group = described_class.new(valid_attrs(breadcrumb_config: { relation: "company" }))
+
+      expect(group.breadcrumb_config).to eq("relation" => "company")
+    end
+
+    it "raises on invalid breadcrumb value" do
+      expect {
+        described_class.new(valid_attrs(breadcrumb_config: "invalid"))
+      }.to raise_error(LcpRuby::MetadataError, /breadcrumb must be false or a Hash/)
+    end
+  end
+
+  describe "#breadcrumb_enabled?" do
+    it "returns true by default (no breadcrumb config)" do
+      group = described_class.new(valid_attrs)
+
+      expect(group.breadcrumb_enabled?).to be true
+    end
+
+    it "returns false when breadcrumb is explicitly false" do
+      group = described_class.new(valid_attrs(breadcrumb_config: false))
+
+      expect(group.breadcrumb_enabled?).to be false
+    end
+
+    it "returns true when breadcrumb has a relation" do
+      group = described_class.new(valid_attrs(breadcrumb_config: { "relation" => "company" }))
+
+      expect(group.breadcrumb_enabled?).to be true
+    end
+  end
+
+  describe "#breadcrumb_relation" do
+    it "returns nil when no breadcrumb config" do
+      group = described_class.new(valid_attrs)
+
+      expect(group.breadcrumb_relation).to be_nil
+    end
+
+    it "returns nil when breadcrumb is false" do
+      group = described_class.new(valid_attrs(breadcrumb_config: false))
+
+      expect(group.breadcrumb_relation).to be_nil
+    end
+
+    it "returns the relation name from breadcrumb config" do
+      group = described_class.new(valid_attrs(breadcrumb_config: { "relation" => "company" }))
+
+      expect(group.breadcrumb_relation).to eq("company")
+    end
+  end
+
+  describe ".from_hash with breadcrumb" do
+    it "parses breadcrumb: false" do
+      group = described_class.from_hash(
+        "name" => "tasks_group",
+        "model" => "task",
+        "primary" => "tasks_table",
+        "breadcrumb" => false,
+        "views" => [ { "presenter" => "tasks_table" } ]
+      )
+
+      expect(group.breadcrumb_config).to eq(false)
+      expect(group.breadcrumb_enabled?).to be false
+    end
+
+    it "parses breadcrumb with relation" do
+      group = described_class.from_hash(
+        "name" => "deals_group",
+        "model" => "deal",
+        "primary" => "deals_list",
+        "breadcrumb" => { "relation" => "company" },
+        "views" => [ { "presenter" => "deals_list" } ]
+      )
+
+      expect(group.breadcrumb_config).to eq("relation" => "company")
+      expect(group.breadcrumb_relation).to eq("company")
+    end
+
+    it "defaults breadcrumb to nil when key is absent" do
+      group = described_class.from_hash(
+        "name" => "simple_group",
+        "model" => "item",
+        "primary" => "items_list",
+        "views" => [ { "presenter" => "items_list" } ]
+      )
+
+      expect(group.breadcrumb_config).to be_nil
+      expect(group.breadcrumb_enabled?).to be true
+    end
+  end
+
   describe "validation" do
     it "raises on missing name" do
       expect {

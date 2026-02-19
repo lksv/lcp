@@ -587,6 +587,8 @@ module LcpRuby
                        "is not in the views list"
           end
 
+          validate_breadcrumb_relation(vg)
+
           pos = vg.navigation_config["position"]
           if pos
             if positions.key?(pos)
@@ -595,6 +597,21 @@ module LcpRuby
             end
             positions[pos] = vg.name
           end
+        end
+      end
+
+      def validate_breadcrumb_relation(vg)
+        relation = vg.breadcrumb_relation
+        return unless relation
+
+        model_def = loader.model_definitions[vg.model]
+        return unless model_def
+
+        assoc_names = model_def.associations.map(&:name)
+        unless assoc_names.include?(relation)
+          @errors << "View group '#{vg.name}': breadcrumb relation '#{relation}' " \
+                     "does not match any association on model '#{vg.model}'. " \
+                     "Available associations: #{assoc_names.join(', ')}"
         end
       end
 

@@ -1,7 +1,7 @@
 module LcpRuby
   module Metadata
     class ViewGroupDefinition
-      attr_reader :name, :model, :primary_presenter, :navigation_config, :views
+      attr_reader :name, :model, :primary_presenter, :navigation_config, :views, :breadcrumb_config
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -9,6 +9,7 @@ module LcpRuby
         @primary_presenter = attrs[:primary_presenter].to_s
         @navigation_config = HashUtils.stringify_deep(attrs[:navigation_config] || {})
         @views = (attrs[:views] || []).map { |v| HashUtils.stringify_deep(v) }
+        @breadcrumb_config = parse_breadcrumb(attrs[:breadcrumb_config])
 
         validate!
       end
@@ -28,8 +29,18 @@ module LcpRuby
           model: data["model"],
           primary_presenter: data["primary"],
           navigation_config: data["navigation"] || {},
-          views: views
+          views: views,
+          breadcrumb_config: data["breadcrumb"]
         )
+      end
+
+      def breadcrumb_enabled?
+        @breadcrumb_config != false
+      end
+
+      def breadcrumb_relation
+        return nil unless @breadcrumb_config.is_a?(Hash)
+        @breadcrumb_config["relation"]
       end
 
       def presenter_names
@@ -49,6 +60,16 @@ module LcpRuby
       end
 
       private
+
+      def parse_breadcrumb(value)
+        case value
+        when false then false
+        when Hash then HashUtils.stringify_deep(value)
+        when nil then nil
+        else
+          raise MetadataError, "View group '#{@name}': breadcrumb must be false or a Hash"
+        end
+      end
 
       def validate!
         raise MetadataError, "View group name is required" if @name.blank?

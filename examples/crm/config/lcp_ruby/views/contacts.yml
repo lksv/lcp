@@ -4,6 +4,8 @@ view_group:
   navigation:
     menu: main
     position: 2
+  breadcrumb:
+    relation: company
   views:
     - presenter: contact
       label: "Detailed"

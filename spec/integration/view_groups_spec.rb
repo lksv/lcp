@@ -118,6 +118,78 @@ RSpec.describe "View Groups Integration", type: :request do
     end
   end
 
+  describe "breadcrumbs" do
+    it "renders default breadcrumbs on index page" do
+      get "/companies"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('class="lcp-breadcrumbs"')
+      expect(response.body).to include("Home")
+      expect(response.body).to include("Companies")
+    end
+
+    it "renders breadcrumbs on deals index page" do
+      get "/deals"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('class="lcp-breadcrumbs"')
+      expect(response.body).to include("Home")
+      expect(response.body).to include("Deals")
+    end
+
+    it "renders breadcrumbs with parent on deal show page" do
+      company = company_model.create!(name: "Test Corp", industry: "technology")
+      deal = deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
+
+      get "/deals/#{deal.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include('class="lcp-breadcrumbs"')
+      expect(response.body).to include("Home")
+      expect(response.body).to include("Companies")
+      expect(response.body).to include("Test Corp")
+      expect(response.body).to include("Deals")
+      expect(response.body).to include("Big Deal")
+    end
+
+    it "renders edit crumb on edit page" do
+      company = company_model.create!(name: "Test Corp", industry: "technology")
+      deal = deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
+
+      get "/deals/#{deal.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Edit")
+      expect(response.body).to include("Big Deal")
+      expect(response.body).to include("Test Corp")
+    end
+
+    it "renders new crumb on new page" do
+      get "/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("New")
+      expect(response.body).to include("Deals")
+    end
+
+    it "breadcrumb links are correct" do
+      company = company_model.create!(name: "Acme Inc", industry: "technology")
+      deal = deal_model.create!(title: "Top Deal", stage: "lead", company_id: company.id)
+
+      get "/deals/#{deal.id}"
+
+      expect(response.body).to include('href="/companies"')
+      expect(response.body).to include("href=\"/companies/#{company.id}\"")
+      expect(response.body).to include('href="/deals"')
+    end
+
+    it "marks last crumb with aria-current" do
+      get "/deals"
+
+      expect(response.body).to include('aria-current="page"')
+    end
+  end
+
   describe "view group definitions" do
     it "loads the correct number of view groups from CRM fixtures" do
       view_groups = LcpRuby.loader.view_group_definitions

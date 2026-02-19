@@ -136,6 +136,70 @@ view_group:
 
 Both appear as separate entries in the navigation menu. A presenter can only belong to one view group.
 
+## Breadcrumb Navigation
+
+Breadcrumbs provide hierarchical context: `Home > Companies > Acme Inc > Deals > Big Deal`. They are rendered automatically in the layout and configured per view group.
+
+### Default Breadcrumbs
+
+Without any `breadcrumb` config, every page gets a basic breadcrumb: `Home > {View Label}`. On show pages, the record name is appended. On edit/new pages, the action name is appended.
+
+### Adding a Parent Relation
+
+To show parent context, add a `breadcrumb` key with a `relation` pointing to a `belongs_to` association:
+
+```yaml
+# config/lcp_ruby/views/deals.yml
+view_group:
+  model: deal
+  primary: deal
+  navigation:
+    menu: main
+    position: 3
+  breadcrumb:
+    relation: company
+  views:
+    - presenter: deal
+      label: "Detailed"
+      icon: maximize
+```
+
+This produces breadcrumbs like:
+- Index: `Home > Deals`
+- Show: `Home > Companies > Acme Inc > Deals > Big Deal`
+- Edit: `Home > Companies > Acme Inc > Deals > Big Deal > Edit`
+
+The engine resolves the parent's view group automatically from the association's target model. If the parent's view group also has a `breadcrumb.relation`, the chain recurses up (limited to 5 levels).
+
+### Nullable FK Handling
+
+If the belongs_to association is optional and the parent record is nil, the parent breadcrumb level is skipped. For example, a deal without a company shows: `Home > Deals > Big Deal`.
+
+### Configuring the Home Link
+
+By default the "Home" crumb links to `"/"`. When the engine is mounted at a sub-path, override it in the initializer:
+
+```ruby
+# config/initializers/lcp_ruby.rb
+LcpRuby.configure do |config|
+  config.breadcrumb_home_path = "/crm"
+end
+```
+
+See [Engine Configuration — `breadcrumb_home_path`](../reference/engine-configuration.md#breadcrumb_home_path) for details.
+
+### Disabling Breadcrumbs
+
+To hide breadcrumbs for a specific view group:
+
+```yaml
+breadcrumb: false
+```
+
+### Polymorphic Associations
+
+For polymorphic belongs_to associations, the engine reads `{relation}_type` on the record to determine the parent model and resolves its view group dynamically.
+
 ## DSL Alternative
 
 The same configuration in Ruby DSL:
@@ -147,8 +211,20 @@ define_view_group :deals do
   primary :deal
 
   navigation menu: "main", position: 3
+  breadcrumb relation: :company
 
   view :deal, label: "Detailed", icon: :maximize
   view :deal_short,  label: "Short",    icon: :list
+end
+```
+
+To disable breadcrumbs in DSL:
+
+```ruby
+define_view_group :reports do
+  model :report
+  primary :report
+  breadcrumb false
+  view :report
 end
 ```

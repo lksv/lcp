@@ -1,0 +1,15 @@
+<% if breadcrumbs.any? %>
+  <nav class="lcp-breadcrumbs" aria-label="Breadcrumb">
+    <ol>
+      <% breadcrumbs.each do |crumb| %>
+        <li<%= ' aria-current="page"'.html_safe if crumb.current? %>>
+          <% if crumb.path && !crumb.current? %>
+            <%= link_to crumb.label, crumb.path %>
+          <% else %>
+            <span><%= crumb.label %></span>
+          <% end %>
+        </li>
+      <% end %>
+    </ol>
+  </nav>
+<% end %>

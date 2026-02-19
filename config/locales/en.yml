@@ -15,3 +15,7 @@ en:
     tree_select:
       expand: "Expand"
       collapse: "Collapse"
+    breadcrumbs:
+      home: "Home"
+      edit: "Edit"
+      new: "New"
