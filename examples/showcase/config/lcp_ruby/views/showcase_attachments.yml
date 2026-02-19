@@ -1,0 +1,10 @@
+view_group:
+  model: showcase_attachment
+  primary: showcase_attachments
+  navigation:
+    menu: main
+    position: 10
+  views:
+    - presenter: showcase_attachments
+      label: "Attachments"
+      icon: paperclip

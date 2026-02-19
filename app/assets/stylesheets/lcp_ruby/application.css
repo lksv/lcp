@@ -142,6 +142,11 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .lcp-collapse-icon::after { content: " \25BC"; font-size: 0.7em; }
 .lcp-collapsed .lcp-collapse-icon::after { content: " \25B6"; }
 
+/* View & section descriptions */
+.lcp-view-description { color: #6c757d; font-size: 0.9rem; margin-bottom: 1rem; line-height: 1.5; }
+.lcp-section-description { color: #6c757d; font-size: 0.85rem; margin-bottom: 0.75rem; line-height: 1.4; }
+.lcp-info-text { background: #e8f4fd; border-left: 3px solid #0d6efd; padding: 0.5rem 0.75rem; border-radius: 0 4px 4px 0; font-size: 0.85rem; color: #495057; line-height: 1.4; margin: 0.25rem 0; }
+
 /* Empty state */
 .lcp-empty-state { text-align: center; padding: 3rem 1rem; background: #fff; border: 1px solid #dee2e6; border-radius: 4px; color: #6c757d; }
 .lcp-empty-state p { font-size: 1rem; }

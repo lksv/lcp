@@ -1,0 +1,10 @@
+view_group:
+  model: showcase_permission
+  primary: showcase_permissions
+  navigation:
+    menu: main
+    position: 11
+  views:
+    - presenter: showcase_permissions
+      label: "Permissions"
+      icon: shield

@@ -1,0 +1,39 @@
+permissions:
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields:
+        readable: all
+        writable: all
+      actions: [lock, bulk_archive, export]
+    editor:
+      crud: [index, show, create, update]
+      fields:
+        readable: [title, status, owner_id, assignee_id, priority, confidential, public_notes]
+        writable: [title, status, assignee_id, priority, public_notes]
+      actions: [lock]
+    viewer:
+      crud: [index, show]
+      fields:
+        readable: [title, status, priority, public_notes]
+    owner:
+      crud: [index, show, create, update, destroy]
+      fields:
+        readable: all
+        writable: [title, status, assignee_id, priority, public_notes]
+      scope:
+        type: field_match
+        field: owner_id
+        value: current_user_id
+  record_rules:
+    - deny: [update]
+      when:
+        field: status
+        operator: eq
+        value: locked
+      except: [admin]
+    - deny: [destroy]
+      when:
+        field: status
+        operator: eq
+        value: archived

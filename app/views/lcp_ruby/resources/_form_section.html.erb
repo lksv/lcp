@@ -13,6 +13,9 @@
             <%= tag.attributes(nested_cond_attrs) %>
             <% if nested_style_parts.any? %>style="<%= nested_style_parts.join('; ') %>"<% end %>>
     <legend><%= section["title"] %></legend>
+    <% if section["description"].present? %>
+      <p class="lcp-section-description"><%= section["description"] %></p>
+    <% end %>
     <div class="lcp-nested-container">
       <%= form.fields_for section["association"].to_sym do |nf| %>
         <%= render "lcp_ruby/resources/nested_fields", form: nf, section: section %>
@@ -60,6 +63,9 @@
         <%= section["title"] %>
       <% end %>
     </legend>
+    <% if section["description"].present? %>
+      <p class="lcp-section-description"><%= section["description"] %></p>
+    <% end %>
 
     <div class="lcp-collapsible-content" style="<%= 'display: none' if collapsible && collapsed %>">
       <div class="lcp-form-fields lcp-grid"
@@ -68,6 +74,12 @@
            <%= "data-responsive-tablet=\"#{section.dig('responsive', 'tablet', 'columns')}\"" if section.dig('responsive', 'tablet', 'columns') %>>
         <% (section["fields"] || []).each do |field_config| %>
 
+
+          <%# Handle info pseudo-field %>
+          <% if field_config["type"] == "info" %>
+            <div class="lcp-info-text" style="grid-column: 1 / -1;"><%= field_config["text"] %></div>
+            <% next %>
+          <% end %>
 
           <%# Handle divider pseudo-field %>
           <% if field_config["type"] == "divider" %>

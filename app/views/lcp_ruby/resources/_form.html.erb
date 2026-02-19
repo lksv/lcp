@@ -18,6 +18,10 @@
     </div>
   <% end %>
 
+  <% if current_presenter.form_config["description"].present? %>
+    <p class="lcp-view-description"><%= current_presenter.form_config["description"] %></p>
+  <% end %>
+
   <% sections = @layout_builder.form_sections %>
   <% if @layout_builder.form_layout == "tabs" %>
     <div class="lcp-tabs">
