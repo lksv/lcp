@@ -129,6 +129,28 @@ end
 
 See the [Impersonation Guide](../guides/impersonation.md) for setup and usage details.
 
+### `menu_mode`
+
+| | |
+|---|---|
+| **Type** | `Symbol` |
+| **Default** | `:auto` |
+
+Controls how the navigation menu is built.
+
+| Value | Behavior |
+|-------|----------|
+| `:auto` | Auto-generate from view groups if no `menu.yml`; use `menu.yml` + auto-append unreferenced view groups if it exists |
+| `:strict` | `menu.yml` is required and is the sole source of truth; no auto-append |
+
+```ruby
+LcpRuby.configure do |config|
+  config.menu_mode = :strict
+end
+```
+
+See [Menu Reference](menu.md) for the full `menu.yml` YAML schema and [Menu Guide](../guides/menu.md) for setup examples.
+
 ### `attachment_max_size`
 
 | | |

@@ -9,38 +9,49 @@
     <%= stylesheet_link_tag "lcp_ruby/application", media: "all" %>
   <% end %>
 </head>
-<body>
-  <nav class="lcp-nav">
-    <ul class="lcp-nav-list">
-      <% navigable_presenters.each do |entry| %>
-        <li class="lcp-nav-item">
-          <%= link_to entry[:label], lcp_ruby.resources_path(lcp_slug: entry[:slug]),
-                class: entry[:all_slugs].include?(params[:lcp_slug]) ? "active" : "" %>
-        </li>
-      <% end %>
-    </ul>
-  </nav>
-  <% if impersonating? %>
-    <div class="lcp-impersonation-banner">
-      <span>Viewing as role: <strong><%= impersonated_role %></strong></span>
-      <%= button_to "Stop impersonation", lcp_ruby.stop_impersonate_path, method: :delete, class: "btn btn-danger" %>
+<body class="lcp-layout-<%= menu_layout %>">
+  <% layout = menu_layout %>
+
+  <% case layout %>
+  <% when "sidebar" %>
+    <%= render "lcp_ruby/navigation/impersonation_banner" %>
+    <div class="lcp-layout-with-sidebar">
+      <%= render "lcp_ruby/navigation/sidebar" %>
+      <div class="lcp-layout-main">
+        <div class="lcp-container">
+          <%= render "lcp_ruby/shared/flash_messages" %>
+          <%= render "lcp_ruby/shared/breadcrumbs" %>
+          <%= yield %>
+        </div>
+      </div>
     </div>
-  <% elsif available_roles_for_impersonation.any? %>
-    <div class="lcp-impersonation-banner lcp-impersonation-selector">
-      <%= form_with url: lcp_ruby.impersonate_path, method: :post, style: "display: inline-flex; align-items: center; gap: 0.5rem;" do |f| %>
-        <label for="impersonate_role">View as:</label>
-        <%= select_tag :role, options_for_select(available_roles_for_impersonation), prompt: "Select role...", id: "impersonate_role" %>
-        <%= submit_tag "Impersonate", class: "btn" %>
-      <% end %>
+  <% when "both" %>
+    <%= render "lcp_ruby/navigation/both_top" %>
+    <%= render "lcp_ruby/navigation/impersonation_banner" %>
+    <div class="lcp-layout-with-sidebar">
+      <%= render "lcp_ruby/navigation/both_sidebar" %>
+      <div class="lcp-layout-main">
+        <div class="lcp-container">
+          <%= render "lcp_ruby/shared/flash_messages" %>
+          <%= render "lcp_ruby/shared/breadcrumbs" %>
+          <%= yield %>
+        </div>
+      </div>
+    </div>
+  <% else %>
+    <%# "top" layout — either menu-driven or auto-generated %>
+    <% if menu_defined? %>
+      <%= render "lcp_ruby/navigation/top" %>
+    <% else %>
+      <%= render "lcp_ruby/navigation/auto_top" %>
+    <% end %>
+    <%= render "lcp_ruby/navigation/impersonation_banner" %>
+    <div class="lcp-container">
+      <%= render "lcp_ruby/shared/flash_messages" %>
+      <%= render "lcp_ruby/shared/breadcrumbs" %>
+      <%= yield %>
     </div>
   <% end %>
-  <div class="lcp-container">
-    <% flash.each do |type, message| %>
-      <div class="lcp-flash lcp-flash-<%= type %>"><%= message %></div>
-    <% end %>
-    <%= render "lcp_ruby/shared/breadcrumbs" %>
-    <%= yield %>
-  </div>
 
   <!-- Inline create dialog -->
   <dialog id="lcp-inline-create-dialog" class="lcp-inline-dialog">

@@ -59,12 +59,28 @@ Name of the primary presenter in this group. The primary presenter is used as th
 
 ### `navigation`
 
-Controls the position of this view group in the navigation menu.
+Controls the position of this view group in the navigation menu, or disables navigation entirely.
+
+**As a hash** (default):
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `menu` | string | Menu group name (e.g., `main`) |
 | `position` | integer | Sort order within the menu. Lower numbers appear first |
+
+**As `false`**:
+
+```yaml
+navigation: false
+```
+
+Setting `navigation: false` excludes this view group from auto-generated navigation and from auto-append in `:auto` menu mode. The view group still works for routing and view switching — it just does not appear in any menu.
+
+Use this for view groups that should be accessible via direct URL but not shown in navigation (e.g., audit logs, embedded views, detail pages linked from other pages).
+
+The `navigable?` method on `ViewGroupDefinition` returns `false` when `navigation` is set to `false`.
+
+See [Menu Reference](menu.md) for details on the configurable menu system.
 
 ### `breadcrumb`
 

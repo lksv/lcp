@@ -7,7 +7,8 @@ module LcpRuby
         @name = attrs[:name].to_s
         @model = attrs[:model].to_s
         @primary_presenter = attrs[:primary_presenter].to_s
-        @navigation_config = HashUtils.stringify_deep(attrs[:navigation_config] || {})
+        raw_nav = attrs.fetch(:navigation_config, {})
+        @navigation_config = raw_nav == false ? false : HashUtils.stringify_deep(raw_nav || {})
         @views = (attrs[:views] || []).map { |v| HashUtils.stringify_deep(v) }
         @breadcrumb_config = parse_breadcrumb(attrs[:breadcrumb_config])
 
@@ -24,11 +25,14 @@ module LcpRuby
           }.compact
         end
 
+        nav = data["navigation"]
+        navigation_config = nav == false ? false : (nav || {})
+
         new(
           name: data["name"],
           model: data["model"],
           primary_presenter: data["primary"],
-          navigation_config: data["navigation"] || {},
+          navigation_config: navigation_config,
           views: views,
           breadcrumb_config: data["breadcrumb"]
         )
@@ -57,6 +61,12 @@ module LcpRuby
 
       def has_switcher?
         views.length > 1
+      end
+
+      # Returns false when navigation is explicitly disabled (navigation: false).
+      # Used to exclude view groups from auto-generated navigation menus.
+      def navigable?
+        navigation_config != false
       end
 
       private

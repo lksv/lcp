@@ -1,0 +1,14 @@
+<% if impersonating? %>
+  <div class="lcp-impersonation-banner">
+    <span>Viewing as role: <strong><%= impersonated_role %></strong></span>
+    <%= button_to "Stop impersonation", lcp_ruby.stop_impersonate_path, method: :delete, class: "btn btn-danger" %>
+  </div>
+<% elsif available_roles_for_impersonation.any? %>
+  <div class="lcp-impersonation-banner lcp-impersonation-selector">
+    <%= form_with url: lcp_ruby.impersonate_path, method: :post, style: "display: inline-flex; align-items: center; gap: 0.5rem;" do |f| %>
+      <label for="impersonate_role">View as:</label>
+      <%= select_tag :role, options_for_select(available_roles_for_impersonation), prompt: "Select role...", id: "impersonate_role" %>
+      <%= submit_tag "Impersonate", class: "btn" %>
+    <% end %>
+  </div>
+<% end %>

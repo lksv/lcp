@@ -1,0 +1,19 @@
+menu:
+  sidebar_menu:
+    - label: "CRM"
+      icon: briefcase
+      children:
+        - view_group: companies
+        - view_group: contacts
+        - separator: true
+        - view_group: deals
+        - view_group: pipeline
+
+    - label: "Catalogs"
+      icon: folder
+      children:
+        - view_group: deal_categories
+        - separator: true
+        - view_group: countries
+        - view_group: regions
+        - view_group: cities

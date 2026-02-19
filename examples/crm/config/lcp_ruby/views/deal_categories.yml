@@ -1,9 +1,7 @@
 view_group:
   model: deal_category
   primary: deal_category
-  navigation:
-    menu: main
-    position: 8
+  navigation: false
   views:
     - presenter: deal_category
       label: "Deal Categories"

@@ -18,6 +18,7 @@ LCP Ruby is a **low-code platform** implemented as a Rails mountable engine for 
 - [Types Reference](docs/reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters Reference](docs/reference/presenters.md) — Complete presenter YAML reference
 - [View Groups Reference](docs/reference/view-groups.md) — Navigation menu, view switching, auto-creation
+- [Menu Reference](docs/reference/menu.md) — Configurable navigation: top bar, sidebar, dropdowns, role visibility
 - [Permissions Reference](docs/reference/permissions.md) — Complete permission YAML reference
 - [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
 - [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
@@ -34,6 +35,7 @@ LCP Ruby is a **low-code platform** implemented as a Rails mountable engine for 
 - [Attachments Guide](docs/guides/attachments.md) — File upload with Active Storage
 - [Eager Loading Guide](docs/guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [View Groups Guide](docs/guides/view-groups.md) — Multi-view navigation and view switcher setup
+- [Menu Guide](docs/guides/menu.md) — Custom navigation menus: dropdowns, sidebar, combined layouts
 - [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views

@@ -1,0 +1,19 @@
+<%# Full sidebar navigation (sidebar-only layout mode) %>
+<% sidebar_items = visible_menu_items(menu_definition.sidebar_menu) %>
+<aside class="lcp-sidebar">
+  <nav class="lcp-sidebar-nav">
+    <ul class="lcp-sidebar-list lcp-sidebar-main">
+      <% menu_main_items(sidebar_items).each do |item| %>
+        <%= render partial: "lcp_ruby/navigation/sidebar_item", locals: { item: item } %>
+      <% end %>
+    </ul>
+    <% bottom = menu_bottom_items(sidebar_items) %>
+    <% if bottom.any? %>
+      <ul class="lcp-sidebar-list lcp-sidebar-bottom">
+        <% bottom.each do |item| %>
+          <%= render partial: "lcp_ruby/navigation/sidebar_item", locals: { item: item } %>
+        <% end %>
+      </ul>
+    <% end %>
+  </nav>
+</aside>

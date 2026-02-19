@@ -6,6 +6,12 @@ module LcpRuby
                   :attachment_max_size, :attachment_allowed_content_types,
                   :breadcrumb_home_path
 
+    attr_reader :menu_mode
+
+    def menu_mode=(value)
+      @menu_mode = value&.to_sym
+    end
+
     def initialize
       @metadata_path = Rails.root.join("config", "lcp_ruby") if defined?(Rails)
       @role_method = :lcp_role
@@ -19,6 +25,7 @@ module LcpRuby
       @attachment_max_size = "50MB"
       @attachment_allowed_content_types = nil
       @breadcrumb_home_path = "/"
+      @menu_mode = :auto
     end
 
     # Returns true when strict_loading should be enabled on AR scopes.

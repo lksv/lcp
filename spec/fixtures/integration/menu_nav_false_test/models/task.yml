@@ -1,0 +1,12 @@
+model:
+  name: task
+  label: "Task"
+  fields:
+    - name: name
+      type: string
+      label: "Name"
+      validations:
+        - type: presence
+  options:
+    timestamps: true
+    label_method: name

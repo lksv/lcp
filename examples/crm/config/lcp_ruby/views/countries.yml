@@ -1,6 +1,7 @@
 view_group:
   model: country
   primary: country
+  navigation: false
   views:
     - presenter: country
       label: "Countries"

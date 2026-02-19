@@ -1,9 +1,7 @@
 view_group:
   model: company
   primary: company
-  navigation:
-    menu: main
-    position: 1
+  navigation: false
   views:
     - presenter: company
       label: "Detailed"

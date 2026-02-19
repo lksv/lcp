@@ -1,0 +1,24 @@
+presenter:
+  name: task
+  model: task
+  label: "Tasks"
+  slug: tasks
+  icon: check-square
+
+  index:
+    table_columns:
+      - { field: name, link_to: show }
+
+  form:
+    sections:
+      - title: "Task"
+        fields:
+          - { field: name }
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Task" }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

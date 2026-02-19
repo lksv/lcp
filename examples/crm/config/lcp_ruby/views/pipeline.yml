@@ -1,9 +1,7 @@
 view_group:
   model: deal
   primary: deal_pipeline
-  navigation:
-    menu: main
-    position: 4
+  navigation: false
   breadcrumb:
     relation: company
   views:

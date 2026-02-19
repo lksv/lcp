@@ -1,0 +1,16 @@
+menu:
+  top_menu:
+    - view_group: projects
+    - label: "Work"
+      icon: briefcase
+      children:
+        - view_group: tasks
+        - separator: true
+        - label: "Reports"
+          url: /reports
+    - label: "Admin"
+      icon: shield
+      visible_when:
+        role: [admin]
+      children:
+        - view_group: settings

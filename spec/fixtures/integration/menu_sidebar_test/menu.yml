@@ -1,0 +1,11 @@
+menu:
+  sidebar_menu:
+    - view_group: projects
+    - label: "Work"
+      icon: briefcase
+      children:
+        - view_group: tasks
+    - view_group: settings
+      position: bottom
+      visible_when:
+        role: [admin]

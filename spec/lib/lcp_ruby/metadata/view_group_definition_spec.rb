@@ -143,6 +143,61 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
     end
   end
 
+  describe "#navigable?" do
+    it "returns true by default" do
+      group = described_class.new(valid_attrs)
+
+      expect(group.navigable?).to be true
+    end
+
+    it "returns true when navigation_config is a hash" do
+      group = described_class.new(valid_attrs(navigation_config: { "menu" => "main" }))
+
+      expect(group.navigable?).to be true
+    end
+
+    it "returns true when navigation_config is an empty hash" do
+      group = described_class.new(valid_attrs(navigation_config: {}))
+
+      expect(group.navigable?).to be true
+    end
+
+    it "returns false when navigation_config is false" do
+      group = described_class.new(valid_attrs(navigation_config: false))
+
+      expect(group.navigable?).to be false
+      expect(group.navigation_config).to eq(false)
+    end
+  end
+
+  describe ".from_hash with navigation: false" do
+    it "sets navigation_config to false" do
+      group = described_class.from_hash(
+        "name" => "audit",
+        "model" => "audit_log",
+        "primary" => "audit_log",
+        "navigation" => false,
+        "views" => [ { "presenter" => "audit_log" } ]
+      )
+
+      expect(group.navigation_config).to eq(false)
+      expect(group.navigable?).to be false
+    end
+
+    it "sets navigation_config to hash when provided" do
+      group = described_class.from_hash(
+        "name" => "tasks",
+        "model" => "task",
+        "primary" => "task_list",
+        "navigation" => { "menu" => "main", "position" => 1 },
+        "views" => [ { "presenter" => "task_list" } ]
+      )
+
+      expect(group.navigation_config).to eq("menu" => "main", "position" => 1)
+      expect(group.navigable?).to be true
+    end
+  end
+
   describe "#breadcrumb_config" do
     it "defaults to nil when not provided" do
       group = described_class.new(valid_attrs)

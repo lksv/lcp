@@ -1,6 +1,7 @@
 view_group:
   model: city
   primary: city
+  navigation: false
   breadcrumb:
     relation: region
   views:

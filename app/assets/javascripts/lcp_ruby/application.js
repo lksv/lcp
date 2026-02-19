@@ -21,3 +21,4 @@
 //= require lcp_ruby/tree_select
 //= require lcp_ruby/file_upload
 //= require lcp_ruby/direct_upload
+//= require lcp_ruby/sidebar

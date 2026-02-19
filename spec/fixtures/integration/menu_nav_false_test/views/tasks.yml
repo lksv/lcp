@@ -1,0 +1,7 @@
+view_group:
+  model: task
+  primary: task
+  navigation:
+    position: 2
+  views:
+    - presenter: task
