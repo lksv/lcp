@@ -1,0 +1,12 @@
+view_group:
+  model: department
+  primary: departments
+  navigation:
+    menu: main
+    position: 7
+  breadcrumb:
+    relation: parent
+  views:
+    - presenter: departments
+      label: "Departments"
+      icon: building

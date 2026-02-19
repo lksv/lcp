@@ -4,6 +4,8 @@ view_group:
   navigation:
     menu: main
     position: 3
+  breadcrumb:
+    relation: category
   views:
     - presenter: articles
       label: "Articles"

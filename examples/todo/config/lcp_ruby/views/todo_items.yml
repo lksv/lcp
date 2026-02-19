@@ -4,6 +4,8 @@ view_group:
   navigation:
     menu: main
     position: 2
+  breadcrumb:
+    relation: todo_list
   views:
     - presenter: todo_item
       label: "Todo Items"
