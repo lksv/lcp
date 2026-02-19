@@ -24,6 +24,7 @@ define_presenter :company do
       field :website, display: :url_link
       field :phone, display: :phone_link
       field :logo, display: :attachment_preview
+      field :contract_template, display: :attachment_link
       field :created_at, display: :relative_date
       field "contacts.first_name", label: "Contacts", display: :collection, display_options: { limit: 5 }
     end
@@ -40,6 +41,12 @@ define_presenter :company do
       field :website, placeholder: "https://..."
       field :phone, placeholder: "+1..."
       field :logo, input_options: { preview: true, drag_drop: true }
+    end
+
+    section "Contract", columns: 1,
+      visible_when: { field: :address_type, operator: :eq, value: "known" } do
+      field :contract_template,
+        input_options: { preview: true, drag_drop: true }
     end
 
     section "Address", columns: 2 do

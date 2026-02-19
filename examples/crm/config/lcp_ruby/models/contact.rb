@@ -30,6 +30,13 @@ define_model :contact do
     }
   }
 
+  field :documents, :attachment, label: "Documents", options: {
+    multiple: true,
+    max_files: 10,
+    max_size: "15MB",
+    content_types: %w[application/pdf image/jpeg image/png application/vnd.openxmlformats-officedocument.wordprocessingml.document]
+  }
+
   belongs_to :company, model: :company, required: true
 
   scope :active_contacts, where: { active: true }

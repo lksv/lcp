@@ -29,6 +29,10 @@ define_presenter :contact do
       field "company.name", label: "Company"
       field "company.industry", label: "Industry", display: :badge
     end
+
+    section "Documents" do
+      field :documents, display: :attachment_list
+    end
   end
 
   form do
@@ -42,6 +46,10 @@ define_presenter :contact do
       field :avatar, input_options: { preview: true, drag_drop: true }
       field :company_id, input_type: :association_select,
         input_options: { sort: { name: :asc }, group_by: :industry }
+    end
+
+    section "Documents" do
+      field :documents, input_options: { preview: true, drag_drop: true }
     end
   end
 

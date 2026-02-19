@@ -60,6 +60,11 @@ module LcpRuby
           field_hash["enum_values"] = normalize_enum_values(options[:values])
         end
 
+        # Handle attachment options
+        if options.key?(:options)
+          field_hash["options"] = stringify_keys(options[:options])
+        end
+
         # Handle field-level validations via block
         if block
           field_builder = FieldBuilder.new

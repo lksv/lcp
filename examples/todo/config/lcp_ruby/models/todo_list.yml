@@ -20,6 +20,17 @@ model:
       type: text
       label: "Description"
 
+    - name: cover_image
+      type: attachment
+      label: "Cover Image"
+      options:
+        accept: "image/*"
+        max_size: 5MB
+        content_types: [image/jpeg, image/png, image/webp]
+        variants:
+          thumbnail: { resize_to_fill: [80, 80] }
+          medium: { resize_to_limit: [400, 300] }
+
   associations:
     - type: has_many
       name: todo_items

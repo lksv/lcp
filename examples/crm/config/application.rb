@@ -19,5 +19,6 @@ module CrmApp
     config.active_job.queue_adapter = :async
 
     config.secret_key_base = "crm_app_secret_key_base_for_development_only"
+    config.active_storage.service = :local
   end
 end
