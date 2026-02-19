@@ -17,7 +17,7 @@ Only users whose real role includes one of the listed roles can activate imperso
 
 ## How It Works
 
-1. **Activation:** An authorized user selects a role from the "View as" dropdown in the navigation bar, or sends a POST request to `/admin/impersonate` with `role` parameter.
+1. **Activation:** An authorized user selects a role from the "View as" dropdown in the navigation bar, or sends a POST request to `/impersonate` with `role` parameter.
 
 2. **Effect:** The permission system evaluates all access checks using the impersonated role instead of the user's real role. This affects:
    - Presenter access (which pages are visible)
@@ -29,7 +29,7 @@ Only users whose real role includes one of the listed roles can activate imperso
 
 3. **Identity preserved:** The user's real identity is never changed. Only the role used for permission evaluation is overridden. Audit logs still record the real user.
 
-4. **Deactivation:** Click "Stop impersonation" in the yellow banner, or send a DELETE request to `/admin/impersonate`.
+4. **Deactivation:** Click "Stop impersonation" in the yellow banner, or send a DELETE request to `/impersonate`.
 
 ## UI Elements
 
@@ -45,8 +45,8 @@ The engine adds two routes for impersonation:
 
 | Method | Path | Action |
 |--------|------|--------|
-| POST | `/admin/impersonate` | Set impersonation (param: `role`) |
-| DELETE | `/admin/impersonate` | Clear impersonation |
+| POST | `/impersonate` | Set impersonation (param: `role`) |
+| DELETE | `/impersonate` | Clear impersonation |
 
 Both routes redirect back to the root path with a flash message.
 

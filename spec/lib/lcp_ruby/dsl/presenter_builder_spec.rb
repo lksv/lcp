@@ -3,14 +3,14 @@ require "spec_helper"
 RSpec.describe LcpRuby::Dsl::PresenterBuilder do
   describe "#to_hash" do
     it "produces a hash with the presenter name" do
-      builder = described_class.new(:deal_admin)
+      builder = described_class.new(:deal)
       hash = builder.to_hash
 
-      expect(hash["name"]).to eq("deal_admin")
+      expect(hash["name"]).to eq("deal")
     end
 
     it "includes model, label, slug, icon when set" do
-      builder = described_class.new(:deal_admin)
+      builder = described_class.new(:deal)
       builder.instance_eval do
         model :deal
         label "Deals"
@@ -873,7 +873,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
   describe "#to_hash_with_parent" do
     let(:parent_hash) do
       {
-        "name" => "deal_admin",
+        "name" => "deal",
         "model" => "deal",
         "label" => "Deals",
         "slug" => "deals",
@@ -1010,11 +1010,11 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
   describe "full presenter parity with YAML" do
     let(:fixtures_path) { File.expand_path("../../../fixtures/metadata", __dir__) }
     let(:yaml_hash) do
-      YAML.safe_load_file(File.join(fixtures_path, "presenters/project_admin.yml"))["presenter"]
+      YAML.safe_load_file(File.join(fixtures_path, "presenters/project.yml"))["presenter"]
     end
 
     it "produces the same PresenterDefinition as the YAML fixture" do
-      dsl_definition = LcpRuby.define_presenter(:project_admin) do
+      dsl_definition = LcpRuby.define_presenter(:project) do
         model :project
         label "Project Management"
         slug "projects"

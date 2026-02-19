@@ -17,8 +17,8 @@ end
 In DSL files loaded by the engine, use `define_presenter` without the `LcpRuby.` prefix:
 
 ```ruby
-# config/lcp_ruby/presenters/deal_admin.rb
-define_presenter :deal_admin do
+# config/lcp_ruby/presenters/deal.rb
+define_presenter :deal do
   model :deal
   label "Deals"
   slug "deals"
@@ -62,7 +62,7 @@ label "Deals"
 | **Required** | no |
 | **Type** | string |
 
-URL slug for routing. When set, the presenter is routable at `/admin/<slug>`.
+URL slug for routing. When set, the presenter is routable at `/<slug>`.
 
 ```ruby
 slug "deals"
@@ -611,7 +611,7 @@ Presenters can inherit from other presenters using the `inherits:` option. This 
 
 ```ruby
 # config/lcp_ruby/presenters/deal_pipeline.rb
-define_presenter :deal_pipeline, inherits: :deal_admin do
+define_presenter :deal_pipeline, inherits: :deal do
   label "Deal Pipeline"
   slug "pipeline"
   icon "bar-chart"
@@ -734,8 +734,8 @@ For the full YAML attribute reference, see [Presenters Reference](presenters.md)
 A deal management presenter demonstrating all DSL features:
 
 ```ruby
-# config/lcp_ruby/presenters/deal_admin.rb
-define_presenter :deal_admin do
+# config/lcp_ruby/presenters/deal.rb
+define_presenter :deal do
   model :deal
   label "Deals"
   slug "deals"

@@ -1,4 +1,4 @@
-define_presenter :project_admin do
+define_presenter :project do
   model :project
   label "Project Management"
   slug "projects"

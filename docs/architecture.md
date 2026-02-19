@@ -168,7 +168,7 @@ end
 | `metadata_path` | `Rails.root.join("config", "lcp_ruby")` | Directory containing YAML metadata |
 | `role_method` | `:lcp_role` | Method called on user to determine role |
 | `user_class` | `"User"` | User model class name |
-| `mount_path` | `"/admin"` | Engine mount path |
+| `mount_path` | `"/"` | Engine mount path |
 | `auto_migrate` | `true` | Auto-create/update DB tables on boot |
 | `label_method_default` | `:to_s` | Default method for record display labels |
 | `parent_controller` | `"::ApplicationController"` | Host app controller to inherit from |

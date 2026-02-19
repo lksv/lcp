@@ -1,4 +1,4 @@
-define_presenter :deal_pipeline, inherits: :deal_admin do
+define_presenter :deal_pipeline, inherits: :deal do
   label "Deal Pipeline"
   slug "pipeline"
   icon "bar-chart"

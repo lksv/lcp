@@ -25,7 +25,7 @@ RSpec.describe "View Groups Integration", type: :request do
 
   describe "view switcher on index page" do
     it "renders for grouped presenters with multiple views" do
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-view-switcher")
@@ -34,7 +34,7 @@ RSpec.describe "View Groups Integration", type: :request do
     end
 
     it "does not render for single-presenter groups" do
-      get "/admin/companies"
+      get "/companies"
 
       expect(response).to have_http_status(:ok)
       # The CSS class name appears in the layout stylesheet, so check for the actual div element
@@ -44,10 +44,10 @@ RSpec.describe "View Groups Integration", type: :request do
 
   describe "switching between sibling views" do
     it "pipeline link points to the pipeline slug" do
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("/admin/pipeline")
+      expect(response.body).to include("/pipeline")
     end
   end
 
@@ -56,7 +56,7 @@ RSpec.describe "View Groups Integration", type: :request do
       company = company_model.create!(name: "Test Corp", industry: "technology")
       deal = deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals/#{deal.id}"
+      get "/deals/#{deal.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-view-switcher")
@@ -65,16 +65,16 @@ RSpec.describe "View Groups Integration", type: :request do
 
   describe "active view highlighting" do
     it "marks the current view as active on the deals index" do
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
-      # The deal_admin presenter renders "Detailed" with class "active"
+      # The deal presenter renders "Detailed" with class "active"
       expect(response.body).to include('class="btn lcp-view-btn active"')
       expect(response.body).to match(/Detailed.*active|active.*Detailed/)
     end
 
     it "marks the pipeline view as active on the pipeline index" do
-      get "/admin/pipeline"
+      get "/pipeline"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to match(/Pipeline.*active|active.*Pipeline/)
@@ -96,24 +96,24 @@ RSpec.describe "View Groups Integration", type: :request do
 
       # Add a view group with a non-routable primary presenter
       non_routable = LcpRuby::Metadata::PresenterDefinition.from_hash(
-        "name" => "hidden_admin", "model" => "company"
+        "name" => "hidden", "model" => "company"
       )
-      LcpRuby.loader.presenter_definitions["hidden_admin"] = non_routable
+      LcpRuby.loader.presenter_definitions["hidden"] = non_routable
 
       vg = LcpRuby::Metadata::ViewGroupDefinition.new(
         name: "hidden_group",
         model: "company",
-        primary_presenter: "hidden_admin",
+        primary_presenter: "hidden",
         navigation_config: { "menu" => "main", "position" => 0 },
-        views: [ { "presenter" => "hidden_admin" } ]
+        views: [ { "presenter" => "hidden" } ]
       )
       LcpRuby.loader.view_group_definitions["hidden_group"] = vg
 
       entries = helper.navigable_presenters
       names = entries.map { |e| e[:presenter].name }
-      expect(names).not_to include("hidden_admin")
+      expect(names).not_to include("hidden")
     ensure
-      LcpRuby.loader.presenter_definitions.delete("hidden_admin")
+      LcpRuby.loader.presenter_definitions.delete("hidden")
       LcpRuby.loader.view_group_definitions.delete("hidden_group")
     end
   end
@@ -130,7 +130,7 @@ RSpec.describe "View Groups Integration", type: :request do
       deals_vg = LcpRuby.loader.view_group_definitions["deals"]
 
       expect(deals_vg.views.length).to eq(2)
-      expect(deals_vg.presenter_names).to contain_exactly("deal_admin", "deal_pipeline")
+      expect(deals_vg.presenter_names).to contain_exactly("deal", "deal_pipeline")
       expect(deals_vg.has_switcher?).to be true
     end
 
@@ -138,7 +138,7 @@ RSpec.describe "View Groups Integration", type: :request do
       companies_vg = LcpRuby.loader.view_group_definitions["companies"]
 
       expect(companies_vg.views.length).to eq(1)
-      expect(companies_vg.presenter_names).to contain_exactly("company_admin")
+      expect(companies_vg.presenter_names).to contain_exactly("company")
       expect(companies_vg.has_switcher?).to be false
     end
   end

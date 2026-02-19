@@ -1,4 +1,4 @@
-define_presenter :region_admin do
+define_presenter :region do
   model :region
   label "Regions"
   slug "regions"

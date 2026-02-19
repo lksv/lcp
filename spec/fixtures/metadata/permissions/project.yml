@@ -20,7 +20,7 @@ permissions:
         allowed: [archive]
         denied: []
       scope: all
-      presenters: [project_admin]
+      presenters: [project]
 
     viewer:
       crud: [index, show]

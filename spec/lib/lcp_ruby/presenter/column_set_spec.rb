@@ -17,7 +17,7 @@ RSpec.describe LcpRuby::Presenter::ColumnSet do
 
   let(:presenter_def) do
     LcpRuby::Metadata::PresenterDefinition.from_hash(
-      "name" => "deal_admin",
+      "name" => "deal",
       "model" => "deal",
       "index" => {
         "table_columns" => [
@@ -128,7 +128,7 @@ RSpec.describe LcpRuby::Presenter::ColumnSet do
     context "dot-path columns" do
       let(:dot_path_presenter) do
         LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "deal_admin",
+          "name" => "deal",
           "model" => "deal",
           "index" => {
             "table_columns" => [
@@ -164,7 +164,7 @@ RSpec.describe LcpRuby::Presenter::ColumnSet do
     context "template columns" do
       let(:template_presenter) do
         LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "deal_admin",
+          "name" => "deal",
           "model" => "deal",
           "index" => {
             "table_columns" => [

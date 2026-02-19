@@ -1,4 +1,4 @@
-define_presenter :deal_short, inherits: :deal_admin do
+define_presenter :deal_short, inherits: :deal do
   label "Deals (Short)"
   slug "deals-short"
 

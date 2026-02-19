@@ -1,4 +1,4 @@
-define_presenter :country_admin do
+define_presenter :country do
   model :country
   label "Countries"
   slug "countries"

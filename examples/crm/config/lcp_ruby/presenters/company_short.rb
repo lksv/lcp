@@ -1,4 +1,4 @@
-define_presenter :company_short, inherits: :company_admin do
+define_presenter :company_short, inherits: :company do
   label "Companies (Short)"
   slug "companies-short"
 

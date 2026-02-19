@@ -1,4 +1,4 @@
-define_presenter :contact_admin do
+define_presenter :contact do
   model :contact
   label "Contacts"
   slug "contacts"

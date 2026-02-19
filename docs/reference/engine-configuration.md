@@ -7,7 +7,7 @@ LcpRuby.configure do |config|
   config.metadata_path = Rails.root.join("config", "lcp_ruby")
   config.role_method = :lcp_role
   config.user_class = "User"
-  config.mount_path = "/admin"
+  config.mount_path = "/"
   config.auto_migrate = true
   config.label_method_default = :to_s
   config.parent_controller = "::ApplicationController"
@@ -58,7 +58,7 @@ Class name of your application's user model. Used for resolving the user class w
 | | |
 |---|---|
 | **Type** | `String` |
-| **Default** | `"/admin"` |
+| **Default** | `"/"` |
 
 The path prefix where the engine is mounted. Must match the path in your `config/routes.rb` mount statement. Used by internal path helpers.
 

@@ -272,7 +272,7 @@ Controls which presenters the role can access.
 presenters: all
 
 # Can only access specific presenters
-presenters: [deal_admin, deal_pipeline]
+presenters: [deal, deal_pipeline]
 ```
 
 ## Field Overrides
@@ -360,7 +360,7 @@ permissions:
         allowed: [close_won]
         denied: []
       scope: all
-      presenters: [deal_admin]
+      presenters: [deal]
 
     viewer:
       crud: [index, show]
@@ -427,7 +427,7 @@ The navigation menu automatically filters out presenters the current user cannot
 Every authorization denial is logged with details including the user ID, roles, action, resource, and IP address:
 
 ```
-[LcpRuby::Auth] Access denied: user=42 roles=viewer action=update resource=deal_admin detail=not authorized
+[LcpRuby::Auth] Access denied: user=42 roles=viewer action=update resource=deal detail=not authorized
 ```
 
 Additionally, an `ActiveSupport::Notifications` event is published for each denial:

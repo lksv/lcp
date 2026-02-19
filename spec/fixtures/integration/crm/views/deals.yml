@@ -1,11 +1,11 @@
 view_group:
   model: deal
-  primary: deal_admin
+  primary: deal
   navigation:
     menu: main
     position: 3
   views:
-    - presenter: deal_admin
+    - presenter: deal
       label: "Detailed"
       icon: maximize
     - presenter: deal_pipeline

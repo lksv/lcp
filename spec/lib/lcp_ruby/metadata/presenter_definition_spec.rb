@@ -5,13 +5,13 @@ RSpec.describe LcpRuby::Metadata::PresenterDefinition do
 
   describe ".from_hash" do
     let(:hash) do
-      YAML.safe_load_file(File.join(fixtures_path, "presenters/project_admin.yml"))["presenter"]
+      YAML.safe_load_file(File.join(fixtures_path, "presenters/project.yml"))["presenter"]
     end
 
     subject(:presenter) { described_class.from_hash(hash) }
 
     it "parses name and model" do
-      expect(presenter.name).to eq("project_admin")
+      expect(presenter.name).to eq("project")
       expect(presenter.model).to eq("project")
     end
 

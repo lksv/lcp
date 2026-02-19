@@ -1,10 +1,7 @@
 view_group:
   model: city
-  primary: city_admin
-  navigation:
-    menu: main
-    position: 7
+  primary: city
   views:
-    - presenter: city_admin
+    - presenter: city
       label: "Cities"
       icon: map-pin

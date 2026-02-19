@@ -1,4 +1,4 @@
-define_presenter :deal_admin do
+define_presenter :deal do
   model :deal
   label "Deals"
   slug "deals"

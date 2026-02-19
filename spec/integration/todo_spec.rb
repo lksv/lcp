@@ -27,12 +27,12 @@ RSpec.describe "TODO App Integration", type: :request do
   let(:todo_item_model) { LcpRuby.registry.model_for("todo_item") }
 
   describe "Todo Lists CRUD" do
-    describe "GET /admin/lists (index)" do
+    describe "GET /lists (index)" do
       it "returns 200 and renders the list" do
         todo_list_model.create!(title: "Groceries", description: "Weekly shopping")
         todo_list_model.create!(title: "Work Tasks", description: "Important deadlines")
 
-        get "/admin/lists"
+        get "/lists"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Groceries")
@@ -41,18 +41,18 @@ RSpec.describe "TODO App Integration", type: :request do
       end
 
       it "returns empty table when no records" do
-        get "/admin/lists"
+        get "/lists"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Todo Lists")
       end
     end
 
-    describe "GET /admin/lists/:id (show)" do
+    describe "GET /lists/:id (show)" do
       it "returns 200 and shows the record" do
         list = todo_list_model.create!(title: "Groceries", description: "Weekly shopping")
 
-        get "/admin/lists/#{list.id}"
+        get "/lists/#{list.id}"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Groceries")
@@ -60,9 +60,9 @@ RSpec.describe "TODO App Integration", type: :request do
       end
     end
 
-    describe "GET /admin/lists/new" do
+    describe "GET /lists/new" do
       it "returns 200 and renders the form" do
-        get "/admin/lists/new"
+        get "/lists/new"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("New")
@@ -70,10 +70,10 @@ RSpec.describe "TODO App Integration", type: :request do
       end
     end
 
-    describe "POST /admin/lists (create)" do
+    describe "POST /lists (create)" do
       it "creates a new list and redirects" do
         expect {
-          post "/admin/lists", params: { record: { title: "New List", description: "A new list" } }
+          post "/lists", params: { record: { title: "New List", description: "A new list" } }
         }.to change { todo_list_model.count }.by(1)
 
         expect(response).to have_http_status(:redirect)
@@ -82,30 +82,30 @@ RSpec.describe "TODO App Integration", type: :request do
       end
 
       it "returns validation error when title is blank" do
-        post "/admin/lists", params: { record: { title: "", description: "No title" } }
+        post "/lists", params: { record: { title: "", description: "No title" } }
 
         expect(response).to have_http_status(:unprocessable_entity)
         expect(response.body).to include("error")
       end
     end
 
-    describe "PATCH /admin/lists/:id (update)" do
+    describe "PATCH /lists/:id (update)" do
       it "updates the record and redirects" do
         list = todo_list_model.create!(title: "Old Title", description: "Old desc")
 
-        patch "/admin/lists/#{list.id}", params: { record: { title: "Updated Title" } }
+        patch "/lists/#{list.id}", params: { record: { title: "Updated Title" } }
 
         expect(response).to have_http_status(:redirect)
         expect(list.reload.title).to eq("Updated Title")
       end
     end
 
-    describe "DELETE /admin/lists/:id (destroy)" do
+    describe "DELETE /lists/:id (destroy)" do
       it "deletes the record and redirects" do
         list = todo_list_model.create!(title: "To Delete")
 
         expect {
-          delete "/admin/lists/#{list.id}"
+          delete "/lists/#{list.id}"
         }.to change { todo_list_model.count }.by(-1)
 
         expect(response).to have_http_status(:redirect)
@@ -116,11 +116,11 @@ RSpec.describe "TODO App Integration", type: :request do
   describe "Todo Items CRUD" do
     let!(:list) { todo_list_model.create!(title: "Test List") }
 
-    describe "GET /admin/items (index)" do
+    describe "GET /items (index)" do
       it "returns 200" do
         todo_item_model.create!(title: "Buy milk", todo_list_id: list.id)
 
-        get "/admin/items"
+        get "/items"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Buy milk")
@@ -129,32 +129,32 @@ RSpec.describe "TODO App Integration", type: :request do
 
     describe "sort direction arrows" do
       it "does not show arrow when default sort column is not in table columns" do
-        get "/admin/items"
+        get "/items"
 
         # default_sort is created_at which is not a visible table column
         expect(response.body).not_to include('<span class="lcp-sort-icon')
       end
 
       it "shows asc arrow when sorting ascending via params" do
-        get "/admin/items", params: { sort: "title", direction: "asc" }
+        get "/items", params: { sort: "title", direction: "asc" }
 
         expect(response.body).to include('<span class="lcp-sort-icon lcp-sort-asc">')
       end
 
       it "shows desc arrow when sorting descending via params" do
-        get "/admin/items", params: { sort: "title", direction: "desc" }
+        get "/items", params: { sort: "title", direction: "desc" }
 
         expect(response.body).to include('<span class="lcp-sort-icon lcp-sort-desc">')
       end
 
       it "marks the sorted column link with lcp-sorted class" do
-        get "/admin/items", params: { sort: "title", direction: "asc" }
+        get "/items", params: { sort: "title", direction: "asc" }
 
         expect(response.body).to include('lcp-sorted')
       end
 
       it "does not mark unsorted columns with lcp-sorted class" do
-        get "/admin/items", params: { sort: "title", direction: "asc" }
+        get "/items", params: { sort: "title", direction: "asc" }
 
         # Only the title column link should have lcp-sorted (CSS rule also contains the string)
         expect(response.body).to include('class="lcp-sorted"')
@@ -162,23 +162,23 @@ RSpec.describe "TODO App Integration", type: :request do
       end
 
       it "generates toggle link for sorted column" do
-        get "/admin/items", params: { sort: "title", direction: "asc" }
+        get "/items", params: { sort: "title", direction: "asc" }
 
         # Clicking title again should toggle to desc (params alphabetically ordered by url_for)
         expect(response.body).to include("direction=desc&amp;sort=title")
       end
 
       it "does not show idle arrows on non-sorted sortable columns" do
-        get "/admin/items", params: { sort: "title", direction: "asc" }
+        get "/items", params: { sort: "title", direction: "asc" }
 
         expect(response.body).not_to include('lcp-sort-idle')
       end
     end
 
-    describe "POST /admin/items (create)" do
+    describe "POST /items (create)" do
       it "creates item with belongs_to association" do
         expect {
-          post "/admin/items", params: { record: { title: "New Item", todo_list_id: list.id } }
+          post "/items", params: { record: { title: "New Item", todo_list_id: list.id } }
         }.to change { todo_item_model.count }.by(1)
 
         expect(response).to have_http_status(:redirect)
@@ -188,28 +188,28 @@ RSpec.describe "TODO App Integration", type: :request do
       end
 
       it "returns validation error when title is blank" do
-        post "/admin/items", params: { record: { title: "", todo_list_id: list.id } }
+        post "/items", params: { record: { title: "", todo_list_id: list.id } }
 
         expect(response).to have_http_status(:unprocessable_entity)
       end
     end
 
-    describe "GET /admin/items/:id (show)" do
+    describe "GET /items/:id (show)" do
       it "shows item details" do
         item = todo_item_model.create!(title: "Buy milk", todo_list_id: list.id, completed: false)
 
-        get "/admin/items/#{item.id}"
+        get "/items/#{item.id}"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Buy milk")
       end
     end
 
-    describe "PATCH /admin/items/:id (update)" do
+    describe "PATCH /items/:id (update)" do
       it "updates the item" do
         item = todo_item_model.create!(title: "Old", todo_list_id: list.id)
 
-        patch "/admin/items/#{item.id}", params: { record: { title: "Updated", completed: true } }
+        patch "/items/#{item.id}", params: { record: { title: "Updated", completed: true } }
 
         expect(response).to have_http_status(:redirect)
         item.reload
@@ -217,12 +217,12 @@ RSpec.describe "TODO App Integration", type: :request do
       end
     end
 
-    describe "DELETE /admin/items/:id (destroy)" do
+    describe "DELETE /items/:id (destroy)" do
       it "deletes the item" do
         item = todo_item_model.create!(title: "To Delete", todo_list_id: list.id)
 
         expect {
-          delete "/admin/items/#{item.id}"
+          delete "/items/#{item.id}"
         }.to change { todo_item_model.count }.by(-1)
 
         expect(response).to have_http_status(:redirect)
@@ -235,7 +235,7 @@ RSpec.describe "TODO App Integration", type: :request do
       todo_list_model.create!(title: "Groceries", description: "food shopping")
       todo_list_model.create!(title: "Work Tasks", description: "office stuff")
 
-      get "/admin/lists", params: { q: "Groceries" }
+      get "/lists", params: { q: "Groceries" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Groceries")
@@ -247,7 +247,7 @@ RSpec.describe "TODO App Integration", type: :request do
     let!(:list) { todo_list_model.create!(title: "My List") }
 
     it "renders a <select> for todo_list_id on new item form" do
-      get "/admin/items/new"
+      get "/items/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("<select")
@@ -258,7 +258,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "renders a <select> for todo_list_id on edit item form" do
       item = todo_item_model.create!(title: "Test", todo_list_id: list.id)
 
-      get "/admin/items/#{item.id}/edit"
+      get "/items/#{item.id}/edit"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("<select")
@@ -270,14 +270,14 @@ RSpec.describe "TODO App Integration", type: :request do
     let!(:list) { todo_list_model.create!(title: "Test List") }
 
     it "shows Edit link on index page" do
-      get "/admin/lists"
+      get "/lists"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Edit")
     end
 
     it "shows Edit link on show page" do
-      get "/admin/lists/#{list.id}"
+      get "/lists/#{list.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Edit")
@@ -286,7 +286,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "shows Edit link for items on index page" do
       item = todo_item_model.create!(title: "Buy milk", todo_list_id: list.id)
 
-      get "/admin/items"
+      get "/items"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Edit")
@@ -295,7 +295,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "shows Edit link for items on show page" do
       item = todo_item_model.create!(title: "Buy milk", todo_list_id: list.id)
 
-      get "/admin/items/#{item.id}"
+      get "/items/#{item.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Edit")
@@ -306,7 +306,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "includes turbo-confirm data attribute on delete button" do
       list = todo_list_model.create!(title: "Delete Me")
 
-      get "/admin/lists/#{list.id}"
+      get "/lists/#{list.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("turbo-confirm")
@@ -314,7 +314,7 @@ RSpec.describe "TODO App Integration", type: :request do
     end
 
     it "includes confirm dialog handling via external JS asset" do
-      get "/admin/lists"
+      get "/lists"
 
       expect(response).to have_http_status(:ok)
       # Confirm dialog handling is in the external form_handling.js asset
@@ -327,7 +327,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
   describe "Nested forms" do
     it "renders nested fields section on new list form" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-nested-section")
@@ -336,7 +336,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
     it "creates list with nested items" do
       expect {
-        post "/admin/lists", params: {
+        post "/lists", params: {
           record: {
             title: "My List",
             description: "List with items",
@@ -359,7 +359,7 @@ RSpec.describe "TODO App Integration", type: :request do
       list = todo_list_model.create!(title: "Edit List")
       todo_item_model.create!(title: "Existing Item", todo_list_id: list.id)
 
-      get "/admin/lists/#{list.id}/edit"
+      get "/lists/#{list.id}/edit"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Existing Item")
@@ -371,7 +371,7 @@ RSpec.describe "TODO App Integration", type: :request do
       item = todo_item_model.create!(title: "Old Item", todo_list_id: list.id)
 
       expect {
-        patch "/admin/lists/#{list.id}", params: {
+        patch "/lists/#{list.id}", params: {
           record: {
             title: "Updated List",
             todo_items_attributes: {
@@ -391,7 +391,7 @@ RSpec.describe "TODO App Integration", type: :request do
       item = todo_item_model.create!(title: "Delete Me", todo_list_id: list.id)
 
       expect {
-        patch "/admin/lists/#{list.id}", params: {
+        patch "/lists/#{list.id}", params: {
           record: {
             title: "Remove List",
             todo_items_attributes: {
@@ -405,7 +405,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
   describe "Empty state" do
     it "shows empty message when no records" do
-      get "/admin/lists"
+      get "/lists"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-empty-state")
@@ -417,7 +417,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "renders row-clickable class on table rows" do
       todo_list_model.create!(title: "Clickable")
 
-      get "/admin/lists"
+      get "/lists"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-row-clickable")
@@ -429,7 +429,7 @@ RSpec.describe "TODO App Integration", type: :request do
       list = todo_list_model.create!(title: "With Items")
       todo_item_model.create!(title: "Sub Item", todo_list_id: list.id)
 
-      get "/admin/lists/#{list.id}"
+      get "/lists/#{list.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Sub Item")
@@ -439,7 +439,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "renders heading display type on show page" do
       list = todo_list_model.create!(title: "Bold Title")
 
-      get "/admin/lists/#{list.id}"
+      get "/lists/#{list.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("<strong>")
@@ -449,7 +449,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
   describe "Nested form template" do
     it "renders hidden template for JS cloning" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("data-lcp-nested-template")
@@ -457,7 +457,7 @@ RSpec.describe "TODO App Integration", type: :request do
     end
 
     it "renders nested column count" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       # columns: 3 in the fixture
@@ -465,7 +465,7 @@ RSpec.describe "TODO App Integration", type: :request do
     end
 
     it "builds minimum required nested records on new form (min: 1)" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-nested-section")
@@ -476,7 +476,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
   describe "Dynamic defaults" do
     it "applies current_date default on new form" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       # start_date should be pre-filled with today's date
@@ -486,7 +486,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "does not overwrite existing value on edit form" do
       list = todo_list_model.create!(title: "Test", start_date: Date.new(2025, 1, 15))
 
-      get "/admin/lists/#{list.id}/edit"
+      get "/lists/#{list.id}/edit"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("2025-01-15")
@@ -495,7 +495,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
   describe "Form field features" do
     it "renders hint text below input" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-field-hint")
@@ -503,14 +503,14 @@ RSpec.describe "TODO App Integration", type: :request do
     end
 
     it "renders col_span on form fields" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("grid-column: span 2")
     end
 
     it "renders divider with label" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-divider")
@@ -518,7 +518,7 @@ RSpec.describe "TODO App Integration", type: :request do
     end
 
     it "hides visible_when field on new form (service condition returns false)" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       # description field has visible_when: { service: persisted_check }
@@ -530,7 +530,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "shows visible_when field on edit form (service condition returns true)" do
       list = todo_list_model.create!(title: "Test")
 
-      get "/admin/lists/#{list.id}/edit"
+      get "/lists/#{list.id}/edit"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Description")
@@ -540,7 +540,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
   describe "Service condition rendering" do
     it "hides description field on new form (persisted_check service returns false)" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       # description has visible_when: { service: persisted_check }
@@ -551,7 +551,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "shows description field on edit form (persisted_check service returns true)" do
       list = todo_list_model.create!(title: "Test List")
 
-      get "/admin/lists/#{list.id}/edit"
+      get "/lists/#{list.id}/edit"
 
       expect(response).to have_http_status(:ok)
       # Edit record is persisted, so service returns true and field is visible
@@ -560,7 +560,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
     it "hidden description field value is still accepted on form submit" do
       expect {
-        post "/admin/lists", params: {
+        post "/lists", params: {
           record: { title: "With Desc", description: "Hidden but submitted" }
         }
       }.to change { todo_list_model.count }.by(1)
@@ -573,7 +573,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "returns service condition results for existing record via AJAX" do
       list = todo_list_model.create!(title: "Persisted List")
 
-      post "/admin/lists/#{list.id}/evaluate_conditions", params: {
+      post "/lists/#{list.id}/evaluate_conditions", params: {
         record: { title: "Updated Title" }
       }, headers: { "Accept" => "application/json" }
 
@@ -585,7 +585,7 @@ RSpec.describe "TODO App Integration", type: :request do
     end
 
     it "returns service condition results for new record via AJAX" do
-      post "/admin/lists/evaluate_conditions", params: {
+      post "/lists/evaluate_conditions", params: {
         record: { title: "New Title" }
       }, headers: { "Accept" => "application/json" }
 
@@ -598,7 +598,7 @@ RSpec.describe "TODO App Integration", type: :request do
     it "returns empty hash when no service conditions are present" do
       list = todo_list_model.create!(title: "Test")
 
-      post "/admin/lists/#{list.id}/evaluate_conditions", params: {
+      post "/lists/#{list.id}/evaluate_conditions", params: {
         record: { title: "Updated" }
       }, headers: { "Accept" => "application/json" }
 
@@ -611,14 +611,14 @@ RSpec.describe "TODO App Integration", type: :request do
 
   describe "Sortable nested forms" do
     it "renders drag handles on nested form" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-drag-handle")
     end
 
     it "renders data-sortable attribute on nested section" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('data-sortable="true"')
@@ -626,14 +626,14 @@ RSpec.describe "TODO App Integration", type: :request do
     end
 
     it "renders hidden position field" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-position-field")
     end
 
     it "does not render position as a visible field" do
-      get "/admin/lists/new"
+      get "/lists/new"
 
       expect(response).to have_http_status(:ok)
       # The position field label should not appear as a visible form field
@@ -641,7 +641,7 @@ RSpec.describe "TODO App Integration", type: :request do
     end
 
     it "creates records with position values" do
-      post "/admin/lists", params: {
+      post "/lists", params: {
         record: {
           title: "Sorted List",
           todo_items_attributes: {
@@ -665,7 +665,7 @@ RSpec.describe "TODO App Integration", type: :request do
       item2 = todo_item_model.create!(title: "B", todo_list_id: list.id, position: 1)
       item3 = todo_item_model.create!(title: "C", todo_list_id: list.id, position: 2)
 
-      patch "/admin/lists/#{list.id}", params: {
+      patch "/lists/#{list.id}", params: {
         record: {
           title: "Reorder List",
           todo_items_attributes: {
@@ -687,7 +687,7 @@ RSpec.describe "TODO App Integration", type: :request do
       todo_item_model.create!(title: "Alpha Item", todo_list_id: list.id, position: 0)
       todo_item_model.create!(title: "Mu Item", todo_list_id: list.id, position: 1)
 
-      get "/admin/lists/#{list.id}/edit"
+      get "/lists/#{list.id}/edit"
 
       expect(response).to have_http_status(:ok)
       body = response.body
@@ -698,7 +698,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
     it "auto-permits position field" do
       expect {
-        post "/admin/lists", params: {
+        post "/lists", params: {
           record: {
             title: "Position Test",
             todo_items_attributes: {
@@ -719,7 +719,7 @@ RSpec.describe "TODO App Integration", type: :request do
         todo_item_model.create!(title: "Item A", todo_list_id: list.id)
         todo_item_model.create!(title: "Item B", todo_list_id: list.id)
 
-        get "/admin/lists"
+        get "/lists"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Item A")
@@ -732,7 +732,7 @@ RSpec.describe "TODO App Integration", type: :request do
         list = todo_list_model.create!(title: "My Todo List")
         todo_item_model.create!(title: "Test Item", todo_list_id: list.id)
 
-        get "/admin/items"
+        get "/items"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("My Todo List")
@@ -752,7 +752,7 @@ RSpec.describe "TODO App Integration", type: :request do
       callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
       begin
         ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
-        get "/admin/items"
+        get "/items"
       ensure
         ActiveSupport::Notifications.unsubscribe(callback)
       end
@@ -774,7 +774,7 @@ RSpec.describe "TODO App Integration", type: :request do
       callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
       begin
         ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
-        get "/admin/lists/#{list.id}"
+        get "/lists/#{list.id}"
       ensure
         ActiveSupport::Notifications.unsubscribe(callback)
       end
@@ -798,7 +798,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
       allow(LcpRuby::Presenter::IncludesResolver).to receive(:resolve).and_raise(StandardError, "resolver boom")
 
-      get "/admin/lists"
+      get "/lists"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Fallback List")
@@ -809,7 +809,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
       allow(ActiveRecord::Associations::Preloader).to receive(:new).and_raise(StandardError, "preloader boom")
 
-      get "/admin/lists/#{list.id}"
+      get "/lists/#{list.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Show Fallback")
@@ -819,7 +819,7 @@ RSpec.describe "TODO App Integration", type: :request do
   describe "Nested permits (build_nested_permits)" do
     it "permits nested attributes based on model association" do
       expect {
-        post "/admin/lists", params: {
+        post "/lists", params: {
           record: {
             title: "Permit Test",
             todo_items_attributes: {
@@ -840,7 +840,7 @@ RSpec.describe "TODO App Integration", type: :request do
       item = todo_item_model.create!(title: "Remove Me", todo_list_id: list.id)
 
       expect {
-        patch "/admin/lists/#{list.id}", params: {
+        patch "/lists/#{list.id}", params: {
           record: {
             title: "Destroy Test",
             todo_items_attributes: {

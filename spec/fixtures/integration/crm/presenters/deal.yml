@@ -1,5 +1,5 @@
 presenter:
-  name: deal_admin
+  name: deal
   model: deal
   label: "Deals"
   slug: deals

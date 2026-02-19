@@ -195,20 +195,20 @@ RSpec.describe LcpRuby::Authorization::PermissionEvaluator do
   describe "#can_access_presenter?" do
     it "admin can access all presenters" do
       evaluator = described_class.new(perm_def, admin_user, "project")
-      expect(evaluator.can_access_presenter?("project_admin")).to be true
+      expect(evaluator.can_access_presenter?("project")).to be true
       expect(evaluator.can_access_presenter?("project_public")).to be true
     end
 
-    it "manager can only access project_admin" do
+    it "manager can only access project" do
       evaluator = described_class.new(perm_def, manager_user, "project")
-      expect(evaluator.can_access_presenter?("project_admin")).to be true
+      expect(evaluator.can_access_presenter?("project")).to be true
       expect(evaluator.can_access_presenter?("project_public")).to be false
     end
 
     it "viewer can only access project_public" do
       evaluator = described_class.new(perm_def, viewer_user, "project")
       expect(evaluator.can_access_presenter?("project_public")).to be true
-      expect(evaluator.can_access_presenter?("project_admin")).to be false
+      expect(evaluator.can_access_presenter?("project")).to be false
     end
   end
 
@@ -242,11 +242,11 @@ RSpec.describe LcpRuby::Authorization::PermissionEvaluator do
     end
 
     it "merges presenter access (union)" do
-      # viewer: [project_public] + manager: [project_admin]
+      # viewer: [project_public] + manager: [project]
       multi_user = double("User", lcp_role: ["viewer", "manager"], id: 10)
       evaluator = described_class.new(perm_def, multi_user, "project")
 
-      expect(evaluator.can_access_presenter?("project_admin")).to be true
+      expect(evaluator.can_access_presenter?("project")).to be true
       expect(evaluator.can_access_presenter?("project_public")).to be true
     end
 

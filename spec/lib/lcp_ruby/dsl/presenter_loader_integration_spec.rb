@@ -7,8 +7,8 @@ RSpec.describe "Presenter Loader DSL integration" do
         presenters_dir = File.join(dir, "presenters")
         FileUtils.mkdir_p(presenters_dir)
 
-        File.write(File.join(presenters_dir, "widget_admin.rb"), <<~RUBY)
-          define_presenter :widget_admin do
+        File.write(File.join(presenters_dir, "widget.rb"), <<~RUBY)
+          define_presenter :widget do
             model :widget
             label "Widgets"
             slug "widgets"
@@ -27,8 +27,8 @@ RSpec.describe "Presenter Loader DSL integration" do
         loader = LcpRuby::Metadata::Loader.new(dir)
         loader.send(:load_presenters)
 
-        expect(loader.presenter_definitions).to have_key("widget_admin")
-        presenter = loader.presenter_definition("widget_admin")
+        expect(loader.presenter_definitions).to have_key("widget")
+        presenter = loader.presenter_definition("widget")
         expect(presenter.model).to eq("widget")
         expect(presenter.label).to eq("Widgets")
         expect(presenter.per_page).to eq(20)
@@ -123,7 +123,7 @@ RSpec.describe "Presenter Loader DSL integration" do
         FileUtils.mkdir_p(presenters_dir)
 
         File.write(File.join(presenters_dir, "parent.rb"), <<~RUBY)
-          define_presenter :parent_admin do
+          define_presenter :parent do
             model :project
             label "Projects"
             slug "projects"
@@ -144,7 +144,7 @@ RSpec.describe "Presenter Loader DSL integration" do
         RUBY
 
         File.write(File.join(presenters_dir, "child.rb"), <<~RUBY)
-          define_presenter :child_readonly, inherits: :parent_admin do
+          define_presenter :child_readonly, inherits: :parent do
             label "Projects (Read Only)"
             slug "projects-readonly"
             read_only true
@@ -160,7 +160,7 @@ RSpec.describe "Presenter Loader DSL integration" do
         loader = LcpRuby::Metadata::Loader.new(dir)
         loader.send(:load_presenters)
 
-        parent = loader.presenter_definition("parent_admin")
+        parent = loader.presenter_definition("parent")
         child = loader.presenter_definition("child_readonly")
 
         expect(parent.per_page).to eq(25)
@@ -176,13 +176,13 @@ RSpec.describe "Presenter Loader DSL integration" do
 
   describe "LcpRuby.define_presenter" do
     it "returns a PresenterDefinition" do
-      definition = LcpRuby.define_presenter(:widget_admin) do
+      definition = LcpRuby.define_presenter(:widget) do
         model :widget
         slug "widgets"
       end
 
       expect(definition).to be_a(LcpRuby::Metadata::PresenterDefinition)
-      expect(definition.name).to eq("widget_admin")
+      expect(definition.name).to eq("widget")
       expect(definition.model).to eq("widget")
     end
   end

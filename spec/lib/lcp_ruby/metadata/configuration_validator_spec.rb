@@ -259,7 +259,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
           YAML
           presenters: [ <<~YAML ]
             presenter:
-              name: ghost_admin
+              name: ghost
               model: ghost
               slug: ghosts
           YAML
@@ -281,7 +281,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         YAML
         presenters: [ <<~YAML ]
           presenter:
-            name: project_admin
+            name: project
             model: project
             slug: projects
             index:
@@ -311,7 +311,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         YAML
         presenters: [ <<~YAML ]
           presenter:
-            name: project_admin
+            name: project
             model: project
             slug: projects
             form:
@@ -345,7 +345,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         YAML
         presenters: [ <<~YAML ]
           presenter:
-            name: project_admin
+            name: project
             model: project
             slug: projects
             search:
@@ -507,7 +507,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         presenters: [
           <<~YAML,
             presenter:
-              name: project_admin
+              name: project
               model: project
               slug: projects
           YAML
@@ -761,7 +761,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
           YAML
           presenters: [ <<~YAML ],
             presenter:
-              name: project_admin
+              name: project
               model: project
               slug: projects
           YAML
@@ -769,9 +769,9 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             view_group:
               name: bad_group
               model: nonexistent
-              primary: project_admin
+              primary: project
               views:
-                - presenter: project_admin
+                - presenter: project
           YAML
         )
       }.to raise_error(LcpRuby::MetadataError, /unknown model/)
@@ -792,7 +792,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
           YAML
           presenters: [ <<~YAML ],
             presenter:
-              name: project_admin
+              name: project
               model: project
               slug: projects
           YAML
@@ -800,9 +800,9 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             view_group:
               name: bad_group
               model: project
-              primary: project_admin
+              primary: project
               views:
-                - presenter: project_admin
+                - presenter: project
                 - presenter: ghost_presenter
           YAML
         )
@@ -825,7 +825,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
           presenters: [
             <<~YAML,
               presenter:
-                name: project_admin
+                name: project
                 model: project
                 slug: projects
             YAML
@@ -841,9 +841,9 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               view_group:
                 name: group_a
                 model: project
-                primary: project_admin
+                primary: project
                 views:
-                  - presenter: project_admin
+                  - presenter: project
             YAML
             <<~YAML
               view_group:
@@ -852,7 +852,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
                 primary: project_public
                 views:
                   - presenter: project_public
-                  - presenter: project_admin
+                  - presenter: project
             YAML
           ]
         )
@@ -875,7 +875,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
           presenters: [
             <<~YAML,
               presenter:
-                name: project_admin
+                name: project
                 model: project
                 slug: projects
             YAML
@@ -892,7 +892,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               model: project
               primary: project_public
               views:
-                - presenter: project_admin
+                - presenter: project
           YAML
         )
       }.to raise_error(LcpRuby::MetadataError, /primary presenter 'project_public'.*not in the views list/)
@@ -913,7 +913,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         presenters: [
           <<~YAML,
             presenter:
-              name: project_admin
+              name: project
               model: project
               slug: projects
           YAML
@@ -929,12 +929,12 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             view_group:
               name: group_a
               model: project
-              primary: project_admin
+              primary: project
               navigation:
                 menu: main
                 position: 1
               views:
-                - presenter: project_admin
+                - presenter: project
           YAML
           <<~YAML
             view_group:
@@ -971,7 +971,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         presenters: [
           <<~YAML,
             presenter:
-              name: project_admin
+              name: project
               model: project
               slug: projects
           YAML
@@ -986,12 +986,12 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
           view_group:
             name: projects
             model: project
-            primary: project_admin
+            primary: project
             navigation:
               menu: main
               position: 1
             views:
-              - presenter: project_admin
+              - presenter: project
                 label: "Admin"
               - presenter: project_public
                 label: "Public"
@@ -1127,7 +1127,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         YAML
         presenters: [ <<~YAML ]
           presenter:
-            name: project_admin
+            name: project
             model: project
             slug: projects
             form:
@@ -1157,7 +1157,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         YAML
         presenters: [ <<~YAML ]
           presenter:
-            name: project_admin
+            name: project
             model: project
             slug: projects
             form:
@@ -1189,7 +1189,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         YAML
         presenters: [ <<~YAML ]
           presenter:
-            name: project_admin
+            name: project
             model: project
             slug: projects
             form:
@@ -1217,7 +1217,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         YAML
         presenters: [ <<~YAML ]
           presenter:
-            name: project_admin
+            name: project
             model: project
             slug: projects
             form:
@@ -1245,7 +1245,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         YAML
         presenters: [ <<~YAML ]
           presenter:
-            name: project_admin
+            name: project
             model: project
             slug: projects
             actions:
@@ -1272,7 +1272,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
         YAML
         presenters: [ <<~YAML ]
           presenter:
-            name: project_admin
+            name: project
             model: project
             slug: projects
             form:

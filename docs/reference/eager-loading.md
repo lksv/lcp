@@ -34,7 +34,7 @@ Override or supplement auto-detection with explicit `includes` and `eager_load` 
 
 ```yaml
 presenter:
-  name: deal_admin
+  name: deal
   model: deal
 
   index:
@@ -69,7 +69,7 @@ index:
 ### DSL Syntax
 
 ```ruby
-define_presenter :deal_admin do
+define_presenter :deal do
   model :deal
 
   index do
@@ -113,7 +113,7 @@ When the same association has both `:display` and `:query` reasons, the query st
 Sort fields support dot-notation for sorting by association columns:
 
 ```
-GET /admin/deals?sort=company.name&direction=asc
+GET /deals?sort=company.name&direction=asc
 ```
 
 The `IncludesResolver` automatically adds a `:query` dependency for `company`, and `apply_sort` generates the appropriate ORDER clause using quoted table and column names. Column names are validated against the target model's actual database columns to prevent injection.

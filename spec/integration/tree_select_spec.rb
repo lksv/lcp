@@ -22,7 +22,7 @@ RSpec.describe "Tree Select (Phase 4)", type: :request do
 
   describe "tree_select form rendering" do
     it "renders new form with tree select widget" do
-      get "/admin/categories/new"
+      get "/categories/new"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-tree-select-wrapper")
       expect(response.body).to include("lcp-tree-trigger")
@@ -33,7 +33,7 @@ RSpec.describe "Tree Select (Phase 4)", type: :request do
       root = category_model.create!(name: "Root")
       child = category_model.create!(name: "Child", parent_id: root.id)
 
-      get "/admin/categories/#{child.id}/edit"
+      get "/categories/#{child.id}/edit"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-tree-select-wrapper")
       expect(response.body).to include("Root")
@@ -43,7 +43,7 @@ RSpec.describe "Tree Select (Phase 4)", type: :request do
   describe "creating records with tree select" do
     it "creates a root category (no parent)" do
       expect {
-        post "/admin/categories", params: {
+        post "/categories", params: {
           record: { name: "Root Category", active: true }
         }
       }.to change { category_model.count }.by(1)
@@ -57,7 +57,7 @@ RSpec.describe "Tree Select (Phase 4)", type: :request do
       root = category_model.create!(name: "Root")
 
       expect {
-        post "/admin/categories", params: {
+        post "/categories", params: {
           record: { name: "Child Category", parent_id: root.id, active: true }
         }
       }.to change { category_model.count }.by(1)
@@ -74,7 +74,7 @@ RSpec.describe "Tree Select (Phase 4)", type: :request do
       root2 = category_model.create!(name: "Root 2")
       child = category_model.create!(name: "Child", parent_id: root1.id)
 
-      patch "/admin/categories/#{child.id}", params: {
+      patch "/categories/#{child.id}", params: {
         record: { parent_id: root2.id }
       }
 
@@ -87,7 +87,7 @@ RSpec.describe "Tree Select (Phase 4)", type: :request do
       root = category_model.create!(name: "Root")
       child = category_model.create!(name: "Child", parent_id: root.id)
 
-      patch "/admin/categories/#{child.id}", params: {
+      patch "/categories/#{child.id}", params: {
         record: { parent_id: "" }
       }
 
@@ -103,7 +103,7 @@ RSpec.describe "Tree Select (Phase 4)", type: :request do
       child = category_model.create!(name: "Child", parent_id: root.id)
       grandchild = category_model.create!(name: "Grandchild", parent_id: child.id)
 
-      get "/admin/categories/select_options", params: { field: "parent_id", tree: "true" }
+      get "/categories/select_options", params: { field: "parent_id", tree: "true" }
       expect(response).to have_http_status(:ok)
 
       data = JSON.parse(response.body)

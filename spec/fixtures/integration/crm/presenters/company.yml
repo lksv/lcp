@@ -1,5 +1,5 @@
 presenter:
-  name: company_admin
+  name: company
   model: company
   label: "Companies"
   slug: companies

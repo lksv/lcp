@@ -1,9 +1,9 @@
 view_group:
   model: todo_list
-  primary: todo_list_admin
+  primary: todo_list
   navigation:
     menu: main
     position: 1
   views:
-    - presenter: todo_list_admin
+    - presenter: todo_list
       label: "Todo Lists"

@@ -39,7 +39,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
     let(:presenter_admin) do
       instance_double(
         LcpRuby::Metadata::PresenterDefinition,
-        name: "project_admin",
+        name: "project",
         model: "project",
         routable?: true,
         label: "Projects",
@@ -63,8 +63,8 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
     let(:view_group) do
       instance_double(
         LcpRuby::Metadata::ViewGroupDefinition,
-        primary_presenter: "project_admin",
-        presenter_names: ["project_admin"],
+        primary_presenter: "project",
+        presenter_names: ["project"],
         navigation_config: { "position" => 1 }
       )
     end
@@ -97,7 +97,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
         "project_public" => view_group_restricted
       )
       allow(loader).to receive(:presenter_definitions).and_return(
-        "project_admin" => presenter_admin,
+        "project" => presenter_admin,
         "project_public" => presenter_restricted
       )
       allow(loader).to receive(:permission_definition).with("project").and_return(perm_def)
