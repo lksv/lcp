@@ -2,12 +2,24 @@ menu:
   sidebar_menu:
     - label: "CRM"
       icon: briefcase
+      badge:
+        provider: open_deals_count
+        renderer: count_badge
       children:
         - view_group: companies
         - view_group: contacts
+          badge:
+            provider: active_contacts_count
+            renderer: count_badge
         - separator: true
         - view_group: deals
+          badge:
+            provider: won_deals_count
+            renderer: text_badge
         - view_group: pipeline
+          badge:
+            provider: pipeline_value
+            template: "€{value}"
 
     - label: "Catalogs"
       icon: folder

@@ -18,7 +18,7 @@ LCP Ruby is a **low-code platform** implemented as a Rails mountable engine for 
 - [Types Reference](docs/reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters Reference](docs/reference/presenters.md) — Complete presenter YAML reference
 - [View Groups Reference](docs/reference/view-groups.md) — Navigation menu, view switching, auto-creation
-- [Menu Reference](docs/reference/menu.md) — Configurable navigation: top bar, sidebar, dropdowns, role visibility
+- [Menu Reference](docs/reference/menu.md) — Configurable navigation: top bar, sidebar, dropdowns, badges, role visibility
 - [Permissions Reference](docs/reference/permissions.md) — Complete permission YAML reference
 - [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
 - [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
@@ -35,7 +35,7 @@ LCP Ruby is a **low-code platform** implemented as a Rails mountable engine for 
 - [Attachments Guide](docs/guides/attachments.md) — File upload with Active Storage
 - [Eager Loading Guide](docs/guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [View Groups Guide](docs/guides/view-groups.md) — Multi-view navigation and view switcher setup
-- [Menu Guide](docs/guides/menu.md) — Custom navigation menus: dropdowns, sidebar, combined layouts
+- [Menu Guide](docs/guides/menu.md) — Custom navigation menus: dropdowns, sidebar, combined layouts, badges
 - [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views
@@ -79,7 +79,8 @@ YAML metadata (config/lcp_ruby/)
   ├── types/*.yml        → Metadata::Loader → TypeDefinition → TypeRegistry
   ├── models/*.yml       → Metadata::Loader → ModelDefinition
   ├── presenters/*.yml   → Metadata::Loader → PresenterDefinition
-  └── permissions/*.yml  → Metadata::Loader → PermissionDefinition
+  ├── permissions/*.yml  → Metadata::Loader → PermissionDefinition
+  └── menu.yml           → Metadata::Loader → MenuDefinition → MenuItem (with badges)
                                 ↓
               ModelFactory::Builder.build → LcpRuby::Dynamic::<Name>
               (creates AR class + DB table + validations + transforms + associations + scopes)
@@ -87,7 +88,8 @@ YAML metadata (config/lcp_ruby/)
               LcpRuby.registry.register(name, model_class)
                                 ↓
               ConditionServiceRegistry.discover! → condition services from app/condition_services/
-              Display::RendererRegistry.register_built_ins! → 26 built-in renderers
+              Services::Registry.discover! → data providers from app/lcp_services/data_providers/
+              Display::RendererRegistry.register_built_ins! → 26 built-in renderers + badge renderers
               Display::RendererRegistry.discover! → custom renderers from app/renderers/
                                 ↓
               Engine routes (/:lcp_slug/*) → ResourcesController
@@ -102,7 +104,7 @@ YAML metadata (config/lcp_ruby/)
 | `Types` | `lib/lcp_ruby/types/` | TypeRegistry, TypeDefinition, ServiceRegistry, built-in types (email, phone, url, color), transforms (strip, downcase, normalize_url, normalize_phone) |
 | `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator |
 | `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections), ColumnSet (visible columns), ActionSet (visible actions), IncludesResolver (auto-detects and applies eager loading from presenter metadata), FieldValueResolver (dot-path, template, FK, and simple field resolution with permission checks) |
-| `Display` | `lib/lcp_ruby/display/` | BaseRenderer (base class), 26 built-in renderer classes in `renderers/`, RendererRegistry (registers built-ins + auto-discovers host renderers from `app/renderers/`) |
+| `Display` | `lib/lcp_ruby/display/` | BaseRenderer (base class), 26 built-in renderer classes in `renderers/`, badge renderers (CountBadge, TextBadge, IconBadge), RendererRegistry (registers built-ins + auto-discovers host renderers from `app/renderers/`) |
 | `Authorization` | `lib/lcp_ruby/authorization/` | PolicyFactory (dynamic Pundit policies), PermissionEvaluator (can?, readable_fields, writable_fields), ScopeBuilder |
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |
 | `Actions` | `lib/lcp_ruby/actions/` | ActionExecutor + ActionRegistry. Host apps define custom actions in `app/actions/` |
