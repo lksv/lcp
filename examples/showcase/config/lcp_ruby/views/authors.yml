@@ -1,9 +1,6 @@
 view_group:
   model: author
   primary: authors
-  navigation:
-    menu: main
-    position: 5
   views:
     - presenter: authors
       label: "Authors"

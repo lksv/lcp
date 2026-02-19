@@ -1,9 +1,6 @@
 view_group:
   model: showcase_field
   primary: showcase_fields_table
-  navigation:
-    menu: main
-    position: 1
   views:
     - presenter: showcase_fields_table
       label: "Table View"

@@ -1,0 +1,10 @@
+view_group:
+  model: feature
+  primary: features_card
+  views:
+    - presenter: features_card
+      label: "Card View"
+      icon: layout
+    - presenter: features_table
+      label: "Table View"
+      icon: grid

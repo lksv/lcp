@@ -419,4 +419,734 @@ ExtModel = LcpRuby.registry.model_for("showcase_extensibility")
 ].each { |attrs| ExtModel.create!(attrs) }
 puts "  Created #{ExtModel.count} showcase_extensibility records"
 
+# Phase 9: Feature Catalog
+FeatureModel = LcpRuby.registry.model_for("feature")
+
+features = [
+  # === Field Types ===
+  {
+    name: "String Field",
+    category: "field_types",
+    description: "Basic text field with optional `limit` (max characters). Supports `null: false` for required constraint at DB level.\n\nUsed for short text: names, titles, codes.",
+    config_example: "```yaml\nfields:\n  - name: title\n    type: string\n    limit: 100\n    null: false\n```",
+    demo_path: "/showcase/showcase-fields/1#field-title",
+    demo_hint: "Look at the **Title** field — a simple string with heading display.",
+    status: "stable"
+  },
+  {
+    name: "Text Field",
+    category: "field_types",
+    description: "Unlimited-length text field. Ideal for descriptions, notes, and longer content.",
+    config_example: "```yaml\nfields:\n  - name: description\n    type: text\n```",
+    demo_path: "/showcase/showcase-fields/1#field-description",
+    demo_hint: "Look at the **Description** field — rendered with truncate display in the table.",
+    status: "stable"
+  },
+  {
+    name: "Integer Field",
+    category: "field_types",
+    description: "Whole number field. Supports `default` value and range validations via `min`/`max`.",
+    config_example: "```yaml\nfields:\n  - name: count\n    type: integer\n    default: 0\n```",
+    demo_path: "/showcase/showcase-fields/1#field-count",
+    demo_hint: "Look at the **Count** field — formatted with number display (thousands separator).",
+    status: "stable"
+  },
+  {
+    name: "Decimal / Float Field",
+    category: "field_types",
+    description: "Decimal numbers with configurable `precision` and `scale`. Use decimal for money, float for approximate values.",
+    config_example: "```yaml\nfields:\n  - name: price\n    type: decimal\n    precision: 10\n    scale: 2\n```",
+    demo_path: "/showcase/showcase-fields/1#field-price",
+    demo_hint: "Look at the **Price** field — displayed as currency with USD prefix.",
+    status: "stable"
+  },
+  {
+    name: "Boolean Field",
+    category: "field_types",
+    description: "True/false field. Rendered as toggle switch in forms, Yes/No icon in display.",
+    config_example: "```yaml\nfields:\n  - name: is_active\n    type: boolean\n    default: true\n```",
+    demo_path: "/showcase/showcase-fields/1#field-is_active",
+    demo_hint: "Look at the **Is active** field — shows Yes/No with color-coded text.",
+    status: "stable"
+  },
+  {
+    name: "Enum Field",
+    category: "field_types",
+    description: "Enumeration field with predefined values. Stored as string in DB, validated against the value list. Ideal for statuses, priorities, categories.",
+    config_example: "```yaml\nfields:\n  - name: status\n    type: enum\n    values: [draft, active, archived, deleted]\n    default: draft\n```",
+    demo_path: "/showcase/showcase-fields/1#field-status",
+    demo_hint: "Look at **Status** and **Priority** fields — enums rendered as colored badges.",
+    status: "stable"
+  },
+  {
+    name: "Date / DateTime Field",
+    category: "field_types",
+    description: "Date and datetime fields with configurable display format via `strftime` patterns.",
+    config_example: "```yaml\nfields:\n  - name: start_date\n    type: date\n  - name: event_time\n    type: datetime\n```",
+    demo_path: "/showcase/showcase-fields/1#field-start_date",
+    demo_hint: "Look at **Start date** (formatted date) and **Event time** (relative: '3 days ago').",
+    status: "stable"
+  },
+  {
+    name: "JSON Field",
+    category: "field_types",
+    description: "Stores arbitrary JSON data. Rendered with `code` display type. Edited as a textarea where user enters raw JSON.",
+    config_example: "```yaml\nfields:\n  - name: metadata\n    type: json\n```",
+    demo_path: "/showcase/showcase-fields/1#field-metadata",
+    demo_hint: "Open the show view and look at the **Metadata** field in the Numeric section — displayed as code block.",
+    status: "stable"
+  },
+  {
+    name: "UUID Field",
+    category: "field_types",
+    description: "Universally unique identifier. Stored as string, displayed with `code` formatting.",
+    config_example: "```yaml\nfields:\n  - name: external_id\n    type: uuid\n```",
+    demo_path: "/showcase/showcase-fields/1#field-external_id",
+    demo_hint: "Open the show view and look at **External id** — a UUID displayed in monospace code.",
+    status: "stable"
+  },
+  {
+    name: "Email Type",
+    category: "field_types",
+    description: "Built-in business type that auto-validates email format and applies `downcase` + `strip` transforms on save.",
+    config_example: "```yaml\nfields:\n  - name: email\n    type: email\n```",
+    demo_path: "/showcase/showcase-fields/1#field-email",
+    demo_hint: "Look at the **Email** field — rendered as a clickable `mailto:` link.",
+    status: "stable"
+  },
+  {
+    name: "Phone Type",
+    category: "field_types",
+    description: "Built-in business type with phone format validation and `normalize_phone` transform (strips spaces, dashes, parens).",
+    config_example: "```yaml\nfields:\n  - name: phone\n    type: phone\n```",
+    demo_path: "/showcase/showcase-fields/1#field-phone",
+    demo_hint: "Open the show view — **Phone** renders as a clickable `tel:` link.",
+    status: "stable"
+  },
+  {
+    name: "URL Type",
+    category: "field_types",
+    description: "Built-in business type that validates URL format and applies `normalize_url` transform (adds `https://` if missing).",
+    config_example: "```yaml\nfields:\n  - name: website\n    type: url\n```",
+    demo_path: "/showcase/showcase-fields/1#field-website",
+    demo_hint: "Look at the **Website** field — rendered as a clickable link opening in new tab.",
+    status: "stable"
+  },
+  {
+    name: "Color Type",
+    category: "field_types",
+    description: "Built-in business type for hex color values. Validates `#rrggbb` format. Rendered with a color swatch preview.",
+    config_example: "```yaml\nfields:\n  - name: brand_color\n    type: color\n```",
+    demo_path: "/showcase/showcase-fields/1#field-brand_color",
+    demo_hint: "Look at the **Brand color** field — shows a colored square swatch next to the hex value.",
+    status: "stable"
+  },
+  {
+    name: "Rich Text Field",
+    category: "field_types",
+    description: "HTML content field using Action Text (Trix editor). Rendered as sanitized HTML on display.",
+    config_example: "```yaml\nfields:\n  - name: notes\n    type: rich_text\n```",
+    demo_path: "/showcase/showcase-fields/1#field-notes",
+    demo_hint: "Open the show view, look at **Notes** in the Text Displays section — renders formatted HTML.",
+    status: "stable"
+  },
+  {
+    name: "Attachment Field",
+    category: "field_types",
+    description: "File upload via Active Storage. Supports single (`has_one_attached`) and multiple (`has_many_attached`) with size/content_type/max_files validations and image variants.",
+    config_example: "```yaml\nfields:\n  - name: avatar\n    type: attachment\n    attachment:\n      mode: single\n      max_size: 5MB\n      content_types: [image/png, image/jpeg]\n      variants:\n        thumb: { resize_to_limit: [100, 100] }\n```",
+    demo_path: "/showcase/showcase-attachments",
+    demo_hint: "The attachment showcase has fields for single file, multiple files, and image-only uploads.",
+    status: "stable"
+  },
+
+  # === Display Types ===
+  {
+    name: "Badge Display",
+    category: "display_types",
+    description: "Renders value as a colored pill/badge. Uses `color_map` to assign colors per value.\n\nAvailable colors: green, red, blue, yellow, orange, purple, gray, teal, cyan, pink.",
+    config_example: "```yaml\ntable_columns:\n  - field: status\n    display: badge\n    display_options:\n      color_map:\n        active: green\n        draft: gray\n        archived: orange\n```",
+    demo_path: "/showcase/showcase-fields/1#field-status",
+    demo_hint: "Look at the **Status** and **Priority** fields — both use badge display with different color maps.",
+    status: "stable"
+  },
+  {
+    name: "Rating Display",
+    category: "display_types",
+    description: "Renders a numeric value as filled/empty stars. Configurable `max` (default 5).",
+    config_example: "```yaml\ntable_columns:\n  - field: rating_value\n    display: rating\n    display_options:\n      max: 5\n```",
+    demo_path: "/showcase/showcase-fields/1#field-rating_value",
+    demo_hint: "Look at the **Rating value** field — shows stars like ★★★★☆.",
+    status: "stable"
+  },
+  {
+    name: "Currency Display",
+    category: "display_types",
+    description: "Formats a numeric value as currency with symbol, thousand separators, and decimal precision.",
+    config_example: "```yaml\ntable_columns:\n  - field: price\n    display: currency\n    display_options:\n      currency: EUR\n      precision: 2\n```",
+    demo_path: "/showcase/showcase-fields/1#field-price",
+    demo_hint: "Look at the **Price** field — displays values like `USD1,299.99`.",
+    status: "stable"
+  },
+  {
+    name: "Progress Bar Display",
+    category: "display_types",
+    description: "Visual progress bar. Value is rendered as percentage of configurable `max` (default 100).",
+    config_example: "```yaml\ntable_columns:\n  - field: completion\n    display: progress_bar\n    display_options:\n      max: 100\n```",
+    demo_path: "/showcase/showcase-forms",
+    demo_hint: "Edit a form record and look at the **Priority** slider — the value drives a progress bar display.",
+    status: "stable"
+  },
+  {
+    name: "Truncate Display",
+    category: "display_types",
+    description: "Truncates long text to a maximum number of characters with `...` suffix. Full text shown in tooltip on hover.",
+    config_example: "```yaml\ntable_columns:\n  - field: description\n    display: truncate\n    display_options:\n      max: 80\n```",
+    demo_path: "/showcase/showcase-fields/1#field-description",
+    demo_hint: "Look at the **Description** field. In the index table, long text is truncated with ellipsis — hover to see full text.",
+    status: "stable"
+  },
+  {
+    name: "Boolean Icon Display",
+    category: "display_types",
+    description: "Shows Yes/No text with green/red coloring. Customizable labels via `true_icon` and `false_icon` options.",
+    config_example: "```yaml\ntable_columns:\n  - field: is_active\n    display: boolean_icon\n    display_options:\n      true_icon: Active\n      false_icon: Inactive\n```",
+    demo_path: "/showcase/showcase-fields/1#field-is_active",
+    demo_hint: "Look at the **Is active** field — green 'Yes' or red 'No'.",
+    status: "stable"
+  },
+  {
+    name: "Color Swatch Display",
+    category: "display_types",
+    description: "Shows a small colored square preview next to the hex value. Validates input against safe CSS color patterns to prevent injection.",
+    config_example: "```yaml\ntable_columns:\n  - field: brand_color\n    display: color_swatch\n```",
+    demo_path: "/showcase/showcase-fields/1#field-brand_color",
+    demo_hint: "Look at the **Brand color** field — shows a colored square matching the hex value.",
+    status: "stable"
+  },
+  {
+    name: "Relative Date Display",
+    category: "display_types",
+    description: "Shows dates as human-readable relative time: '3 days ago', 'about 2 months ago', etc.",
+    config_example: "```yaml\ntable_columns:\n  - field: event_time\n    display: relative_date\n```",
+    demo_path: "/showcase/showcase-fields/1#field-event_time",
+    demo_hint: "Look at the **Event time** field — shows values like '7 days ago' instead of absolute dates.",
+    status: "stable"
+  },
+  {
+    name: "Heading Display",
+    category: "display_types",
+    description: "Renders text as bold `<strong>` tag. Used for primary identifiers in tables (name, title).",
+    config_example: "```yaml\ntable_columns:\n  - field: title\n    display: heading\n    link_to: show\n```",
+    demo_path: "/showcase/showcase-fields/1#field-title",
+    demo_hint: "Look at the **Title** field — rendered as bold `<strong>` text.",
+    status: "stable"
+  },
+  {
+    name: "Code Display",
+    category: "display_types",
+    description: "Renders value in monospace font inside a `<code>` tag. Ideal for UUIDs, JSON, technical identifiers.",
+    config_example: "```yaml\nshow:\n  fields:\n    - field: external_id\n      display: code\n```",
+    demo_path: "/showcase/showcase-fields/1#field-external_id",
+    demo_hint: "Open a record's show view — **External id** renders in monospace code style.",
+    status: "stable"
+  },
+  {
+    name: "Email / Phone / URL Link Displays",
+    category: "display_types",
+    description: "Renders values as clickable links:\n- `email_link` → `mailto:` link\n- `phone_link` → `tel:` link\n- `url_link` → external link (opens in new tab)",
+    config_example: "```yaml\ntable_columns:\n  - field: email\n    display: email_link\n  - field: phone\n    display: phone_link\n  - field: website\n    display: url_link\n```",
+    demo_path: "/showcase/showcase-fields/1#field-email",
+    demo_hint: "Look at **Email**, **Phone**, and **Website** fields — each is a clickable link (mailto, tel, external).",
+    status: "stable"
+  },
+  {
+    name: "Markdown Display",
+    category: "display_types",
+    description: "Renders Markdown content as formatted HTML. Supports GFM: tables, task lists, fenced code blocks, strikethrough, autolinks.\n\nPowered by Commonmarker (Rust-based GFM parser).",
+    config_example: "```yaml\nshow:\n  fields:\n    - field: description\n      display: markdown\n```",
+    demo_path: "/showcase/features",
+    demo_hint: "You're looking at it now! The **Description** and **Configuration Example** fields on this page use markdown display.",
+    status: "stable"
+  },
+  {
+    name: "Internal Link Display",
+    category: "display_types",
+    description: "Renders a field value as a clickable internal link. Use `label` option to customize link text.",
+    config_example: "```yaml\ntable_columns:\n  - field: demo_path\n    display: internal_link\n    display_options:\n      label: \"View Demo\"\n```",
+    demo_path: "/showcase/features",
+    demo_hint: "Look at the **Demo Link** column in the feature catalog — 'View Demo' links that navigate within the app.",
+    status: "stable"
+  },
+  {
+    name: "Collection Display",
+    category: "display_types",
+    description: "Renders an array of values joined by a separator. Supports `limit` with overflow indicator, and `item_display` to apply a display type to each item.",
+    config_example: "```yaml\ntable_columns:\n  - field: tags\n    display: collection\n    display_options:\n      separator: \", \"\n      limit: 3\n      overflow: \"...\"\n      item_display: badge\n```",
+    demo_path: "/showcase/articles",
+    demo_hint: "Look at article records — tags are displayed as a collection of badge items.",
+    status: "stable"
+  },
+  {
+    name: "Number / Percentage / File Size Displays",
+    category: "display_types",
+    description: "Numeric formatting display types:\n- `number` — thousands separator\n- `percentage` — appends % with configurable precision\n- `file_size` — human-readable bytes (KB, MB, GB)",
+    config_example: "```yaml\ntable_columns:\n  - field: count\n    display: number\n  - field: completion\n    display: percentage\n    display_options: { precision: 1 }\n```",
+    demo_path: "/showcase/showcase-fields/1#field-count",
+    demo_hint: "Look at the **Count** field — values like `2,500` with thousands separator.",
+    status: "stable"
+  },
+  {
+    name: "Attachment Display Types",
+    category: "display_types",
+    description: "Three display types for Active Storage attachments:\n- `attachment_preview` — image thumbnail or download link\n- `attachment_list` — list of download links with file sizes\n- `attachment_link` — single download link",
+    config_example: "```yaml\nshow:\n  fields:\n    - field: avatar\n      display: attachment_preview\n      display_options:\n        variant: thumb\n    - field: documents\n      display: attachment_list\n```",
+    demo_path: "/showcase/showcase-attachments",
+    demo_hint: "Upload files to see preview, list, and link display types in action.",
+    status: "stable"
+  },
+
+  # === Input Types ===
+  {
+    name: "Select Input",
+    category: "input_types",
+    description: "Standard HTML `<select>` dropdown. Auto-populated for enum fields. For associations, use `association_select`.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: status\n      input_type: select\n```",
+    demo_path: "/showcase/showcase-fields/1/edit",
+    demo_hint: "Edit a record — **Status** and **Priority** use select dropdowns.",
+    status: "stable"
+  },
+  {
+    name: "Toggle Input",
+    category: "input_types",
+    description: "iOS-style toggle switch for boolean fields. Visual alternative to a checkbox.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: is_active\n      input_type: toggle\n```",
+    demo_path: "/showcase/showcase-fields/1/edit",
+    demo_hint: "Edit a record — **Is active** is a toggle switch instead of a checkbox.",
+    status: "stable"
+  },
+  {
+    name: "Slider Input",
+    category: "input_types",
+    description: "Range slider for numeric values. Shows current value next to the slider. Configure `min`, `max`, `step` via `input_options`.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: priority\n      input_type: slider\n      input_options:\n        min: 0\n        max: 100\n        step: 5\n```",
+    demo_path: "/showcase/showcase-forms/2/edit",
+    demo_hint: "Edit a form record — **Priority** uses a slider from 0 to 100.",
+    status: "stable"
+  },
+  {
+    name: "Radio Group Input",
+    category: "input_types",
+    description: "Horizontal radio buttons for enum fields. Better UX than select when there are 2–5 options.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: form_type\n      input_type: radio_group\n```",
+    demo_path: "/showcase/showcase-forms/2/edit",
+    demo_hint: "Edit a form record — **Form type** uses radio buttons (simple / advanced / special).",
+    status: "stable"
+  },
+  {
+    name: "Tom Select (Enhanced Select)",
+    category: "input_types",
+    description: "Enhanced dropdown powered by Tom Select library. Supports search, tagging, remote search, and inline create. Used for `association_select` and `multi_select`.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: author_id\n      input_type: association_select\n      input_options:\n        search: true\n        allow_create: true\n```",
+    demo_path: "/showcase/articles/1/edit",
+    demo_hint: "Edit an article — **Author** and **Category** use Tom Select with search. **Tags** uses multi-select.",
+    status: "stable"
+  },
+  {
+    name: "Tree Select Input",
+    category: "input_types",
+    description: "Hierarchical dropdown for parent-child associations. Shows indented tree structure with expand/collapse.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: department_id\n      input_type: tree_select\n```",
+    demo_path: "/showcase/employees/1/edit",
+    demo_hint: "Edit an employee — **Department** uses a tree select showing the department hierarchy.",
+    status: "stable"
+  },
+  {
+    name: "Rich Text Editor Input",
+    category: "input_types",
+    description: "WYSIWYG editor (Trix via Action Text) for rich content fields. Supports bold, italic, lists, links, and attachments.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: notes\n      input_type: rich_text_editor\n```",
+    demo_path: "/showcase/showcase-fields/1/edit",
+    demo_hint: "Edit a record — **Notes** uses the Trix rich text editor.",
+    status: "stable"
+  },
+  {
+    name: "Textarea Input",
+    category: "input_types",
+    description: "Multi-line text input. Configure `rows` for initial height. Can include `hint` text and `char_counter`.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: description\n      input_type: textarea\n      input_options:\n        rows: 4\n      hint: \"Brief description\"\n```",
+    demo_path: "/showcase/showcase-fields/1/edit",
+    demo_hint: "Edit a record — **Description** uses a textarea with 3 rows.",
+    status: "stable"
+  },
+  {
+    name: "Number Input with Prefix/Suffix",
+    category: "input_types",
+    description: "Number input with optional visual prefix (`$`, `€`) or suffix (`kg`, `%`) using input groups.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: price\n      input_type: number\n      prefix: \"$\"\n    - field: weight\n      input_type: number\n      suffix: \"kg\"\n```",
+    demo_path: "/showcase/showcase-fields/1/edit",
+    demo_hint: "Edit a record — **Price** has a `$` prefix displayed inline.",
+    status: "stable"
+  },
+
+  # === Model Features ===
+  {
+    name: "Validations",
+    category: "model_features",
+    description: "Declarative validations in YAML: `presence`, `uniqueness`, `format`, `length`, `numericality`, `inclusion`. Applied as standard ActiveRecord validations.",
+    config_example: "```yaml\nfields:\n  - name: name\n    type: string\n    validations:\n      - type: presence\n      - type: length\n        options: { maximum: 100 }\n      - type: uniqueness\n```",
+    demo_path: "/showcase/showcase-models/1/edit",
+    demo_hint: "Try submitting with empty **Name** or duplicate **Code** — validation errors appear.",
+    status: "stable"
+  },
+  {
+    name: "Transforms",
+    category: "model_features",
+    description: "Automatic value transformations on save: `strip`, `downcase`, `upcase`, `parameterize`, `normalize_url`, `normalize_phone`. Applied via `before_validation` callbacks.",
+    config_example: "```yaml\nfields:\n  - name: code\n    type: string\n    transforms: [strip, downcase, parameterize]\n  - name: email\n    type: email  # auto-applies strip + downcase\n```",
+    demo_path: "/showcase/showcase-models",
+    demo_hint: "Look at the **Whitespace Test** record — the name and code were auto-stripped and parameterized.",
+    status: "stable"
+  },
+  {
+    name: "Default Values",
+    category: "model_features",
+    description: "Field defaults via `default` key. Supports static values and service-based defaults (Ruby class for computed defaults).",
+    config_example: "```yaml\nfields:\n  - name: status\n    type: enum\n    default: draft\n  - name: deadline\n    type: date\n    default:\n      service: Computed::OneWeekFromNow\n```",
+    demo_path: "/showcase/showcase-models/new",
+    demo_hint: "Create a new record — **Status** defaults to 'draft' and **Deadline** defaults to one week from today.",
+    status: "stable"
+  },
+  {
+    name: "Computed Fields",
+    category: "model_features",
+    description: "Read-only fields whose value is computed by a Ruby service class. Recalculated on every save via `before_save`.",
+    config_example: "```yaml\nfields:\n  - name: total\n    type: decimal\n    computed:\n      service: Computed::ShowcaseTotal\n```",
+    demo_path: "/showcase/showcase-models",
+    demo_hint: "Look at **Total** and **Score** columns — both are computed from other fields and updated automatically.",
+    status: "stable"
+  },
+  {
+    name: "Scopes",
+    category: "model_features",
+    description: "Named scopes defined in YAML using `where`, `where_not`, `order`, and `limit`. Used for predefined filters and permission scoping.",
+    config_example: "```yaml\nscopes:\n  - name: active\n    where: { status: active }\n  - name: recent\n    order: { created_at: desc }\n    limit: 10\n  - name: not_deleted\n    where_not: { status: deleted }\n```",
+    demo_path: "/showcase/showcase-models",
+    demo_hint: "Click the **Active**, **Draft**, **Completed** filter buttons — each applies a predefined scope.",
+    status: "stable"
+  },
+  {
+    name: "Associations",
+    category: "model_features",
+    description: "Standard ActiveRecord associations: `belongs_to`, `has_many`, `has_many :through`. Defined in model YAML/DSL. Supports `dependent`, `foreign_key`, `class_name`.",
+    config_example: "```yaml\nassociations:\n  - type: belongs_to\n    name: category\n    model: category\n  - type: has_many\n    name: comments\n    model: comment\n    dependent: destroy\n```",
+    demo_path: "/showcase/articles/1",
+    demo_hint: "Look at an article's show view — it shows the associated **Category**, **Author**, **Comments**, and **Tags**.",
+    status: "stable"
+  },
+  {
+    name: "Custom Types",
+    category: "model_features",
+    description: "Define your own reusable field types in `config/lcp_ruby/types/`. Each type specifies a base DB type plus custom validations and transforms.",
+    config_example: "```yaml\n# config/lcp_ruby/types/currency_code.yml\ntype:\n  name: currency_code\n  base_type: string\n  validations:\n    - type: inclusion\n      options:\n        in: [USD, EUR, GBP, JPY]\n  transforms: [strip, upcase]\n```",
+    demo_path: "/showcase/showcase-extensibility",
+    demo_hint: "The **Currency** field uses a custom type with inclusion validation.",
+    status: "stable"
+  },
+  {
+    name: "Timestamps",
+    category: "model_features",
+    description: "Auto-managed `created_at` and `updated_at` columns. Enable with `timestamps: true` in model definition.",
+    config_example: "```ruby\ndefine_model :task do\n  timestamps true\nend\n```",
+    demo_path: "/showcase/showcase-fields/1#field-created_at",
+    demo_hint: "Open a record's show view — **Created at** shows relative date like '3 days ago'.",
+    status: "stable"
+  },
+
+  # === Presenter Features ===
+  {
+    name: "View Descriptions",
+    category: "presenter",
+    description: "Add descriptive text to index, show, and form views via the `description` key. Rendered as gray subtitle text below the page heading.",
+    config_example: "```yaml\nindex:\n  description: \"Browse and manage all records.\"\nshow:\n  description: \"View record details.\"\nform:\n  description: \"Fill in the fields below.\"\n```",
+    demo_path: "/showcase/showcase-fields",
+    demo_hint: "Look below the page title — 'Every column uses a different display type...' is the index description.",
+    status: "stable"
+  },
+  {
+    name: "Section Descriptions",
+    category: "presenter",
+    description: "Add descriptive text to individual sections in show and form views. Rendered below the section heading.",
+    config_example: "```yaml\nshow:\n  sections:\n    - title: \"Text Displays\"\n      description: \"Heading, truncate, code, and rich text.\"\n      fields: [...]\n```",
+    demo_path: "/showcase/showcase-fields/1",
+    demo_hint: "Open a record's show view — each section has a gray description below its heading.",
+    status: "stable"
+  },
+  {
+    name: "Info Blocks",
+    category: "presenter",
+    description: "In-form informational callouts using `type: info`. Renders a blue-bordered info box between fields.",
+    config_example: "```yaml\nform:\n  sections:\n    - title: \"Pricing\"\n      fields:\n        - type: info\n          text: \"Prices are in USD.\"\n        - field: price\n```",
+    demo_path: "/showcase/showcase-fields/1/edit",
+    demo_hint: "Edit a record — the **Business Type Fields** section has an info block about automatic validation.",
+    status: "stable"
+  },
+  {
+    name: "Column Configuration",
+    category: "presenter",
+    description: "Fine-grained table column control: `width`, `sortable`, `link_to: show`, `hidden_on: [mobile]`, `pinned: left`, `summary: sum|avg|count`.",
+    config_example: "```yaml\ntable_columns:\n  - field: title\n    width: \"20%\"\n    link_to: show\n    sortable: true\n    display: heading\n    pinned: left\n  - field: price\n    summary: sum\n```",
+    demo_path: "/showcase/showcase-fields",
+    demo_hint: "The table has sortable columns (click headers), a price **sum** in the footer, and linked titles.",
+    status: "stable"
+  },
+  {
+    name: "View Switcher",
+    category: "presenter",
+    description: "Multiple view presentations for the same data. Define a view group with multiple presenters and users can switch between them (e.g., Table/Card).",
+    config_example: "```yaml\n# views/showcase_fields.yml\nview_group:\n  model: showcase_field\n  primary: showcase_fields_table\n  views:\n    - presenter: showcase_fields_table\n      label: \"Table View\"\n    - presenter: showcase_fields_card\n      label: \"Card View\"\n```",
+    demo_path: "/showcase/showcase-fields",
+    demo_hint: "Look at the **Table View / Card View** toggle buttons in the top-right toolbar.",
+    status: "stable"
+  },
+  {
+    name: "Row Click",
+    category: "presenter",
+    description: "Makes entire table rows clickable. Clicking any cell navigates to the show page.",
+    config_example: "```yaml\nindex:\n  row_click: show\n```",
+    demo_path: "/showcase/showcase-fields",
+    demo_hint: "Click anywhere on a table row (not just the title link) — the whole row is clickable.",
+    status: "stable"
+  },
+  {
+    name: "Presenter Inheritance (DSL)",
+    category: "presenter",
+    description: "A presenter can inherit from another with `inherits:`. Child overrides specific sections while keeping the rest.",
+    config_example: "```ruby\ndefine_presenter :features_table, inherits: :features_card do\n  label \"Feature Catalog (Table)\"\n  slug \"features-table\"\n\n  index do\n    per_page 100\n    column :description, display: :truncate\n  end\nend\n```",
+    demo_path: "/showcase/features",
+    demo_hint: "Switch between Card/Table views — the table view inherits from card but overrides the index columns.",
+    status: "stable"
+  },
+  {
+    name: "Predefined Filters",
+    category: "presenter",
+    description: "Scope-based filter buttons displayed above the table. Each filter applies a named scope from the model.",
+    config_example: "```yaml\nsearch:\n  predefined_filters:\n    - name: active\n      label: \"Active\"\n      scope: active\n    - name: archived\n      label: \"Archived\"\n      scope: archived\n```",
+    demo_path: "/showcase/features",
+    demo_hint: "Click the category filter buttons (Field Types, Display, Input...) above the feature list.",
+    status: "stable"
+  },
+
+  # === Form Features ===
+  {
+    name: "Nested Forms",
+    category: "form",
+    description: "Edit associated records inline using `accepts_nested_attributes_for`. Supports add/remove rows with drag-and-drop reordering.",
+    config_example: "```yaml\nform:\n  sections:\n    - title: \"Comments\"\n      type: nested\n      association: comments\n      fields: [body, author_name]\n      allow_add: true\n      allow_remove: true\n      sortable: true\n```",
+    demo_path: "/showcase/articles/1/edit",
+    demo_hint: "Edit an article — the **Comments** section allows adding, removing, and reordering nested comment rows.",
+    status: "stable"
+  },
+  {
+    name: "Conditional Visibility (visible_when)",
+    category: "form",
+    description: "Show/hide fields and sections based on other field values. Evaluated client-side in real-time as users fill the form.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: is_premium\n      input_type: toggle\n    - field: reason\n      visible_when:\n        field: is_premium\n        operator: eq\n        value: true\n```",
+    demo_path: "/showcase/showcase-forms/2/edit",
+    demo_hint: "Toggle **Is premium** — the **Reason** field appears/disappears based on the toggle state.",
+    status: "stable"
+  },
+  {
+    name: "Conditional Disable (disable_when)",
+    category: "form",
+    description: "Disable fields based on other field values. Uses the widget's native disabled API, not CSS overlay.",
+    config_example: "```yaml\nform:\n  fields:\n    - field: rejection_reason\n      disable_when:\n        field: status\n        operator: not_eq\n        value: rejected\n```",
+    demo_path: "/showcase/showcase-forms/3/edit",
+    demo_hint: "Look at fields that become grayed out based on the form type or status selection.",
+    status: "stable"
+  },
+  {
+    name: "Multi-Column Form Layout",
+    category: "form",
+    description: "Form sections support `columns: N` with responsive breakpoints. Fields can span multiple columns with `col_span`.",
+    config_example: "```yaml\nform:\n  sections:\n    - title: \"Details\"\n      columns: 3\n      responsive:\n        mobile: { columns: 1 }\n        tablet: { columns: 2 }\n      fields:\n        - field: notes\n          col_span: 2\n```",
+    demo_path: "/showcase/showcase-fields/1/edit",
+    demo_hint: "The form has 2-column and 3-column sections. **Notes** spans full width with `col_span: 2`.",
+    status: "stable"
+  },
+  {
+    name: "Cascading Selects",
+    category: "form",
+    description: "Dependent dropdowns where child select options filter based on parent selection (e.g., Country → Region → City).",
+    config_example: "```yaml\nform:\n  fields:\n    - field: department_id\n      input_type: association_select\n    - field: employee_id\n      input_type: association_select\n      depends_on: department_id\n```",
+    demo_path: "/showcase/projects/1/edit",
+    demo_hint: "Change the **Department** — the **Lead** dropdown reloads to show only employees from that department.",
+    status: "stable"
+  },
+
+  # === Permissions ===
+  {
+    name: "Role-Based CRUD",
+    category: "permissions",
+    description: "Define which CRUD operations each role can perform. Roles are checked via `PermissionEvaluator.can?` on every controller action.",
+    config_example: "```yaml\npermissions:\n  model: task\n  roles:\n    admin:\n      crud: [index, show, create, update, destroy]\n    viewer:\n      crud: [index, show]\n```",
+    demo_path: "/showcase/showcase-permissions",
+    demo_hint: "Use the **View as** dropdown to impersonate different roles. Viewers can't see edit/delete buttons.",
+    status: "stable"
+  },
+  {
+    name: "Field-Level Permissions",
+    category: "permissions",
+    description: "Control which fields each role can read or write. Hidden fields don't appear in the UI at all.",
+    config_example: "```yaml\nroles:\n  editor:\n    fields:\n      readable: all\n      writable: [title, description, status]\n  viewer:\n    fields:\n      readable: [title, status, public_notes]\n      writable: []\n```",
+    demo_path: "/showcase/showcase-permissions",
+    demo_hint: "Impersonate **viewer** — you'll see fewer fields. Impersonate **editor** — some fields are read-only.",
+    status: "stable"
+  },
+  {
+    name: "Record-Level Rules",
+    category: "permissions",
+    description: "Deny specific CRUD operations based on field conditions. E.g., deny `destroy` when `status == locked`.",
+    config_example: "```yaml\nrecord_rules:\n  - deny: [update, destroy]\n    when:\n      field: status\n      operator: eq\n      value: locked\n    except_roles: [admin]\n```",
+    demo_path: "/showcase/showcase-permissions",
+    demo_hint: "Look at the **Locked Record** — non-admin roles can't edit or delete it.",
+    status: "stable"
+  },
+  {
+    name: "Permission Scopes",
+    category: "permissions",
+    description: "Limit which records a role can see via `scope`. Use `all` for everything, a named scope, or field-based conditions.",
+    config_example: "```yaml\nroles:\n  owner:\n    scope:\n      field: owner_id\n      operator: eq\n      value: :current_user_id\n```",
+    demo_path: "/showcase/showcase-permissions",
+    demo_hint: "Impersonate **owner** — you'll only see records where owner_id matches your user.",
+    status: "stable"
+  },
+  {
+    name: "Impersonation",
+    category: "permissions",
+    description: "Test permissions without switching accounts. Admin users can 'View as' any role via a dropdown banner.",
+    config_example: "```ruby\nLcpRuby.configure do |config|\n  config.impersonation_roles = %w[admin]\nend\n```",
+    demo_path: "/showcase/showcase-permissions",
+    demo_hint: "The yellow **View as** dropdown at the top — select a role to see the app from that role's perspective.",
+    status: "stable"
+  },
+
+  # === Extensibility ===
+  {
+    name: "Custom Actions",
+    category: "extensibility",
+    description: "Register custom action classes in `app/actions/`. Actions appear as buttons on records and execute server-side logic.",
+    config_example: "```ruby\n# app/actions/showcase_permission/lock.rb\nmodule LcpRuby::HostActions\n  module ShowcasePermission\n    class Lock < LcpRuby::Actions::BaseAction\n      def execute(record, params, current_user)\n        record.update!(status: \"locked\")\n        { success: true, message: \"Record locked\" }\n      end\n    end\n  end\nend\n```",
+    demo_path: "/showcase/showcase-permissions",
+    demo_hint: "Look for the **Lock** action button on open permission records.",
+    status: "stable"
+  },
+  {
+    name: "Event Handlers",
+    category: "extensibility",
+    description: "Register event handler classes in `app/event_handlers/`. Handlers fire on lifecycle events (after_create, after_update, etc.).",
+    config_example: "```ruby\n# app/event_handlers/showcase_model/on_status_change.rb\nmodule LcpRuby::HostHandlers\n  module ShowcaseModel\n    class OnStatusChange < LcpRuby::Events::BaseHandler\n      def handle(event)\n        record = event.record\n        Rails.logger.info \"Status changed to \#{record.status}\"\n      end\n    end\n  end\nend\n```",
+    demo_path: "/showcase/showcase-extensibility",
+    demo_hint: "Edit a record and change its value — event handlers log the change (check server console).",
+    status: "stable"
+  },
+  {
+    name: "Condition Services",
+    category: "extensibility",
+    description: "Custom condition evaluators for `visible_when` and `disable_when`. Define complex business logic beyond simple field comparisons.",
+    config_example: "```ruby\n# app/condition_services/high_value_check.rb\nclass HighValueCheck\n  def self.evaluate(record, params = {})\n    record.amount.to_f > 10_000\n  end\nend\n```",
+    demo_path: "/showcase/showcase-extensibility",
+    demo_hint: "Look at fields that show/hide based on computed conditions, not just field values.",
+    status: "stable"
+  },
+  {
+    name: "Custom Display Renderers",
+    category: "extensibility",
+    description: "Extend display types by placing renderer classes in `app/renderers/`. Auto-discovered and available as display types in presenters.",
+    config_example: "```ruby\n# app/renderers/conditional_badge.rb\nmodule LcpRuby::HostRenderers\n  class ConditionalBadge < LcpRuby::Display::BaseRenderer\n    def render(value, options = {}, record: nil, view_context: nil)\n      color = record&.amount.to_f > 1000 ? \"green\" : \"gray\"\n      view_context.content_tag(:span, value, class: \"badge\",\n        style: \"background: \#{color}; color: #fff;\")\n    end\n  end\nend\n```",
+    demo_path: "/showcase/showcase-extensibility",
+    demo_hint: "Look at how currency values are displayed with context-aware badge colors.",
+    status: "stable"
+  },
+
+  # === Navigation ===
+  {
+    name: "Breadcrumb Navigation",
+    category: "navigation",
+    description: "Hierarchical breadcrumbs for parent-child models. Configure `breadcrumb.relation` in the view group to automatically build the path.",
+    config_example: "```yaml\n# views/categories.yml\nview_group:\n  model: category\n  breadcrumb:\n    relation: parent\n```",
+    demo_path: "/showcase/categories",
+    demo_hint: "Navigate to a subcategory (e.g., Frontend) — the breadcrumb shows: Home / Technology / Web Development / Frontend.",
+    status: "stable"
+  },
+  {
+    name: "Dropdown Menu",
+    category: "navigation",
+    description: "Top navigation with dropdown groups. Define in `menu.yml` with nested `children` arrays.",
+    config_example: "```yaml\nmenu:\n  top_menu:\n    - label: \"Features\"\n      icon: star\n      children:\n        - view_group: showcase_fields\n        - view_group: showcase_models\n        - separator: true\n        - view_group: showcase_attachments\n```",
+    demo_path: "/showcase/features",
+    demo_hint: "Hover over **Features**, **Blog**, **Organization** in the top nav — each is a dropdown group.",
+    status: "stable"
+  },
+  {
+    name: "Sidebar Navigation",
+    category: "navigation",
+    description: "Sidebar menu with collapsible groups. Define `sidebar_menu` in `menu.yml`. Supports `position: bottom` for pinned items.",
+    config_example: "```yaml\nmenu:\n  sidebar_menu:\n    - label: \"CRM\"\n      icon: briefcase\n      children:\n        - view_group: companies\n        - view_group: contacts\n    - view_group: settings\n      position: bottom\n```",
+    demo_path: nil,
+    demo_hint: "The CRM example app uses sidebar navigation. See `examples/crm/config/lcp_ruby/menu.yml`.",
+    status: "stable"
+  },
+  {
+    name: "Field Anchors",
+    category: "navigation",
+    description: "Each field on the show view gets an HTML `id` attribute (`id=\"field-{name}\"`), enabling deep links to specific fields via URL hash.",
+    config_example: "Link to a specific field:\n```\n/showcase/showcase-fields/1#field-status\n```\n\nThe browser will scroll directly to the status field on the show page.",
+    demo_path: "/showcase/showcase-fields/1#field-brand_color",
+    demo_hint: "Click this demo link — the page scrolls to the **Brand color** field.",
+    status: "stable"
+  },
+
+  # === Attachments ===
+  {
+    name: "Single File Upload",
+    category: "attachments",
+    description: "Upload one file via `has_one_attached`. Supports drag & drop zone, file preview, and content type restrictions.",
+    config_example: "```yaml\nfields:\n  - name: document\n    type: attachment\n    attachment:\n      mode: single\n      max_size: 10MB\n```",
+    demo_path: "/showcase/showcase-attachments/1/edit",
+    demo_hint: "Edit the attachment record — the single file upload shows a drop zone.",
+    status: "stable"
+  },
+  {
+    name: "Multiple File Upload",
+    category: "attachments",
+    description: "Upload multiple files via `has_many_attached`. Supports `max_files` limit, individual file size limits, and content type restrictions.",
+    config_example: "```yaml\nfields:\n  - name: gallery\n    type: attachment\n    attachment:\n      mode: multiple\n      max_files: 10\n      max_size: 5MB\n      content_types: [image/png, image/jpeg]\n```",
+    demo_path: "/showcase/showcase-attachments/1/edit",
+    demo_hint: "Edit the attachment record — the gallery field allows multiple image uploads.",
+    status: "stable"
+  },
+  {
+    name: "Image Variants",
+    category: "attachments",
+    description: "Define image processing variants (thumbnails, resizes) per attachment field. Uses Active Storage variants with ImageProcessing.",
+    config_example: "```yaml\nfields:\n  - name: photo\n    type: attachment\n    attachment:\n      mode: single\n      content_types: [image/png, image/jpeg]\n      variants:\n        thumb: { resize_to_limit: [100, 100] }\n        medium: { resize_to_limit: [400, 400] }\n```",
+    demo_path: "/showcase/showcase-attachments/1",
+    demo_hint: "Upload an image and view the record — the show view uses the thumbnail variant.",
+    status: "stable"
+  },
+  {
+    name: "Upload Validations",
+    category: "attachments",
+    description: "Validate uploaded files: `max_size` (file size limit), `content_types` (MIME whitelist), `max_files` (count limit for multiple). Errors shown inline.",
+    config_example: "```yaml\nattachment:\n  mode: multiple\n  max_size: 2MB\n  max_files: 5\n  content_types:\n    - image/png\n    - image/jpeg\n    - application/pdf\n```",
+    demo_path: "/showcase/showcase-attachments/1/edit",
+    demo_hint: "Try uploading an oversized file or wrong type — validation error messages appear.",
+    status: "stable"
+  },
+]
+
+features.each { |attrs| FeatureModel.create!(attrs) }
+puts "  Created #{FeatureModel.count} feature catalog entries"
+
 puts "Seeding complete!"

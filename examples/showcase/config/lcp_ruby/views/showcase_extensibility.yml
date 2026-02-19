@@ -1,9 +1,6 @@
 view_group:
   model: showcase_extensibility
   primary: showcase_extensibility
-  navigation:
-    menu: main
-    position: 12
   views:
     - presenter: showcase_extensibility
       label: "Extensibility"

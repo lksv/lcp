@@ -1,9 +1,6 @@
 view_group:
   model: employee
   primary: employees
-  navigation:
-    menu: main
-    position: 8
   breadcrumb:
     relation: department
   views:

@@ -1,0 +1,30 @@
+menu:
+  top_menu:
+    - label: "Features"
+      icon: star
+      children:
+        - view_group: showcase_fields
+        - view_group: showcase_models
+        - view_group: showcase_forms
+        - separator: true
+        - view_group: showcase_attachments
+        - view_group: showcase_permissions
+        - view_group: showcase_extensibility
+
+    - label: "Blog"
+      icon: file-text
+      children:
+        - view_group: articles
+        - view_group: categories
+        - separator: true
+        - view_group: authors
+        - view_group: tags
+
+    - label: "Organization"
+      icon: building
+      children:
+        - view_group: departments
+        - view_group: employees
+        - view_group: projects
+
+    - view_group: features

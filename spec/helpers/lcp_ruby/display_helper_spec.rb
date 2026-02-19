@@ -273,6 +273,87 @@ RSpec.describe LcpRuby::DisplayHelper, type: :helper do
       end
     end
 
+    describe "markdown display type" do
+      it "renders markdown as HTML" do
+        result = render_display_value("**bold** and *italic*", "markdown")
+        expect(result).to include("<strong>bold</strong>")
+        expect(result).to include("<em>italic</em>")
+        expect(result).to include("lcp-markdown")
+      end
+
+      it "renders fenced code blocks" do
+        result = render_display_value("```ruby\nputs 'hello'\n```", "markdown")
+        expect(result).to include("<code")
+        expect(result).to include("puts")
+      end
+
+      it "renders GFM tables" do
+        md = "| A | B |\n|---|---|\n| 1 | 2 |"
+        result = render_display_value(md, "markdown")
+        expect(result).to include("<table")
+        expect(result).to include("<th")
+      end
+
+      it "renders task lists" do
+        md = "- [x] Done\n- [ ] Todo"
+        result = render_display_value(md, "markdown")
+        expect(result).to include('type="checkbox"')
+      end
+
+      it "returns nil for blank value" do
+        expect(render_display_value("", "markdown")).to be_nil
+        expect(render_display_value(nil, "markdown")).to be_nil
+      end
+
+      it "strips dangerous script tags" do
+        result = render_display_value("Hello\n\n<script>alert('xss')</script>\n\n**safe**", "markdown")
+        expect(result).not_to include("<script")
+        expect(result).to include("<strong>safe</strong>")
+      end
+    end
+
+    describe "internal_link display type" do
+      it "renders as a link" do
+        result = render_display_value("/showcase/features/1", "internal_link")
+        expect(result).to include('href="/showcase/features/1"')
+        expect(result).to include("lcp-internal-link")
+        expect(result).to include("/showcase/features/1")
+      end
+
+      it "uses custom label from options" do
+        result = render_display_value("/showcase/features/1", "internal_link", { "label" => "View Demo" })
+        expect(result).to include(">View Demo</a>")
+      end
+
+      it "returns nil for blank value" do
+        expect(render_display_value("", "internal_link")).to be_nil
+        expect(render_display_value(nil, "internal_link")).to be_nil
+      end
+
+      it "renders as span without href for javascript: URI" do
+        result = render_display_value("javascript:alert(1)", "internal_link")
+        expect(result).to include("lcp-internal-link")
+        expect(result).not_to include("href")
+        expect(result).to include("<span")
+      end
+
+      it "allows https:// URLs" do
+        result = render_display_value("https://example.com", "internal_link")
+        expect(result).to include('href="https://example.com"')
+      end
+
+      it "allows http:// URLs" do
+        result = render_display_value("http://example.com", "internal_link")
+        expect(result).to include('href="http://example.com"')
+      end
+
+      it "rejects data: URI" do
+        result = render_display_value("data:text/html,<script>alert(1)</script>", "internal_link")
+        expect(result).not_to include("href")
+        expect(result).to include("<span")
+      end
+    end
+
     context "color_swatch safety" do
       it "rejects malicious CSS injection in color_swatch" do
         result = render_display_value("red;background:url(evil)", "color_swatch")

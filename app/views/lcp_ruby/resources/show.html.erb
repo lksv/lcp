@@ -2,7 +2,7 @@
   <div class="lcp-header">
     <h1><%= @record.respond_to?(:to_label) ? @record.to_label : @record.to_s %></h1>
     <div class="lcp-toolbar">
-      <%= render "lcp_ruby/resources/view_switcher" %>
+      <%= render "lcp_ruby/resources/view_switcher" unless @record %>
       <%= link_to "Back to list", resources_path, class: "btn" %>
       <% @action_set.single_actions(@record).each do |action| %>
         <%= render "lcp_ruby/resources/action_button", action: action, record: @record, css_class: "btn" %>
@@ -42,6 +42,7 @@
             <% value = @field_resolver.resolve(@record, field_name) %>
 
             <div class="lcp-field <%= hidden_on_classes(field_config) %>"
+                 id="field-<%= field_name.to_s.tr('.', '-') %>"
                  <%= "style=\"grid-column: span #{field_config['col_span']}\"" if field_config["col_span"] %>>
               <% field_def = field_config["field_definition"] %>
               <label><%= field_config["label"] || field_def&.label || field_name.to_s.split(".").last.humanize %></label>
