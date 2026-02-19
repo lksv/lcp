@@ -1164,6 +1164,12 @@ Input options provide type-specific configuration for form inputs.
     direct_upload: true
 ```
 
+When `drag_drop` is enabled, the drop zone text adapts automatically: "Drop file here or click to browse" for single attachments, "Drop files here or click to browse" for multiple.
+
+Attachment fields with existing files display a "Remove" checkbox on edit forms. When checked, the attachment is purged on save. For multiple attachments, each file has its own remove checkbox.
+
+Attachment fields auto-resolve to `input_type: file_upload` — you only need to set `input_type` explicitly if you want to override the default.
+
 **Select (enum):**
 
 | Option | Type | Description |

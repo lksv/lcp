@@ -142,7 +142,7 @@ The `attachment` type uses Active Storage instead of a database column. It suppo
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `multiple` | boolean | `false` | Use `has_many_attached` instead of `has_one_attached` |
-| `accept` | string | none | HTML accept attribute for file input (e.g., `"image/*"`) |
+| `accept` | string | none | HTML `accept` attribute hint for file input (e.g., `"image/*"`). Not validated server-side — use `content_types` for validation. |
 | `max_size` | string | global default | Maximum file size per file (e.g., `"10MB"`, `"512KB"`) |
 | `min_size` | string | none | Minimum file size per file |
 | `content_types` | array | global default | Allowed MIME types. Supports wildcards (e.g., `"image/*"`) |
@@ -158,7 +158,7 @@ fields:
     options:
       accept: "image/*"
       max_size: 5MB
-      content_types: [image/jpeg, image/png, image/webp]
+      content_types: ["image/jpeg", "image/png", "image/webp"]
       variants:
         thumbnail: { resize_to_limit: [100, 100] }
         medium: { resize_to_limit: [300, 300] }
@@ -171,7 +171,7 @@ fields:
       multiple: true
       max_files: 10
       max_size: 50MB
-      content_types: [application/pdf, "image/*"]
+      content_types: ["application/pdf", "image/*"]
 ```
 
 Attachment fields require Active Storage to be set up in the host application. See the [Attachments Guide](../guides/attachments.md) for prerequisites and complete examples.

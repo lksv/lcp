@@ -531,6 +531,43 @@ field :tag_ids, input_type: :multi_select,
   input_options: { association: :tags, sort: { name: :asc }, max: 5 }
 ```
 
+**File upload** — for attachment fields:
+
+```ruby
+field :avatar, input_options: { preview: true, drag_drop: true }
+field :documents, input_options: { preview: true, drag_drop: true, direct_upload: true }
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `preview` | boolean | `false` | Show preview of current file (image thumbnail or filename) |
+| `drag_drop` | boolean | `false` | Enable drag-and-drop upload zone |
+| `direct_upload` | boolean | `false` | Use Active Storage direct upload |
+
+Attachment fields auto-resolve to `input_type: :file_upload`. The drop zone text adapts automatically: "Drop file here" for single attachments, "Drop files here" for multiple.
+
+**Attachment display** — for show pages:
+
+```ruby
+section "Photos" do
+  field :avatar, display: :attachment_preview, display_options: { variant: "medium" }
+end
+
+section "Documents" do
+  field :files, display: :attachment_list
+end
+
+section "Contract" do
+  field :contract, display: :attachment_link
+end
+```
+
+| Display Type | Description |
+|-------------|-------------|
+| `:attachment_preview` | Image preview with optional variant, download link for non-images |
+| `:attachment_list` | List of download links with filenames and file sizes |
+| `:attachment_link` | Single download link with filename |
+
 For the complete list of `input_options` keys per input type, see [Presenters Reference — Input Options](presenters.md#input-options).
 
 #### `divider(label: nil)`

@@ -59,7 +59,7 @@ model:
       options:
         accept: "image/*"
         max_size: 5MB
-        content_types: [image/jpeg, image/png, image/webp]
+        content_types: ["image/jpeg", "image/png", "image/webp"]
         variants:
           thumbnail: { resize_to_limit: [100, 100] }
           medium: { resize_to_limit: [300, 300] }
@@ -80,7 +80,7 @@ model:
         multiple: true
         max_files: 10
         max_size: 50MB
-        content_types: [application/pdf, "image/*"]
+        content_types: ["application/pdf", "image/*"]
 ```
 
 ### Complete Model Example
@@ -101,7 +101,7 @@ model:
       options:
         accept: "image/*"
         max_size: 5MB
-        content_types: [image/jpeg, image/png, image/webp]
+        content_types: ["image/jpeg", "image/png", "image/webp"]
         variants:
           thumbnail: { resize_to_limit: [100, 100] }
           medium: { resize_to_limit: [300, 300] }
@@ -113,7 +113,7 @@ model:
         multiple: true
         max_files: 10
         max_size: 50MB
-        content_types: [application/pdf, "image/*"]
+        content_types: ["application/pdf", "image/*"]
 ```
 
 ## Validation Options
@@ -136,7 +136,7 @@ Size strings support `KB`, `MB`, and `GB` suffixes.
   options:
     max_size: 20MB
     min_size: 1KB
-    content_types: [application/pdf]
+    content_types: ["application/pdf"]
 
 - name: gallery
   type: attachment
@@ -145,10 +145,12 @@ Size strings support `KB`, `MB`, and `GB` suffixes.
     multiple: true
     max_files: 20
     max_size: 10MB
-    content_types: [image/jpeg, image/png, image/gif, image/webp]
+    content_types: ["image/jpeg", "image/png", "image/gif", "image/webp"]
 ```
 
 Global defaults for `max_size` and `content_types` can be set in the [engine configuration](../reference/engine-configuration.md) via `attachment_max_size` and `attachment_allowed_content_types`.
+
+> **`accept` vs `content_types`:** The `accept` option sets the HTML `accept` attribute on the file input, which filters the file browser dialog — but it is **not validated on the server**. Use `content_types` for server-side MIME type validation. Both can be used together: `accept` for better UX, `content_types` for security.
 
 ## Image Variants
 
@@ -163,6 +165,8 @@ options:
 ```
 
 Variant names can be referenced in presenter display options to control which size is shown. Variants are generated on first access and cached by Active Storage.
+
+> **Note:** The `image_processing` gem must be installed in your host app's `Gemfile` for variants to work. Without it, variant references are silently ignored and the original image is displayed instead.
 
 Common variant transformations:
 
