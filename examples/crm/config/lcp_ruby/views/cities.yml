@@ -1,6 +1,8 @@
 view_group:
   model: city
   primary: city
+  breadcrumb:
+    relation: region
   views:
     - presenter: city
       label: "Cities"

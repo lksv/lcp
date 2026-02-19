@@ -4,6 +4,8 @@ view_group:
   navigation:
     menu: main
     position: 4
+  breadcrumb:
+    relation: company
   views:
     - presenter: deal_pipeline
       label: "Pipeline"

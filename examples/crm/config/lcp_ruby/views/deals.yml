@@ -4,6 +4,8 @@ view_group:
   navigation:
     menu: main
     position: 3
+  breadcrumb:
+    relation: company
   views:
     - presenter: deal
       label: "Detailed"

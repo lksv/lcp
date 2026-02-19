@@ -144,6 +144,21 @@ LcpRuby.configure do |config|
 end
 ```
 
+### `breadcrumb_home_path`
+
+| | |
+|---|---|
+| **Type** | `String` |
+| **Default** | `"/"` |
+
+Path for the "Home" breadcrumb link. Useful when the engine is mounted at a sub-path and you want the Home crumb to point to the host application's root or a custom dashboard.
+
+```ruby
+LcpRuby.configure do |config|
+  config.breadcrumb_home_path = "/dashboard"
+end
+```
+
 ### `attachment_allowed_content_types`
 
 | | |

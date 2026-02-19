@@ -1,5 +1,6 @@
 LcpRuby.configure do |config|
   config.strict_loading = :development
+  config.breadcrumb_home_path = "/crm"
 end
 
 Rails.application.config.after_initialize do

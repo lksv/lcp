@@ -16,6 +16,8 @@ view_group:
   navigation:
     menu: main
     position: 3
+  breadcrumb:
+    relation: <association_name>
   views:
     - presenter: <presenter_name>
       label: "Detailed"
@@ -63,6 +65,37 @@ Controls the position of this view group in the navigation menu.
 |-----------|------|-------------|
 | `menu` | string | Menu group name (e.g., `main`) |
 | `position` | integer | Sort order within the menu. Lower numbers appear first |
+
+### `breadcrumb`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `nil` (default breadcrumb: `Home > Current View`) |
+| **Type** | `Hash` or `false` |
+
+Controls breadcrumb navigation for this view group. Breadcrumbs provide hierarchical context like `Home > Companies > Acme Inc > Deals > Big Deal`.
+
+| Value | Behavior |
+|-------|----------|
+| omitted | Default breadcrumb: `Home > {View Label}` (plus record/action crumbs) |
+| `{ relation: <name> }` | Adds parent breadcrumbs by following the named belongs_to association |
+| `false` | Disables breadcrumbs entirely for this view group |
+
+The `relation` value must match a `belongs_to` association name on the model. The engine automatically resolves the parent's view group to generate the correct links and labels. Polymorphic associations are supported — the engine reads `{relation}_type` to determine the parent model dynamically.
+
+If the FK is nullable and the parent record is `nil`, the parent breadcrumb level is skipped. The chain recurses up to 5 levels when parent view groups also define `breadcrumb.relation`.
+
+The "Home" crumb links to `"/"` by default. Override via `config.breadcrumb_home_path` (see [Engine Configuration](engine-configuration.md#breadcrumb_home_path)).
+
+```yaml
+# Deals breadcrumb shows: Home > Companies > {company name} > Deals > {deal title}
+breadcrumb:
+  relation: company
+
+# Disable breadcrumbs
+breadcrumb: false
+```
 
 ### `views`
 
@@ -121,6 +154,7 @@ define_view_group :deals do
   primary :deal
 
   navigation menu: "main", position: 3
+  breadcrumb relation: :company
 
   view :deal, label: "Detailed", icon: :maximize
   view :deal_short,  label: "Short",    icon: :list
@@ -136,6 +170,7 @@ Creates a view group definition. The block supports these methods:
 | `model` | `value` | Sets the model name |
 | `primary` | `value` | Sets the primary presenter name |
 | `navigation` | `menu:`, `position:` | Sets navigation config. `position` is optional |
+| `breadcrumb` | `false` or `relation:` | Sets breadcrumb config. Use `breadcrumb false` to disable, `breadcrumb relation: :company` to set parent relation |
 | `view` | `presenter_name`, `label:`, `icon:` | Adds a view entry. `label` and `icon` are optional |
 
 ## API
@@ -176,4 +211,16 @@ Available in controllers and views. Returns the `ViewGroupDefinition` for the cu
 
 Available in controllers and views. Returns an array of view hashes for the current view group, each enriched with `slug` and `presenter_name` keys. Used internally by the `_view_switcher` partial.
 
-Source: `lib/lcp_ruby/metadata/view_group_definition.rb`, `lib/lcp_ruby/dsl/view_group_builder.rb`, `lib/lcp_ruby/metadata/loader.rb`, `app/helpers/lcp_ruby/layout_helper.rb`
+### `breadcrumbs` (helper)
+
+Available in controllers and views. Returns an array of `BreadcrumbBuilder::Crumb` structs for the current page. Each crumb has:
+
+| Attribute | Type | Description |
+|-----------|------|-------------|
+| `label` | string | Display text |
+| `path` | string or nil | Link URL (nil for the current/last crumb) |
+| `current?` | boolean | True for the last crumb in the chain |
+
+The breadcrumb chain is built automatically based on the view group's `breadcrumb` config, the current record, and the action name. The layout renders them via `app/views/lcp_ruby/shared/_breadcrumbs.html.erb`.
+
+Source: `lib/lcp_ruby/metadata/view_group_definition.rb`, `lib/lcp_ruby/dsl/view_group_builder.rb`, `lib/lcp_ruby/presenter/breadcrumb_builder.rb`, `lib/lcp_ruby/metadata/loader.rb`, `app/helpers/lcp_ruby/layout_helper.rb`

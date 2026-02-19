@@ -19,7 +19,8 @@ module LcpRuby
                   :single_action_path, :select_options_path,
                   :toggle_direction, :current_sort_field, :current_sort_direction,
                   :current_view_group, :sibling_views,
-                  :impersonating?, :impersonated_role, :available_roles_for_impersonation
+                  :impersonating?, :impersonated_role, :available_roles_for_impersonation,
+                  :breadcrumbs
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
     rescue_from LcpRuby::MetadataError, with: :metadata_error
@@ -145,6 +146,22 @@ module LcpRuby
 
         view.merge("slug" => presenter.slug, "presenter_name" => presenter.name)
       end.compact
+    end
+
+    # -- Breadcrumbs --
+
+    def breadcrumbs
+      return @breadcrumbs if defined?(@breadcrumbs)
+
+      @breadcrumbs = Presenter::BreadcrumbBuilder.new(
+        view_group: current_view_group,
+        record: @record,
+        action: action_name,
+        path_helper: Presenter::BreadcrumbPathHelper.new(lcp_ruby)
+      ).build
+    rescue => e
+      Rails.logger.warn("[LcpRuby::Breadcrumbs] #{e.message}")
+      @breadcrumbs = []
     end
 
     # -- View helpers --

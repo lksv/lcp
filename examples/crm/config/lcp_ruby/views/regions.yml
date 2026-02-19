@@ -1,6 +1,8 @@
 view_group:
   model: region
   primary: region
+  breadcrumb:
+    relation: country
   views:
     - presenter: region
       label: "Regions"

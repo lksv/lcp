@@ -91,6 +91,8 @@ require "lcp_ruby/presenter/includes_resolver/dependency_collector"
 require "lcp_ruby/presenter/includes_resolver/strategy_resolver"
 require "lcp_ruby/presenter/includes_resolver/loading_strategy"
 require "lcp_ruby/presenter/field_value_resolver"
+require "lcp_ruby/presenter/breadcrumb_builder"
+require "lcp_ruby/presenter/breadcrumb_path_helper"
 
 # Routing
 require "lcp_ruby/routing/presenter_routes"
