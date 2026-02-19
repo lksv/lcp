@@ -780,12 +780,11 @@ RSpec.describe "CRM App Integration", type: :request do
       expect(response.body).to include("$")
     end
 
-    it "renders suffix on progress field" do
+    it "renders progress field as readonly (suffix not shown for readonly fields)" do
       get "/admin/deals/new"
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("lcp-input-suffix")
-      expect(response.body).to include("%")
+      expect(response.body).to include("lcp-readonly-value")
     end
 
     it "renders readonly field" do

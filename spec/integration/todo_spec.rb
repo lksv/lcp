@@ -313,12 +313,15 @@ RSpec.describe "TODO App Integration", type: :request do
       expect(response.body).to include("Are you sure?")
     end
 
-    it "includes confirm dialog script in layout" do
+    it "includes confirm dialog handling via external JS asset" do
       get "/admin/lists"
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("turboConfirm")
-      expect(response.body).to include("confirm(confirmMsg)")
+      # Confirm dialog handling is in the external form_handling.js asset
+      js_file = LcpRuby::Engine.root.join("app", "assets", "javascripts", "lcp_ruby", "form_handling.js")
+      js_content = File.read(js_file)
+      expect(js_content).to include("turboConfirm")
+      expect(js_content).to include("confirm(confirmMsg)")
     end
   end
 

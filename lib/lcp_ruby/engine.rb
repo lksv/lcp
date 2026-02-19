@@ -40,9 +40,12 @@ module LcpRuby
       if app.config.respond_to?(:assets)
         app.config.assets.precompile += %w[
           lcp_ruby/application.css
+          lcp_ruby/application.js
           lcp_ruby/tom-select.base.min.js
           lcp_ruby/tom-select.css
         ]
+        app.config.assets.paths << root.join("app", "assets", "javascripts")
+        app.config.assets.paths << root.join("app", "assets", "stylesheets")
         app.config.assets.paths << root.join("vendor", "assets", "javascripts")
         app.config.assets.paths << root.join("vendor", "assets", "stylesheets")
       end
