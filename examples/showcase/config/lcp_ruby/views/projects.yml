@@ -4,6 +4,8 @@ view_group:
   navigation:
     menu: main
     position: 9
+  breadcrumb:
+    relation: department
   views:
     - presenter: projects
       label: "Projects"

@@ -4,6 +4,8 @@ view_group:
   navigation:
     menu: main
     position: 8
+  breadcrumb:
+    relation: department
   views:
     - presenter: employees
       label: "Employees"
