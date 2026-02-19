@@ -39,25 +39,6 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_103416) do
     t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
-  create_table "todo_items", force: :cascade do |t|
-    t.string "title", limit: 255, null: false
-    t.boolean "completed"
-    t.date "start_date"
-    t.date "due_date"
-    t.integer "position", default: 0
-    t.bigint "todo_list_id", null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["todo_list_id"], name: "index_todo_items_on_todo_list_id"
-  end
-
-  create_table "todo_lists", force: :cascade do |t|
-    t.string "title", limit: 255, null: false
-    t.text "description"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-  end
-
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
 end
