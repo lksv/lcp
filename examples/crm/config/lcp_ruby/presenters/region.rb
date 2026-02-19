@@ -16,9 +16,9 @@ define_presenter :region do
 
   show do
     section "Region Information", columns: 2 do
-      field :name, display: :heading
+      field :name, renderer: :heading
       field "country.name", label: "Country"
-      field :created_at, display: :relative_date
+      field :created_at, renderer: :relative_date
     end
     association_list "Cities", association: :cities
   end

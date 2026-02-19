@@ -9,13 +9,13 @@ define_presenter :contact_short, inherits: :contact do
     row_click :show
 
     column :full_name, width: "50%", link_to: :show, sortable: true
-    column :email, width: "50%", display: :email_link
+    column :email, width: "50%", renderer: :email_link
   end
 
   show do
     section "Contact Summary" do
-      field :full_name, display: :heading
-      field :email, display: :email_link
+      field :full_name, renderer: :heading
+      field :email, renderer: :email_link
     end
   end
 end

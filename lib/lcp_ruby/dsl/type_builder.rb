@@ -7,7 +7,7 @@ module LcpRuby
         @transforms = []
         @validations = []
         @input_type_value = nil
-        @display_type_value = nil
+        @renderer_value = nil
         @column_options = {}
         @html_input_attrs = {}
       end
@@ -30,8 +30,8 @@ module LcpRuby
         @input_type_value = value.to_s
       end
 
-      def display_type(value)
-        @display_type_value = value.to_s
+      def renderer(value)
+        @renderer_value = value.to_s
       end
 
       def column_option(key, value)
@@ -50,7 +50,7 @@ module LcpRuby
         hash["transforms"] = @transforms unless @transforms.empty?
         hash["validations"] = @validations unless @validations.empty?
         hash["input_type"] = @input_type_value if @input_type_value
-        hash["display_type"] = @display_type_value if @display_type_value
+        hash["renderer"] = @renderer_value if @renderer_value
         hash["column_options"] = stringify_keys(@column_options) unless @column_options.empty?
         hash["html_input_attrs"] = stringify_keys(@html_input_attrs) unless @html_input_attrs.empty?
         hash

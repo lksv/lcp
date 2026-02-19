@@ -16,9 +16,9 @@ define_presenter :deal_category do
 
   show do
     section "Category Information", columns: 2 do
-      field :name, display: :heading
+      field :name, renderer: :heading
       field "parent.name", label: "Parent Category"
-      field :created_at, display: :relative_date
+      field :created_at, renderer: :relative_date
     end
     association_list "Subcategories", association: :children
   end

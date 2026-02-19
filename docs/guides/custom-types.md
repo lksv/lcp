@@ -169,7 +169,7 @@ define_type :hex_color do
                     message: "must be a hex color (#RGB, #RRGGBB, or #RRGGBBAA)",
                     allow_blank: true
   input_type :color
-  display_type :color_swatch
+  renderer :color_swatch
 end
 ```
 

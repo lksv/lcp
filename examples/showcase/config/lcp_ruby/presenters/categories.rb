@@ -10,16 +10,16 @@ define_presenter :categories do
     per_page 25
 
     column :name, link_to: :show, sortable: true
-    column :description, display: :truncate, display_options: { max: 80 }
+    column :description, renderer: :truncate, options: { max: 80 }
   end
 
   show do
     section "Category Details", columns: 2 do
-      field :name, display: :heading
+      field :name, renderer: :heading
       field :description
     end
 
-    association_list "Articles", association: :articles, display: :default, link: true,
+    association_list "Articles", association: :articles, display_template: :default, link: true,
       sort: { title: :asc }, empty_message: "No articles in this category."
 
     association_list "Subcategories", association: :children, link: true,

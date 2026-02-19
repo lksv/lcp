@@ -11,24 +11,24 @@ presenter:
     per_page: 25
     table_columns:
       - { field: name, width: "30%", link_to: show, sortable: true }
-      - { field: industry, width: "20%", display: badge, sortable: true }
+      - { field: industry, width: "20%", renderer: badge, sortable: true }
       - { field: website, width: "25%" }
       - { field: phone, width: "25%" }
-      - { field: "contacts.first_name", label: "Contacts", display: collection, display_options: { limit: 3, separator: ", " } }
+      - { field: "contacts.first_name", label: "Contacts", renderer: collection, options: { limit: 3, separator: ", " } }
 
   show:
     layout:
       - section: "Company Information"
         columns: 2
         fields:
-          - { field: name, display: heading }
-          - { field: industry, display: badge }
+          - { field: name, renderer: heading }
+          - { field: industry, renderer: badge }
           - { field: website }
           - { field: phone }
       - section: "Contacts"
         type: association_list
         association: contacts
-        display: default
+        display_template: default
         link: true
         sort: { last_name: asc }
         limit: 5

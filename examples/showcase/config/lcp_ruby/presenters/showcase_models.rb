@@ -11,49 +11,49 @@ define_presenter :showcase_models do
     row_click :show
 
     column :name, link_to: :show, sortable: true
-    column :code, display: :code, sortable: true
-    column :status, display: :badge, display_options: {
+    column :code, renderer: :code, sortable: true
+    column :status, renderer: :badge, options: {
       color_map: { draft: "gray", active: "green", completed: "blue", cancelled: "red" }
     }, sortable: true
-    column :amount, display: :currency, display_options: { currency: "USD" }, sortable: true
+    column :amount, renderer: :currency, options: { currency: "USD" }, sortable: true
     column :computed_label
-    column :computed_score, display: :number
-    column :due_date, display: :date
+    column :computed_score, renderer: :number
+    column :due_date, renderer: :date
   end
 
   show do
     description "Each section groups fields by the model feature they demonstrate."
 
     section "Identity & Transforms", columns: 2, description: "name uses strip transform. code uses strip + downcase." do
-      field :name, display: :heading
-      field :code, display: :code
+      field :name, renderer: :heading
+      field :code, renderer: :code
       field :computed_label
     end
 
     section "Enums & Defaults", columns: 2, description: "status has a default of 'draft'. due_date defaults to current_date. auto_date uses a service default." do
-      field :status, display: :badge, display_options: {
+      field :status, renderer: :badge, options: {
         color_map: { draft: "gray", active: "green", completed: "blue", cancelled: "red" }
       }
-      field :due_date, display: :date
-      field :auto_date, display: :date
+      field :due_date, renderer: :date
+      field :auto_date, renderer: :date
     end
 
     section "Validations & Computed", columns: 2, description: "amount has conditional presence. computed_score is service-based. min/max_value demonstrate cross-field comparison." do
-      field :amount, display: :currency, display_options: { currency: "USD" }
-      field :computed_score, display: :number
-      field :min_value, display: :number
-      field :max_value, display: :number
+      field :amount, renderer: :currency, options: { currency: "USD" }
+      field :computed_score, renderer: :number
+      field :min_value, renderer: :number
+      field :max_value, renderer: :number
     end
 
     section "Business Types", columns: 2, description: "Built-in types with automatic transforms and validations." do
-      field :email, display: :email_link
-      field :phone, display: :phone_link
-      field :website, display: :url_link
+      field :email, renderer: :email_link
+      field :phone, renderer: :phone_link
+      field :website, renderer: :url_link
     end
 
     section "Metadata", columns: 1 do
-      field :tags_json, display: :code
-      field :created_at, display: :relative_date
+      field :tags_json, renderer: :code
+      field :created_at, renderer: :relative_date
     end
   end
 

@@ -10,16 +10,16 @@ presenter:
     per_page: 25
     table_columns:
       - { field: title, width: "50%", link_to: show }
-      - { field: photo, width: "25%", display: attachment_preview, display_options: { variant: thumbnail } }
+      - { field: photo, width: "25%", renderer: attachment_preview, options: { variant: thumbnail } }
 
   show:
     layout:
       - section: "Document Details"
         columns: 1
         fields:
-          - { field: title, display: heading }
-          - { field: photo, display: attachment_preview, display_options: { variant: medium } }
-          - { field: files, display: attachment_list }
+          - { field: title, renderer: heading }
+          - { field: photo, renderer: attachment_preview, options: { variant: medium } }
+          - { field: files, renderer: attachment_list }
 
   form:
     sections:

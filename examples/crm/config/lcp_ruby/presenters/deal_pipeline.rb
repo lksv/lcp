@@ -9,8 +9,8 @@ define_presenter :deal_pipeline, inherits: :deal do
     default_sort :created_at, :desc
     per_page 50
     column :title, width: "30%", link_to: :show, sortable: true
-    column :stage, width: "20%", display: :badge, sortable: true
-    column :value, width: "20%", display: :currency, sortable: true
+    column :stage, width: "20%", renderer: :badge, sortable: true
+    column :value, width: "20%", renderer: :currency, sortable: true
   end
 
   search enabled: false

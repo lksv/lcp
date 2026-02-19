@@ -34,7 +34,7 @@
 
   # Resolve target model definition for display templates
   target_model_def = section["target_model_definition"]
-  template_name = section["display"] || "default"
+  template_name = section["display_template"] || "default"
   link_enabled = section["link"] == true
 
   # Build permission evaluator for the target model

@@ -11,7 +11,7 @@ RSpec.describe LcpRuby::Dsl::TypeBuilder do
         transform :strip
         validate :numericality, greater_than_or_equal_to: 0
         input_type :number
-        display_type :currency
+        renderer :currency
         html_attr :step, "0.01"
       end
 
@@ -23,7 +23,7 @@ RSpec.describe LcpRuby::Dsl::TypeBuilder do
         { "type" => "numericality", "options" => { "greater_than_or_equal_to" => 0 } }
       ])
       expect(hash["input_type"]).to eq("number")
-      expect(hash["display_type"]).to eq("currency")
+      expect(hash["renderer"]).to eq("currency")
       expect(hash["column_options"]).to eq("precision" => 12, "scale" => 2)
       expect(hash["html_input_attrs"]).to eq("step" => "0.01")
     end
@@ -40,7 +40,7 @@ RSpec.describe LcpRuby::Dsl::TypeBuilder do
       expect(hash).not_to have_key("transforms")
       expect(hash).not_to have_key("validations")
       expect(hash).not_to have_key("input_type")
-      expect(hash).not_to have_key("display_type")
+      expect(hash).not_to have_key("renderer")
     end
 
     it "accumulates multiple transforms" do
@@ -78,7 +78,7 @@ RSpec.describe LcpRuby::Dsl::TypeBuilder do
         transform :downcase
         validate :format, with: '\A.+@.+\z'
         input_type :email
-        display_type :email_link
+        renderer :email_link
         column_option :limit, 255
       end
 

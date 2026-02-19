@@ -36,8 +36,8 @@ Complete attribute reference for every YAML configuration file:
 - [Custom Types](guides/custom-types.md) — Defining custom business types (percentage, postal_code, slug, hex_color)
 - [View Groups](guides/view-groups.md) — Multi-view navigation and view switcher setup
 - [Menu](guides/menu.md) — Custom navigation menus: dropdowns, sidebar, combined layouts
-- [Display Types](guides/display-types.md) — Visual guide to all display renderers (including dot-notation, templates, and collections)
-- [Custom Renderers](guides/custom-renderers.md) — Creating custom display renderers for host applications
+- [Renderers](guides/display-types.md) — Visual guide to all built-in renderers (including dot-notation, templates, and collections)
+- [Custom Renderers](guides/custom-renderers.md) — Creating custom renderers for host applications
 - [Attachments](guides/attachments.md) — File upload with Active Storage
 - [Eager Loading](guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [Impersonation](guides/impersonation.md) — "View as Role X" for testing permissions

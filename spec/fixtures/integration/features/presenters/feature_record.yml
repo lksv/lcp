@@ -11,52 +11,52 @@ presenter:
     per_page: 25
     row_click: show
     table_columns:
-      - { field: name, width: "15%", link_to: show, sortable: true, display: heading }
-      - { field: description, width: "10%", display: truncate, display_options: { max: 30 } }
-      - { field: code, display: code }
+      - { field: name, width: "15%", link_to: show, sortable: true, renderer: heading }
+      - { field: description, width: "10%", renderer: truncate, options: { max: 30 } }
+      - { field: code, renderer: code }
       - field: status
-        display: badge
-        display_options:
+        renderer: badge
+        options:
           color_map: { draft: "gray", active: "green", completed: "blue", cancelled: "red", locked: "orange" }
-      - { field: is_active, display: boolean_icon }
-      - { field: rating_value, display: rating, display_options: { max: 5 } }
-      - { field: amount, display: currency }
-      - { field: email, display: email_link }
-      - { field: phone, display: phone_link }
-      - { field: website, display: url_link }
-      - { field: brand_color, display: color_swatch }
-      - { field: due_date, display: date, display_options: { format: "%B %d, %Y" } }
-      - { field: auto_date, display: relative_date }
-      - { field: computed_score, display: number }
+      - { field: is_active, renderer: boolean_icon }
+      - { field: rating_value, renderer: rating, options: { max: 5 } }
+      - { field: amount, renderer: currency }
+      - { field: email, renderer: email_link }
+      - { field: phone, renderer: phone_link }
+      - { field: website, renderer: url_link }
+      - { field: brand_color, renderer: color_swatch }
+      - { field: due_date, renderer: date, options: { format: "%B %d, %Y" } }
+      - { field: auto_date, renderer: relative_date }
+      - { field: computed_score, renderer: number }
 
   show:
     layout:
       - section: "Overview"
         columns: 2
         fields:
-          - { field: name, display: heading }
-          - { field: code, display: code }
+          - { field: name, renderer: heading }
+          - { field: code, renderer: code }
           - field: status
-            display: badge
-            display_options:
+            renderer: badge
+            options:
               color_map: { draft: "gray", active: "green", completed: "blue", cancelled: "red", locked: "orange" }
-          - { field: description, display: truncate, display_options: { max: 100 } }
+          - { field: description, renderer: truncate, options: { max: 100 } }
       - section: "Business Info"
         columns: 2
         fields:
-          - { field: email, display: email_link }
-          - { field: phone, display: phone_link }
-          - { field: website, display: url_link }
-          - { field: brand_color, display: color_swatch }
+          - { field: email, renderer: email_link }
+          - { field: phone, renderer: phone_link }
+          - { field: website, renderer: url_link }
+          - { field: brand_color, renderer: color_swatch }
       - section: "Metrics"
         columns: 2
         fields:
-          - { field: amount, display: currency }
-          - { field: computed_score, display: number }
-          - { field: is_active, display: boolean_icon }
-          - { field: rating_value, display: rating, display_options: { max: 5 } }
-          - { field: due_date, display: date, display_options: { format: "%B %d, %Y" } }
-          - { field: auto_date, display: relative_date }
+          - { field: amount, renderer: currency }
+          - { field: computed_score, renderer: number }
+          - { field: is_active, renderer: boolean_icon }
+          - { field: rating_value, renderer: rating, options: { max: 5 } }
+          - { field: due_date, renderer: date, options: { format: "%B %d, %Y" } }
+          - { field: auto_date, renderer: relative_date }
           - { field: computed_label }
           - { field: min_value }
           - { field: max_value }

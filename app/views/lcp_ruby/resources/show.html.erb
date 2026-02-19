@@ -46,8 +46,10 @@
               <% field_def = field_config["field_definition"] %>
               <label><%= field_config["label"] || field_def&.label || field_name.to_s.split(".").last.humanize %></label>
               <div class="lcp-field-value">
-                <% if field_config["display"] %>
-                  <%= render_display_value(value, field_config["display"], field_config["display_options"], field_def, record: @record) %>
+                <% if field_config["partial"] %>
+                  <%= render partial: field_config["partial"], locals: { value: value, record: @record, options: field_config["options"] || {} } %>
+                <% elsif field_config["renderer"] %>
+                  <%= render_display_value(value, field_config["renderer"], field_config["options"], field_def, record: @record) %>
                 <% elsif value.is_a?(Array) %>
                   <%= render_display_value(value, "collection", {}) %>
                 <% else %>

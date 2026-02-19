@@ -10,13 +10,13 @@ define_presenter :articles do
     per_page 25
     row_click :show
 
-    column :title, link_to: :show, sortable: true, display: :truncate, display_options: { max: 50 }
+    column :title, link_to: :show, sortable: true, renderer: :truncate, options: { max: 50 }
     column "category.name", label: "Category", sortable: true
     column "author.name", label: "Author", sortable: true
-    column :status, display: :badge, display_options: {
+    column :status, renderer: :badge, options: {
       color_map: { draft: "gray", published: "green", archived: "orange" }
     }, sortable: true
-    column :word_count, display: :number
+    column :word_count, renderer: :number
 
     includes :category, :author
   end
@@ -25,21 +25,21 @@ define_presenter :articles do
     description "Demonstrates association display, display templates, and rich content."
 
     section "Article Details", columns: 2, description: "Basic article information with association fields." do
-      field :title, display: :heading
-      field :status, display: :badge, display_options: {
+      field :title, renderer: :heading
+      field :status, renderer: :badge, options: {
         color_map: { draft: "gray", published: "green", archived: "orange" }
       }
       field "category.name", label: "Category"
       field "author.name", label: "Author"
-      field :word_count, display: :number
-      field :created_at, display: :relative_date
+      field :word_count, renderer: :number
+      field :created_at, renderer: :relative_date
     end
 
     section "Content" do
-      field :body, display: :rich_text
+      field :body, renderer: :rich_text
     end
 
-    association_list "Comments", association: :comments, display: :default, link: false,
+    association_list "Comments", association: :comments, display_template: :default, link: false,
       sort: { position: :asc }, empty_message: "No comments yet."
 
     association_list "Tags", association: :tags, link: true,

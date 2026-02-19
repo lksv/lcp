@@ -11,63 +11,63 @@ define_presenter :showcase_fields_table do
     per_page 25
     row_click :show
 
-    column :title, width: "15%", link_to: :show, sortable: true, display: :heading
-    column :description, width: "15%", display: :truncate, display_options: { max: 50 }
-    column :status, display: :badge, display_options: {
+    column :title, width: "15%", link_to: :show, sortable: true, renderer: :heading
+    column :description, width: "15%", renderer: :truncate, options: { max: 50 }
+    column :status, renderer: :badge, options: {
       color_map: { draft: "gray", active: "green", archived: "orange", deleted: "red" }
     }, sortable: true
-    column :priority, display: :badge, display_options: {
+    column :priority, renderer: :badge, options: {
       color_map: { low: "blue", medium: "cyan", high: "orange", critical: "red" }
     }
-    column :is_active, display: :boolean_icon
-    column :count, display: :number
-    column :rating_value, display: :rating, display_options: { max: 5 }
-    column :price, display: :currency, display_options: { currency: "USD" }, sortable: true, summary: "sum"
-    column :email, display: :email_link
-    column :website, display: :url_link
-    column :brand_color, display: :color_swatch
-    column :start_date, display: :date, display_options: { format: "%B %d, %Y" }
-    column :event_time, display: :relative_date
+    column :is_active, renderer: :boolean_icon
+    column :count, renderer: :number
+    column :rating_value, renderer: :rating, options: { max: 5 }
+    column :price, renderer: :currency, options: { currency: "USD" }, sortable: true, summary: "sum"
+    column :email, renderer: :email_link
+    column :website, renderer: :url_link
+    column :brand_color, renderer: :color_swatch
+    column :start_date, renderer: :date, options: { format: "%B %d, %Y" }
+    column :event_time, renderer: :relative_date
   end
 
   show do
     description "Organized by display category. Each field uses a specific display renderer."
 
     section "Text Displays", columns: 2, description: "Heading, truncate, code, and rich text renderers." do
-      field :title, display: :heading
-      field :description, display: :truncate, display_options: { max: 100 }
-      field :external_id, display: :code
-      field :notes, display: :rich_text
+      field :title, renderer: :heading
+      field :description, renderer: :truncate, options: { max: 100 }
+      field :external_id, renderer: :code
+      field :notes, renderer: :rich_text
     end
 
     section "Visual Displays", columns: 2, description: "Badges, icons, progress bars, and color swatches." do
-      field :status, display: :badge, display_options: {
+      field :status, renderer: :badge, options: {
         color_map: { draft: "gray", active: "green", archived: "orange", deleted: "red" }
       }
-      field :priority, display: :badge, display_options: {
+      field :priority, renderer: :badge, options: {
         color_map: { low: "blue", medium: "cyan", high: "orange", critical: "red" }
       }
-      field :is_active, display: :boolean_icon
-      field :brand_color, display: :color_swatch
-      field :rating_value, display: :rating, display_options: { max: 5 }
+      field :is_active, renderer: :boolean_icon
+      field :brand_color, renderer: :color_swatch
+      field :rating_value, renderer: :rating, options: { max: 5 }
     end
 
     section "Numeric Displays", columns: 2, description: "Currency, percentage, number, and file size renderers." do
-      field :count, display: :number
-      field :price, display: :currency, display_options: { currency: "USD" }
-      field :metadata, display: :code
+      field :count, renderer: :number
+      field :price, renderer: :currency, options: { currency: "USD" }
+      field :metadata, renderer: :code
     end
 
     section "Link Displays", columns: 2, description: "Email, phone, URL, and generic link renderers." do
-      field :email, display: :email_link
-      field :phone, display: :phone_link
-      field :website, display: :url_link
+      field :email, renderer: :email_link
+      field :phone, renderer: :phone_link
+      field :website, renderer: :url_link
     end
 
     section "Temporal Displays", columns: 2, description: "Date, datetime, and relative date renderers." do
-      field :start_date, display: :date, display_options: { format: "%B %d, %Y" }
-      field :event_time, display: :datetime, display_options: { format: "%Y-%m-%d %H:%M" }
-      field :created_at, display: :relative_date
+      field :start_date, renderer: :date, options: { format: "%B %d, %Y" }
+      field :event_time, renderer: :datetime, options: { format: "%Y-%m-%d %H:%M" }
+      field :created_at, renderer: :relative_date
     end
   end
 

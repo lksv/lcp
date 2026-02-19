@@ -10,30 +10,30 @@ define_presenter :showcase_permissions do
     per_page 25
 
     column :title, link_to: :show, sortable: true
-    column :status, display: :badge, display_options: {
+    column :status, renderer: :badge, options: {
       color_map: { open: "green", in_progress: "blue", locked: "orange", archived: "gray" }
     }, sortable: true
-    column :priority, display: :badge, display_options: {
+    column :priority, renderer: :badge, options: {
       color_map: { low: "blue", medium: "cyan", high: "orange", critical: "red" }
     }
-    column :confidential, display: :boolean_icon
-    column :owner_id, display: :number
+    column :confidential, renderer: :boolean_icon
+    column :owner_id, renderer: :number
   end
 
   show do
     description "Field visibility depends on the current user's role."
 
     section "Record Details", columns: 2 do
-      field :title, display: :heading
-      field :status, display: :badge, display_options: {
+      field :title, renderer: :heading
+      field :status, renderer: :badge, options: {
         color_map: { open: "green", in_progress: "blue", locked: "orange", archived: "gray" }
       }
-      field :priority, display: :badge, display_options: {
+      field :priority, renderer: :badge, options: {
         color_map: { low: "blue", medium: "cyan", high: "orange", critical: "red" }
       }
-      field :confidential, display: :boolean_icon
-      field :owner_id, display: :number
-      field :assignee_id, display: :number
+      field :confidential, renderer: :boolean_icon
+      field :owner_id, renderer: :number
+      field :assignee_id, renderer: :number
     end
 
     section "Notes", columns: 1 do

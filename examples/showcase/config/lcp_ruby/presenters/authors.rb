@@ -10,17 +10,17 @@ define_presenter :authors do
     per_page 25
 
     column :name, link_to: :show, sortable: true
-    column :email, display: :email_link
+    column :email, renderer: :email_link
   end
 
   show do
     section "Author Details", columns: 2 do
-      field :name, display: :heading
-      field :email, display: :email_link
+      field :name, renderer: :heading
+      field :email, renderer: :email_link
       field :bio
     end
 
-    association_list "Articles", association: :articles, display: :default, link: true,
+    association_list "Articles", association: :articles, display_template: :default, link: true,
       sort: { created_at: :desc }, empty_message: "No articles yet."
   end
 

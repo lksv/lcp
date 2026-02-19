@@ -164,7 +164,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
           "index" => {
             "table_columns" => [
               { "field" => "title" },
-              { "field" => "company_id", "display" => "link" }
+              { "field" => "company_id", "renderer" => "link" }
             ]
           }
         )
@@ -476,7 +476,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
                 "section" => "Contacts",
                 "type" => "association_list",
                 "association" => "contacts",
-                "display" => "default"
+                "display_template" => "default"
               }
             ]
           }
@@ -500,7 +500,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
                 "section" => "Contacts",
                 "type" => "association_list",
                 "association" => "contacts",
-                "display" => "compact"
+                "display_template" => "compact"
               }
             ]
           }
@@ -704,7 +704,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
         "index" => {
           "table_columns" => [
             { "field" => "title" },
-            { "field" => "company_id", "display" => "link" }
+            { "field" => "company_id", "renderer" => "link" }
           ]
         }
       )

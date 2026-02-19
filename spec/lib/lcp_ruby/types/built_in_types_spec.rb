@@ -30,8 +30,8 @@ RSpec.describe LcpRuby::Types::BuiltInTypes do
       expect(type_def.input_type).to eq("email")
     end
 
-    it "has email_link display_type" do
-      expect(type_def.display_type).to eq("email_link")
+    it "has email_link renderer" do
+      expect(type_def.renderer).to eq("email_link")
     end
 
     it "has column_options with limit 255" do

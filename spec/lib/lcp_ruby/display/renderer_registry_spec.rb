@@ -52,6 +52,23 @@ RSpec.describe LcpRuby::Display::RendererRegistry do
     end
   end
 
+  describe ".register_built_ins!" do
+    it "registers all built-in renderers" do
+      described_class.register_built_ins!
+
+      LcpRuby::Display::RendererRegistry::BUILT_IN_RENDERERS.each_key do |key|
+        expect(described_class.registered?(key)).to be true
+      end
+    end
+
+    it "creates renderer instances for all built-ins" do
+      described_class.register_built_ins!
+
+      renderer = described_class.renderer_for("badge")
+      expect(renderer).to be_a(LcpRuby::Display::BaseRenderer)
+    end
+  end
+
   describe ".discover!" do
     it "discovers renderers from directory" do
       Dir.mktmpdir do |tmpdir|

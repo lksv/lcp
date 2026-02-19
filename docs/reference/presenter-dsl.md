@@ -121,7 +121,7 @@ index do
   default_sort :created_at, :desc
   per_page 25
   column :title, width: "30%", link_to: :show, sortable: true
-  column :stage, width: "20%", display: :badge, sortable: true
+  column :stage, width: "20%", renderer: :badge, sortable: true
 end
 ```
 
@@ -218,8 +218,8 @@ Adds a table column.
 | `label:` | string | Custom column header label (e.g., `"Company"` for a `"company.name"` dot-path field) |
 | `link_to:` | symbol | Link target action (e.g., `:show`) |
 | `sortable:` | boolean | Whether column is sortable |
-| `display:` | symbol | Display format (`:badge`, `:currency`, `:relative_date`, etc.) |
-| `display_options:` | hash | Additional display configuration (e.g., `{ color_map: { ... } }`) |
+| `renderer:` | symbol | Renderer for the field value (`:badge`, `:currency`, `:relative_date`, etc.). Alternatively, use `partial:` to render with a custom view partial |
+| `options:` | hash | Additional renderer configuration (e.g., `{ color_map: { ... } }`) |
 | `hidden_on:` | symbol or array | Responsive breakpoints to hide the column on (e.g., `:mobile`, `[:mobile, :tablet]`) |
 | `pinned:` | symbol | Pin the column to `:left` or `:right` side of the table |
 | `summary:` | symbol | Summary function for the column footer (e.g., `:sum`, `:avg`, `:count`) |
@@ -233,9 +233,9 @@ show do
   description "View deal details and related contacts."
 
   section "Deal Information", columns: 2 do
-    field :title, display: :heading
-    field :stage, display: :badge
-    field :value, display: :currency
+    field :title, renderer: :heading
+    field :stage, renderer: :badge
+    field :value, renderer: :currency
   end
 
   association_list "Contacts", association: :contacts
@@ -263,20 +263,20 @@ Creates a section with fields. The `columns:` option controls the layout grid. T
 ```ruby
 show do
   section "Deal Information", columns: 2, description: "Key metrics for this deal", responsive: { mobile: 1 } do
-    field :title, display: :heading
-    field :stage, display: :badge
+    field :title, renderer: :heading
+    field :stage, renderer: :badge
   end
 end
 ```
 
-#### `association_list(title, association:, display: nil, link: nil, sort: nil, limit: nil, empty_message: nil, scope: nil)`
+#### `association_list(title, association:, display_template: nil, link: nil, sort: nil, limit: nil, empty_message: nil, scope: nil)`
 
 Renders a list of associated records with optional display templates, links, sorting, and limits. The `association:` must match a `has_many` association on the model.
 
 | Option | Type | Description |
 |--------|------|-------------|
 | `association:` | symbol | The `has_many` association name (required) |
-| `display:` | symbol or string | Name of the display template defined on the target model (e.g., `:default`) |
+| `display_template:` | symbol or string | Name of the display template defined on the target model (e.g., `:default`) |
 | `link:` | boolean | Wrap each record in a link to its show page |
 | `sort:` | hash | Sort associated records by field and direction (e.g., `{ last_name: :asc }`) |
 | `limit:` | integer | Maximum number of records to display |
@@ -289,32 +289,32 @@ association_list "Deals", association: :deals
 
 # With all options
 association_list "Contacts", association: :contacts,
-  display: :default, link: true,
+  display_template: :default, link: true,
   sort: { last_name: :asc }, limit: 10,
   empty_message: "No contacts yet.",
   scope: :active
 ```
 
-When `display:` references a display template defined on the target model (see [Models Reference — Display Templates](models.md#display-templates)), each record is rendered with the template's structured layout (title, subtitle, icon, badge). Without `display:`, records fall back to plain `to_label` text.
+When `display_template:` references a display template defined on the target model (see [Models Reference — Display Templates](models.md#display-templates)), each record is rendered with the template's structured layout (title, subtitle, icon, badge). Without `display_template:`, records fall back to plain `to_label` text.
 
 ### Section Fields (Show)
 
 Inside a show `section` block, use `field` to add display fields:
 
 ```ruby
-field :name, display: :heading
-field :status, display: :badge
-field :description, display: :rich_text
-field :budget, display: :currency
+field :name, renderer: :heading
+field :status, renderer: :badge
+field :description, renderer: :rich_text
+field :budget, renderer: :currency
 ```
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `display:` | symbol | Display format for the field value |
+| `renderer:` | symbol | Renderer for the field value. Alternatively, use `partial:` to render with a custom view partial |
 | `label:` | string | Custom field label (e.g., `"Company"` for a `"company.name"` dot-path field) |
 | `col_span:` | integer | Number of grid columns this field spans |
 | `hidden_on:` | symbol or array | Responsive breakpoints to hide the field on |
-| `display_options:` | hash | Additional display configuration |
+| `options:` | hash | Additional renderer configuration |
 
 ## Form Configuration
 
@@ -472,7 +472,7 @@ field :company_id, input_type: :association_select
 | `disable_when:` | hash | Condition hash for conditional disabling. Same syntax as `visible_when`. When condition is true, field is visually disabled but values are still submitted. |
 | `default:` | any | Default value for the form input (overrides the model-level default for this form) |
 | `input_options:` | hash | Additional options passed to the input widget (see below) |
-| `display_options:` | hash | Display configuration (e.g., formatting) |
+| `options:` | hash | Renderer configuration (e.g., formatting for read-only rendering) |
 | `hidden_on:` | symbol or array | Responsive breakpoints to hide the field on |
 
 #### `input_options` for Select Fields
@@ -546,24 +546,24 @@ field :documents, input_options: { preview: true, drag_drop: true, direct_upload
 
 Attachment fields auto-resolve to `input_type: :file_upload`. The drop zone text adapts automatically: "Drop file here" for single attachments, "Drop files here" for multiple.
 
-**Attachment display** — for show pages:
+**Attachment renderers** — for show pages:
 
 ```ruby
 section "Photos" do
-  field :avatar, display: :attachment_preview, display_options: { variant: "medium" }
+  field :avatar, renderer: :attachment_preview, options: { variant: "medium" }
 end
 
 section "Documents" do
-  field :files, display: :attachment_list
+  field :files, renderer: :attachment_list
 end
 
 section "Contract" do
-  field :contract, display: :attachment_link
+  field :contract, renderer: :attachment_link
 end
 ```
 
-| Display Type | Description |
-|-------------|-------------|
+| Renderer | Description |
+|----------|-------------|
 | `:attachment_preview` | Image preview with optional variant, download link for non-images |
 | `:attachment_list` | List of download links with filenames and file sizes |
 | `:attachment_link` | Single download link with filename |
@@ -723,7 +723,7 @@ define_presenter :deal_pipeline, inherits: :deal do
     default_view :table
     per_page 50
     column :title, link_to: :show, sortable: true
-    column :stage, display: :badge, sortable: true
+    column :stage, renderer: :badge, sortable: true
   end
 
   search enabled: false
@@ -753,16 +753,16 @@ Use string field names with dot-notation to traverse associations:
 ```ruby
 index do
   column "company.name", sortable: true            # belongs_to
-  column "company.industry", display: :badge        # with display type
-  column "contacts.full_name", display: :collection # has_many
+  column "company.industry", renderer: :badge        # with renderer
+  column "contacts.full_name", renderer: :collection # has_many
 end
 
 show do
   section "Details" do
     field "company.name"
-    field "company.industry", display: :badge
-    field "contacts.full_name", display: :collection,
-      display_options: { limit: 5, separator: " | " }
+    field "company.industry", renderer: :badge
+    field "contacts.full_name", renderer: :collection,
+      options: { limit: 5, separator: " | " }
   end
 end
 ```
@@ -778,14 +778,14 @@ index do
 end
 ```
 
-### Collection Display
+### Collection Renderer
 
-The `collection` display type renders arrays from has_many dot-paths:
+The `collection` renderer renders arrays from has_many dot-paths:
 
 ```ruby
 index do
-  column "contacts.full_name", display: :collection,
-    display_options: { limit: 3, overflow: "...", separator: ", " }
+  column "contacts.full_name", renderer: :collection,
+    options: { limit: 3, overflow: "...", separator: ", " }
 end
 ```
 
@@ -795,8 +795,8 @@ Reference custom renderers (from `app/renderers/`) by name:
 
 ```ruby
 index do
-  column :stage, display: :conditional_badge,
-    display_options: { rules: [...] }
+  column :stage, renderer: :conditional_badge,
+    options: { rules: [...] }
 end
 ```
 
@@ -817,7 +817,7 @@ end
 | `actions_position :inline` | `index: { actions_position: inline }` |
 | `show do section "Info", responsive: {...} do ... end end` | `show: { layout: [{ section: "Info", responsive: {...}, ... }] }` |
 | `association_list "X", association: :y` | `{ section: "X", type: association_list, association: y }` |
-| `association_list "X", association: :y, display: :default, link: true, sort: { name: :asc }, limit: 5, empty_message: "None.", scope: :active` | `{ section: "X", type: association_list, association: y, display: default, link: true, sort: { name: asc }, limit: 5, empty_message: "None.", scope: active }` |
+| `association_list "X", association: :y, display_template: :default, link: true, sort: { name: :asc }, limit: 5, empty_message: "None.", scope: :active` | `{ section: "X", type: association_list, association: y, display_template: default, link: true, sort: { name: asc }, limit: 5, empty_message: "None.", scope: active }` |
 | `form do layout :tabs end` | `form: { layout: tabs }` |
 | `form do section "Details", collapsible: true do ... end end` | `form: { sections: [{ title: "Details", collapsible: true, ... }] }` |
 | `nested_fields "Items", association: :items do ... end` | `form: { sections: [{ type: nested_fields, title: "Items", association: items, ... }] }` |
@@ -852,17 +852,17 @@ define_presenter :deal do
     empty_message "No deals yet. Create your first deal to get started."
     actions_position :dropdown
     column :title, width: "30%", link_to: :show, sortable: true, pinned: :left
-    column :stage, width: "20%", display: :badge, sortable: true,
-      display_options: { color_map: { lead: "blue", closed_won: "green", closed_lost: "red" } }
-    column :value, width: "20%", display: :currency, sortable: true,
+    column :stage, width: "20%", renderer: :badge, sortable: true,
+      options: { color_map: { lead: "blue", closed_won: "green", closed_lost: "red" } }
+    column :value, width: "20%", renderer: :currency, sortable: true,
       summary: :sum, hidden_on: :mobile
   end
 
   show do
     section "Deal Information", columns: 2, responsive: { mobile: 1 } do
-      field :title, display: :heading, col_span: 2
-      field :stage, display: :badge
-      field :value, display: :currency
+      field :title, renderer: :heading, col_span: 2
+      field :stage, renderer: :badge
+      field :value, renderer: :currency
     end
   end
 

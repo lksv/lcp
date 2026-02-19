@@ -51,7 +51,7 @@ Parses YAML into typed definition objects.
 Business type system that bundles storage type, transforms, validations, and UI hints into reusable definitions.
 
 - **TypeRegistry** — maps type name (string) → `TypeDefinition`; `register`, `resolve`, `registered?`, `clear!`
-- **TypeDefinition** — value object: `name`, `base_type`, `transforms`, `validations`, `input_type`, `display_type`, `column_options`, `html_input_attrs`; `.from_hash` factory, `#column_type` delegates to base type
+- **TypeDefinition** — value object: `name`, `base_type`, `transforms`, `validations`, `input_type`, `renderer`, `column_options`, `html_input_attrs`; `.from_hash` factory, `#column_type` delegates to base type
 - **BuiltInTypes** — registers 4 built-in types: `email`, `phone`, `url`, `color`
 - **Transforms** — `BaseTransform` + concrete transform classes (`Strip`, `Downcase`, `NormalizeUrl`, `NormalizePhone`); each implements `#call(value)` → value
 
@@ -197,8 +197,8 @@ end
 Plain ERB templates (no ViewComponents despite gemspec dependency).
 
 - **Layout** (`application.html.erb`) — inline CSS (Bootstrap-inspired), confirm dialog JS
-- **Index** (`index.html.erb`) — table with sortable columns, search bar, predefined filter buttons, Kaminari pagination, row actions; display types: `badge`, `currency`, `relative_date`
-- **Show** (`show.html.erb`) — sections with field grid or `association_list`; display types: `heading`, `badge`, `link`, `rich_text`, `currency`, `relative_date`
+- **Index** (`index.html.erb`) — table with sortable columns, search bar, predefined filter buttons, Kaminari pagination, row actions; renderers: `badge`, `currency`, `relative_date`
+- **Show** (`show.html.erb`) — sections with field grid or `association_list`; renderers: `heading`, `badge`, `link`, `rich_text`, `currency`, `relative_date`
 - **Form** (`_form.html.erb`) — sections with grid; resolves input type as: explicit presenter `input_type` → `type_definition.input_type` → base field type. Supported inputs: text/textarea, select (enum), number, date, datetime, boolean, `association_select`, `rich_text_editor`, email, tel, url, color
 - **New/Edit** — thin wrappers that render the `_form` partial
 

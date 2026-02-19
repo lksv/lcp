@@ -10,19 +10,19 @@ define_presenter :project do
     default_sort :created_at, :desc
     per_page 25
     column :title, width: "30%", link_to: :show, sortable: true
-    column :status, width: "15%", display: :badge, sortable: true
-    column :budget, display: :currency, sortable: true
-    column :due_date, display: :relative_date, sortable: true
+    column :status, width: "15%", renderer: :badge, sortable: true
+    column :budget, renderer: :currency, sortable: true
+    column :due_date, renderer: :relative_date, sortable: true
   end
 
   show do
     section "Overview", columns: 2 do
-      field :title, display: :heading
-      field :status, display: :badge
+      field :title, renderer: :heading
+      field :status, renderer: :badge
     end
     section "Details" do
-      field :description, display: :rich_text
-      field :budget, display: :currency
+      field :description, renderer: :rich_text
+      field :budget, renderer: :currency
     end
   end
 

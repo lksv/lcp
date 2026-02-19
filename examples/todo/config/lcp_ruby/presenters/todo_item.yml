@@ -13,9 +13,9 @@ presenter:
     table_columns:
       - { field: title, width: "35%", link_to: show, sortable: true }
       - { field: "todo_list.title", label: "List", width: "15%", sortable: true }
-      - { field: completed, width: "15%", display: badge, display_options: { color_map: { "true": green, "false": gray } }, sortable: true }
+      - { field: completed, width: "15%", renderer: badge, options: { color_map: { "true": green, "false": gray } }, sortable: true }
       - { field: start_date, width: "15%", sortable: true }
-      - { field: due_date, width: "15%", display: relative_date, sortable: true }
+      - { field: due_date, width: "15%", renderer: relative_date, sortable: true }
 
   show:
     layout:
@@ -25,11 +25,11 @@ presenter:
           mobile:
             columns: 1
         fields:
-          - { field: title, display: heading }
-          - { field: completed, display: boolean_icon }
+          - { field: title, renderer: heading }
+          - { field: completed, renderer: boolean_icon }
           - { field: start_date }
           - { field: due_date }
-          - { field: attachment, display: attachment_link }
+          - { field: attachment, renderer: attachment_link }
 
   form:
     sections:

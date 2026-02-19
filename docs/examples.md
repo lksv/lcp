@@ -87,7 +87,7 @@ bundle exec rails s -p 3001
 | Field-level permissions | `value` writable only by admin | [Field Overrides](reference/permissions.md#field-overrides) |
 | Record rules | Closed deals read-only for non-admin | [Record Rules](reference/permissions.md#record-rules) |
 | Masked fields | Field overrides with `readable_by` | [Field Overrides](reference/permissions.md#field-overrides) |
-| Enum fields | Deal stage with badge display | [Enum values](reference/models.md#enum_values), [Display types](reference/presenters.md#display-types-index) |
+| Enum fields | Deal stage with badge display | [Enum values](reference/models.md#enum_values), [Renderers](reference/presenters.md#renderers) |
 | Decimal fields | Deal value with currency display | [Column options](reference/models.md#column_options) |
 | Multiple presenters | Admin view + read-only pipeline | [Presenters](reference/presenters.md) |
 | Action visibility | `close_won` hidden for closed deals | [Action Visibility](reference/presenters.md#action-visibility) |

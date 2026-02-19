@@ -191,7 +191,7 @@ RSpec.describe "Type Registry Integration" do
           { "type" => "numericality", "options" => { "greater_than_or_equal_to" => 0 } }
         ],
         "input_type" => "number",
-        "display_type" => "currency"
+        "renderer" => "currency"
       }
 
       type_def = LcpRuby::Types::TypeDefinition.from_hash(type_hash)
@@ -236,7 +236,7 @@ RSpec.describe "Type Registry Integration" do
         transform :strip
         validate :numericality, greater_than_or_equal_to: 0, less_than_or_equal_to: 100
         input_type :number
-        display_type :percentage
+        renderer :percentage
       end
 
       expect(LcpRuby::Types::TypeRegistry.registered?("percentage")).to be true

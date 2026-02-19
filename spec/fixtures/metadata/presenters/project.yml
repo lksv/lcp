@@ -12,22 +12,22 @@ presenter:
     per_page: 25
     table_columns:
       - { field: title, width: "30%", link_to: show, sortable: true }
-      - { field: status, width: "15%", display: badge, sortable: true }
-      - { field: budget, display: currency, sortable: true }
-      - { field: due_date, display: relative_date, sortable: true }
+      - { field: status, width: "15%", renderer: badge, sortable: true }
+      - { field: budget, renderer: currency, sortable: true }
+      - { field: due_date, renderer: relative_date, sortable: true }
 
   show:
     layout:
       - section: "Overview"
         columns: 2
         fields:
-          - { field: title, display: heading }
-          - { field: status, display: badge }
+          - { field: title, renderer: heading }
+          - { field: status, renderer: badge }
       - section: "Details"
         columns: 1
         fields:
-          - { field: description, display: rich_text }
-          - { field: budget, display: currency }
+          - { field: description, renderer: rich_text }
+          - { field: budget, renderer: currency }
 
   form:
     sections:

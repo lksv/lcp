@@ -254,7 +254,7 @@ table_columns:
     width: "30%"
     link_to: show
     sortable: true
-    display: null
+    renderer: null
 ```
 
 #### Column Attributes
@@ -266,8 +266,8 @@ table_columns:
 | `width` | string | CSS width (e.g., `"30%"`, `"200px"`) |
 | `link_to` | string | Makes the cell a link. Value `show` links to the record's show page |
 | `sortable` | boolean | Enables column header sorting |
-| `display` | string | Display type (see [Display Types](#display-types)) |
-| `display_options` | hash | Options passed to the display renderer (see [Display Types](#display-types) for per-type options) |
+| `renderer` | string | Renderer for the field value (see [Renderers](#renderers)). Alternatively, use `partial: "path/to/partial"` to render with a custom view partial |
+| `options` | hash | Options passed to the renderer (see [Renderers](#renderers) for per-renderer options) |
 | `hidden_on` | array/string | Hide column at specific breakpoints. Values: `"mobile"`, `"tablet"`. Accepts a single string or an array |
 | `pinned` | string | Pin column to one side on horizontal scroll. Value: `"left"` |
 | `summary` | string | Adds a summary row at the bottom of the table for this column. Values: `"sum"`, `"avg"`, `"count"` |
@@ -284,15 +284,15 @@ table_columns:
   - field: email
     hidden_on: [mobile, tablet]
   - field: status
-    display: badge
-    display_options:
+    renderer: badge
+    options:
       color_map:
         active: green
         inactive: gray
         pending: yellow
   - field: revenue
-    display: currency
-    display_options:
+    renderer: currency
+    options:
       currency: "$"
       precision: 2
     sortable: true
@@ -313,11 +313,11 @@ Use dot-notation to display fields from associated records:
 ```yaml
 table_columns:
   - { field: "company.name", sortable: true }        # belongs_to traversal
-  - { field: "company.industry", display: badge }     # with display type
-  - { field: "contacts.full_name", display: collection }  # has_many traversal
+  - { field: "company.industry", renderer: badge }     # with renderer
+  - { field: "contacts.full_name", renderer: collection }  # has_many traversal
 ```
 
-For `belongs_to`/`has_one`, the resolved value is a scalar. For `has_many`, the resolved value is an array (use the `collection` display type).
+For `belongs_to`/`has_one`, the resolved value is a scalar. For `has_many`, the resolved value is an array (use the `collection` renderer).
 
 Dot-paths can be nested: `company.industry.name` traverses `company` → `industry` → `name`.
 
@@ -339,20 +339,20 @@ Template fields extract all `{ref}` references and resolve each one individually
 
 **Permissions:** All referenced fields must be readable for the template column to be visible.
 
-### Collection Display Type
+### Collection Renderer
 
-The `collection` display type renders arrays (typically from `has_many` dot-paths) as formatted lists:
+The `collection` renderer renders arrays (typically from `has_many` dot-paths) as formatted lists:
 
 ```yaml
 table_columns:
   - field: "contacts.full_name"
-    display: collection
-    display_options:
+    renderer: collection
+    options:
       separator: ", "          # default: ", "
       limit: 3                 # max items to show
       overflow: "..."          # text appended when truncated (default: "...")
-      item_display: badge      # apply a display type to each item
-      item_display_options:    # options for the per-item display
+      item_renderer: badge     # apply a renderer to each item
+      item_options:            # options for the per-item renderer
         color_map: { ... }
 ```
 
@@ -361,38 +361,46 @@ table_columns:
 | `separator` | string | `", "` | Separator between items |
 | `limit` | integer | all | Maximum number of items to display |
 | `overflow` | string | `"..."` | Text appended when items are truncated |
-| `item_display` | string | none | Display type to apply to each item before joining |
-| `item_display_options` | hash | `{}` | Options for the per-item display type |
+| `item_renderer` | string | none | Renderer to apply to each item before joining |
+| `item_options` | hash | `{}` | Options for the per-item renderer |
 
 ### Custom Renderers
 
-Custom renderers defined in `app/renderers/` can be referenced by name in the `display` attribute:
+Custom renderers defined in `app/renderers/` can be referenced by name in the `renderer` attribute:
 
 ```yaml
 table_columns:
   - field: stage
-    display: conditional_badge
-    display_options:
+    renderer: conditional_badge
+    options:
       rules:
         - match: { in: [closed_won] }
-          display: badge
-          display_options: { color_map: { closed_won: green } }
+          renderer: badge
+          options: { color_map: { closed_won: green } }
         - default:
-            display: badge
+            renderer: badge
+```
+
+You can also use `partial:` to render a field with a custom view partial instead of a renderer class:
+
+```yaml
+table_columns:
+  - field: stage
+    partial: "shared/stage_indicator"
 ```
 
 See [Custom Renderers Guide](../guides/custom-renderers.md) for creating custom renderers.
 
-## Display Types
+## Renderers
 
-Display types control how field values are rendered in index tables and show pages. Each display type can accept `display_options` to customize its behavior.
+Renderers control how field values are rendered in index tables and show pages. Each renderer can accept `options` to customize its behavior. You can also use `partial: "path/to/partial"` instead of a renderer to render a field with a custom view partial.
 
 ### `heading`
 
 Renders the value as `<strong>` text. Useful for primary identifiers.
 
 ```yaml
-{ field: title, display: heading }
+{ field: title, renderer: heading }
 ```
 
 ### `badge`
@@ -407,8 +415,8 @@ Available colors: `green`, `red`, `blue`, `yellow`, `orange`, `purple`, `gray`, 
 
 ```yaml
 - field: status
-  display: badge
-  display_options:
+  renderer: badge
+  options:
     color_map:
       active: green
       inactive: gray
@@ -426,8 +434,8 @@ Truncates long text with an ellipsis.
 
 ```yaml
 - field: description
-  display: truncate
-  display_options:
+  renderer: truncate
+  options:
     max: 100
 ```
 
@@ -442,8 +450,8 @@ Shows a Yes/No indicator with color instead of raw true/false.
 
 ```yaml
 - field: verified
-  display: boolean_icon
-  display_options:
+  renderer: boolean_icon
+  options:
     true_icon: check-circle
     false_icon: x-circle
 ```
@@ -458,8 +466,8 @@ Renders a horizontal progress bar.
 
 ```yaml
 - field: completion
-  display: progress_bar
-  display_options:
+  renderer: progress_bar
+  options:
     max: 100
 ```
 
@@ -473,8 +481,8 @@ Renders the field value as an image URL.
 
 ```yaml
 - field: photo_url
-  display: image
-  display_options:
+  renderer: image
+  options:
     size: medium
 ```
 
@@ -488,8 +496,8 @@ Renders a circular avatar image.
 
 ```yaml
 - field: profile_image
-  display: avatar
-  display_options:
+  renderer: avatar
+  options:
     size: 48
 ```
 
@@ -504,8 +512,8 @@ Formats a numeric value as currency.
 
 ```yaml
 - field: amount
-  display: currency
-  display_options:
+  renderer: currency
+  options:
     currency: "$"
     precision: 2
 ```
@@ -520,8 +528,8 @@ Formats a numeric value as a percentage.
 
 ```yaml
 - field: margin
-  display: percentage
-  display_options:
+  renderer: percentage
+  options:
     precision: 1
 ```
 
@@ -536,8 +544,8 @@ Formats a numeric value with delimiters and precision.
 
 ```yaml
 - field: population
-  display: number
-  display_options:
+  renderer: number
+  options:
     delimiter: ","
     precision: 0
 ```
@@ -552,8 +560,8 @@ Formats a date value.
 
 ```yaml
 - field: birth_date
-  display: date
-  display_options:
+  renderer: date
+  options:
     format: "%B %d, %Y"
 ```
 
@@ -567,8 +575,8 @@ Formats a datetime value.
 
 ```yaml
 - field: created_at
-  display: datetime
-  display_options:
+  renderer: datetime
+  options:
     format: "%Y-%m-%d %H:%M"
 ```
 
@@ -577,7 +585,7 @@ Formats a datetime value.
 Shows a human-readable relative time (e.g., "3 days ago", "in 2 hours").
 
 ```yaml
-{ field: updated_at, display: relative_date }
+{ field: updated_at, renderer: relative_date }
 ```
 
 ### `email_link`
@@ -585,7 +593,7 @@ Shows a human-readable relative time (e.g., "3 days ago", "in 2 hours").
 Renders the value as a `mailto:` link.
 
 ```yaml
-{ field: email, display: email_link }
+{ field: email, renderer: email_link }
 ```
 
 ### `phone_link`
@@ -593,7 +601,7 @@ Renders the value as a `mailto:` link.
 Renders the value as a `tel:` link.
 
 ```yaml
-{ field: phone, display: phone_link }
+{ field: phone, renderer: phone_link }
 ```
 
 ### `url_link`
@@ -601,7 +609,7 @@ Renders the value as a `tel:` link.
 Renders the value as an external link that opens in a new tab.
 
 ```yaml
-{ field: website, display: url_link }
+{ field: website, renderer: url_link }
 ```
 
 ### `color_swatch`
@@ -609,7 +617,7 @@ Renders the value as an external link that opens in a new tab.
 Renders a color preview swatch alongside the color value.
 
 ```yaml
-{ field: brand_color, display: color_swatch }
+{ field: brand_color, renderer: color_swatch }
 ```
 
 ### `rating`
@@ -622,8 +630,8 @@ Displays a numeric value as filled stars.
 
 ```yaml
 - field: score
-  display: rating
-  display_options:
+  renderer: rating
+  options:
     max: 5
 ```
 
@@ -632,7 +640,7 @@ Displays a numeric value as filled stars.
 Renders the value in monospace code formatting.
 
 ```yaml
-{ field: api_key, display: code }
+{ field: api_key, renderer: code }
 ```
 
 ### `file_size`
@@ -640,7 +648,7 @@ Renders the value in monospace code formatting.
 Renders a numeric byte value as human-readable file size (e.g., "2.4 MB").
 
 ```yaml
-{ field: attachment_size, display: file_size }
+{ field: attachment_size, renderer: file_size }
 ```
 
 ### `rich_text`
@@ -648,7 +656,7 @@ Renders a numeric byte value as human-readable file size (e.g., "2.4 MB").
 Renders HTML content safely.
 
 ```yaml
-{ field: body, display: rich_text }
+{ field: body, renderer: rich_text }
 ```
 
 ### `link`
@@ -656,7 +664,7 @@ Renders HTML content safely.
 Renders the value as a clickable link. Uses `to_label` (if defined on the model) or `to_s` for the display text.
 
 ```yaml
-{ field: reference, display: link }
+{ field: reference, renderer: link }
 ```
 
 ### `attachment_preview`
@@ -669,8 +677,8 @@ Renders an image preview for attachment fields. For image files, displays the im
 
 ```yaml
 - field: photo
-  display: attachment_preview
-  display_options:
+  renderer: attachment_preview
+  options:
     variant: medium
 ```
 
@@ -680,7 +688,7 @@ Renders a list of download links with filenames and file sizes. Designed for mul
 
 ```yaml
 - field: files
-  display: attachment_list
+  renderer: attachment_list
 ```
 
 ### `attachment_link`
@@ -689,7 +697,7 @@ Renders a single download link with the filename. Designed for single non-image 
 
 ```yaml
 - field: contract
-  display: attachment_link
+  renderer: attachment_link
 ```
 
 ## Show Configuration
@@ -705,8 +713,8 @@ show:
       description: "Key information about this record."
       columns: 2
       fields:
-        - { field: title, display: heading }
-        - { field: stage, display: badge }
+        - { field: title, renderer: heading }
+        - { field: stage, renderer: badge }
         - { type: info, text: "This explains the fields above." }
     - section: "Related Items"
       type: association_list
@@ -741,7 +749,7 @@ Use `type: association_list` to render a list of associated records within the s
 - section: "Contacts"
   type: association_list
   association: contacts
-  display: default
+  display_template: default
   link: true
   sort: { last_name: asc }
   limit: 5
@@ -752,14 +760,14 @@ Use `type: association_list` to render a list of associated records within the s
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `association` | string | — | **Required.** Association name from the model |
-| `display` | string | `"default"` | Name of the display template defined on the target model |
+| `display_template` | string | `"default"` | Name of the display template defined on the target model |
 | `link` | boolean | `false` | Wrap each record in a link to its show page |
 | `sort` | hash | — | Sort field and direction (e.g., `{ last_name: asc }`) |
 | `limit` | integer | — | Maximum number of records to display |
 | `empty_message` | string | `"No records."` | Message when no associated records exist |
 | `scope` | string | — | Named scope to apply on the association |
 
-When `display` references a display template defined on the target model (see [Models Reference — Display Templates](models.md#display-templates)), records render with rich HTML including title, subtitle, icon, and badge. Without a display template, records fall back to `to_label`.
+When `display_template` references a display template defined on the target model (see [Models Reference — Display Templates](models.md#display-templates)), records render with rich HTML including title, subtitle, icon, and badge. Without a display template, records fall back to `to_label`.
 
 When `link: true`, each record is wrapped in a link to the target model's show page (the first presenter for that model is used for routing).
 
@@ -778,9 +786,9 @@ Use `responsive` to override the number of columns at different breakpoints:
     mobile:
       columns: 1
   fields:
-    - { field: title, display: heading }
-    - { field: stage, display: badge }
-    - { field: value, display: currency }
+    - { field: title, renderer: heading }
+    - { field: stage, renderer: badge }
+    - { field: value, renderer: currency }
 ```
 
 #### Show Field Attributes
@@ -789,8 +797,8 @@ Use `responsive` to override the number of columns at different breakpoints:
 |-----------|------|-------------|
 | `field` | string | Model field name. Supports dot-notation and template syntax |
 | `label` | string | Custom field label. Defaults to humanized last segment of the field name. Useful for dot-path fields (e.g., `"company.name"` → label `"Company"`) |
-| `display` | string | Display type (see [Display Types](#display-types)) |
-| `display_options` | hash | Options passed to the display renderer (see [Display Types](#display-types) for per-type options) |
+| `renderer` | string | Renderer for the field value (see [Renderers](#renderers)). Alternatively, use `partial: "path/to/partial"` to render with a custom view partial |
+| `options` | hash | Options passed to the renderer (see [Renderers](#renderers) for per-renderer options) |
 | `col_span` | integer | Number of grid columns this field spans (defaults to 1) |
 | `hidden_on` | array/string | Hide field at specific breakpoints. Values: `"mobile"`, `"tablet"` |
 
@@ -805,18 +813,18 @@ show:
         mobile:
           columns: 1
       fields:
-        - { field: title, display: heading, col_span: 3 }
+        - { field: title, renderer: heading, col_span: 3 }
         - field: status
-          display: badge
-          display_options:
+          renderer: badge
+          options:
             color_map:
               active: green
               inactive: red
-        - { field: email, display: email_link }
-        - { field: phone, display: phone_link, hidden_on: mobile }
+        - { field: email, renderer: email_link }
+        - { field: phone, renderer: phone_link, hidden_on: mobile }
         - field: revenue
-          display: currency
-          display_options:
+          renderer: currency
+          options:
             currency: "$"
             precision: 2
 ```
@@ -968,7 +976,7 @@ form:
 | `disable_when` | hash | Condition object. When the condition evaluates to true, the field is visually disabled (opacity reduced, pointer-events disabled) but values are still submitted. Same syntax as `visible_when`. See [Conditional Disabling](#conditional-disabling) |
 | `default` | string | Default value for new records. Supports dynamic defaults (see below) |
 | `input_options` | hash | Type-specific input options (see below) |
-| `display_options` | hash | Options passed to the display renderer when field is shown in read-only mode |
+| `options` | hash | Options passed to the renderer when field is shown in read-only mode |
 | `hidden_on` | array/string | Hide field at specific breakpoints. Values: `"mobile"`, `"tablet"` |
 
 **Example with new field attributes:**
@@ -1578,8 +1586,8 @@ presenter:
         pinned: left
       - field: stage
         width: "15%"
-        display: badge
-        display_options:
+        renderer: badge
+        options:
           color_map:
             open: blue
             negotiation: yellow
@@ -1588,15 +1596,15 @@ presenter:
         sortable: true
       - field: value
         width: "15%"
-        display: currency
-        display_options:
+        renderer: currency
+        options:
           currency: "$"
           precision: 2
         sortable: true
         summary: sum
       - field: contact_name
         hidden_on: [mobile, tablet]
-      - { field: updated_at, display: relative_date, hidden_on: mobile }
+      - { field: updated_at, renderer: relative_date, hidden_on: mobile }
 
   show:
     layout:
@@ -1608,21 +1616,21 @@ presenter:
           mobile:
             columns: 1
         fields:
-          - { field: title, display: heading, col_span: 3 }
+          - { field: title, renderer: heading, col_span: 3 }
           - field: stage
-            display: badge
-            display_options:
+            renderer: badge
+            options:
               color_map:
                 open: blue
                 negotiation: yellow
                 closed_won: green
                 closed_lost: red
           - field: value
-            display: currency
-            display_options:
+            renderer: currency
+            options:
               currency: "$"
-          - { field: email, display: email_link }
-          - { field: website, display: url_link, hidden_on: mobile }
+          - { field: email, renderer: email_link }
+          - { field: website, renderer: url_link, hidden_on: mobile }
       - section: "Contacts"
         type: association_list
         association: contacts

@@ -11,22 +11,22 @@ define_presenter :company do
     row_click :show
 
     column :name, width: "30%", link_to: :show, sortable: true, pinned: :left
-    column :industry, width: "20%", display: :badge, sortable: true
-    column :website, width: "25%", display: :url_link
-    column :phone, width: "25%", display: :phone_link
-    column "contacts.first_name", label: "Contacts", display: :collection, display_options: { limit: 3, overflow: "..." }
+    column :industry, width: "20%", renderer: :badge, sortable: true
+    column :website, width: "25%", renderer: :url_link
+    column :phone, width: "25%", renderer: :phone_link
+    column "contacts.first_name", label: "Contacts", renderer: :collection, options: { limit: 3, overflow: "..." }
   end
 
   show do
     section "Company Information", columns: 2 do
-      field :name, display: :heading
-      field :industry, display: :badge
-      field :website, display: :url_link
-      field :phone, display: :phone_link
-      field :logo, display: :attachment_preview
-      field :contract_template, display: :attachment_link
-      field :created_at, display: :relative_date
-      field "contacts.first_name", label: "Contacts", display: :collection, display_options: { limit: 5 }
+      field :name, renderer: :heading
+      field :industry, renderer: :badge
+      field :website, renderer: :url_link
+      field :phone, renderer: :phone_link
+      field :logo, renderer: :attachment_preview
+      field :contract_template, renderer: :attachment_link
+      field :created_at, renderer: :relative_date
+      field "contacts.first_name", label: "Contacts", renderer: :collection, options: { limit: 5 }
     end
     association_list "Contacts", association: :contacts
     association_list "Deals", association: :deals

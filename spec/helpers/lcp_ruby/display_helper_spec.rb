@@ -3,12 +3,14 @@ require "spec_helper"
 RSpec.describe LcpRuby::DisplayHelper, type: :helper do
   include described_class
 
+  before { LcpRuby::Display::RendererRegistry.register_built_ins! }
+
   describe "#render_display_value" do
-    it "returns value unchanged for nil display_type" do
+    it "returns value unchanged for nil renderer_key" do
       expect(render_display_value("hello", nil)).to eq("hello")
     end
 
-    it "returns value unchanged for blank display_type" do
+    it "returns value unchanged for blank renderer_key" do
       expect(render_display_value("hello", "")).to eq("hello")
     end
 
@@ -181,7 +183,7 @@ RSpec.describe LcpRuby::DisplayHelper, type: :helper do
       expect(result).to eq("some text")
     end
 
-    it "returns value for unknown display type" do
+    it "returns value for unknown renderer" do
       expect(render_display_value("hello", "unknown_type")).to eq("hello")
     end
 
@@ -222,9 +224,9 @@ RSpec.describe LcpRuby::DisplayHelper, type: :helper do
         expect(result.to_s).to include("solo")
       end
 
-      it "applies item_display to each item" do
+      it "applies item_renderer to each item" do
         result = render_display_value(%w[active inactive], "collection", {
-          "item_display" => "badge"
+          "item_renderer" => "badge"
         })
         expect(result.to_s).to include("badge")
       end

@@ -11,7 +11,7 @@ RSpec.describe LcpRuby::Types::TypeDefinition do
           { "type" => "format", "options" => { "with" => '\A.+@.+\z' } }
         ],
         "input_type" => "email",
-        "display_type" => "email_link",
+        "renderer" => "email_link",
         "column_options" => { "limit" => 255 },
         "html_input_attrs" => { "autocomplete" => "email" }
       )
@@ -21,7 +21,7 @@ RSpec.describe LcpRuby::Types::TypeDefinition do
       expect(type_def.transforms).to eq(%w[strip downcase])
       expect(type_def.validations).to eq([ { "type" => "format", "options" => { "with" => '\A.+@.+\z' } } ])
       expect(type_def.input_type).to eq("email")
-      expect(type_def.display_type).to eq("email_link")
+      expect(type_def.renderer).to eq("email_link")
       expect(type_def.column_options).to eq(limit: 255)
       expect(type_def.html_input_attrs).to eq(autocomplete: "email")
     end
@@ -36,7 +36,7 @@ RSpec.describe LcpRuby::Types::TypeDefinition do
       expect(type_def.transforms).to eq([])
       expect(type_def.validations).to eq([])
       expect(type_def.input_type).to be_nil
-      expect(type_def.display_type).to be_nil
+      expect(type_def.renderer).to be_nil
       expect(type_def.column_options).to eq({})
       expect(type_def.html_input_attrs).to eq({})
     end

@@ -11,16 +11,16 @@ presenter:
     per_page: 12
     table_columns:
       - { field: title, sortable: true }
-      - { field: status, display: badge }
+      - { field: status, renderer: badge }
 
   show:
     layout:
       - section: "Project"
         columns: 2
         fields:
-          - { field: title, display: heading }
-          - { field: status, display: badge }
-          - { field: description, display: rich_text }
+          - { field: title, renderer: heading }
+          - { field: status, renderer: badge }
+          - { field: description, renderer: rich_text }
 
   search:
     enabled: true

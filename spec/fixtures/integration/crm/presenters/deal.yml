@@ -13,18 +13,18 @@ presenter:
     table_columns:
       - { field: title, width: "25%", link_to: show, sortable: true, pinned: left }
       - { field: "company.name", label: "Company", width: "20%", sortable: true }
-      - { field: stage, width: "15%", display: badge, sortable: true, hidden_on: mobile }
-      - { field: value, width: "15%", display: currency, sortable: true, summary: sum }
+      - { field: stage, width: "15%", renderer: badge, sortable: true, hidden_on: mobile }
+      - { field: value, width: "15%", renderer: currency, sortable: true, summary: sum }
 
   show:
     layout:
       - section: "Deal Information"
         columns: 2
         fields:
-          - { field: title, display: heading }
-          - { field: stage, display: badge }
-          - { field: value, display: currency }
-          - { field: "company.name", label: "Company", display: test_highlight }
+          - { field: title, renderer: heading }
+          - { field: stage, renderer: badge }
+          - { field: value, renderer: currency }
+          - { field: "company.name", label: "Company", renderer: test_highlight }
 
   form:
     layout: tabs

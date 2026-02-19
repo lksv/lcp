@@ -12,10 +12,11 @@ module IntegrationHelper
     # Clean up previous state (reset! handles all registries + Dynamic constants)
     LcpRuby.reset!
 
-    # Register built-in types and services
+    # Register built-in types, services, and renderers
     LcpRuby::Types::BuiltInTypes.register_all!
     LcpRuby::Services::BuiltInTransforms.register_all!
     LcpRuby::Services::BuiltInDefaults.register_all!
+    LcpRuby::Display::RendererRegistry.register_built_ins!
 
     # Configure and load
     LcpRuby.configuration.metadata_path = fixture_path

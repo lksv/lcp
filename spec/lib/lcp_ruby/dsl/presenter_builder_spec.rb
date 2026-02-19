@@ -125,7 +125,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         model :deal
         index do
           column :title, width: "30%", link_to: :show, sortable: true
-          column :stage, width: "20%", display: :badge, sortable: true
+          column :stage, width: "20%", renderer: :badge, sortable: true
         end
       end
       hash = builder.to_hash
@@ -136,7 +136,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         "field" => "title", "width" => "30%", "link_to" => "show", "sortable" => true
       })
       expect(columns[1]).to eq({
-        "field" => "stage", "width" => "20%", "display" => "badge", "sortable" => true
+        "field" => "stage", "width" => "20%", "renderer" => "badge", "sortable" => true
       })
     end
 
@@ -248,19 +248,19 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(hash["index"]["actions_position"]).to eq("dropdown")
     end
 
-    it "produces column with display_options, hidden_on, pinned, and summary" do
+    it "produces column with options, hidden_on, pinned, and summary" do
       builder = described_class.new(:test)
       builder.instance_eval do
         model :deal
         index do
-          column :stage, display: :badge, display_options: { color_map: { open: "blue" } }
+          column :stage, renderer: :badge, options: { color_map: { open: "blue" } }
           column :value, summary: :sum, hidden_on: :mobile, pinned: :left
         end
       end
       hash = builder.to_hash
 
       columns = hash["index"]["table_columns"]
-      expect(columns[0]["display_options"]).to eq({ "color_map" => { "open" => "blue" } })
+      expect(columns[0]["options"]).to eq({ "color_map" => { "open" => "blue" } })
       expect(columns[1]["summary"]).to eq("sum")
       expect(columns[1]["hidden_on"]).to eq("mobile")
       expect(columns[1]["pinned"]).to eq("left")
@@ -274,8 +274,8 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         model :deal
         show do
           section "Deal Information", columns: 2 do
-            field :title, display: :heading
-            field :stage, display: :badge
+            field :title, renderer: :heading
+            field :stage, renderer: :badge
           end
         end
       end
@@ -286,8 +286,8 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(layout[0]["section"]).to eq("Deal Information")
       expect(layout[0]["columns"]).to eq(2)
       expect(layout[0]["fields"]).to eq([
-        { "field" => "title", "display" => "heading" },
-        { "field" => "stage", "display" => "badge" }
+        { "field" => "title", "renderer" => "heading" },
+        { "field" => "stage", "renderer" => "badge" }
       ])
     end
 
@@ -312,7 +312,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         model :company
         show do
           section "Details" do
-            field :name, display: :heading
+            field :name, renderer: :heading
           end
           association_list "Contacts", association: :contacts
         end
@@ -328,13 +328,13 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       })
     end
 
-    it "supports enhanced association_list with display, link, sort, limit, empty_message, scope" do
+    it "supports enhanced association_list with display_template, link, sort, limit, empty_message, scope" do
       builder = described_class.new(:test)
       builder.instance_eval do
         model :company
         show do
           association_list "Contacts", association: :contacts,
-            display: :default,
+            display_template: :default,
             link: true,
             sort: { last_name: :asc },
             limit: 5,
@@ -348,7 +348,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(entry["section"]).to eq("Contacts")
       expect(entry["type"]).to eq("association_list")
       expect(entry["association"]).to eq("contacts")
-      expect(entry["display"]).to eq("default")
+      expect(entry["display_template"]).to eq("default")
       expect(entry["link"]).to eq(true)
       expect(entry["sort"]).to eq({ "last_name" => "asc" })
       expect(entry["limit"]).to eq(5)
@@ -367,7 +367,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       hash = builder.to_hash
 
       entry = hash["show"]["layout"][0]
-      expect(entry).not_to have_key("display")
+      expect(entry).not_to have_key("display_template")
       expect(entry).not_to have_key("link")
       expect(entry).not_to have_key("sort")
       expect(entry).not_to have_key("limit")
@@ -381,12 +381,12 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         model :project
         show do
           section "Overview", columns: 2 do
-            field :title, display: :heading
-            field :status, display: :badge
+            field :title, renderer: :heading
+            field :status, renderer: :badge
           end
           section "Details" do
-            field :description, display: :rich_text
-            field :budget, display: :currency
+            field :description, renderer: :rich_text
+            field :budget, renderer: :currency
           end
         end
       end
@@ -404,7 +404,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
         model :deal
         show do
           section "Info", columns: 3, responsive: { mobile: { columns: 1 }, tablet: { columns: 2 } } do
-            field :title, display: :heading
+            field :title, renderer: :heading
           end
         end
       end
@@ -435,15 +435,15 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(hash["show"]["eager_load"]).to eq(%w[industry])
     end
 
-    it "supports col_span, hidden_on, and display_options on fields" do
+    it "supports col_span, hidden_on, and options on fields" do
       builder = described_class.new(:test)
       builder.instance_eval do
         model :deal
         show do
           section "Info", columns: 2 do
-            field :title, display: :heading, col_span: 2
-            field :phone, display: :phone_link, hidden_on: :mobile
-            field :value, display: :currency, display_options: { currency: "$", precision: 2 }
+            field :title, renderer: :heading, col_span: 2
+            field :phone, renderer: :phone_link, hidden_on: :mobile
+            field :value, renderer: :currency, options: { currency: "$", precision: 2 }
           end
         end
       end
@@ -452,7 +452,7 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       fields = hash["show"]["layout"][0]["fields"]
       expect(fields[0]["col_span"]).to eq(2)
       expect(fields[1]["hidden_on"]).to eq("mobile")
-      expect(fields[2]["display_options"]).to eq({ "currency" => "$", "precision" => 2 })
+      expect(fields[2]["options"]).to eq({ "currency" => "$", "precision" => 2 })
     end
   end
 
@@ -1073,19 +1073,19 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
           default_sort :created_at, :desc
           per_page 25
           column :title, width: "30%", link_to: :show, sortable: true
-          column :status, width: "15%", display: :badge, sortable: true
-          column :budget, display: :currency, sortable: true
-          column :due_date, display: :relative_date, sortable: true
+          column :status, width: "15%", renderer: :badge, sortable: true
+          column :budget, renderer: :currency, sortable: true
+          column :due_date, renderer: :relative_date, sortable: true
         end
 
         show do
           section "Overview", columns: 2 do
-            field :title, display: :heading
-            field :status, display: :badge
+            field :title, renderer: :heading
+            field :status, renderer: :badge
           end
           section "Details" do
-            field :description, display: :rich_text
-            field :budget, display: :currency
+            field :description, renderer: :rich_text
+            field :budget, renderer: :currency
           end
         end
 

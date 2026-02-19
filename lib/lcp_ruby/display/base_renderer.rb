@@ -2,7 +2,7 @@ module LcpRuby
   module Display
     class BaseRenderer
       # @param value [Object] resolved field value
-      # @param options [Hash] display_options from presenter config
+      # @param options [Hash] renderer options from presenter config
       # @param record [ActiveRecord::Base, nil] full record (for context-aware renderers)
       # @param view_context [ActionView::Base, nil] for HTML helpers
       # @return [String] rendered output (HTML-safe)
