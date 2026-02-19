@@ -7,7 +7,7 @@ RSpec.describe "lcp_ruby:permissions rake task" do
   before(:all) do
     Rake.application = Rake::Application.new
     Rake::Task.define_task(:environment)
-    Rake.application.rake_require("lcp_ruby", [LcpRuby::Engine.root.join("lib", "tasks").to_s])
+    Rake.application.rake_require("lcp_ruby", [ LcpRuby::Engine.root.join("lib", "tasks").to_s ])
   end
 
   after(:all) do

@@ -125,7 +125,7 @@ module LcpRuby
       private
 
       def resolve_roles(user)
-        return [permission_definition.default_role] unless user
+        return [ permission_definition.default_role ] unless user
 
         role_method = LcpRuby.configuration.role_method
         if user.respond_to?(role_method)
@@ -133,9 +133,9 @@ module LcpRuby
           role_names = Array(raw).map(&:to_s)
           # Filter to roles that have configs; fall back to default if none match
           matching = role_names.select { |r| permission_definition.roles.key?(r) }
-          matching.empty? ? [permission_definition.default_role] : matching
+          matching.empty? ? [ permission_definition.default_role ] : matching
         else
-          [permission_definition.default_role]
+          [ permission_definition.default_role ]
         end
       end
 

@@ -11,7 +11,7 @@ module LcpRuby
     # Handles both the default :lcp_role and any custom role_method.
     def method_missing(method_name, *args, &block)
       if method_name == LcpRuby.configuration.role_method
-        [@impersonated_role]
+        [ @impersonated_role ]
       else
         super
       end

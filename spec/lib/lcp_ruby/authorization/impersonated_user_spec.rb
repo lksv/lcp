@@ -1,14 +1,14 @@
 require "spec_helper"
 
 RSpec.describe LcpRuby::ImpersonatedUser do
-  let(:real_user) { OpenStruct.new(id: 42, name: "Real Admin", lcp_role: ["admin"]) }
+  let(:real_user) { OpenStruct.new(id: 42, name: "Real Admin", lcp_role: [ "admin" ]) }
   let(:impersonated_role) { "viewer" }
   subject(:impersonated) { described_class.new(real_user, impersonated_role) }
 
   describe "#method_missing" do
     context "with default role_method (:lcp_role)" do
       it "returns impersonated role as array" do
-        expect(impersonated.lcp_role).to eq(["viewer"])
+        expect(impersonated.lcp_role).to eq([ "viewer" ])
       end
 
       it "does not return the real user's role" do
@@ -20,15 +20,15 @@ RSpec.describe LcpRuby::ImpersonatedUser do
       before { LcpRuby.configuration.role_method = :custom_role }
       after { LcpRuby.configuration.role_method = :lcp_role }
 
-      let(:real_user) { OpenStruct.new(id: 42, custom_role: ["admin"], name: "Admin") }
+      let(:real_user) { OpenStruct.new(id: 42, custom_role: [ "admin" ], name: "Admin") }
 
       it "overrides the configured role_method" do
-        expect(impersonated.custom_role).to eq(["viewer"])
+        expect(impersonated.custom_role).to eq([ "viewer" ])
       end
 
       it "still delegates lcp_role to the real user" do
-        real_user.lcp_role = ["admin"]
-        expect(impersonated.lcp_role).to eq(["admin"])
+        real_user.lcp_role = [ "admin" ]
+        expect(impersonated.lcp_role).to eq([ "admin" ])
       end
     end
   end
