@@ -15,7 +15,7 @@ FieldModel = LcpRuby.registry.model_for("showcase_field")
     event_time: Time.current + 3.days,
     status: "active",
     priority: "high",
-    metadata: { category: "marketing", tags: ["launch", "q1"] }.to_json,
+    metadata: { category: "marketing", tags: [ "launch", "q1" ] }.to_json,
     external_id: SecureRandom.uuid,
     email: "campaign@example.com",
     phone: "+1 (555) 123-4567",
@@ -105,7 +105,7 @@ FieldModel = LcpRuby.registry.model_for("showcase_field")
     event_time: Time.current + 2.months,
     status: "active",
     priority: "critical",
-    metadata: { countries: 20, languages: ["en", "de", "fr", "es", "ja"] }.to_json,
+    metadata: { countries: 20, languages: [ "en", "de", "fr", "es", "ja" ] }.to_json,
     external_id: SecureRandom.uuid,
     email: "events@globalconf.example.com",
     phone: "+49 30 12345678",
@@ -141,7 +141,7 @@ FieldModel = LcpRuby.registry.model_for("showcase_field")
     event_time: Time.current + 2.weeks,
     status: "draft",
     priority: "critical",
-    metadata: { compliance: "SOC2", systems: ["api", "web", "mobile"] }.to_json,
+    metadata: { compliance: "SOC2", systems: [ "api", "web", "mobile" ] }.to_json,
     external_id: SecureRandom.uuid,
     email: "security@example.com",
     phone: "+1 555 987 6543",
@@ -201,7 +201,7 @@ ModelModel = LcpRuby.registry.model_for("showcase_model")
   { name: "Cancelled Order", code: "cancelled-123", status: "cancelled", amount: 750.00, max_value: 500, min_value: 100, phone: "+44 20 1234 5678" },
   { name: "  Whitespace Test  ", code: "  UPPER_case  ", status: "draft", amount: nil, max_value: 999, min_value: 1 },
   { name: "Edge Case Zero", code: "zero-case", status: "active", amount: 0.00, max_value: 0, min_value: -10 },
-  { name: "Large Values", code: "large-vals", status: "active", amount: 99999999.99, max_value: 9999, min_value: 1, email: "large@example.com", website: "http://large.example.com" },
+  { name: "Large Values", code: "large-vals", status: "active", amount: 99999999.99, max_value: 9999, min_value: 1, email: "large@example.com", website: "http://large.example.com" }
 ].each do |attrs|
   ModelModel.create!(attrs)
 end
@@ -263,21 +263,21 @@ puts "  Created #{tags.size} tags"
 
 # Articles with comments and tags
 articles_data = [
-  { title: "Getting Started with Ruby on Rails", body: "A comprehensive guide to building your first Rails application.", status: "published", category: frontend, author: authors[0], tags: [0, 1, 13], comments: [["Great article!", "Reader1"], ["Very helpful", "Reader2"]] },
-  { title: "Advanced React Patterns", body: "Exploring compound components, render props, and hooks.", status: "published", category: frontend, author: authors[1], tags: [2, 4, 14], comments: [["Love the hooks examples", "DevFan"]] },
-  { title: "Building REST APIs with Rails", body: "Best practices for designing RESTful APIs.", status: "published", category: backend, author: authors[0], tags: [0, 1, 14], comments: [["What about GraphQL?", "APIUser"], ["Solid patterns", "BackendDev"], ["More examples please", "Newbie"]] },
-  { title: "Docker for Development", body: "Setting up Docker for local development environments.", status: "published", category: backend, author: authors[4], tags: [7, 9], comments: [] },
-  { title: "Mobile-First Design Principles", body: "Why mobile-first approach matters for modern applications.", status: "published", category: mobile, author: authors[2], tags: [14], comments: [["Responsive > Mobile-first", "WebDev"]] },
-  { title: "TypeScript Migration Guide", body: "Step by step guide to migrating JavaScript to TypeScript.", status: "draft", category: frontend, author: authors[1], tags: [2, 3], comments: [] },
-  { title: "AWS Lambda Best Practices", body: "Optimizing serverless functions for production.", status: "published", category: backend, author: authors[4], tags: [8, 9, 11], comments: [["Cold starts are still an issue", "CloudUser"]] },
-  { title: "Vue 3 Composition API", body: "Understanding the new composition API in Vue 3.", status: "published", category: frontend, author: authors[3], tags: [2, 5], comments: [["Finally!", "VueFan"], ["Great comparison with Options API", "Dev123"]] },
-  { title: "Security Best Practices for Web Apps", body: "OWASP top 10 and how to protect your application.", status: "draft", category: web, author: authors[4], tags: [12, 14], comments: [] },
-  { title: "Python for Data Science", body: "Introduction to pandas, numpy, and matplotlib.", status: "published", category: science, author: authors[3], tags: [6, 13], comments: [["Can you cover scikit-learn?", "DataNerd"]] },
-  { title: "Startup Metrics That Matter", body: "Key performance indicators for early-stage startups.", status: "published", category: startup, author: authors[2], tags: [14], comments: [] },
-  { title: "Enterprise Architecture Patterns", body: "Scaling applications for enterprise use.", status: "draft", category: enterprise, author: authors[0], tags: [14, 11], comments: [] },
-  { title: "Testing Rails Applications", body: "RSpec, Capybara, and factory_bot patterns.", status: "published", category: backend, author: authors[0], tags: [0, 1, 10], comments: [["What about minitest?", "Tester"], ["Factory bot is essential", "QAEngineer"]] },
-  { title: "Performance Optimization in React", body: "Memoization, code splitting, and lazy loading.", status: "published", category: frontend, author: authors[1], tags: [2, 4, 11], comments: [["useMemo vs useCallback?", "ReactDev"]] },
-  { title: "DevOps Culture and Practices", body: "Building a DevOps culture in your organization.", status: "archived", category: tech, author: authors[4], tags: [7, 8, 9], comments: [] },
+  { title: "Getting Started with Ruby on Rails", body: "A comprehensive guide to building your first Rails application.", status: "published", category: frontend, author: authors[0], tags: [ 0, 1, 13 ], comments: [ [ "Great article!", "Reader1" ], [ "Very helpful", "Reader2" ] ] },
+  { title: "Advanced React Patterns", body: "Exploring compound components, render props, and hooks.", status: "published", category: frontend, author: authors[1], tags: [ 2, 4, 14 ], comments: [ [ "Love the hooks examples", "DevFan" ] ] },
+  { title: "Building REST APIs with Rails", body: "Best practices for designing RESTful APIs.", status: "published", category: backend, author: authors[0], tags: [ 0, 1, 14 ], comments: [ [ "What about GraphQL?", "APIUser" ], [ "Solid patterns", "BackendDev" ], [ "More examples please", "Newbie" ] ] },
+  { title: "Docker for Development", body: "Setting up Docker for local development environments.", status: "published", category: backend, author: authors[4], tags: [ 7, 9 ], comments: [] },
+  { title: "Mobile-First Design Principles", body: "Why mobile-first approach matters for modern applications.", status: "published", category: mobile, author: authors[2], tags: [ 14 ], comments: [ [ "Responsive > Mobile-first", "WebDev" ] ] },
+  { title: "TypeScript Migration Guide", body: "Step by step guide to migrating JavaScript to TypeScript.", status: "draft", category: frontend, author: authors[1], tags: [ 2, 3 ], comments: [] },
+  { title: "AWS Lambda Best Practices", body: "Optimizing serverless functions for production.", status: "published", category: backend, author: authors[4], tags: [ 8, 9, 11 ], comments: [ [ "Cold starts are still an issue", "CloudUser" ] ] },
+  { title: "Vue 3 Composition API", body: "Understanding the new composition API in Vue 3.", status: "published", category: frontend, author: authors[3], tags: [ 2, 5 ], comments: [ [ "Finally!", "VueFan" ], [ "Great comparison with Options API", "Dev123" ] ] },
+  { title: "Security Best Practices for Web Apps", body: "OWASP top 10 and how to protect your application.", status: "draft", category: web, author: authors[4], tags: [ 12, 14 ], comments: [] },
+  { title: "Python for Data Science", body: "Introduction to pandas, numpy, and matplotlib.", status: "published", category: science, author: authors[3], tags: [ 6, 13 ], comments: [ [ "Can you cover scikit-learn?", "DataNerd" ] ] },
+  { title: "Startup Metrics That Matter", body: "Key performance indicators for early-stage startups.", status: "published", category: startup, author: authors[2], tags: [ 14 ], comments: [] },
+  { title: "Enterprise Architecture Patterns", body: "Scaling applications for enterprise use.", status: "draft", category: enterprise, author: authors[0], tags: [ 14, 11 ], comments: [] },
+  { title: "Testing Rails Applications", body: "RSpec, Capybara, and factory_bot patterns.", status: "published", category: backend, author: authors[0], tags: [ 0, 1, 10 ], comments: [ [ "What about minitest?", "Tester" ], [ "Factory bot is essential", "QAEngineer" ] ] },
+  { title: "Performance Optimization in React", body: "Memoization, code splitting, and lazy loading.", status: "published", category: frontend, author: authors[1], tags: [ 2, 4, 11 ], comments: [ [ "useMemo vs useCallback?", "ReactDev" ] ] },
+  { title: "DevOps Culture and Practices", body: "Building a DevOps culture in your organization.", status: "archived", category: tech, author: authors[4], tags: [ 7, 8, 9 ], comments: [] }
 ]
 
 articles_data.each do |data|
@@ -305,7 +305,7 @@ FormModel = LcpRuby.registry.model_for("showcase_form")
   { name: "Advanced Config", form_type: "advanced", priority: 75, satisfaction: 4, is_premium: true, reason: "VIP customer", advanced_field_1: "Custom value", advanced_field_2: "Extra data" },
   { name: "Special Request", form_type: "special", priority: 100, satisfaction: 5, is_premium: true, reason: "Partnership", rejection_reason: "Pending approval" },
   { name: "Basic Entry", form_type: "simple", priority: 50, satisfaction: 2, is_premium: false },
-  { name: "Premium Advanced", form_type: "advanced", priority: 90, satisfaction: 5, is_premium: true, reason: "Enterprise tier", advanced_field_1: "Enterprise", config_data: { feature_flags: ["beta", "api_v2"] }.to_json },
+  { name: "Premium Advanced", form_type: "advanced", priority: 90, satisfaction: 5, is_premium: true, reason: "Enterprise tier", advanced_field_1: "Enterprise", config_data: { feature_flags: [ "beta", "api_v2" ] }.to_json }
 ].each do |attrs|
   FormModel.create!(attrs)
 end
@@ -349,7 +349,7 @@ skills = [
   { name: "Testing", category: "technical" },
   { name: "CSS", category: "technical" },
   { name: "SQL", category: "technical" },
-  { name: "Teamwork", category: "soft" },
+  { name: "Teamwork", category: "soft" }
 ].map { |s| SkillModel.create!(s) }
 puts "  Created #{skills.size} skills"
 
@@ -366,7 +366,7 @@ employees = [
   EmpModel.create!(name: "Grace Chen", email: "grace@example.com", role: "developer", status: "active", department_id: be.id),
   EmpModel.create!(name: "Henry Kim", email: "henry@example.com", role: "designer", status: "active", department_id: ui.id),
   EmpModel.create!(name: "Iris Taylor", email: "iris@example.com", role: "developer", status: "terminated", department_id: fe.id),
-  EmpModel.create!(name: "Jack Brown", email: "jack@example.com", role: "developer", status: "archived", department_id: devops.id),
+  EmpModel.create!(name: "Jack Brown", email: "jack@example.com", role: "developer", status: "archived", department_id: devops.id)
 ]
 # Set mentors
 employees[1].update!(mentor_id: employees[0].id)
@@ -375,7 +375,7 @@ employees[7].update!(mentor_id: employees[2].id)
 puts "  Created #{employees.size} employees"
 
 # Employee skills
-[[0, [0, 6, 7, 8, 9]], [1, [1, 3, 12, 9]], [2, [0, 1, 13, 11]], [3, [1, 3, 9]], [4, [12, 6, 14]], [5, [7, 8, 6, 9]], [6, [4, 5, 0]], [7, [0, 13, 11]], [8, [0, 2, 13]], [9, [12, 6]]].each do |emp_idx, skill_idxs|
+[ [ 0, [ 0, 6, 7, 8, 9 ] ], [ 1, [ 1, 3, 12, 9 ] ], [ 2, [ 0, 1, 13, 11 ] ], [ 3, [ 1, 3, 9 ] ], [ 4, [ 12, 6, 14 ] ], [ 5, [ 7, 8, 6, 9 ] ], [ 6, [ 4, 5, 0 ] ], [ 7, [ 0, 13, 11 ] ], [ 8, [ 0, 2, 13 ] ], [ 9, [ 12, 6 ] ] ].each do |emp_idx, skill_idxs|
   skill_idxs.each { |si| EmpSkillModel.create!(employee_id: employees[emp_idx].id, skill_id: skills[si].id) }
 end
 puts "  Created #{EmpSkillModel.count} employee-skill links"
@@ -386,7 +386,7 @@ puts "  Created #{EmpSkillModel.count} employee-skill links"
   { name: "API v3", status: "active", department_id: be.id, lead_id: employees[2].id },
   { name: "Cloud Migration", status: "active", department_id: devops.id, lead_id: employees[6].id },
   { name: "Brand Refresh", status: "completed", department_id: design.id, lead_id: employees[4].id },
-  { name: "Internal Tools", status: "active", department_id: eng.id, lead_id: employees[0].id },
+  { name: "Internal Tools", status: "active", department_id: eng.id, lead_id: employees[0].id }
 ].each { |p| ProjModel.create!(p) }
 puts "  Created #{ProjModel.count} projects"
 
@@ -403,7 +403,7 @@ PermModel = LcpRuby.registry.model_for("showcase_permission")
   { title: "In Progress Item", status: "in_progress", owner_id: 1, assignee_id: 2, priority: "high", confidential: false, public_notes: "Being worked on." },
   { title: "Locked Record", status: "locked", owner_id: 1, priority: "critical", confidential: true, public_notes: "This record is locked.", internal_notes: "Only admin can edit." },
   { title: "Archived Entry", status: "archived", owner_id: 2, priority: "low", confidential: false, public_notes: "Historical record.", internal_notes: "Cannot be destroyed." },
-  { title: "Confidential Report", status: "open", owner_id: 1, priority: "high", confidential: true, internal_notes: "Top secret information.", public_notes: "Classified." },
+  { title: "Confidential Report", status: "open", owner_id: 1, priority: "high", confidential: true, internal_notes: "Top secret information.", public_notes: "Classified." }
 ].each { |attrs| PermModel.create!(attrs) }
 puts "  Created #{PermModel.count} showcase_permission records"
 
@@ -415,7 +415,7 @@ ExtModel = LcpRuby.registry.model_for("showcase_extensibility")
   { name: "Euro Account", currency: "EUR", amount: 8500.50 },
   { name: "British Pound Reserve", currency: "GBP", amount: 25000.00 },
   { name: "Japanese Yen Fund", currency: "JPY", amount: 1500000.00 },
-  { name: "No Currency Set", currency: nil, amount: 500.00 },
+  { name: "No Currency Set", currency: nil, amount: 500.00 }
 ].each { |attrs| ExtModel.create!(attrs) }
 puts "  Created #{ExtModel.count} showcase_extensibility records"
 
@@ -1143,7 +1143,7 @@ features = [
     demo_path: "/showcase/showcase-attachments/1/edit",
     demo_hint: "Try uploading an oversized file or wrong type — validation error messages appear.",
     status: "stable"
-  },
+  }
 ]
 
 features.each { |attrs| FeatureModel.create!(attrs) }

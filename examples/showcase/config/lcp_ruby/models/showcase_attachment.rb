@@ -12,8 +12,8 @@ define_model :showcase_attachment do
     max_size: "5MB",
     content_types: %w[image/jpeg image/png image/gif image/webp],
     variants: {
-      thumbnail: { resize_to_limit: [80, 80] },
-      medium: { resize_to_limit: [300, 300] }
+      thumbnail: { resize_to_limit: [ 80, 80 ] },
+      medium: { resize_to_limit: [ 300, 300 ] }
     }
   }
 
@@ -31,8 +31,8 @@ define_model :showcase_attachment do
     max_size: "5MB",
     content_types: %w[image/jpeg image/png image/gif image/webp],
     variants: {
-      thumbnail: { resize_to_limit: [100, 100] },
-      medium: { resize_to_limit: [400, 400] }
+      thumbnail: { resize_to_limit: [ 100, 100 ] },
+      medium: { resize_to_limit: [ 400, 400 ] }
     }
   }
 
