@@ -5,5 +5,8 @@
 log/
 tmp/
 
+# Active Storage uploads
+storage/
+
 # Playwright MCP
 .playwright-mcp/
