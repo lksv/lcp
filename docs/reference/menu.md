@@ -109,6 +109,7 @@ These keys can be added to any item (except separators):
 | `icon` | string | Icon name (resolved from presenter for view groups) |
 | `visible_when` | object | Role-based visibility filter |
 | `position` | string | `"bottom"` pins item to sidebar bottom |
+| `badge` | object | Dynamic badge display (see [Badges](#badges) section) |
 
 ## Role-Based Visibility
 
@@ -152,6 +153,107 @@ In `:strict` mode:
 1. `menu.yml` is required — raises `MetadataError` if missing
 2. The menu is the sole source of truth — no auto-append
 3. View groups must not have `navigation` config (only `navigation: false` is allowed)
+
+## Badges
+
+Menu items can display dynamic badges — counts, text labels, or icons — populated by data providers.
+
+### Badge YAML Schema
+
+```yaml
+- view_group: tasks
+  badge:
+    provider: open_tasks        # Required: data provider name
+    renderer: count_badge       # One of: renderer, template, or partial
+    options:                    # Optional: passed to renderer
+      color: "#dc3545"
+```
+
+Exactly one rendering form must be specified:
+
+| Key | Description |
+|-----|-------------|
+| `renderer` | A `Display::BaseRenderer` subclass from `Display::RendererRegistry` |
+| `template` | String with `{key}` interpolation, wrapped in a badge `<span>` |
+| `partial` | Rails partial path, receives `data` local variable |
+
+### Data Providers
+
+Data providers are registered in `Services::Registry` under the `data_providers` category. They are auto-discovered from `app/lcp_services/data_providers/`.
+
+**Contract:** `call(user:)` → data (any shape) or `nil` (nil = hide badge).
+
+```ruby
+# app/lcp_services/data_providers/open_tasks.rb
+module LcpRuby::HostServices::DataProviders
+  class OpenTasks
+    def self.call(user:)
+      LcpRuby::Dynamic::Task.where(status: "open").count
+    end
+  end
+end
+```
+
+### Built-in Badge Renderers
+
+| Renderer | Input | Output |
+|----------|-------|--------|
+| `count_badge` | Positive `Integer` | Red pill with count (nil for 0 or non-integer) |
+| `text_badge` | `String` or `Hash` with `"text"`, optional `"color"` | Uppercase text badge with optional background color |
+| `icon_badge` | `String` or `Hash` with `"icon"`, optional `"color"` | Icon element with optional color |
+
+### Template Form
+
+For the `template` form, `{key}` placeholders are interpolated from the provider data:
+
+- If provider returns a **Hash**, keys are available directly: `{count}`, `{label}`
+- If provider returns a **simple value** (Integer, String), use `{value}`
+
+```yaml
+- view_group: inbox
+  badge:
+    provider: unread_messages
+    template: "{count} new"
+```
+
+### Partial Form
+
+The partial receives a `data` local variable with the provider's return value:
+
+```yaml
+- view_group: system_health
+  badge:
+    provider: health_status
+    partial: "badges/health_indicator"
+```
+
+### Badge Examples
+
+```yaml
+menu:
+  sidebar_menu:
+    # Count badge on tasks
+    - view_group: tasks
+      badge:
+        provider: open_tasks
+        renderer: count_badge
+
+    # Text badge with color
+    - view_group: inbox
+      badge:
+        provider: unread_messages
+        template: "{count} new"
+
+    # Badge on a group
+    - label: "CRM"
+      badge:
+        provider: crm_alerts
+        renderer: text_badge
+        options:
+          color: "#dc3545"
+      children:
+        - view_group: deals
+```
 
 ## Complete Example
 

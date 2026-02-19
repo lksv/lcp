@@ -1,6 +1,9 @@
 menu:
   top_menu:
     - view_group: projects
+      badge:
+        provider: open_projects
+        renderer: count_badge
     - label: "Work"
       icon: briefcase
       children:
