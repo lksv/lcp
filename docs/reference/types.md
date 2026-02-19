@@ -152,6 +152,8 @@ Unique identifier for the type. Used as the `type` value in field definitions.
 
 The underlying storage type. Must be one of: `string`, `text`, `integer`, `float`, `decimal`, `boolean`, `date`, `datetime`, `enum`, `file`, `rich_text`, `json`, `uuid`. Determines the database column type.
 
+> **Note:** The `attachment` base type cannot be used as a `base_type` for custom types. It is a special type that uses Active Storage instead of a database column. See the [Attachments Guide](../guides/attachments.md).
+
 #### `transforms`
 
 | | |

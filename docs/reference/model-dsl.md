@@ -131,6 +131,7 @@ end
 | `:rich_text` | `:text` | Rich text content. Default form input: rich text editor. |
 | `:json` | `:jsonb` / `:json` | JSON data. Uses jsonb on PostgreSQL, json on other adapters. |
 | `:uuid` | `:string` | UUID stored as string. |
+| `:attachment` | none (Active Storage) | File attachment (single or multiple). No DB column — uses Active Storage. |
 
 ### Business Types
 
@@ -164,8 +165,48 @@ See [Types Reference](types.md) for the full list of built-in types and how to d
 | `precision:` | `column_options[:precision]` | Total number of digits (decimal). |
 | `scale:` | `column_options[:scale]` | Digits after decimal point (decimal). |
 | `null:` | `column_options[:null]` | Allow NULL values. |
+| `options:` | `FieldDefinition.options` | Additional type-specific options (used by `attachment` fields). |
 
 Column options (`limit`, `precision`, `scale`, `null`) are flattened to top-level keyword arguments for conciseness. The builder separates them back into a `column_options` hash internally.
+
+### Attachment Fields
+
+The `:attachment` type uses Active Storage instead of a database column. Pass configuration via the `options:` keyword:
+
+```ruby
+# Single image with variants
+field :avatar, :attachment, label: "Avatar", options: {
+  accept: "image/*",
+  max_size: "5MB",
+  content_types: %w[image/jpeg image/png image/webp],
+  variants: {
+    thumbnail: { resize_to_fill: [40, 40] },
+    medium: { resize_to_limit: [200, 200] }
+  }
+}
+
+# Multiple file attachment
+field :documents, :attachment, label: "Documents", options: {
+  multiple: true,
+  max_files: 10,
+  max_size: "15MB",
+  content_types: %w[application/pdf image/jpeg image/png]
+}
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `multiple` | boolean | `false` | Use `has_many_attached` instead of `has_one_attached` |
+| `accept` | string | none | HTML `accept` attribute hint for file input (not validated server-side) |
+| `max_size` | string | global default | Maximum file size per file (e.g., `"10MB"`, `"512KB"`) |
+| `min_size` | string | none | Minimum file size per file |
+| `content_types` | array | global default | Allowed MIME types (validated server-side). Supports wildcards (e.g., `"image/*"`) |
+| `max_files` | integer | none | Maximum number of files (only for `multiple: true`) |
+| `variants` | hash | none | Named image variant configurations (requires `image_processing` gem) |
+
+> **Note:** `accept` is an HTML hint that filters the file browser — it does **not** validate on the server. Use `content_types` for server-side validation.
+
+See the [Attachments Guide](../guides/attachments.md) for prerequisites and complete examples.
 
 ### Examples
 
