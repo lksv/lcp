@@ -28,6 +28,8 @@ module LcpRuby
         "attachment_list"    => "LcpRuby::Display::Renderers::AttachmentList",
         "attachment_link"    => "LcpRuby::Display::Renderers::AttachmentLink",
         "link"               => "LcpRuby::Display::Renderers::Link",
+        "markdown"           => "LcpRuby::Display::Renderers::Markdown",
+        "internal_link"      => "LcpRuby::Display::Renderers::InternalLink",
         "count_badge"        => "LcpRuby::Display::CountBadge",
         "text_badge"         => "LcpRuby::Display::TextBadge",
         "icon_badge"         => "LcpRuby::Display::IconBadge"

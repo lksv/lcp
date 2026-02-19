@@ -1,9 +1,6 @@
 view_group:
   model: tag
   primary: tags
-  navigation:
-    menu: main
-    position: 6
   views:
     - presenter: tags
       label: "Tags"

@@ -1,9 +1,6 @@
 view_group:
   model: category
   primary: categories
-  navigation:
-    menu: main
-    position: 4
   breadcrumb:
     relation: parent
   views:

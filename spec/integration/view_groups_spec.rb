@@ -52,14 +52,14 @@ RSpec.describe "View Groups Integration", type: :request do
   end
 
   describe "view switcher on show page" do
-    it "renders for grouped presenters" do
+    it "does not render on show page" do
       company = company_model.create!(name: "Test Corp", industry: "technology")
       deal = deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
 
       get "/deals/#{deal.id}"
 
       expect(response).to have_http_status(:ok)
-      expect(response.body).to include("lcp-view-switcher")
+      expect(response.body).not_to include('<div class="lcp-view-switcher">')
     end
   end
 

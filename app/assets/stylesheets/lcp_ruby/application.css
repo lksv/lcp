@@ -414,3 +414,25 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 /* Layout adjustments for "both" mode */
 .lcp-layout-both .lcp-layout-with-sidebar { min-height: calc(100vh - 3rem); }
 .lcp-layout-both .lcp-sidebar { border-top: none; }
+
+/* Markdown display */
+.lcp-markdown { font-size: 0.9rem; line-height: 1.6; }
+.lcp-markdown h1, .lcp-markdown h2, .lcp-markdown h3 { margin: 0.75rem 0 0.5rem; font-weight: 600; }
+.lcp-markdown h1 { font-size: 1.25rem; }
+.lcp-markdown h2 { font-size: 1.1rem; }
+.lcp-markdown h3 { font-size: 1rem; }
+.lcp-markdown p { margin: 0 0 0.5rem; }
+.lcp-markdown ul, .lcp-markdown ol { margin: 0 0 0.5rem 1.25rem; }
+.lcp-markdown li { margin-bottom: 0.15rem; }
+.lcp-markdown code { background: #f1f3f5; padding: 0.1em 0.35em; border-radius: 3px; font-size: 0.85em; }
+.lcp-markdown pre { background: #f8f9fa; border: 1px solid #e9ecef; border-radius: 4px; padding: 0.75rem; overflow-x: auto; margin: 0 0 0.5rem; }
+.lcp-markdown pre code { background: none; padding: 0; font-size: 0.8rem; }
+.lcp-markdown table { border-collapse: collapse; margin: 0 0 0.5rem; }
+.lcp-markdown table th, .lcp-markdown table td { border: 1px solid #dee2e6; padding: 0.35rem 0.6rem; font-size: 0.85rem; }
+.lcp-markdown table th { background: #f8f9fa; font-weight: 600; }
+.lcp-markdown blockquote { border-left: 3px solid #dee2e6; margin: 0 0 0.5rem; padding: 0.25rem 0.75rem; color: #6c757d; }
+.lcp-markdown input[type="checkbox"] { width: auto; margin-right: 0.3rem; }
+
+/* Internal link */
+.lcp-internal-link { color: #0d6efd; text-decoration: none; }
+.lcp-internal-link:hover { text-decoration: underline; }

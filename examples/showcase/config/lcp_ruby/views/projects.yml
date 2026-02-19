@@ -1,9 +1,6 @@
 view_group:
   model: project
   primary: projects
-  navigation:
-    menu: main
-    position: 9
   breadcrumb:
     relation: department
   views:

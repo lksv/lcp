@@ -1,9 +1,6 @@
 view_group:
   model: article
   primary: articles
-  navigation:
-    menu: main
-    position: 3
   breadcrumb:
     relation: category
   views:
