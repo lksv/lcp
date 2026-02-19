@@ -7,7 +7,7 @@
       <% elsif item.group? %>
         <li class="lcp-nav-item lcp-nav-dropdown<%= ' active' if menu_item_active?(item, params[:lcp_slug]) %>">
           <button class="lcp-nav-dropdown-toggle" type="button">
-            <%= item.label %>
+            <%= item.label %><%= menu_item_badge(item) %>
             <span class="lcp-nav-caret"></span>
           </button>
           <ul class="lcp-nav-dropdown-menu">
@@ -18,8 +18,9 @@
                 <li class="lcp-nav-dropdown-item">
                   <% path = menu_item_path(child) %>
                   <% if path %>
-                    <%= link_to(menu_item_label(child), path,
-                          class: menu_item_active?(child, params[:lcp_slug]) ? "active" : "") %>
+                    <%= link_to path, class: menu_item_active?(child, params[:lcp_slug]) ? "active" : "" do %>
+                      <%= menu_item_label(child) %><%= menu_item_badge(child) %>
+                    <% end %>
                   <% end %>
                 </li>
               <% end %>
@@ -30,8 +31,9 @@
         <li class="lcp-nav-item">
           <% path = menu_item_path(item) %>
           <% if path %>
-            <%= link_to(menu_item_label(item), path,
-                  class: menu_item_active?(item, params[:lcp_slug]) ? "active" : "") %>
+            <%= link_to path, class: menu_item_active?(item, params[:lcp_slug]) ? "active" : "" do %>
+              <%= menu_item_label(item) %><%= menu_item_badge(item) %>
+            <% end %>
           <% end %>
         </li>
       <% end %>

@@ -70,7 +70,8 @@ module LcpRuby
             icon: item.icon,
             children: visible_children,
             visible_when: item.visible_when,
-            position: item.position
+            position: item.position,
+            badge: item.badge
           )
         else
           item
@@ -128,6 +129,26 @@ module LcpRuby
       item.resolved_label(LcpRuby.loader) || item.label
     end
 
+    # Render badge HTML for a menu item, or nil if no badge / provider returns nil
+    def menu_item_badge(item)
+      return nil unless item.has_badge?
+
+      provider = Services::Registry.lookup("data_providers", item.badge_provider)
+      unless provider
+        Rails.logger.debug("[LcpRuby::Menu] Data provider '#{item.badge_provider}' not registered")
+        return nil
+      end
+
+      data = provider.call(user: LcpRuby::Current.user)
+      return nil if data.nil?
+
+      render_menu_badge(item, data)
+    rescue => e
+      raise unless Rails.env.production?
+      Rails.logger.warn("[LcpRuby::Menu] Badge '#{item.badge_provider}' error: #{e.message}")
+      nil
+    end
+
     # Split items into main (non-bottom) and bottom items for sidebar
     def menu_main_items(items)
       items.reject(&:bottom?)
@@ -138,6 +159,26 @@ module LcpRuby
     end
 
     private
+
+    def render_menu_badge(item, data)
+      case item.badge_form
+      when :renderer
+        renderer = Display::RendererRegistry.renderer_for(item.badge_renderer)
+        return nil unless renderer
+        renderer.render(data, item.badge_options, view_context: self)
+      when :template
+        text = interpolate_badge_template(item.badge_template, data)
+        return nil if text.blank?
+        content_tag(:span, text, class: "lcp-menu-badge")
+      when :partial
+        render partial: item.badge_partial, locals: { data: data }
+      end
+    end
+
+    def interpolate_badge_template(template, data)
+      values = data.is_a?(Hash) ? data : { "value" => data }
+      template.gsub(/\{([^}]+)\}/) { |_| values[$1.strip].to_s }
+    end
 
     def presenter_accessible?(presenter)
       user = LcpRuby::Current.user

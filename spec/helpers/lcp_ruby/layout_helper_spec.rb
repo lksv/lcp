@@ -32,6 +32,192 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
     end
   end
 
+  describe "#menu_item_badge" do
+    let(:user) { double("User", lcp_role: ["admin"], id: 1) }
+
+    before do
+      LcpRuby::Current.user = user
+    end
+
+    context "renderer form" do
+      it "calls renderer and returns HTML" do
+        renderer = instance_double(LcpRuby::Display::CountBadge)
+        allow(renderer).to receive(:render).with(5, {}, view_context: anything).and_return(
+          '<span class="lcp-menu-badge">5</span>'.html_safe
+        )
+        allow(LcpRuby::Display::RendererRegistry).to receive(:renderer_for).with("count_badge").and_return(renderer)
+
+        provider = double("Provider")
+        allow(provider).to receive(:call).with(user: user).and_return(5)
+        allow(LcpRuby::Services::Registry).to receive(:lookup).with("data_providers", "open_tasks").and_return(provider)
+
+        item = LcpRuby::Metadata::MenuItem.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "open_tasks", "renderer" => "count_badge" }
+        )
+
+        result = menu_item_badge(item)
+        expect(result).to include("lcp-menu-badge")
+        expect(result).to include("5")
+      end
+
+      it "passes options to renderer" do
+        renderer = instance_double(LcpRuby::Display::TextBadge)
+        allow(renderer).to receive(:render).with("ALERT", { "color" => "#dc3545" }, view_context: anything).and_return(
+          '<span class="lcp-menu-badge">ALERT</span>'.html_safe
+        )
+        allow(LcpRuby::Display::RendererRegistry).to receive(:renderer_for).with("text_badge").and_return(renderer)
+
+        provider = double("Provider")
+        allow(provider).to receive(:call).with(user: user).and_return("ALERT")
+        allow(LcpRuby::Services::Registry).to receive(:lookup).with("data_providers", "alerts").and_return(provider)
+
+        item = LcpRuby::Metadata::MenuItem.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "alerts", "renderer" => "text_badge", "options" => { "color" => "#dc3545" } }
+        )
+
+        menu_item_badge(item)
+        expect(renderer).to have_received(:render).with("ALERT", { "color" => "#dc3545" }, view_context: anything)
+      end
+    end
+
+    context "template form" do
+      it "interpolates {key} from hash data and wraps in badge span" do
+        provider = double("Provider")
+        allow(provider).to receive(:call).with(user: user).and_return({ "count" => 3 })
+        allow(LcpRuby::Services::Registry).to receive(:lookup).with("data_providers", "unread").and_return(provider)
+
+        item = LcpRuby::Metadata::MenuItem.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "unread", "template" => "{count} new" }
+        )
+
+        result = menu_item_badge(item)
+        expect(result).to include("3 new")
+        expect(result).to include("lcp-menu-badge")
+      end
+
+      it "uses {value} for simple data" do
+        provider = double("Provider")
+        allow(provider).to receive(:call).with(user: user).and_return(7)
+        allow(LcpRuby::Services::Registry).to receive(:lookup).with("data_providers", "count").and_return(provider)
+
+        item = LcpRuby::Metadata::MenuItem.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "count", "template" => "{value}" }
+        )
+
+        result = menu_item_badge(item)
+        expect(result).to include("7")
+      end
+    end
+
+    context "partial form" do
+      it "renders partial with data local" do
+        provider = double("Provider")
+        allow(provider).to receive(:call).with(user: user).and_return({ "status" => "ok" })
+        allow(LcpRuby::Services::Registry).to receive(:lookup).with("data_providers", "health").and_return(provider)
+
+        # Stub the render method from ActionView
+        allow(self).to receive(:render).with(
+          partial: "badges/health",
+          locals: { data: { "status" => "ok" } }
+        ).and_return('<span class="badge-ok">OK</span>'.html_safe)
+
+        item = LcpRuby::Metadata::MenuItem.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "health", "partial" => "badges/health" }
+        )
+
+        result = menu_item_badge(item)
+        expect(result).to include("badge-ok")
+      end
+    end
+
+    context "edge cases" do
+      it "returns nil when item has no badge" do
+        item = LcpRuby::Metadata::MenuItem.from_hash("view_group" => "deals")
+
+        expect(menu_item_badge(item)).to be_nil
+      end
+
+      it "returns nil when provider is not registered" do
+        allow(LcpRuby::Services::Registry).to receive(:lookup).with("data_providers", "unknown").and_return(nil)
+
+        item = LcpRuby::Metadata::MenuItem.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "unknown", "renderer" => "count_badge" }
+        )
+
+        expect(menu_item_badge(item)).to be_nil
+      end
+
+      it "returns nil when provider returns nil" do
+        provider = double("Provider")
+        allow(provider).to receive(:call).with(user: user).and_return(nil)
+        allow(LcpRuby::Services::Registry).to receive(:lookup).with("data_providers", "empty").and_return(provider)
+
+        item = LcpRuby::Metadata::MenuItem.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "empty", "renderer" => "count_badge" }
+        )
+
+        expect(menu_item_badge(item)).to be_nil
+      end
+
+      it "re-raises errors in test environment" do
+        provider = double("Provider")
+        allow(provider).to receive(:call).and_raise(StandardError, "boom")
+        allow(LcpRuby::Services::Registry).to receive(:lookup).with("data_providers", "broken").and_return(provider)
+
+        item = LcpRuby::Metadata::MenuItem.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "broken", "renderer" => "count_badge" }
+        )
+
+        expect { menu_item_badge(item) }.to raise_error(StandardError, "boom")
+      end
+    end
+  end
+
+  describe "#visible_menu_items badge preservation" do
+    before do
+      loader = instance_double(LcpRuby::Metadata::Loader)
+      allow(LcpRuby).to receive(:loader).and_return(loader)
+      allow(loader).to receive(:menu_defined?).and_return(false)
+      allow(loader).to receive(:view_group_definitions).and_return({
+        "deals" => instance_double(
+          LcpRuby::Metadata::ViewGroupDefinition,
+          primary_presenter: "deal",
+          presenter_names: ["deal"],
+          navigable?: true
+        )
+      })
+      allow(loader).to receive(:presenter_definitions).and_return({
+        "deal" => instance_double(
+          LcpRuby::Metadata::PresenterDefinition,
+          name: "deal", model: "deal", routable?: true, slug: "deals"
+        )
+      })
+      allow(loader).to receive(:permission_definition).and_raise(LcpRuby::MetadataError, "no perms")
+    end
+
+    it "preserves badge on reconstructed group items" do
+      group_item = LcpRuby::Metadata::MenuItem.new(
+        type: :group,
+        label: "CRM",
+        badge: { "provider" => "crm_alerts", "renderer" => "count_badge" },
+        children: [
+          LcpRuby::Metadata::MenuItem.new(type: :view_group, view_group_name: "deals")
+        ]
+      )
+
+      result = visible_menu_items([group_item])
+      expect(result.first.badge).to eq("provider" => "crm_alerts", "renderer" => "count_badge")
+    end
+  end
+
   describe "#navigable_presenters" do
     let(:admin_user) { double("User", lcp_role: [ "admin" ], id: 1) }
     let(:viewer_user) { double("User", lcp_role: [ "viewer" ], id: 2) }

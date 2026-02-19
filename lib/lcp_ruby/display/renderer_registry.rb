@@ -27,7 +27,10 @@ module LcpRuby
         "attachment_preview" => "LcpRuby::Display::Renderers::AttachmentPreview",
         "attachment_list"    => "LcpRuby::Display::Renderers::AttachmentList",
         "attachment_link"    => "LcpRuby::Display::Renderers::AttachmentLink",
-        "link"               => "LcpRuby::Display::Renderers::Link"
+        "link"               => "LcpRuby::Display::Renderers::Link",
+        "count_badge"        => "LcpRuby::Display::CountBadge",
+        "text_badge"         => "LcpRuby::Display::TextBadge",
+        "icon_badge"         => "LcpRuby::Display::IconBadge"
       }.freeze
 
       class << self

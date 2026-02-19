@@ -4,9 +4,9 @@ module LcpRuby
       TYPES = %i[view_group link group separator].freeze
 
       attr_reader :type, :view_group_name, :label, :icon, :url, :children,
-                  :visible_when, :position
+                  :visible_when, :position, :badge
 
-      def initialize(type:, view_group_name: nil, label: nil, icon: nil, url: nil, children: [], visible_when: {}, position: nil)
+      def initialize(type:, view_group_name: nil, label: nil, icon: nil, url: nil, children: [], visible_when: {}, position: nil, badge: nil)
         @type = type
         @view_group_name = view_group_name
         @label = label
@@ -15,6 +15,7 @@ module LcpRuby
         @children = children
         @visible_when = HashUtils.stringify_deep(visible_when || {})
         @position = position
+        @badge = badge.is_a?(Hash) ? HashUtils.stringify_deep(badge) : nil
 
         validate!
       end
@@ -35,7 +36,8 @@ module LcpRuby
             label: hash["label"],
             icon: hash["icon"],
             visible_when: hash["visible_when"] || {},
-            position: hash["position"]
+            position: hash["position"],
+            badge: hash["badge"]
           )
         end
 
@@ -47,7 +49,8 @@ module LcpRuby
             icon: hash["icon"],
             children: children,
             visible_when: hash["visible_when"] || {},
-            position: hash["position"]
+            position: hash["position"],
+            badge: hash["badge"]
           )
         end
 
@@ -58,7 +61,8 @@ module LcpRuby
             icon: hash["icon"],
             url: hash["url"],
             visible_when: hash["visible_when"] || {},
-            position: hash["position"]
+            position: hash["position"],
+            badge: hash["badge"]
           )
         end
 
@@ -123,6 +127,40 @@ module LcpRuby
         allowed_roles.any? { |r| user_roles.include?(r) }
       end
 
+      def badge_provider
+        badge&.dig("provider")
+      end
+
+      def has_badge?
+        badge_provider.present?
+      end
+
+      def badge_form
+        if badge&.dig("renderer")
+          :renderer
+        elsif badge&.dig("partial")
+          :partial
+        elsif badge&.dig("template")
+          :template
+        end
+      end
+
+      def badge_renderer
+        badge&.dig("renderer")
+      end
+
+      def badge_partial
+        badge&.dig("partial")
+      end
+
+      def badge_template
+        badge&.dig("template")
+      end
+
+      def badge_options
+        badge&.dig("options") || {}
+      end
+
       def bottom?
         position.to_s == "bottom"
       end
@@ -163,6 +201,16 @@ module LcpRuby
         when :link
           raise MetadataError, "Menu link requires a label" if @label.blank?
           raise MetadataError, "Menu link requires a url" if @url.blank?
+        end
+
+        if @badge
+          raise MetadataError, "Badge requires a provider" unless badge_provider.present?
+          forms = [ badge_renderer, badge_template, badge_partial ].compact
+          if forms.empty?
+            raise MetadataError, "Badge must have one of: renderer, template, or partial"
+          elsif forms.size > 1
+            raise MetadataError, "Badge must have exactly one of: renderer, template, or partial"
+          end
         end
       end
     end

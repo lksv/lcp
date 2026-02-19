@@ -161,3 +161,103 @@ In strict mode:
 In `:auto` mode with `menu.yml`, any navigable view groups not referenced in the menu are automatically appended to `top_menu`. This ensures new models are visible without manual menu updates.
 
 To prevent a view group from being auto-appended, set `navigation: false` on it.
+
+## Adding Badges
+
+Badges display dynamic data (counts, labels, icons) on menu items. They require two parts: a **data provider** that fetches the data, and a **rendering form** that displays it.
+
+### Step 1: Create a Data Provider
+
+Create a class in `app/lcp_services/data_providers/` that responds to `call(user:)`:
+
+```ruby
+# app/lcp_services/data_providers/open_tasks.rb
+module LcpRuby::HostServices::DataProviders
+  class OpenTasks
+    def self.call(user:)
+      count = LcpRuby::Dynamic::Task.where(status: "open").count
+      count > 0 ? count : nil  # nil hides the badge
+    end
+  end
+end
+```
+
+The provider is auto-discovered and registered under `Services::Registry` with the key `open_tasks`.
+
+### Step 2: Add Badge to Menu Item
+
+Reference the provider in your `menu.yml` along with a rendering form:
+
+**Using a built-in renderer (simplest):**
+
+```yaml
+menu:
+  sidebar_menu:
+    - view_group: tasks
+      badge:
+        provider: open_tasks
+        renderer: count_badge
+```
+
+Built-in renderers: `count_badge` (red pill with number), `text_badge` (text label), `icon_badge` (icon).
+
+**Using a template:**
+
+```yaml
+- view_group: inbox
+  badge:
+    provider: unread_messages
+    template: "{count} new"
+```
+
+If the provider returns `{ "count" => 5 }`, the badge displays "5 new". For simple values, use `{value}`.
+
+**Using a partial:**
+
+```yaml
+- view_group: system_health
+  badge:
+    provider: health_status
+    partial: "badges/health_indicator"
+```
+
+The partial receives a `data` local variable with the provider's return value.
+
+### Step 3: Customize Appearance
+
+Pass `options` to renderers:
+
+```yaml
+- view_group: alerts
+  badge:
+    provider: alert_count
+    renderer: text_badge
+    options:
+      color: "#dc3545"
+```
+
+### Writing a Custom Badge Renderer
+
+Custom badge renderers are standard `Display::BaseRenderer` subclasses:
+
+```ruby
+# app/renderers/priority_badge.rb
+module LcpRuby::HostRenderers
+  class PriorityBadge < LcpRuby::Display::BaseRenderer
+    def render(value, options = {}, record: nil, view_context: nil)
+      return nil unless value.is_a?(Hash)
+      level = value["level"]
+      color = level == "high" ? "#dc3545" : "#ffc107"
+      view_context.content_tag(:span, level.upcase,
+        class: "lcp-menu-badge lcp-menu-badge-text",
+        style: "background:#{color}")
+    end
+  end
+end
+```
+
+Then reference it in YAML: `renderer: priority_badge`.
+
+### Staleness Note
+
+Badges are rendered server-side on each page load. For real-time updates, consider wrapping badge output in a Turbo Frame with periodic refresh.

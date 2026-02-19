@@ -349,6 +349,124 @@ RSpec.describe LcpRuby::Metadata::MenuItem do
     end
   end
 
+  describe "badge" do
+    context "parsing" do
+      it "parses badge with renderer form" do
+        item = described_class.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "open_tasks", "renderer" => "count_badge" }
+        )
+
+        expect(item.has_badge?).to be true
+        expect(item.badge_provider).to eq("open_tasks")
+        expect(item.badge_form).to eq(:renderer)
+        expect(item.badge_renderer).to eq("count_badge")
+      end
+
+      it "parses badge with template form" do
+        item = described_class.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "unread", "template" => "{count} new" }
+        )
+
+        expect(item.badge_form).to eq(:template)
+        expect(item.badge_template).to eq("{count} new")
+      end
+
+      it "parses badge with partial form" do
+        item = described_class.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "health", "partial" => "badges/health" }
+        )
+
+        expect(item.badge_form).to eq(:partial)
+        expect(item.badge_partial).to eq("badges/health")
+      end
+
+      it "parses badge options" do
+        item = described_class.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "alerts", "renderer" => "text_badge", "options" => { "color" => "#dc3545" } }
+        )
+
+        expect(item.badge_options).to eq("color" => "#dc3545")
+      end
+
+      it "returns empty hash when options not set" do
+        item = described_class.from_hash(
+          "view_group" => "deals",
+          "badge" => { "provider" => "open_tasks", "renderer" => "count_badge" }
+        )
+
+        expect(item.badge_options).to eq({})
+      end
+
+      it "parses badge on group items" do
+        item = described_class.from_hash(
+          "label" => "CRM",
+          "badge" => { "provider" => "crm_alerts", "renderer" => "count_badge" },
+          "children" => [ { "view_group" => "deals" } ]
+        )
+
+        expect(item.has_badge?).to be true
+      end
+
+      it "parses badge on link items" do
+        item = described_class.from_hash(
+          "label" => "Dashboard",
+          "url" => "/dashboard",
+          "badge" => { "provider" => "notifications", "template" => "{value}" }
+        )
+
+        expect(item.has_badge?).to be true
+      end
+    end
+
+    context "has_badge?" do
+      it "returns false when no badge" do
+        item = described_class.from_hash("view_group" => "deals")
+
+        expect(item.has_badge?).to be false
+      end
+
+      it "returns false for separator" do
+        item = described_class.from_hash("separator" => true)
+
+        expect(item.has_badge?).to be false
+        expect(item.badge).to be_nil
+      end
+    end
+
+    context "validation" do
+      it "raises when badge has no provider" do
+        expect {
+          described_class.from_hash(
+            "view_group" => "deals",
+            "badge" => { "renderer" => "count_badge" }
+          )
+        }.to raise_error(LcpRuby::MetadataError, /requires a provider/)
+      end
+
+      it "raises when badge has no rendering form" do
+        expect {
+          described_class.from_hash(
+            "view_group" => "deals",
+            "badge" => { "provider" => "open_tasks" }
+          )
+        }.to raise_error(LcpRuby::MetadataError, /must have one of/)
+      end
+
+      it "raises when badge has multiple rendering forms" do
+        expect {
+          described_class.from_hash(
+            "view_group" => "deals",
+            "badge" => { "provider" => "open_tasks", "renderer" => "count_badge", "template" => "{value}" }
+          )
+        }.to raise_error(LcpRuby::MetadataError, /must have exactly one of/)
+      end
+    end
+  end
+
   describe "type predicates" do
     it "view_group?" do
       item = described_class.from_hash("view_group" => "deals")

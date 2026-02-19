@@ -84,6 +84,36 @@ RSpec.describe "Menu Navigation Integration", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include('class="lcp-layout-top"')
     end
+
+    it "renders badge when data provider is registered" do
+      provider = double("Provider")
+      allow(provider).to receive(:call).and_return(3)
+      LcpRuby::Services::Registry.register("data_providers", "open_projects", provider)
+
+      get "/projects"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-menu-badge")
+      expect(response.body).to include("3")
+    end
+
+    it "does not render badge when data provider returns nil" do
+      provider = double("Provider")
+      allow(provider).to receive(:call).and_return(nil)
+      LcpRuby::Services::Registry.register("data_providers", "open_projects", provider)
+
+      get "/projects"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("lcp-menu-badge")
+    end
+
+    it "does not render badge when data provider is not registered" do
+      get "/projects"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("lcp-menu-badge")
+    end
   end
 
   describe "sidebar menu layout" do
