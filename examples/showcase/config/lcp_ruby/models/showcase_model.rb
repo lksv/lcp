@@ -3,14 +3,14 @@ define_model :showcase_model do
   label_plural "Model Features"
 
   # Transforms: strip + presence + length + uniqueness
-  field :name, :string, label: "Name", limit: 100, null: false, transforms: [:strip] do
+  field :name, :string, label: "Name", limit: 100, null: false, transforms: [ :strip ] do
     validates :presence
     validates :length, maximum: 100
     validates :uniqueness
   end
 
   # Transforms: strip + downcase, validates: format (regex)
-  field :code, :string, label: "Code", limit: 50, transforms: [:strip, :downcase] do
+  field :code, :string, label: "Code", limit: 50, transforms: [ :strip, :downcase ] do
     validates :presence
     validates :format, with: /\A[a-z0-9_-]+\z/, message: "only lowercase letters, numbers, hyphens and underscores"
   end

@@ -33,8 +33,8 @@ define_model :company do
     max_size: "2MB",
     content_types: %w[image/jpeg image/png image/svg+xml image/webp],
     variants: {
-      thumbnail: { resize_to_limit: [60, 60] },
-      medium: { resize_to_limit: [200, 200] }
+      thumbnail: { resize_to_limit: [ 60, 60 ] },
+      medium: { resize_to_limit: [ 200, 200 ] }
     }
   }
 

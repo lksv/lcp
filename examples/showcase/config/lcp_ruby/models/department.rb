@@ -5,7 +5,7 @@ define_model :department do
   field :name, :string, label: "Name", limit: 100, null: false do
     validates :presence
   end
-  field :code, :string, label: "Code", limit: 20, transforms: [:strip, :downcase] do
+  field :code, :string, label: "Code", limit: 20, transforms: [ :strip, :downcase ] do
     validates :presence
     validates :uniqueness
   end

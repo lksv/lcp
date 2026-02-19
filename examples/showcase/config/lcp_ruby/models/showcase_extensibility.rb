@@ -2,11 +2,11 @@ define_model :showcase_extensibility do
   label "Extensibility"
   label_plural "Extensibility"
 
-  field :name, :string, label: "Name", limit: 100, null: false, transforms: [:strip] do
+  field :name, :string, label: "Name", limit: 100, null: false, transforms: [ :strip ] do
     validates :presence
   end
 
-  field :currency, :string, label: "Currency Code", limit: 3, transforms: [:strip] do
+  field :currency, :string, label: "Currency Code", limit: 3, transforms: [ :strip ] do
     validates :format, with: /\A[A-Z]{3}\z/, message: "must be a 3-letter ISO currency code", allow_blank: true
   end
 

@@ -33,7 +33,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
   end
 
   describe "#menu_item_badge" do
-    let(:user) { double("User", lcp_role: ["admin"], id: 1) }
+    let(:user) { double("User", lcp_role: [ "admin" ], id: 1) }
 
     before do
       LcpRuby::Current.user = user
@@ -190,7 +190,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
         "deals" => instance_double(
           LcpRuby::Metadata::ViewGroupDefinition,
           primary_presenter: "deal",
-          presenter_names: ["deal"],
+          presenter_names: [ "deal" ],
           navigable?: true
         )
       })
@@ -213,7 +213,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
         ]
       )
 
-      result = visible_menu_items([group_item])
+      result = visible_menu_items([ group_item ])
       expect(result.first.badge).to eq("provider" => "crm_alerts", "renderer" => "count_badge")
     end
   end

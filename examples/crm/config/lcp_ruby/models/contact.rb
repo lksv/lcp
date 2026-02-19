@@ -25,8 +25,8 @@ define_model :contact do
     max_size: "5MB",
     content_types: %w[image/jpeg image/png image/webp],
     variants: {
-      thumbnail: { resize_to_fill: [40, 40] },
-      medium: { resize_to_limit: [200, 200] }
+      thumbnail: { resize_to_fill: [ 40, 40 ] },
+      medium: { resize_to_limit: [ 200, 200 ] }
     }
   }
 
