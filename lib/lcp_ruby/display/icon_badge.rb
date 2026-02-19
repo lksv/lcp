@@ -6,8 +6,8 @@ module LcpRuby
         color = value.is_a?(Hash) ? value["color"] : options["color"]
         return nil if icon.blank?
 
-        style = color ? "color:#{color}" : nil
-        opts = { class: "lcp-menu-badge lcp-menu-badge-icon", style: style }
+        opts = { class: "lcp-menu-badge lcp-menu-badge-icon" }
+        opts[:style] = "color:#{color}" if color
         view_context.content_tag(:span, opts) do
           view_context.content_tag(:i, "", class: "lcp-icon lcp-icon-#{icon}")
         end

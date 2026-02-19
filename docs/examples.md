@@ -99,4 +99,6 @@ bundle exec rails s -p 3001
 | Dynamic defaults | `expected_close_date` defaults to 30 days out via service | [Defaults](reference/models.md#default) |
 | Computed fields (template) | Contact `full_name` from `{first_name} {last_name}` | [Computed](reference/models.md#computed) |
 | Computed fields (service) | Deal `weighted_value` from value * progress | [Computed](reference/models.md#computed) |
+| Menu badges | Dynamic badges on sidebar menu items (count, text, template) | [Menu Badges](reference/menu.md#badges) |
+| Data providers | `open_deals_count`, `active_contacts_count`, `won_deals_count`, `pipeline_value` in `app/lcp_services/data_providers/` | [Menu Guide](guides/menu.md#adding-badges) |
 | Service auto-discover | Custom services in `app/lcp_services/` | [Extensibility](guides/extensibility.md#auto-discovery-setup) |

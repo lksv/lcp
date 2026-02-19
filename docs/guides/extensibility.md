@@ -6,7 +6,7 @@ LCP Ruby generates full CRUD applications from YAML metadata, but real-world sys
 
 LCP Ruby provides extensibility through two systems:
 
-1. **Services::Registry** — unified auto-discover registry for transforms, validators, defaults, computed fields, and conditions. Services live in `app/lcp_services/{category}/` and are discovered automatically.
+1. **Services::Registry** — unified auto-discover registry for transforms, validators, defaults, computed fields, conditions, and data providers. Services live in `app/lcp_services/{category}/` and are discovered automatically.
 2. **Dedicated registries** — custom actions (`app/actions/`), event handlers (`app/event_handlers/`), condition services (`app/condition_services/`), and custom renderers (`app/renderers/`) use their own registries with auto-discovery.
 
 ### Service Categories
@@ -18,6 +18,7 @@ LCP Ruby provides extensibility through two systems:
 | `defaults` | `def self.call(record, field_name) -> value` | No | `app/lcp_services/defaults/` | Field `default: { service: }` |
 | `computed` | `def self.call(record) -> value` | No | `app/lcp_services/computed/` | Field `computed: { service: }` |
 | `conditions` | `def self.call(record) -> boolean` | No | `app/lcp_services/conditions/` | `visible_when: { service: }`, `when: { service: }` |
+| `data_providers` | `def self.call(user:) -> data or nil` | No | `app/lcp_services/data_providers/` | Menu badge `provider:` |
 
 ### Other Extension Points
 

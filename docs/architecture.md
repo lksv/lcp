@@ -10,15 +10,20 @@ YAML metadata (config/lcp_ruby/)
   ├── types/*.yml        → Metadata::Loader → TypeDefinition → TypeRegistry
   ├── models/*.yml       → Metadata::Loader → ModelDefinition
   ├── presenters/*.yml   → Metadata::Loader → PresenterDefinition
-  └── permissions/*.yml  → Metadata::Loader → PermissionDefinition
+  ├── permissions/*.yml  → Metadata::Loader → PermissionDefinition
+  └── menu.yml           → Metadata::Loader → MenuDefinition → MenuItem (with badges)
                                 ↓
               ModelFactory::Builder.build → LcpRuby::Dynamic::<Name>
               (creates AR class + DB table + validations + transforms + associations + scopes)
                                 ↓
               LcpRuby.registry.register(name, model_class)
                                 ↓
+              Services::Registry.discover! → data providers from app/lcp_services/data_providers/
+              Display::RendererRegistry.register_built_ins! → 26 built-in renderers + badge renderers
+              Display::RendererRegistry.discover! → custom renderers from app/renderers/
+                                ↓
               Engine routes (/:lcp_slug/*) → ResourcesController
-              (CRUD with Pundit authorization, presenter-driven UI)
+              (CRUD with Pundit authorization, presenter-driven UI, menu badges)
 ```
 
 ## Core Modules
@@ -184,11 +189,12 @@ end
 
 **`load_metadata!` sequence:**
 1. `BuiltInTypes.register_all!` + `BuiltInTransforms.register_all!` + `BuiltInDefaults.register_all!` — register built-in types and services
-2. `Services::Registry.discover!` — auto-discover host app services from `app/lcp_services/`
-3. `Loader.load_all` — load types → models → presenters → permissions (YAML + DSL)
-4. Iterate `model_definitions` — for each: `SchemaManager.ensure_table!` + `Builder.build`
-5. `Registry.register(name, model_class)` for each built model
-6. `check_services!` — verify all service references are valid
+2. `Services::Registry.discover!` — auto-discover host app services from `app/lcp_services/` (transforms, validators, defaults, computed, conditions, data_providers)
+3. `Display::RendererRegistry.register_built_ins!` — register 26 built-in renderers + badge renderers (count_badge, text_badge, icon_badge); then `Display::RendererRegistry.discover!` — auto-discover host renderers from `app/renderers/`
+4. `Loader.load_all` — load types → models → presenters → permissions → menu (YAML + DSL)
+5. Iterate `model_definitions` — for each: `SchemaManager.ensure_table!` + `Builder.build`
+6. `Registry.register(name, model_class)` for each built model
+7. `check_services!` — verify all service references are valid
 
 **`reload!`** — calls `reset!` then re-runs `load_metadata!`
 
