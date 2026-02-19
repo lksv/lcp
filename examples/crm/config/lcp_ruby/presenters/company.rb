@@ -1,4 +1,4 @@
-define_presenter :company_admin do
+define_presenter :company do
   model :company
   label "Companies"
   slug "companies"

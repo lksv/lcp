@@ -1,5 +1,5 @@
 presenter:
-  name: category_admin
+  name: category
   model: category
   label: "Categories"
   slug: categories

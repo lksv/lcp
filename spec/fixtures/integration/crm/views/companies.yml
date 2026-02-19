@@ -1,9 +1,9 @@
 view_group:
   model: company
-  primary: company_admin
+  primary: company
   navigation:
     menu: main
     position: 1
   views:
-    - presenter: company_admin
+    - presenter: company
       label: "Companies"

@@ -1,4 +1,4 @@
-define_presenter :project_public, inherits: :project_admin do
+define_presenter :project_public, inherits: :project do
   label "Projects"
   slug "public-projects"
   icon "globe"

@@ -118,11 +118,11 @@ File: `config/lcp_ruby/views/<name>.rb`
 ```ruby
 define_view_group :deals do
   model :deal
-  primary :deal_admin
+  primary :deal
 
   navigation menu: "main", position: 3
 
-  view :deal_admin, label: "Detailed", icon: :maximize
+  view :deal, label: "Detailed", icon: :maximize
   view :deal_short,  label: "Short",    icon: :list
 end
 ```

@@ -11,7 +11,7 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
   let(:presenter_hash) do
     # Build a minimal presenter config with an association_select field
     {
-      "name" => "task_admin",
+      "name" => "task",
       "model" => "task",
       "label" => "Tasks",
       "slug" => "tasks",
@@ -75,7 +75,7 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
   describe "#form_sections with unknown FK field" do
     let(:presenter_hash) do
       {
-        "name" => "task_admin",
+        "name" => "task",
         "model" => "task",
         "label" => "Tasks",
         "slug" => "tasks",
@@ -163,7 +163,7 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
 
     let(:nested_presenter_hash) do
       {
-        "name" => "todo_list_admin",
+        "name" => "todo_list",
         "model" => "todo_list",
         "label" => "Lists",
         "slug" => "lists",
@@ -316,7 +316,7 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
 
     let(:multi_select_presenter_hash) do
       {
-        "name" => "article_admin",
+        "name" => "article",
         "model" => "article",
         "label" => "Articles",
         "slug" => "articles",

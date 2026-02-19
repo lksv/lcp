@@ -13,7 +13,7 @@ RSpec.describe LcpRuby::Metadata::Loader do
     end
 
     it "loads presenter definitions" do
-      expect(loader.presenter_definitions).to have_key("project_admin")
+      expect(loader.presenter_definitions).to have_key("project")
       expect(loader.presenter_definitions).to have_key("project_public")
     end
 
@@ -39,7 +39,7 @@ RSpec.describe LcpRuby::Metadata::Loader do
 
   describe "#presenter_definition" do
     it "returns a presenter definition by name" do
-      presenter = loader.presenter_definition("project_admin")
+      presenter = loader.presenter_definition("project")
       expect(presenter).to be_a(LcpRuby::Metadata::PresenterDefinition)
       expect(presenter.model).to eq("project")
     end

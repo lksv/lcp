@@ -18,7 +18,7 @@ permissions:
         allowed: [close_won]
         denied: []
       scope: all
-      presenters: [deal_admin]
+      presenters: [deal]
 
     viewer:
       crud: [index, show]

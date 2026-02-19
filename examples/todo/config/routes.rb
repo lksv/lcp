@@ -1,4 +1,4 @@
 Rails.application.routes.draw do
-  mount LcpRuby::Engine => "/admin"
-  root to: redirect("/admin/lists")
+  mount LcpRuby::Engine => "/"
+  root to: redirect("/lists")
 end

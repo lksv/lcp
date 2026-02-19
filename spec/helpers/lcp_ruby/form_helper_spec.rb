@@ -1028,7 +1028,7 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
         allow(target_class).to receive(:all).and_return([])
         allow(target_class).to receive(:respond_to?).and_return(false)
         allow(LcpRuby).to receive_message_chain(:registry, :model_for).with("contact").and_return(target_class)
-        allow(self).to receive(:select_options_url_for).with(:contact_id).and_return("/admin/contacts/select_options?field=contact_id")
+        allow(self).to receive(:select_options_url_for).with(:contact_id).and_return("/contacts/select_options?field=contact_id")
 
         config = {
           "association" => lcp_assoc,
@@ -1216,8 +1216,8 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
 
         lcp_engine = double("lcp_engine")
         allow(self).to receive(:lcp_ruby).and_return(lcp_engine)
-        allow(lcp_engine).to receive(:inline_create_path).with(lcp_slug: "deals").and_return("/admin/deals/inline_create")
-        allow(lcp_engine).to receive(:inline_create_form_path).with(lcp_slug: "deals").and_return("/admin/deals/inline_create_form")
+        allow(lcp_engine).to receive(:inline_create_path).with(lcp_slug: "deals").and_return("/deals/inline_create")
+        allow(lcp_engine).to receive(:inline_create_form_path).with(lcp_slug: "deals").and_return("/deals/inline_create_form")
 
         config = {
           "association" => lcp_assoc,
@@ -1232,8 +1232,8 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           { include_blank: I18n.t("lcp_ruby.select.include_blank") },
           hash_including(
             "data-lcp-inline-create" => "true",
-            "data-lcp-inline-create-url" => "/admin/deals/inline_create",
-            "data-lcp-inline-create-form-url" => "/admin/deals/inline_create_form",
+            "data-lcp-inline-create-url" => "/deals/inline_create",
+            "data-lcp-inline-create-form-url" => "/deals/inline_create_form",
             "data-lcp-target-model" => "company",
             "data-lcp-label-method" => "name"
           )

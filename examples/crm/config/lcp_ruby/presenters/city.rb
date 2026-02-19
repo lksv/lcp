@@ -1,4 +1,4 @@
-define_presenter :city_admin do
+define_presenter :city do
   model :city
   label "Cities"
   slug "cities"

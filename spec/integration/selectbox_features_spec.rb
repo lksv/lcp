@@ -29,14 +29,14 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       company = company_model.create!(name: "Acme Corp", industry: "technology")
 
       expect {
-        post "/admin/deals", params: {
+        post "/deals", params: {
           record: { title: "Big Deal", company_id: company.id, stage: "lead" }
         }
       }.to change { deal_model.count }.by(1)
     end
 
     it "rejects creating a deal with a nonexistent company_id" do
-      post "/admin/deals", params: {
+      post "/deals", params: {
         record: { title: "Bad Deal", company_id: 999999, stage: "lead" }
       }
 
@@ -49,7 +49,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       company2 = company_model.create!(name: "Beta Inc", industry: "finance")
       deal = deal_model.create!(title: "Deal 1", company_id: company.id, stage: "lead")
 
-      patch "/admin/deals/#{deal.id}", params: {
+      patch "/deals/#{deal.id}", params: {
         record: { company_id: company2.id }
       }
 
@@ -62,7 +62,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       company = company_model.create!(name: "Acme Corp", industry: "technology")
       deal = deal_model.create!(title: "Deal 1", company_id: company.id, stage: "lead")
 
-      patch "/admin/deals/#{deal.id}", params: {
+      patch "/deals/#{deal.id}", params: {
         record: { company_id: 999999 }
       }
 
@@ -78,7 +78,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
 
       # Submit a contact that belongs to the selected company — should work
       expect {
-        post "/admin/deals", params: {
+        post "/deals", params: {
           record: { title: "Deal", company_id: acme.id, contact_id: john.id, stage: "lead" }
         }
       }.to change { deal_model.count }.by(1)
@@ -87,14 +87,14 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
 
   describe "1d: default value from metadata" do
     it "renders new form (no error)" do
-      get "/admin/deals/new"
+      get "/deals/new"
       expect(response).to have_http_status(:ok)
     end
   end
 
   describe "3c: I18n strings" do
     it "renders form with translated submit button" do
-      get "/admin/deals/new"
+      get "/deals/new"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t("lcp_ruby.form.create"))
       expect(response.body).to include(I18n.t("lcp_ruby.form.cancel"))
@@ -104,13 +104,13 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       company = company_model.create!(name: "Acme", industry: "technology")
       deal = deal_model.create!(title: "Deal", company_id: company.id, stage: "lead")
 
-      get "/admin/deals/#{deal.id}/edit"
+      get "/deals/#{deal.id}/edit"
       expect(response).to have_http_status(:ok)
       expect(response.body).to include(I18n.t("lcp_ruby.form.update"))
     end
 
     it "uses translated error message for invalid association values" do
-      post "/admin/deals", params: {
+      post "/deals", params: {
         record: { title: "Bad", company_id: 999999, stage: "lead" }
       }
       expect(response).to have_http_status(:unprocessable_entity)
@@ -123,7 +123,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       company_model.create!(name: "Acme", industry: "technology")
       company_model.create!(name: "Beta", industry: "finance")
 
-      get "/admin/deals/select_options", params: { field: "company_id" }
+      get "/deals/select_options", params: { field: "company_id" }
       expect(response).to have_http_status(:ok)
 
       data = JSON.parse(response.body)
@@ -138,7 +138,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
     end
 
     it "returns empty array for unknown field" do
-      get "/admin/deals/select_options", params: { field: "nonexistent_field" }
+      get "/deals/select_options", params: { field: "nonexistent_field" }
       expect(response).to have_http_status(:ok)
       expect(JSON.parse(response.body)).to eq([])
     end
@@ -149,7 +149,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       contact_model.create!(first_name: "John", last_name: "Doe", company_id: acme.id)
       contact_model.create!(first_name: "Jane", last_name: "Smith", company_id: other.id)
 
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "contact_id",
         depends_on: { "company_id" => acme.id }
       }
@@ -166,7 +166,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       contact_model.create!(first_name: "John", last_name: "Doe", company_id: acme.id)
       contact_model.create!(first_name: "Jane", last_name: "Smith", company_id: other.id)
 
-      get "/admin/deals/select_options", params: { field: "contact_id" }
+      get "/deals/select_options", params: { field: "contact_id" }
 
       expect(response).to have_http_status(:ok)
       data = JSON.parse(response.body)
@@ -184,7 +184,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
     end
 
     it "returns paginated results when page param is present" do
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "company_id",
         page: 1,
         per_page: 2
@@ -201,7 +201,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
     end
 
     it "returns second page of results" do
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "company_id",
         page: 2,
         per_page: 2
@@ -214,7 +214,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
     end
 
     it "caps per_page at 100" do
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "company_id",
         page: 1,
         per_page: 999
@@ -233,7 +233,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       acme = company_model.create!(name: "Acme Corp", industry: "technology")
       john = contact_model.create!(first_name: "John", last_name: "Doe", company_id: acme.id)
 
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "contact_id",
         ancestors_for: john.id
       }
@@ -251,7 +251,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
     it "returns empty ancestors when field has no depends_on" do
       company_model.create!(name: "Acme", industry: "technology")
 
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "company_id",
         ancestors_for: 1
       }
@@ -262,7 +262,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
     end
 
     it "returns empty ancestors for nonexistent record" do
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "contact_id",
         ancestors_for: 999999
       }
@@ -277,7 +277,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
     it "denies inline_create for role without create permission" do
       stub_current_user(role: "viewer")
 
-      post "/admin/deals/inline_create", params: {
+      post "/deals/inline_create", params: {
         target_model: "company",
         label_method: "name",
         inline_record: { name: "Test Co", industry: "technology" }
@@ -292,7 +292,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       stub_current_user(role: "admin")
 
       expect {
-        post "/admin/deals/inline_create", params: {
+        post "/deals/inline_create", params: {
           target_model: "company",
           label_method: "name",
           inline_record: { name: "Admin Co", industry: "finance" }
@@ -305,20 +305,20 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
 
   describe "3a: inline create endpoints" do
     it "GET inline_create_form returns HTML for target model" do
-      get "/admin/deals/inline_create_form", params: { target_model: "company" }
+      get "/deals/inline_create_form", params: { target_model: "company" }
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("inline_record[name]")
       expect(response.body).to include("inline_record[industry]")
     end
 
     it "GET inline_create_form returns bad_request without target_model" do
-      get "/admin/deals/inline_create_form"
+      get "/deals/inline_create_form"
       expect(response).to have_http_status(:bad_request)
     end
 
     it "POST inline_create creates a record and returns JSON" do
       expect {
-        post "/admin/deals/inline_create", params: {
+        post "/deals/inline_create", params: {
           target_model: "company",
           label_method: "name",
           inline_record: { name: "New Company", industry: "technology" }
@@ -332,7 +332,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
     end
 
     it "POST inline_create returns errors for invalid record" do
-      post "/admin/deals/inline_create", params: {
+      post "/deals/inline_create", params: {
         target_model: "company",
         inline_record: { name: "", industry: "technology" }
       }
@@ -344,7 +344,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
     end
 
     it "POST inline_create returns bad_request without target_model" do
-      post "/admin/deals/inline_create", params: {
+      post "/deals/inline_create", params: {
         inline_record: { name: "Test" }
       }
       expect(response).to have_http_status(:bad_request)

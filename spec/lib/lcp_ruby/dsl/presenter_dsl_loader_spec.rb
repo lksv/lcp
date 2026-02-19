@@ -8,8 +8,8 @@ RSpec.describe LcpRuby::Dsl::DslLoader, ".load_presenters" do
     it "loads presenter definitions from .rb files" do
       definitions = described_class.load_presenters(dsl_presenters_dir)
 
-      expect(definitions).to have_key("project_admin")
-      expect(definitions["project_admin"]).to be_a(LcpRuby::Metadata::PresenterDefinition)
+      expect(definitions).to have_key("project")
+      expect(definitions["project"]).to be_a(LcpRuby::Metadata::PresenterDefinition)
     end
 
     it "returns empty hash for non-existent directory" do
@@ -19,9 +19,9 @@ RSpec.describe LcpRuby::Dsl::DslLoader, ".load_presenters" do
 
     it "produces a valid PresenterDefinition from DSL" do
       definitions = described_class.load_presenters(dsl_presenters_dir)
-      presenter = definitions["project_admin"]
+      presenter = definitions["project"]
 
-      expect(presenter.name).to eq("project_admin")
+      expect(presenter.name).to eq("project")
       expect(presenter.model).to eq("project")
       expect(presenter.label).to eq("Project Management")
       expect(presenter.slug).to eq("projects")

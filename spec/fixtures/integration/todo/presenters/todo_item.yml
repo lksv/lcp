@@ -1,5 +1,5 @@
 presenter:
-  name: todo_item_admin
+  name: todo_item
   model: todo_item
   label: "Todo Items"
   slug: items

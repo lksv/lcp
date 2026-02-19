@@ -159,7 +159,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
     describe "#from_presenter with :index context" do
       it "detects FK columns matching belongs_to associations" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "deal_admin",
+          "name" => "deal",
           "model" => "deal",
           "index" => {
             "table_columns" => [
@@ -179,7 +179,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
       it "ignores non-FK columns" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "deal_admin",
+          "name" => "deal",
           "model" => "deal",
           "index" => {
             "table_columns" => [
@@ -198,7 +198,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
     describe "#from_presenter with :show context" do
       it "detects association_list sections" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "company_admin",
+          "name" => "company",
           "model" => "company",
           "show" => {
             "layout" => [
@@ -225,7 +225,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
       it "detects multiple association_list sections" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "company_admin",
+          "name" => "company",
           "model" => "company",
           "show" => {
             "layout" => [
@@ -245,7 +245,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
     describe "#from_presenter with :form context" do
       it "detects nested_fields sections" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "todo_list_admin",
+          "name" => "todo_list",
           "model" => "todo_list",
           "form" => {
             "sections" => [
@@ -270,7 +270,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
       it "ignores association_select fields (those are separate queries)" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "deal_admin",
+          "name" => "deal",
           "model" => "deal",
           "form" => {
             "sections" => [
@@ -335,7 +335,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
     describe "dot-path and template column detection" do
       it "detects dot-path column as display dependency" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "deal_admin",
+          "name" => "deal",
           "model" => "deal",
           "index" => {
             "table_columns" => [
@@ -355,7 +355,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
       it "detects has_many dot-path column as display dependency" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "company_admin",
+          "name" => "company",
           "model" => "company",
           "index" => {
             "table_columns" => [
@@ -375,7 +375,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
       it "detects template with dot-path as dependency" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "deal_admin",
+          "name" => "deal",
           "model" => "deal",
           "index" => {
             "table_columns" => [
@@ -393,7 +393,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
       it "ignores template refs without dot-path" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "deal_admin",
+          "name" => "deal",
           "model" => "deal",
           "index" => {
             "table_columns" => [
@@ -411,7 +411,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
     describe "dot-path in show fields" do
       it "detects dot-path fields in show layout sections" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-          "name" => "deal_admin",
+          "name" => "deal",
           "model" => "deal",
           "show" => {
             "layout" => [
@@ -598,7 +598,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
   describe ".resolve" do
     it "integrates all collectors into a single strategy" do
       presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-        "name" => "deal_admin",
+        "name" => "deal",
         "model" => "deal",
         "index" => {
           "table_columns" => [
@@ -620,7 +620,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
     it "combines auto-detected and sort dependencies" do
       presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-        "name" => "deal_admin",
+        "name" => "deal",
         "model" => "deal",
         "index" => {
           "table_columns" => [
@@ -644,7 +644,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
     it "returns empty strategy when no associations needed" do
       presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-        "name" => "deal_admin",
+        "name" => "deal",
         "model" => "deal",
         "index" => {
           "table_columns" => [
@@ -665,7 +665,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
     it "resolves show context with association_list" do
       presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-        "name" => "company_admin",
+        "name" => "company",
         "model" => "company",
         "show" => {
           "layout" => [
@@ -687,7 +687,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
     it "resolves form context with nested_fields" do
       presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-        "name" => "todo_list_admin",
+        "name" => "todo_list",
         "model" => "todo_list",
         "form" => {
           "sections" => [
@@ -713,7 +713,7 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
 
     it "includes manual overrides from config" do
       presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
-        "name" => "deal_admin",
+        "name" => "deal",
         "model" => "deal",
         "index" => {
           "table_columns" => [ { "field" => "title" } ],

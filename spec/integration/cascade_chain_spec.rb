@@ -26,7 +26,7 @@ RSpec.describe "Cascade Chain (3-level A→B→C)", type: :request do
   let(:district_model) { LcpRuby.registry.model_for("district") }
   let(:address_model) { LcpRuby.registry.model_for("address") }
 
-  describe "GET /admin/addresses/select_options" do
+  describe "GET /addresses/select_options" do
     it "returns cities filtered by region (level A→B)" do
       r1 = region_model.create!(name: "Region 1")
       r2 = region_model.create!(name: "Region 2")
@@ -34,7 +34,7 @@ RSpec.describe "Cascade Chain (3-level A→B→C)", type: :request do
       c2 = city_model.create!(name: "City B", region_id: r1.id)
       c3 = city_model.create!(name: "City C", region_id: r2.id)
 
-      get "/admin/addresses/select_options", params: {
+      get "/addresses/select_options", params: {
         field: "city_id",
         depends_on: { "region_id" => r1.id.to_s }
       }, headers: { "Accept" => "application/json" }
@@ -54,7 +54,7 @@ RSpec.describe "Cascade Chain (3-level A→B→C)", type: :request do
       d2 = district_model.create!(name: "District Y", city_id: c1.id)
       d3 = district_model.create!(name: "District Z", city_id: c2.id)
 
-      get "/admin/addresses/select_options", params: {
+      get "/addresses/select_options", params: {
         field: "district_id",
         depends_on: { "city_id" => c1.id.to_s }
       }, headers: { "Accept" => "application/json" }
@@ -72,7 +72,7 @@ RSpec.describe "Cascade Chain (3-level A→B→C)", type: :request do
       city_model.create!(name: "City A", region_id: r1.id)
       city_model.create!(name: "City B", region_id: r2.id)
 
-      get "/admin/addresses/select_options", params: { field: "city_id" },
+      get "/addresses/select_options", params: { field: "city_id" },
         headers: { "Accept" => "application/json" }
 
       json = JSON.parse(response.body)
@@ -84,7 +84,7 @@ RSpec.describe "Cascade Chain (3-level A→B→C)", type: :request do
       region_model.create!(name: "Region 2")
       region_model.create!(name: "Region 3")
 
-      get "/admin/addresses/select_options", params: { field: "region_id" },
+      get "/addresses/select_options", params: { field: "region_id" },
         headers: { "Accept" => "application/json" }
 
       json = JSON.parse(response.body)
@@ -95,7 +95,7 @@ RSpec.describe "Cascade Chain (3-level A→B→C)", type: :request do
       r1 = region_model.create!(name: "Empty Region")
       # No cities in this region
 
-      get "/admin/addresses/select_options", params: {
+      get "/addresses/select_options", params: {
         field: "city_id",
         depends_on: { "region_id" => r1.id.to_s }
       }, headers: { "Accept" => "application/json" }
@@ -110,7 +110,7 @@ RSpec.describe "Cascade Chain (3-level A→B→C)", type: :request do
       city_model.create!(name: "Alpha City", region_id: r1.id)
       city_model.create!(name: "Mu City", region_id: r1.id)
 
-      get "/admin/addresses/select_options", params: {
+      get "/addresses/select_options", params: {
         field: "city_id",
         depends_on: { "region_id" => r1.id.to_s }
       }, headers: { "Accept" => "application/json" }
@@ -123,7 +123,7 @@ RSpec.describe "Cascade Chain (3-level A→B→C)", type: :request do
 
   describe "form rendering" do
     it "renders cascading select data attributes for 3-level chain" do
-      get "/admin/addresses/new"
+      get "/addresses/new"
 
       expect(response).to have_http_status(:ok)
       body = response.body
@@ -142,7 +142,7 @@ RSpec.describe "Cascade Chain (3-level A→B→C)", type: :request do
       d1 = district_model.create!(name: "District X", city_id: c1.id)
 
       expect {
-        post "/admin/addresses", params: {
+        post "/addresses", params: {
           record: {
             street: "123 Main St",
             region_id: r1.id,

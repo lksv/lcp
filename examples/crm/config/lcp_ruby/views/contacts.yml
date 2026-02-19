@@ -1,11 +1,11 @@
 view_group:
   model: contact
-  primary: contact_admin
+  primary: contact
   navigation:
     menu: main
     position: 2
   views:
-    - presenter: contact_admin
+    - presenter: contact
       label: "Detailed"
       icon: maximize
     - presenter: contact_short

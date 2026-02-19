@@ -1,4 +1,4 @@
-define_presenter :contact_short, inherits: :contact_admin do
+define_presenter :contact_short, inherits: :contact do
   label "Contacts (Short)"
   slug "contacts-short"
 

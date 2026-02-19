@@ -13,7 +13,7 @@ cd examples/todo
 bundle install
 bundle exec rails db:prepare
 bundle exec rails s -p 3000
-# Visit http://localhost:3000/admin
+# Visit http://localhost:3000
 ```
 
 ### Models
@@ -48,7 +48,7 @@ cd examples/crm
 bundle install
 bundle exec rails db:prepare
 bundle exec rails s -p 3001
-# Visit http://localhost:3001/admin
+# Visit http://localhost:3001
 ```
 
 ### Models
@@ -61,9 +61,9 @@ bundle exec rails s -p 3001
 
 | Presenter | Purpose |
 |-----------|---------|
-| `company_admin` | Company management |
-| `contact_admin` | Contact management |
-| `deal_admin` | Deal management with custom actions |
+| `company` | Company management |
+| `contact` | Contact management |
+| `deal` | Deal management with custom actions |
 | `deal_pipeline` | Read-only pipeline view |
 
 ### Roles

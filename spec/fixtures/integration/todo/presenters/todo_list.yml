@@ -1,5 +1,5 @@
 presenter:
-  name: todo_list_admin
+  name: todo_list
   model: todo_list
   label: "Todo Lists"
   slug: lists

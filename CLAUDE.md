@@ -8,6 +8,8 @@ LCP Ruby is a **low-code platform** implemented as a Rails mountable engine for 
 
 **Important:** The UI quality target is a production information system, not a quick admin scaffold. Form controls, display renderers, and interaction patterns should match the standards of professional business applications (e.g., proper disabled states via widget APIs, not just CSS overlays).
 
+**Pre-production stage:** This platform is not yet used in production. There is no need to worry about breaking changes, backward compatibility, migration guides, or changelogs. Just make the best design decisions without legacy constraints.
+
 ## Documentation
 
 - [Documentation Index](docs/README.md) — Links to all documentation
@@ -118,15 +120,15 @@ YAML metadata (config/lcp_ruby/)
 
 ### Routing
 
-Engine mounts at a configurable path (default `/admin`). All resources use a slug-based pattern:
+Engine mounts at a configurable path (default `/`). All resources use a slug-based pattern:
 ```
-/admin/:lcp_slug          → resources#index
-/admin/:lcp_slug/new      → resources#new
-/admin/:lcp_slug/:id      → resources#show
-/admin/:lcp_slug/:id/edit → resources#edit
+/:lcp_slug          → resources#index
+/:lcp_slug/new      → resources#new
+/:lcp_slug/:id      → resources#show
+/:lcp_slug/:id/edit → resources#edit
 ```
 
-The slug comes from the presenter YAML (e.g., `slug: deals` → `/admin/deals`).
+The slug comes from the presenter YAML (e.g., `slug: deals` → `/deals`).
 
 ### How Association Selects Work
 
@@ -144,7 +146,7 @@ Permissions YAML defines roles with: `crud` list, `fields` (readable/writable), 
 
 - **Unit tests**: `spec/lib/lcp_ruby/` — test individual subsystems against YAML fixtures in `spec/fixtures/metadata/`
 - **Integration tests**: `spec/integration/` — test full HTTP request cycle using fixtures in `spec/fixtures/integration/{todo,crm}/`
-- **Dummy app**: `spec/dummy/` — minimal Rails app that mounts the engine at `/admin`
+- **Dummy app**: `spec/dummy/` — minimal Rails app that mounts the engine at `/`
 - **Integration helper**: `spec/support/integration_helper.rb` — provides `load_integration_metadata!` and `stub_current_user` for request specs
 - Each test resets `LcpRuby.reset!` and clears Dynamic constants before running (see `spec_helper.rb`)
 

@@ -6,14 +6,14 @@ For the full attribute reference, see the [View Groups Reference](../reference/v
 
 ## Adding Multiple Views for a Model
 
-Suppose you have a `deal` model with two presenters: `deal_admin` (all columns, full editing) and `deal_short` (key columns only, read-only). To let users switch between them:
+Suppose you have a `deal` model with two presenters: `deal` (all columns, full editing) and `deal_short` (key columns only, read-only). To let users switch between them:
 
 **Step 1.** Create both presenters in `config/lcp_ruby/presenters/`:
 
 ```yaml
-# config/lcp_ruby/presenters/deal_admin.yml
+# config/lcp_ruby/presenters/deal.yml
 presenter:
-  name: deal_admin
+  name: deal
   model: deal
   label: "Deals"
   slug: deals
@@ -37,12 +37,12 @@ presenter:
 # config/lcp_ruby/views/deals.yml
 view_group:
   model: deal
-  primary: deal_admin
+  primary: deal
   navigation:
     menu: main
     position: 3
   views:
-    - presenter: deal_admin
+    - presenter: deal
       label: "Detailed"
       icon: maximize
     - presenter: deal_short
@@ -82,12 +82,12 @@ When a model has only one presenter, you can either:
 # config/lcp_ruby/views/todo_lists.yml
 view_group:
   model: todo_list
-  primary: todo_list_admin
+  primary: todo_list
   navigation:
     menu: main
     position: 1
   views:
-    - presenter: todo_list_admin
+    - presenter: todo_list
       label: "Todo Lists"
 ```
 
@@ -98,7 +98,7 @@ Single-view groups do not render a view switcher -- the `has_switcher?` method r
 When a user clicks a view switcher tab:
 
 - On **index pages**, the URL changes to the target presenter's slug. Query parameters (search, filters, pagination) are preserved.
-- On **show pages**, the URL changes to the target presenter's slug with the same record ID (e.g., `/admin/deals/5` to `/admin/deals-short/5`).
+- On **show pages**, the URL changes to the target presenter's slug with the same record ID (e.g., `/deals/5` to `/deals-short/5`).
 
 Each presenter has its own slug, so each view has a distinct, bookmarkable URL.
 
@@ -110,12 +110,12 @@ You can define multiple view groups that reference the same model. For example, 
 # config/lcp_ruby/views/deals.yml
 view_group:
   model: deal
-  primary: deal_admin
+  primary: deal
   navigation:
     menu: main
     position: 3
   views:
-    - presenter: deal_admin
+    - presenter: deal
       label: "Detailed"
     - presenter: deal_short
       label: "Short"
@@ -144,11 +144,11 @@ The same configuration in Ruby DSL:
 # config/lcp_ruby/views/deals.rb
 define_view_group :deals do
   model :deal
-  primary :deal_admin
+  primary :deal
 
   navigation menu: "main", position: 3
 
-  view :deal_admin, label: "Detailed", icon: :maximize
+  view :deal, label: "Detailed", icon: :maximize
   view :deal_short,  label: "Short",    icon: :list
 end
 ```

@@ -13,7 +13,7 @@ Presenter files live in `config/lcp_ruby/presenters/`:
 ```
 config/lcp_ruby/presenters/
   todo_list.yml        # YAML format
-  deal_admin.rb        # Ruby DSL format
+  deal.rb              # Ruby DSL format
   contact.yml
 ```
 
@@ -98,7 +98,7 @@ define_presenter :todo_list do
 end
 ```
 
-With this in place, navigating to `/admin/todo-lists` renders a paginated table. Each record has show, edit, and destroy buttons.
+With this in place, navigating to `/todo-lists` renders a paginated table. Each record has show, edit, and destroy buttons.
 
 ---
 
@@ -1061,8 +1061,8 @@ The Ruby DSL supports inheritance, where a child presenter copies the parent's c
 **Ruby DSL:**
 
 ```ruby
-# config/lcp_ruby/presenters/deal_admin.rb
-define_presenter :deal_admin do
+# config/lcp_ruby/presenters/deal.rb
+define_presenter :deal do
   model :deal
   label "Deals"
   slug "deals"
@@ -1111,7 +1111,7 @@ end
 
 ```ruby
 # config/lcp_ruby/presenters/deal_pipeline.rb
-define_presenter :deal_pipeline, inherits: :deal_admin do
+define_presenter :deal_pipeline, inherits: :deal do
   label "Deal Pipeline"
   slug "pipeline"
   icon "bar-chart"
@@ -1158,7 +1158,7 @@ A contact list with search, filters, responsive columns, and multiple display ty
 
 ```yaml
 presenter:
-  name: contact_admin
+  name: contact
   model: contact
   label: "Contacts"
   slug: contacts
@@ -1244,7 +1244,7 @@ A form with nested fields for inline editing of child records.
 **Ruby DSL:**
 
 ```ruby
-define_presenter :order_admin do
+define_presenter :order do
   model :order
   label "Orders"
   slug "orders"

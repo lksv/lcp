@@ -1,5 +1,5 @@
 presenter:
-  name: address_admin
+  name: address
   model: address
   label: "Addresses"
   slug: addresses

@@ -22,13 +22,13 @@ RSpec.describe "Select Options API", type: :request do
   let(:company_model) { LcpRuby.registry.model_for("company") }
   let(:contact_model) { LcpRuby.registry.model_for("contact") }
 
-  describe "GET /admin/deals/select_options" do
+  describe "GET /deals/select_options" do
     before { stub_current_user(role: "admin") }
 
     it "returns grouped JSON when group_by is configured" do
       company = company_model.create!(name: "Acme Corp", industry: "technology")
 
-      get "/admin/deals/select_options", params: { field: "company_id" },
+      get "/deals/select_options", params: { field: "company_id" },
         headers: { "Accept" => "application/json" }
 
       expect(response).to have_http_status(:ok)
@@ -45,7 +45,7 @@ RSpec.describe "Select Options API", type: :request do
       company_model.create!(name: "Zebra Inc", industry: "technology")
       company_model.create!(name: "Alpha Corp", industry: "finance")
 
-      get "/admin/deals/select_options", params: { field: "company_id" },
+      get "/deals/select_options", params: { field: "company_id" },
         headers: { "Accept" => "application/json" }
 
       json = JSON.parse(response.body)
@@ -62,7 +62,7 @@ RSpec.describe "Select Options API", type: :request do
       contact_model.create!(first_name: "John", last_name: "Doe", company_id: acme.id)
       contact_model.create!(first_name: "Jane", last_name: "Smith", company_id: other.id)
 
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "contact_id",
         depends_on: { "company_id" => acme.id.to_s }
       }, headers: { "Accept" => "application/json" }
@@ -78,7 +78,7 @@ RSpec.describe "Select Options API", type: :request do
       contact_model.create!(first_name: "John", last_name: "Doe", company_id: acme.id)
       contact_model.create!(first_name: "Jane", last_name: "Smith", company_id: other.id)
 
-      get "/admin/deals/select_options", params: { field: "contact_id" },
+      get "/deals/select_options", params: { field: "contact_id" },
         headers: { "Accept" => "application/json" }
 
       json = JSON.parse(response.body)
@@ -86,7 +86,7 @@ RSpec.describe "Select Options API", type: :request do
     end
 
     it "returns empty array for unknown field" do
-      get "/admin/deals/select_options", params: { field: "nonexistent" },
+      get "/deals/select_options", params: { field: "nonexistent" },
         headers: { "Accept" => "application/json" }
 
       expect(response).to have_http_status(:ok)
@@ -95,7 +95,7 @@ RSpec.describe "Select Options API", type: :request do
     end
 
     it "returns empty array when field param is missing" do
-      get "/admin/deals/select_options",
+      get "/deals/select_options",
         headers: { "Accept" => "application/json" }
 
       expect(response).to have_http_status(:ok)
@@ -107,7 +107,7 @@ RSpec.describe "Select Options API", type: :request do
       acme = company_model.create!(name: "Acme Corp", industry: "technology")
       contact_model.create!(first_name: "John", last_name: "Doe", company_id: acme.id)
 
-      get "/admin/deals/select_options", params: { field: "contact_id" },
+      get "/deals/select_options", params: { field: "contact_id" },
         headers: { "Accept" => "application/json" }
 
       json = JSON.parse(response.body)
@@ -123,7 +123,7 @@ RSpec.describe "Select Options API", type: :request do
       company_model.create!(name: "Acme Corp", industry: "technology")
       company_model.create!(name: "Beta Inc", industry: "finance")
 
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "company_id", q: "Acme", page: 1, per_page: 10
       }, headers: { "Accept" => "application/json" }
 
@@ -136,7 +136,7 @@ RSpec.describe "Select Options API", type: :request do
     it "returns envelope format when page param is present without q" do
       company_model.create!(name: "Acme Corp", industry: "technology")
 
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "company_id", page: 1, per_page: 10
       }, headers: { "Accept" => "application/json" }
 
@@ -147,7 +147,7 @@ RSpec.describe "Select Options API", type: :request do
     it "returns has_more: true when more results exist" do
       5.times { |i| company_model.create!(name: "Company #{i}", industry: "technology") }
 
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "company_id", page: 1, per_page: 2
       }, headers: { "Accept" => "application/json" }
 
@@ -160,7 +160,7 @@ RSpec.describe "Select Options API", type: :request do
     it "returns has_more: false on last page" do
       3.times { |i| company_model.create!(name: "Company #{i}", industry: "technology") }
 
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "company_id", page: 2, per_page: 2
       }, headers: { "Accept" => "application/json" }
 
@@ -172,7 +172,7 @@ RSpec.describe "Select Options API", type: :request do
     it "returns flat array for legacy requests without q or page" do
       company_model.create!(name: "Acme Corp", industry: "technology")
 
-      get "/admin/deals/select_options", params: { field: "company_id" },
+      get "/deals/select_options", params: { field: "company_id" },
         headers: { "Accept" => "application/json" }
 
       json = JSON.parse(response.body)
@@ -181,7 +181,7 @@ RSpec.describe "Select Options API", type: :request do
     end
 
     it "caps per_page at 100" do
-      get "/admin/deals/select_options", params: {
+      get "/deals/select_options", params: {
         field: "company_id", page: 1, per_page: 999
       }, headers: { "Accept" => "application/json" }
 
@@ -193,7 +193,7 @@ RSpec.describe "Select Options API", type: :request do
     it "returns 403 when user cannot access the presenter" do
       stub_current_user(role: "viewer")
 
-      get "/admin/deals/select_options", params: { field: "company_id" },
+      get "/deals/select_options", params: { field: "company_id" },
         headers: { "Accept" => "application/json" }
 
       expect(response).to have_http_status(:forbidden)

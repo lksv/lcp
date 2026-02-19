@@ -28,7 +28,7 @@ SELECT * FROM companies WHERE id IN (1, 2, 3, ...)
 Add the FK column to `table_columns`. The engine auto-detects the `belongs_to` association and eager-loads it:
 
 ```yaml
-# presenters/deal_admin.yml
+# presenters/deal.yml
 index:
   table_columns:
     - { field: title, width: "40%" }
@@ -43,7 +43,7 @@ The index view renders the company's `to_label` (or `label_method` from model co
 Add `association_list` sections to the show layout. The engine preloads the associated records:
 
 ```yaml
-# presenters/company_admin.yml
+# presenters/company.yml
 show:
   layout:
     - section: "Company Information"
@@ -79,7 +79,7 @@ form:
 When using dot-notation fields like `company.name` or `contacts.full_name`, the engine automatically detects the association chain and eager-loads all required associations:
 
 ```yaml
-# presenters/deal_admin.yml
+# presenters/deal.yml
 index:
   table_columns:
     - { field: title, width: "40%" }

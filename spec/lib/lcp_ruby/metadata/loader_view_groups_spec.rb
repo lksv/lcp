@@ -75,14 +75,14 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     it "loads YAML view group files from views/ directory" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "article")
-        write_presenter_yml(dir, "article_admin", model: "article", slug: "articles")
+        write_presenter_yml(dir, "article", model: "article", slug: "articles")
         write_presenter_yml(dir, "article_public", model: "article", slug: "public-articles")
 
         write_view_group_yml(dir, "articles",
           model: "article",
-          primary: "article_admin",
+          primary: "article",
           views: [
-            { presenter: "article_admin", label: "Admin" },
+            { presenter: "article", label: "Admin" },
             { presenter: "article_public", label: "Public" }
           ],
           navigation: { menu: "main", position: 1 })
@@ -97,20 +97,20 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         vg = loader.view_group_definitions["articles"]
         expect(vg).to be_a(LcpRuby::Metadata::ViewGroupDefinition)
         expect(vg.model).to eq("article")
-        expect(vg.primary_presenter).to eq("article_admin")
-        expect(vg.presenter_names).to contain_exactly("article_admin", "article_public")
+        expect(vg.primary_presenter).to eq("article")
+        expect(vg.presenter_names).to contain_exactly("article", "article_public")
       end
     end
 
     it "loads DSL view group files from views/ directory" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "post")
-        write_presenter_yml(dir, "post_admin", model: "post", slug: "posts")
+        write_presenter_yml(dir, "post", model: "post", slug: "posts")
 
         write_view_group_dsl(dir, "posts",
           model: "post",
-          primary: "post_admin",
-          views: [ { presenter: "post_admin", label: "Admin" } ])
+          primary: "post",
+          views: [ { presenter: "post", label: "Admin" } ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
@@ -122,25 +122,25 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         vg = loader.view_group_definitions["posts"]
         expect(vg).to be_a(LcpRuby::Metadata::ViewGroupDefinition)
         expect(vg.model).to eq("post")
-        expect(vg.primary_presenter).to eq("post_admin")
-        expect(vg.presenter_names).to eq([ "post_admin" ])
+        expect(vg.primary_presenter).to eq("post")
+        expect(vg.presenter_names).to eq([ "post" ])
       end
     end
 
     it "raises on duplicate view group names between YAML and DSL" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "item")
-        write_presenter_yml(dir, "item_admin", model: "item", slug: "items")
+        write_presenter_yml(dir, "item", model: "item", slug: "items")
 
         write_view_group_yml(dir, "items",
           model: "item",
-          primary: "item_admin",
-          views: [ { presenter: "item_admin" } ])
+          primary: "item",
+          views: [ { presenter: "item" } ])
 
         write_view_group_dsl(dir, "items",
           model: "item",
-          primary: "item_admin",
-          views: [ { presenter: "item_admin" } ])
+          primary: "item",
+          views: [ { presenter: "item" } ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
@@ -157,12 +157,12 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     it "returns all view groups for a model" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "product")
-        write_presenter_yml(dir, "product_admin", model: "product", slug: "products")
+        write_presenter_yml(dir, "product", model: "product", slug: "products")
 
         write_view_group_yml(dir, "products",
           model: "product",
-          primary: "product_admin",
-          views: [ { presenter: "product_admin" } ])
+          primary: "product",
+          views: [ { presenter: "product" } ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
@@ -179,13 +179,13 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     it "returns multiple view groups when model has several" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "deal")
-        write_presenter_yml(dir, "deal_admin", model: "deal", slug: "deals")
+        write_presenter_yml(dir, "deal", model: "deal", slug: "deals")
         write_presenter_yml(dir, "deal_pipeline", model: "deal", slug: "pipeline")
 
         write_view_group_yml(dir, "deals",
           model: "deal",
-          primary: "deal_admin",
-          views: [ { presenter: "deal_admin" } ])
+          primary: "deal",
+          views: [ { presenter: "deal" } ])
 
         write_view_group_yml(dir, "pipeline",
           model: "deal",
@@ -206,7 +206,7 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     it "returns empty array when model has no view group" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "orphan")
-        write_presenter_yml(dir, "orphan_admin", model: "orphan", slug: "orphans")
+        write_presenter_yml(dir, "orphan", model: "orphan", slug: "orphans")
 
         loader = described_class.new(dir)
         loader.send(:load_models)
@@ -222,14 +222,14 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     it "finds view group containing a given presenter" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "order")
-        write_presenter_yml(dir, "order_admin", model: "order", slug: "orders")
+        write_presenter_yml(dir, "order", model: "order", slug: "orders")
         write_presenter_yml(dir, "order_report", model: "order", slug: "order-reports")
 
         write_view_group_yml(dir, "orders",
           model: "order",
-          primary: "order_admin",
+          primary: "order",
           views: [
-            { presenter: "order_admin", label: "Admin" },
+            { presenter: "order", label: "Admin" },
             { presenter: "order_report", label: "Report" }
           ])
 
@@ -248,12 +248,12 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     it "returns nil for unknown presenter" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "widget")
-        write_presenter_yml(dir, "widget_admin", model: "widget", slug: "widgets")
+        write_presenter_yml(dir, "widget", model: "widget", slug: "widgets")
 
         write_view_group_yml(dir, "widgets",
           model: "widget",
-          primary: "widget_admin",
-          views: [ { presenter: "widget_admin" } ])
+          primary: "widget",
+          views: [ { presenter: "widget" } ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
@@ -269,7 +269,7 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     it "auto-creates for single-presenter models without explicit view group" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "note")
-        write_presenter_yml(dir, "note_admin", model: "note", slug: "notes", label: "Notes")
+        write_presenter_yml(dir, "note", model: "note", slug: "notes", label: "Notes")
 
         loader = described_class.new(dir)
         loader.load_all
@@ -279,20 +279,20 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         vg = groups.first
         expect(vg.name).to eq("note_auto")
         expect(vg.model).to eq("note")
-        expect(vg.primary_presenter).to eq("note_admin")
-        expect(vg.presenter_names).to eq([ "note_admin" ])
+        expect(vg.primary_presenter).to eq("note")
+        expect(vg.presenter_names).to eq([ "note" ])
       end
     end
 
     it "does NOT auto-create when explicit view group exists" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "ticket")
-        write_presenter_yml(dir, "ticket_admin", model: "ticket", slug: "tickets")
+        write_presenter_yml(dir, "ticket", model: "ticket", slug: "tickets")
 
         write_view_group_yml(dir, "tickets",
           model: "ticket",
-          primary: "ticket_admin",
-          views: [ { presenter: "ticket_admin" } ])
+          primary: "ticket",
+          views: [ { presenter: "ticket" } ])
 
         loader = described_class.new(dir)
         loader.load_all
@@ -308,7 +308,7 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     it "does NOT auto-create when multiple presenters exist without explicit group" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "report")
-        write_presenter_yml(dir, "report_admin", model: "report", slug: "reports")
+        write_presenter_yml(dir, "report", model: "report", slug: "reports")
         write_presenter_yml(dir, "report_summary", model: "report", slug: "report-summary")
 
         loader = described_class.new(dir)

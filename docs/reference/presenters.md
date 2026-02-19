@@ -58,7 +58,7 @@ Display label for the presenter, shown in navigation menus and page titles.
 | **Required** | no |
 | **Type** | string |
 
-URL path segment. When set, the presenter is routable at `/admin/<slug>`. If omitted, the presenter is not directly accessible via URL (useful for embedded or programmatic-only presenters).
+URL path segment. When set, the presenter is routable at `/<slug>`. If omitted, the presenter is not directly accessible via URL (useful for embedded or programmatic-only presenters).
 
 ### `icon`
 
@@ -1444,7 +1444,7 @@ Navigation is configured through [view groups](view-groups.md), not directly on 
 
 ```yaml
 presenter:
-  name: deal_admin
+  name: deal
   model: deal
   label: "Deals"
   slug: deals

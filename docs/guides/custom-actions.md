@@ -67,7 +67,7 @@ Every `#call` must return a result object using one of these methods:
 success(message: "Done!")
 
 # With redirect
-success(message: "Created!", redirect_to: "/admin/deals")
+success(message: "Created!", redirect_to: "/deals")
 
 # With data (for JSON responses)
 success(data: { count: 5 })

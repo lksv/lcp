@@ -1,5 +1,5 @@
 presenter:
-  name: project_admin
+  name: project
   model: project
   label: "Project Management"
   slug: projects

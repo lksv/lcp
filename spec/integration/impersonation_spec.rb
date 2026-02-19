@@ -14,24 +14,24 @@ RSpec.describe "Impersonation", type: :request do
 
   after { LcpRuby.configuration.impersonation_roles = [] }
 
-  describe "POST /admin/impersonate" do
+  describe "POST /impersonate" do
     context "when user is admin (allowed to impersonate)" do
       before { stub_current_user(role: "admin") }
 
       it "sets impersonation session and redirects" do
-        post "/admin/impersonate", params: { role: "viewer" }
+        post "/impersonate", params: { role: "viewer" }
         expect(response).to redirect_to("/")
         follow_redirect!
       end
 
       it "returns alert when no role specified" do
-        post "/admin/impersonate", params: { role: "" }
+        post "/impersonate", params: { role: "" }
         expect(response).to redirect_to("/")
         expect(flash[:alert]).to include("No role specified")
       end
 
       it "rejects non-existent role" do
-        post "/admin/impersonate", params: { role: "nonexistent" }
+        post "/impersonate", params: { role: "nonexistent" }
         expect(response).to redirect_to("/")
         expect(flash[:alert]).to include("not a valid role")
       end
@@ -41,7 +41,7 @@ RSpec.describe "Impersonation", type: :request do
       before { stub_current_user(role: "viewer") }
 
       it "denies impersonation" do
-        post "/admin/impersonate", params: { role: "admin" }
+        post "/impersonate", params: { role: "admin" }
         expect(response).to redirect_to("/")
         expect(flash[:alert]).to include("not authorized")
       end
@@ -54,18 +54,18 @@ RSpec.describe "Impersonation", type: :request do
       end
 
       it "denies impersonation" do
-        post "/admin/impersonate", params: { role: "viewer" }
+        post "/impersonate", params: { role: "viewer" }
         expect(response).to redirect_to("/")
         expect(flash[:alert]).to include("not authorized")
       end
     end
   end
 
-  describe "DELETE /admin/impersonate" do
+  describe "DELETE /impersonate" do
     before { stub_current_user(role: "admin") }
 
     it "clears impersonation and redirects" do
-      delete "/admin/impersonate"
+      delete "/impersonate"
       expect(response).to redirect_to("/")
       expect(flash[:notice]).to include("Stopped impersonation")
     end
@@ -75,9 +75,9 @@ RSpec.describe "Impersonation", type: :request do
     before { stub_current_user(role: "admin") }
 
     it "shows impersonation banner when active" do
-      post "/admin/impersonate", params: { role: "viewer" }
+      post "/impersonate", params: { role: "viewer" }
       # viewer has access to deal_pipeline presenter (slug: pipeline)
-      get "/admin/pipeline"
+      get "/pipeline"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Viewing as role")
@@ -86,16 +86,16 @@ RSpec.describe "Impersonation", type: :request do
     end
 
     it "restricts access based on impersonated role" do
-      # Admin can access deal_admin, but viewer cannot
-      post "/admin/impersonate", params: { role: "viewer" }
-      get "/admin/deals"
+      # Admin can access deal, but viewer cannot
+      post "/impersonate", params: { role: "viewer" }
+      get "/deals"
 
-      # Viewer can't access deal_admin presenter, should be denied
+      # Viewer can't access deal presenter, should be denied
       expect(response).to have_http_status(:redirect)
     end
 
     it "shows role selector when impersonation is available but not active" do
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("View as:")
@@ -112,7 +112,7 @@ RSpec.describe "Impersonation", type: :request do
         events << payload
       end
 
-      get "/admin/deals"
+      get "/deals"
 
       ActiveSupport::Notifications.unsubscribe(subscription)
 
@@ -120,7 +120,7 @@ RSpec.describe "Impersonation", type: :request do
       expect(events.size).to be >= 1
       presenter_event = events.find { |e| e[:action] == "access_presenter" }
       expect(presenter_event).to be_present
-      expect(presenter_event[:resource]).to eq("deal_admin")
+      expect(presenter_event[:resource]).to eq("deal")
       expect(presenter_event[:detail]).to eq("presenter access denied")
       expect(presenter_event[:user_id]).to eq(1)
       expect(presenter_event[:roles]).to include("viewer")
@@ -129,7 +129,7 @@ RSpec.describe "Impersonation", type: :request do
     it "logs denial to Rails.logger" do
       allow(Rails.logger).to receive(:warn).and_call_original
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(Rails.logger).to have_received(:warn).with(
         a_string_including("[LcpRuby::Auth] Access denied")

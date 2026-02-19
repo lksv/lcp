@@ -119,7 +119,7 @@ Model: deal
   Role        | CRUD                              | Fields (R/W) | Actions       | Scope       | Presenters
   ------------|-----------------------------------|--------------|---------------|-------------|------------------
   admin       | index show create update destroy   | all / all    | all           | all         | all
-  sales_rep   | index show create update           | all / 4      | close_won     | all         | deal_admin
+  sales_rep   | index show create update           | all / 4      | close_won     | all         | deal
   viewer      | index show                         | 3 / 0        | none          | all         | deal_pipeline
 ```
 

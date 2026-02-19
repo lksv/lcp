@@ -29,11 +29,11 @@ RSpec.describe "CRM App Integration", type: :request do
   describe "Admin role - full CRUD on companies" do
     before { stub_current_user(role: "admin") }
 
-    describe "GET /admin/companies" do
+    describe "GET /companies" do
       it "returns 200 and lists companies" do
         company_model.create!(name: "Acme Corp", industry: "technology")
 
-        get "/admin/companies"
+        get "/companies"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Acme Corp")
@@ -41,10 +41,10 @@ RSpec.describe "CRM App Integration", type: :request do
       end
     end
 
-    describe "POST /admin/companies (create)" do
+    describe "POST /companies (create)" do
       it "creates a company" do
         expect {
-          post "/admin/companies", params: {
+          post "/companies", params: {
             record: { name: "New Corp", industry: "finance", website: "https://new.com" }
           }
         }.to change { company_model.count }.by(1)
@@ -53,40 +53,40 @@ RSpec.describe "CRM App Integration", type: :request do
       end
 
       it "validates required name" do
-        post "/admin/companies", params: { record: { name: "", industry: "finance" } }
+        post "/companies", params: { record: { name: "", industry: "finance" } }
 
         expect(response).to have_http_status(:unprocessable_entity)
       end
     end
 
-    describe "GET /admin/companies/:id" do
+    describe "GET /companies/:id" do
       it "shows company details" do
         company = company_model.create!(name: "Acme Corp", industry: "technology")
 
-        get "/admin/companies/#{company.id}"
+        get "/companies/#{company.id}"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Acme Corp")
       end
     end
 
-    describe "PATCH /admin/companies/:id (update)" do
+    describe "PATCH /companies/:id (update)" do
       it "updates the company" do
         company = company_model.create!(name: "Old Name", industry: "technology")
 
-        patch "/admin/companies/#{company.id}", params: { record: { name: "New Name" } }
+        patch "/companies/#{company.id}", params: { record: { name: "New Name" } }
 
         expect(response).to have_http_status(:redirect)
         expect(company.reload.name).to eq("New Name")
       end
     end
 
-    describe "DELETE /admin/companies/:id (destroy)" do
+    describe "DELETE /companies/:id (destroy)" do
       it "deletes the company" do
         company = company_model.create!(name: "To Delete", industry: "technology")
 
         expect {
-          delete "/admin/companies/#{company.id}"
+          delete "/companies/#{company.id}"
         }.to change { company_model.count }.by(-1)
 
         expect(response).to have_http_status(:redirect)
@@ -102,7 +102,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "admin can update deal value" do
       deal = deal_model.create!(title: "Big Deal", stage: "lead", value: 100.0, company_id: company.id)
 
-      patch "/admin/deals/#{deal.id}", params: { record: { value: 999.99 } }
+      patch "/deals/#{deal.id}", params: { record: { value: 999.99 } }
 
       expect(response).to have_http_status(:redirect)
       expect(deal.reload.value).to eq(999.99)
@@ -110,7 +110,7 @@ RSpec.describe "CRM App Integration", type: :request do
 
     it "admin can create deal with value" do
       expect {
-        post "/admin/deals", params: {
+        post "/deals", params: {
           record: { title: "New Deal", stage: "lead", value: 500.0, company_id: company.id }
         }
       }.to change { deal_model.count }.by(1)
@@ -127,7 +127,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "sales_rep cannot update deal value (field not writable)" do
       deal = deal_model.create!(title: "Deal", stage: "lead", value: 100.0, company_id: company.id)
 
-      patch "/admin/deals/#{deal.id}", params: { record: { value: 999.99, title: "Updated" } }
+      patch "/deals/#{deal.id}", params: { record: { value: 999.99, title: "Updated" } }
 
       # Value should not change because it's not in the writable fields for sales_rep
       deal.reload
@@ -138,17 +138,17 @@ RSpec.describe "CRM App Integration", type: :request do
     it "sales_rep cannot delete a deal" do
       deal = deal_model.create!(title: "Deal", stage: "lead", value: 100.0, company_id: company.id)
 
-      delete "/admin/deals/#{deal.id}"
+      delete "/deals/#{deal.id}"
 
       # Should be forbidden (redirect with alert)
       expect(response).to have_http_status(:redirect)
       expect(deal_model.exists?(deal.id)).to be true
     end
 
-    it "sales_rep can access deal_admin presenter" do
+    it "sales_rep can access deal presenter" do
       deal_model.create!(title: "My Deal", stage: "lead", value: 50.0, company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("My Deal")
@@ -160,24 +160,24 @@ RSpec.describe "CRM App Integration", type: :request do
 
     let!(:company) { company_model.create!(name: "Test Corp", industry: "technology") }
 
-    it "viewer cannot access deal_admin presenter" do
-      get "/admin/deals"
+    it "viewer cannot access deal presenter" do
+      get "/deals"
 
-      # Viewer should be redirected (not authorized for deal_admin presenter)
+      # Viewer should be redirected (not authorized for deal presenter)
       expect(response).to have_http_status(:redirect)
     end
 
     it "viewer can access pipeline (read-only) presenter" do
       deal_model.create!(title: "Pipeline Deal", stage: "lead", value: 50.0, company_id: company.id)
 
-      get "/admin/pipeline"
+      get "/pipeline"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Pipeline Deal")
     end
 
     it "viewer cannot create companies" do
-      post "/admin/companies", params: { record: { name: "New", industry: "technology" } }
+      post "/companies", params: { record: { name: "New", industry: "technology" } }
 
       # Should be forbidden
       expect(response).to have_http_status(:redirect)
@@ -194,7 +194,7 @@ RSpec.describe "CRM App Integration", type: :request do
       it "cannot update a closed_won deal" do
         deal = deal_model.create!(title: "Won Deal", stage: "closed_won", value: 100.0, company_id: company.id)
 
-        patch "/admin/deals/#{deal.id}", params: { record: { title: "Changed" } }
+        patch "/deals/#{deal.id}", params: { record: { title: "Changed" } }
 
         # Should be denied by record rule
         expect(response).to have_http_status(:redirect)
@@ -204,7 +204,7 @@ RSpec.describe "CRM App Integration", type: :request do
       it "cannot update a closed_lost deal" do
         deal = deal_model.create!(title: "Lost Deal", stage: "closed_lost", value: 100.0, company_id: company.id)
 
-        patch "/admin/deals/#{deal.id}", params: { record: { title: "Changed" } }
+        patch "/deals/#{deal.id}", params: { record: { title: "Changed" } }
 
         expect(response).to have_http_status(:redirect)
         expect(deal.reload.title).to eq("Lost Deal")
@@ -213,7 +213,7 @@ RSpec.describe "CRM App Integration", type: :request do
       it "can update an open deal" do
         deal = deal_model.create!(title: "Open Deal", stage: "lead", value: 100.0, company_id: company.id)
 
-        patch "/admin/deals/#{deal.id}", params: { record: { title: "Updated Open Deal" } }
+        patch "/deals/#{deal.id}", params: { record: { title: "Updated Open Deal" } }
 
         expect(response).to have_http_status(:redirect)
         expect(deal.reload.title).to eq("Updated Open Deal")
@@ -226,7 +226,7 @@ RSpec.describe "CRM App Integration", type: :request do
       it "admin can update closed deals (excepted from record rule)" do
         deal = deal_model.create!(title: "Won Deal", stage: "closed_won", value: 100.0, company_id: company.id)
 
-        patch "/admin/deals/#{deal.id}", params: { record: { title: "Admin Changed" } }
+        patch "/deals/#{deal.id}", params: { record: { title: "Admin Changed" } }
 
         expect(response).to have_http_status(:redirect)
         expect(deal.reload.title).to eq("Admin Changed")
@@ -242,7 +242,7 @@ RSpec.describe "CRM App Integration", type: :request do
         company = company_model.create!(name: "Acme Corp", industry: "technology")
         deal_model.create!(title: "Deal 1", stage: "lead", company_id: company.id)
 
-        get "/admin/deals"
+        get "/deals"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Acme Corp")
@@ -256,7 +256,7 @@ RSpec.describe "CRM App Integration", type: :request do
         callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
         begin
           ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
-          get "/admin/deals"
+          get "/deals"
         ensure
           ActiveSupport::Notifications.unsubscribe(callback)
         end
@@ -274,7 +274,7 @@ RSpec.describe "CRM App Integration", type: :request do
         company = company_model.create!(name: "Show Corp", industry: "technology")
         deal = deal_model.create!(title: "Show Deal", stage: "lead", company_id: company.id)
 
-        get "/admin/deals/#{deal.id}"
+        get "/deals/#{deal.id}"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Show Corp")
@@ -293,7 +293,7 @@ RSpec.describe "CRM App Integration", type: :request do
         company = company_model.create!(name: "Highlight Corp", industry: "technology")
         deal = deal_model.create!(title: "Renderer Deal", stage: "lead", company_id: company.id)
 
-        get "/admin/deals/#{deal.id}"
+        get "/deals/#{deal.id}"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("test-highlighted")
@@ -304,7 +304,7 @@ RSpec.describe "CRM App Integration", type: :request do
         company = company_model.create!(name: "Fallback Corp", industry: "technology")
         deal = deal_model.create!(title: "Fallback Deal", stage: "lead", company_id: company.id)
 
-        get "/admin/deals/#{deal.id}"
+        get "/deals/#{deal.id}"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Fallback Corp")
@@ -316,7 +316,7 @@ RSpec.describe "CRM App Integration", type: :request do
         company = company_model.create!(name: "Label Corp", industry: "technology")
         deal_model.create!(title: "Label Deal", stage: "lead", company_id: company.id)
 
-        get "/admin/deals"
+        get "/deals"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Company")
@@ -329,7 +329,7 @@ RSpec.describe "CRM App Integration", type: :request do
         contact_model.create!(first_name: "Alice", last_name: "Smith", company_id: company.id)
         contact_model.create!(first_name: "Bob", last_name: "Jones", company_id: company.id)
 
-        get "/admin/companies"
+        get "/companies"
 
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("Alice")
@@ -340,7 +340,7 @@ RSpec.describe "CRM App Integration", type: :request do
         company = company_model.create!(name: "Big Corp", industry: "technology")
         5.times { |i| contact_model.create!(first_name: "Contact#{i}", last_name: "Test", company_id: company.id) }
 
-        get "/admin/companies"
+        get "/companies"
 
         expect(response).to have_http_status(:ok)
         # Limit is 3, so we should see the first 3 contacts
@@ -362,7 +362,7 @@ RSpec.describe "CRM App Integration", type: :request do
       callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
       begin
         ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
-        get "/admin/deals"
+        get "/deals"
       ensure
         ActiveSupport::Notifications.unsubscribe(callback)
       end
@@ -385,7 +385,7 @@ RSpec.describe "CRM App Integration", type: :request do
       callback = lambda { |*, payload| queries << payload[:sql] unless payload[:sql].match?(/SCHEMA|TRANSACTION|SAVEPOINT|sqlite_master/) }
       begin
         ActiveSupport::Notifications.subscribe("sql.active_record", &callback)
-        get "/admin/companies/#{company.id}"
+        get "/companies/#{company.id}"
       ensure
         ActiveSupport::Notifications.unsubscribe(callback)
       end
@@ -411,7 +411,7 @@ RSpec.describe "CRM App Integration", type: :request do
       deal_model.create!(title: "Enterprise License", stage: "lead", company_id: company.id)
       deal_model.create!(title: "Support Contract", stage: "lead", company_id: company.id)
 
-      get "/admin/deals", params: { q: "Enterprise" }
+      get "/deals", params: { q: "Enterprise" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Enterprise License")
@@ -422,7 +422,7 @@ RSpec.describe "CRM App Integration", type: :request do
       deal_model.create!(title: "Won Deal", stage: "closed_won", company_id: company.id)
       deal_model.create!(title: "Open Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals", params: { filter: "won" }
+      get "/deals", params: { filter: "won" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Won Deal")
@@ -435,7 +435,7 @@ RSpec.describe "CRM App Integration", type: :request do
       deal_model.create!(title: "Won Deal", stage: "closed_won", company_id: company.id)
       deal_model.create!(title: "Lost Deal", stage: "closed_lost", company_id: company.id)
 
-      get "/admin/deals", params: { filter: "open" }
+      get "/deals", params: { filter: "open" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Lead Deal")
@@ -452,7 +452,7 @@ RSpec.describe "CRM App Integration", type: :request do
     let!(:contact) { contact_model.create!(first_name: "John", last_name: "Doe", company_id: company.id) }
 
     it "renders a <select> for company_id on new deal form" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("<select")
@@ -461,7 +461,7 @@ RSpec.describe "CRM App Integration", type: :request do
     end
 
     it "renders a <select> for contact_id on new deal form" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       # Contact select should be present with the contact's label
@@ -475,14 +475,14 @@ RSpec.describe "CRM App Integration", type: :request do
     let!(:company) { company_model.create!(name: "Test Corp", industry: "technology") }
 
     it "shows Edit link on companies index page" do
-      get "/admin/companies"
+      get "/companies"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Edit")
     end
 
     it "shows Edit link on company show page" do
-      get "/admin/companies/#{company.id}"
+      get "/companies/#{company.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Edit")
@@ -491,7 +491,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "shows Edit link on deals index page" do
       deal_model.create!(title: "My Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Edit")
@@ -506,7 +506,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders badge display type for stage column" do
       deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("badge")
@@ -515,7 +515,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders currency display type for value column" do
       deal_model.create!(title: "Deal", stage: "lead", value: 1234.50, company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("1,234.50")
@@ -524,7 +524,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders pinned column CSS class" do
       deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-pinned-left")
@@ -533,7 +533,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders hidden_on CSS class" do
       deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-hidden-mobile")
@@ -542,7 +542,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders dropdown actions when actions_position is dropdown" do
       deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-actions-dropdown")
@@ -552,7 +552,7 @@ RSpec.describe "CRM App Integration", type: :request do
       deal_model.create!(title: "Deal 1", stage: "lead", value: 100.0, company_id: company.id)
       deal_model.create!(title: "Deal 2", stage: "lead", value: 250.0, company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-summary-row")
@@ -568,7 +568,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders heading display type" do
       deal = deal_model.create!(title: "Important Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals/#{deal.id}"
+      get "/deals/#{deal.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("<strong>")
@@ -578,7 +578,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders badge on show page" do
       deal = deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals/#{deal.id}"
+      get "/deals/#{deal.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("badge")
@@ -593,7 +593,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "hides contact_id field when stage is lead" do
       deal = deal_model.create!(title: "Lead Deal", stage: "lead", company_id: company.id)
 
-      get "/admin/deals/#{deal.id}/edit"
+      get "/deals/#{deal.id}/edit"
 
       expect(response).to have_http_status(:ok)
       # contact_id has visible_when: { field: stage, operator: not_in, value: [lead] }
@@ -604,7 +604,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "shows contact_id field when stage is qualified" do
       deal = deal_model.create!(title: "Qualified Deal", stage: "qualified", company_id: company.id)
 
-      get "/admin/deals/#{deal.id}/edit"
+      get "/deals/#{deal.id}/edit"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("data-lcp-conditional=\"field\"")
@@ -613,7 +613,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "applies lcp-conditionally-disabled class to value field when stage is closed_won" do
       deal = deal_model.create!(title: "Won Deal", stage: "closed_won", value: 100.0, company_id: company.id)
 
-      get "/admin/deals/#{deal.id}/edit"
+      get "/deals/#{deal.id}/edit"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-conditionally-disabled")
@@ -622,7 +622,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "does not disable value field when stage is lead" do
       deal = deal_model.create!(title: "Lead Deal", stage: "lead", value: 100.0, company_id: company.id)
 
-      get "/admin/deals/#{deal.id}/edit"
+      get "/deals/#{deal.id}/edit"
 
       expect(response).to have_http_status(:ok)
       # The value field wrapper should have data-lcp-conditional but not the disabled class
@@ -630,7 +630,7 @@ RSpec.describe "CRM App Integration", type: :request do
     end
 
     it "hides Metrics section when stage is lead" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       # New deal has no stage set, but the Metrics section should have conditional attrs
@@ -640,7 +640,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders conditional data attributes on sections" do
       deal = deal_model.create!(title: "Qualified Deal", stage: "qualified", company_id: company.id)
 
-      get "/admin/deals/#{deal.id}/edit"
+      get "/deals/#{deal.id}/edit"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("data-lcp-conditional=\"section\"")
@@ -649,7 +649,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "disables close_won action when value is blank on index" do
       deal = deal_model.create!(title: "No Value Deal", stage: "qualified", company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       # close_won has disable_when: { field: value, operator: blank }
@@ -660,7 +660,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "enables close_won action when value is present on index" do
       deal = deal_model.create!(title: "Valued Deal", stage: "qualified", value: 500.0, company_id: company.id)
 
-      get "/admin/deals"
+      get "/deals"
 
       expect(response).to have_http_status(:ok)
       # close_won should NOT have the disabled class when value is present
@@ -671,7 +671,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders custom action as button_to with confirm dialog on show page" do
       deal = deal_model.create!(title: "Active Deal", stage: "qualified", value: 500.0, company_id: company.id)
 
-      get "/admin/deals/#{deal.id}"
+      get "/deals/#{deal.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Close as Won")
@@ -683,7 +683,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "renders disabled custom action as span on show page" do
       deal = deal_model.create!(title: "No Value Deal", stage: "qualified", company_id: company.id)
 
-      get "/admin/deals/#{deal.id}"
+      get "/deals/#{deal.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-action-disabled")
@@ -693,7 +693,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "does not render close_won action for closed deals" do
       deal = deal_model.create!(title: "Won Deal", stage: "closed_won", value: 100.0, company_id: company.id)
 
-      get "/admin/deals/#{deal.id}"
+      get "/deals/#{deal.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).not_to include("Close as Won")
@@ -707,7 +707,7 @@ RSpec.describe "CRM App Integration", type: :request do
       stub_current_user(role: "admin")
       deal = deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
 
-      post "/admin/deals/#{deal.id}/evaluate_conditions", params: {
+      post "/deals/#{deal.id}/evaluate_conditions", params: {
         record: { title: "Updated" }
       }, headers: { "Accept" => "application/json" }
 
@@ -717,7 +717,7 @@ RSpec.describe "CRM App Integration", type: :request do
     it "allows admin to evaluate conditions on new record" do
       stub_current_user(role: "admin")
 
-      post "/admin/deals/evaluate_conditions", params: {
+      post "/deals/evaluate_conditions", params: {
         record: { title: "New Deal", stage: "lead" }
       }, headers: { "Accept" => "application/json" }
 
@@ -728,22 +728,22 @@ RSpec.describe "CRM App Integration", type: :request do
       stub_current_user(role: "viewer")
       deal = deal_model.create!(title: "Deal", stage: "lead", company_id: company.id)
 
-      post "/admin/deals/#{deal.id}/evaluate_conditions", params: {
+      post "/deals/#{deal.id}/evaluate_conditions", params: {
         record: { title: "Updated" }
       }, headers: { "Accept" => "application/json" }
 
-      # Viewer cannot access deal_admin presenter, Pundit returns 403 for JSON
+      # Viewer cannot access deal presenter, Pundit returns 403 for JSON
       expect(response).to have_http_status(:forbidden)
     end
 
     it "denies viewer from evaluating conditions on new record (no create permission)" do
       stub_current_user(role: "viewer")
 
-      post "/admin/deals/evaluate_conditions", params: {
+      post "/deals/evaluate_conditions", params: {
         record: { title: "New Deal", stage: "lead" }
       }, headers: { "Accept" => "application/json" }
 
-      # Viewer cannot access deal_admin presenter, Pundit returns 403 for JSON
+      # Viewer cannot access deal presenter, Pundit returns 403 for JSON
       expect(response).to have_http_status(:forbidden)
     end
   end
@@ -754,7 +754,7 @@ RSpec.describe "CRM App Integration", type: :request do
     let!(:company) { company_model.create!(name: "Test Corp", industry: "technology") }
 
     it "renders tabs layout on deal form" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-tabs")
@@ -764,7 +764,7 @@ RSpec.describe "CRM App Integration", type: :request do
     end
 
     it "renders collapsible section with collapsed state" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-collapsible")
@@ -773,7 +773,7 @@ RSpec.describe "CRM App Integration", type: :request do
     end
 
     it "renders prefix on value field" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-input-prefix")
@@ -781,14 +781,14 @@ RSpec.describe "CRM App Integration", type: :request do
     end
 
     it "renders progress field as readonly (suffix not shown for readonly fields)" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-readonly-value")
     end
 
     it "renders readonly field" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-readonly-value")
@@ -796,7 +796,7 @@ RSpec.describe "CRM App Integration", type: :request do
 
     it "still submits form data correctly with tabs layout" do
       expect {
-        post "/admin/deals", params: {
+        post "/deals", params: {
           record: { title: "Tab Deal", stage: "lead", value: 500.0, company_id: company.id }
         }
       }.to change { deal_model.count }.by(1)
@@ -805,7 +805,7 @@ RSpec.describe "CRM App Integration", type: :request do
     end
 
     it "renders slider input for priority field" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-slider-wrapper")
@@ -815,7 +815,7 @@ RSpec.describe "CRM App Integration", type: :request do
     end
 
     it "renders toggle input for featured field" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-toggle")
@@ -824,7 +824,7 @@ RSpec.describe "CRM App Integration", type: :request do
     end
 
     it "renders rating input for rating field" do
-      get "/admin/deals/new"
+      get "/deals/new"
 
       expect(response).to have_http_status(:ok)
       # Rating renders as a select with values 0..5

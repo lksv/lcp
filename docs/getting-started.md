@@ -16,7 +16,7 @@ Mount the engine in `config/routes.rb`:
 
 ```ruby
 Rails.application.routes.draw do
-  mount LcpRuby::Engine => "/admin"
+  mount LcpRuby::Engine => "/"
 end
 ```
 
@@ -29,7 +29,7 @@ LcpRuby.configure do |config|
   config.metadata_path = Rails.root.join("config", "lcp_ruby")
   config.role_method = :lcp_role
   config.user_class = "User"
-  config.mount_path = "/admin"
+  config.mount_path = "/"
   config.auto_migrate = true
   config.label_method_default = :to_s
   config.parent_controller = "::ApplicationController"
@@ -89,11 +89,11 @@ This creates a `tasks` database table with `title`, `completed`, and `due_date` 
 
 ## Your First Presenter
 
-Create `config/lcp_ruby/presenters/task_admin.yml`:
+Create `config/lcp_ruby/presenters/task.yml`:
 
 ```yaml
 presenter:
-  name: task_admin
+  name: task
   model: task
   label: "Tasks"
   slug: tasks
@@ -180,7 +180,7 @@ bundle exec rails db:prepare
 bundle exec rails server
 ```
 
-Visit `http://localhost:3000/admin/tasks` to see your task management interface.
+Visit `http://localhost:3000/tasks` to see your task management interface.
 
 ## Next Steps
 
