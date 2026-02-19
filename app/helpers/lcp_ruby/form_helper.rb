@@ -108,8 +108,13 @@ module LcpRuby
           # Hide the actual file input, show drop zone
           file_opts[:style] = "display: none"
           parts << form.file_field(field_name, **file_opts)
+          drop_zone_text = if multiple
+            I18n.t("lcp_ruby.file_upload.drop_zone_multiple", default: "Drop files here or click to browse")
+          else
+            I18n.t("lcp_ruby.file_upload.drop_zone_single", default: "Drop file here or click to browse")
+          end
           parts << content_tag(:div, class: "lcp-drop-zone", data: { lcp_drop_zone: true }) do
-            content_tag(:span, I18n.t("lcp_ruby.file_upload.drop_zone", default: "Drop files here or click to browse"))
+            content_tag(:span, drop_zone_text)
           end
         else
           parts << form.file_field(field_name, **file_opts)
@@ -130,7 +135,7 @@ module LcpRuby
         blob = attachment.blob
 
         if blob.image?
-          parts << image_tag(url_for(attachment), class: "lcp-attachment-thumbnail", style: "max-width: 120px; max-height: 120px;")
+          parts << image_tag(Rails.application.routes.url_helpers.rails_blob_path(attachment, only_path: true), class: "lcp-attachment-thumbnail", style: "max-width: 120px; max-height: 120px;")
         else
           parts << content_tag(:span, blob.filename.to_s, class: "lcp-attachment-filename")
           parts << " "
@@ -168,7 +173,7 @@ module LcpRuby
 
             if blob.image?
               parts << begin
-                image_tag(url_for(att), class: "lcp-attachment-thumbnail", style: "max-width: 80px; max-height: 80px;")
+                image_tag(Rails.application.routes.url_helpers.rails_blob_path(att, only_path: true), class: "lcp-attachment-thumbnail", style: "max-width: 80px; max-height: 80px;")
               rescue StandardError
                 content_tag(:span, blob.filename.to_s)
               end

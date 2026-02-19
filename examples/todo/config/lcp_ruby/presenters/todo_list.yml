@@ -12,17 +12,21 @@ presenter:
     row_click: show
     empty_message: "No lists yet. Create your first todo list!"
     table_columns:
-      - { field: title, width: "50%", link_to: show, sortable: true }
-      - { field: description, width: "50%", display: truncate, display_options: { max: 60 } }
+      - { field: cover_image, width: "5%", display: attachment_preview, display_options: { variant: thumbnail } }
+      - { field: title, width: "40%", link_to: show, sortable: true }
+      - { field: description, width: "40%", display: truncate, display_options: { max: 60 } }
       - { field: "todo_items.title", label: "Items", display: collection, display_options: { limit: 3, separator: ", ", overflow: "..." } }
 
   show:
     layout:
       - section: "Details"
-        columns: 1
+        columns: 2
         fields:
           - { field: title, display: heading, col_span: 2 }
           - { field: description }
+          - field: cover_image
+            display: attachment_preview
+            display_options: { variant: medium }
           - { field: "todo_items.title", label: "Items", display: collection, display_options: { limit: 5, separator: " | " } }
       - section: "Items"
         type: association_list
@@ -35,6 +39,10 @@ presenter:
         fields:
           - { field: title, placeholder: "Enter list title...", autofocus: true, col_span: 2 }
           - { field: description, input_type: text, hint: "Optional description for this list" }
+          - field: cover_image
+            input_options:
+              preview: true
+              drag_drop: true
       - title: "Items"
         type: nested_fields
         association: todo_items

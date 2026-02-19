@@ -217,7 +217,7 @@ module LcpRuby
       content_tag(:ul, class: "lcp-attachment-list") do
         safe_join(items.select { |att| att.respond_to?(:blob) }.map { |att|
           content_tag(:li) do
-            link_to(att.blob.filename.to_s, url_for(att), target: "_blank", rel: "noopener") +
+            link_to(att.blob.filename.to_s, attachment_url(att), target: "_blank", rel: "noopener") +
               " " +
               content_tag(:span, "(#{number_to_human_size(att.blob.byte_size)})", class: "lcp-attachment-size")
           end
@@ -235,7 +235,7 @@ module LcpRuby
       att = attachment.respond_to?(:blob) ? attachment : attachment.first
       return content_tag(:span, I18n.t("lcp_ruby.file_upload.no_file", default: "No file"), class: "lcp-no-attachment") unless att&.respond_to?(:blob)
 
-      link_to(att.blob.filename.to_s, url_for(att), target: "_blank", rel: "noopener", class: "lcp-attachment-download")
+      link_to(att.blob.filename.to_s, attachment_url(att), target: "_blank", rel: "noopener", class: "lcp-attachment-download")
     rescue StandardError
       content_tag(:span, "Download", class: "lcp-attachment-download")
     end
@@ -243,6 +243,14 @@ module LcpRuby
     def resolve_attachment(value, record)
       # value may be the attachment proxy itself (from record.send(field_name))
       value
+    end
+
+    def attachment_url(att)
+      Rails.application.routes.url_helpers.rails_blob_path(att, only_path: true)
+    end
+
+    def variant_url(variant)
+      Rails.application.routes.url_helpers.rails_representation_path(variant, only_path: true)
     end
 
     def attachment_present?(attachment)
@@ -261,28 +269,39 @@ module LcpRuby
       variant_name = options["variant"]
 
       if blob.image?
-        img = if variant_name && attachment.respond_to?(:variant)
-          model_class = attachment.record.class
-          variants = model_class.respond_to?(:lcp_attachment_variants) ? model_class.lcp_attachment_variants : {}
-          field_variants = variants[attachment.name.to_s] || {}
-          variant_config = field_variants[variant_name.to_s]
-
-          if variant_config
-            image_tag(url_for(attachment.variant(variant_config.transform_keys(&:to_sym))),
-              class: "lcp-attachment-image", alt: blob.filename.to_s)
-          else
-            image_tag(url_for(attachment), class: "lcp-attachment-image", alt: blob.filename.to_s)
-          end
-        else
-          image_tag(url_for(attachment), class: "lcp-attachment-image", alt: blob.filename.to_s)
-        end
-
+        img = render_image_variant(attachment, blob, variant_name)
         content_tag(:div, img, class: "lcp-attachment-preview-item")
       else
-        link_to(blob.filename.to_s, url_for(attachment), target: "_blank", rel: "noopener", class: "lcp-attachment-download")
+        link_to(blob.filename.to_s, attachment_url(attachment), target: "_blank", rel: "noopener", class: "lcp-attachment-download")
       end
-    rescue StandardError
+    rescue StandardError => e
+      Rails.logger.error("[LcpRuby] render_single_preview error: #{e.class}: #{e.message}")
       content_tag(:span, blob&.filename.to_s || "File", class: "lcp-attachment-download")
+    end
+
+    def render_image_variant(attachment, blob, variant_name)
+      if variant_name && image_processing_available? && attachment.respond_to?(:variant)
+        model_class = attachment.record.class
+        variants = model_class.respond_to?(:lcp_attachment_variants) ? model_class.lcp_attachment_variants : {}
+        field_variants = variants[attachment.name.to_s] || {}
+        variant_config = field_variants[variant_name.to_s]
+
+        if variant_config
+          begin
+            return image_tag(variant_url(attachment.variant(variant_config.transform_keys(&:to_sym))),
+              class: "lcp-attachment-image", alt: blob.filename.to_s)
+          rescue StandardError
+            # Variant processing failed, fall back to original image
+          end
+        end
+      end
+
+      image_tag(attachment_url(attachment), class: "lcp-attachment-image", alt: blob.filename.to_s)
+    end
+
+    def image_processing_available?
+      return @_image_processing_available if defined?(@_image_processing_available)
+      @_image_processing_available = defined?(ImageProcessing)
     end
   end
 end

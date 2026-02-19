@@ -48,6 +48,7 @@ define_model :deal do
   validates :contact_id, :presence, when: { field: :stage, operator: :in, value: %w[negotiation closed_won closed_lost] }
 
   validates_model :service, service: "deal_credit_limit"
+  validates_model :service, service: "deal_documents_required"
 
   scope :open_deals, where_not: { stage: [ "closed_won", "closed_lost" ] }
   scope :won,        where: { stage: "closed_won" }

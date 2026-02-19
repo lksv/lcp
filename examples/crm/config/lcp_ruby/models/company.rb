@@ -38,6 +38,11 @@ define_model :company do
     }
   }
 
+  field :contract_template, :attachment, label: "Contract Template", options: {
+    max_size: "20MB",
+    content_types: %w[application/pdf application/vnd.openxmlformats-officedocument.wordprocessingml.document]
+  }
+
   has_many :contacts, model: :contact, foreign_key: :company_id, dependent: :destroy
   has_many :deals, model: :deal, foreign_key: :company_id, dependent: :destroy
 
