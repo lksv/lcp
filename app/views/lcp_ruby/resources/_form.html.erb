@@ -5,7 +5,8 @@
    form_data["lcp-conditions-url"] = conditions_url if conditions_url
    form_data["lcp-select-options-path"] = lcp_ruby.select_options_path(lcp_slug: current_presenter.slug)
 %>
-<%= form_with(model: @record, url: @record.new_record? ? resources_path : resource_path(@record), scope: :record, method: @record.new_record? ? :post : :patch, class: "lcp-form", data: form_data) do |form| %>
+<% has_attachments = current_model_definition.fields.any?(&:attachment?) %>
+<%= form_with(model: @record, url: @record.new_record? ? resources_path : resource_path(@record), scope: :record, method: @record.new_record? ? :post : :patch, class: "lcp-form", data: form_data, multipart: has_attachments) do |form| %>
   <% if @record.errors.any? %>
     <div class="lcp-errors">
       <h3><%= pluralize(@record.errors.count, "error") %> prevented this record from being saved:</h3>

@@ -43,6 +43,7 @@ module LcpRuby
           lcp_ruby/application.js
           lcp_ruby/tom-select.base.min.js
           lcp_ruby/tom-select.css
+          lcp_ruby/activestorage.min.js
         ]
         app.config.assets.paths << root.join("app", "assets", "javascripts")
         app.config.assets.paths << root.join("app", "assets", "stylesheets")

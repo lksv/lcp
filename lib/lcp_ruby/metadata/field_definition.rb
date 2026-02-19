@@ -4,13 +4,15 @@ module LcpRuby
       BASE_TYPES = %w[
         string text integer float decimal boolean
         date datetime enum file rich_text json uuid
+        attachment
       ].freeze
 
       # Backward compatibility
       VALID_TYPES = BASE_TYPES
 
       attr_reader :name, :type, :label, :column_options, :validations,
-                  :enum_values, :default, :type_definition, :transforms, :computed
+                  :enum_values, :default, :type_definition, :transforms, :computed,
+                  :attachment_options
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -22,6 +24,7 @@ module LcpRuby
         @default = attrs[:default]
         @transforms = Array(attrs[:transforms]).map(&:to_s)
         @computed = attrs[:computed]
+        @attachment_options = attrs[:attachment_options] || {}
 
         validate!
         resolve_type_definition!
@@ -37,7 +40,8 @@ module LcpRuby
           enum_values: hash["enum_values"],
           default: hash["default"],
           transforms: hash["transforms"],
-          computed: hash["computed"]
+          computed: hash["computed"],
+          attachment_options: hash["options"] || {}
         )
       end
 
@@ -46,6 +50,8 @@ module LcpRuby
       end
 
       def column_type
+        return nil if attachment?
+
         if @type_definition
           @type_definition.column_type
         else
@@ -62,6 +68,14 @@ module LcpRuby
 
       def enum?
         type == "enum"
+      end
+
+      def attachment?
+        type == "attachment"
+      end
+
+      def attachment_multiple?
+        attachment? && attachment_options["multiple"] == true
       end
 
       def enum_value_names

@@ -39,6 +39,7 @@ define_presenter :deal do
       field :expected_close_date
       field :created_at, display: :relative_date
       field "company.name", label: "Company"
+      field :documents, display: :attachment_list
     end
   end
 
@@ -74,6 +75,10 @@ define_presenter :deal do
       field :priority, input_type: :slider, input_options: { min: 0, max: 100, step: 5, show_value: true }
       field :progress, input_type: :slider, input_options: { min: 0, max: 100, step: 10, show_value: true }
       field :created_at, readonly: true
+    end
+
+    section "Documents" do
+      field :documents, input_options: { preview: true, drag_drop: true }
     end
   end
 

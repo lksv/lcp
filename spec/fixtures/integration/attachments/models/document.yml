@@ -1,0 +1,35 @@
+model:
+  name: document
+  label: "Document"
+  label_plural: "Documents"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      validations:
+        - type: presence
+
+    - name: photo
+      type: attachment
+      label: "Photo"
+      options:
+        accept: "image/*"
+        max_size: "5MB"
+        content_types: [image/jpeg, image/png, image/webp]
+        variants:
+          thumbnail: { resize_to_limit: [100, 100] }
+          medium: { resize_to_limit: [300, 300] }
+
+    - name: files
+      type: attachment
+      label: "Files"
+      options:
+        multiple: true
+        max_files: 5
+        max_size: "10MB"
+        content_types: [application/pdf, "image/*"]
+
+  options:
+    timestamps: true
+    label_method: title

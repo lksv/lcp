@@ -1,0 +1,45 @@
+presenter:
+  name: document_admin
+  model: document
+  label: "Documents"
+  slug: documents
+  icon: file
+
+  index:
+    default_view: table
+    per_page: 25
+    table_columns:
+      - { field: title, width: "50%", link_to: show }
+      - { field: photo, width: "25%", display: attachment_preview, display_options: { variant: thumbnail } }
+
+  show:
+    layout:
+      - section: "Document Details"
+        columns: 1
+        fields:
+          - { field: title, display: heading }
+          - { field: photo, display: attachment_preview, display_options: { variant: medium } }
+          - { field: files, display: attachment_list }
+
+  form:
+    sections:
+      - title: "Document Details"
+        columns: 1
+        fields:
+          - { field: title, placeholder: "Document title..." }
+          - field: photo
+            input_options:
+              preview: true
+              drag_drop: true
+          - field: files
+            input_options:
+              preview: true
+              drag_drop: true
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Document", icon: plus }
+    single:
+      - { name: show, type: built_in, icon: eye }
+      - { name: edit, type: built_in, icon: pencil }
+      - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }

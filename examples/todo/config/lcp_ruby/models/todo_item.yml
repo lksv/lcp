@@ -45,6 +45,12 @@ model:
       label: "Position"
       default: 0
 
+    - name: attachment
+      type: attachment
+      label: "Attachment"
+      options:
+        max_size: 10MB
+
   associations:
     - type: belongs_to
       name: todo_list

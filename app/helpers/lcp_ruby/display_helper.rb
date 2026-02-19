@@ -27,6 +27,9 @@ module LcpRuby
       when "code"         then content_tag(:code, value, class: "lcp-code")
       when "file_size"    then number_to_human_size(value.to_i)
       when "rich_text"    then content_tag(:div, sanitize(value&.to_s), class: "rich-text")
+      when "attachment_preview" then render_attachment_preview(value, options, record: record)
+      when "attachment_list"    then render_attachment_list(value, options, record: record)
+      when "attachment_link"    then render_attachment_link(value, options, record: record)
       when "link"         then value.respond_to?(:to_label) ? value.to_label : value
       else
         renderer = LcpRuby::Display::RendererRegistry.renderer_for(display_type.to_s)
@@ -188,6 +191,98 @@ module LcpRuby
       filled = "&#9733;" * val
       empty = "&#9734;" * (max - val)
       content_tag(:span, (filled + empty).html_safe, class: "lcp-rating-display")
+    end
+
+    # Attachment display: preview (image with variant, or download link for non-images)
+    def render_attachment_preview(value, options, record: nil)
+      attachment = resolve_attachment(value, record)
+      return content_tag(:span, I18n.t("lcp_ruby.file_upload.no_file", default: "No file"), class: "lcp-no-attachment") unless attachment_present?(attachment)
+
+      if single_attachment?(attachment)
+        render_single_preview(attachment, options)
+      else
+        # Multiple attachments: show all previews
+        content_tag(:div, class: "lcp-attachment-preview") do
+          safe_join(attachment.map { |att| render_single_preview(att, options) })
+        end
+      end
+    end
+
+    # Attachment display: list of download links
+    def render_attachment_list(value, options, record: nil)
+      attachment = resolve_attachment(value, record)
+      return content_tag(:span, I18n.t("lcp_ruby.file_upload.no_file", default: "No file"), class: "lcp-no-attachment") unless attachment_present?(attachment)
+
+      items = attachment.respond_to?(:each) ? attachment.to_a : [ attachment ]
+      content_tag(:ul, class: "lcp-attachment-list") do
+        safe_join(items.select { |att| att.respond_to?(:blob) }.map { |att|
+          content_tag(:li) do
+            link_to(att.blob.filename.to_s, url_for(att), target: "_blank", rel: "noopener") +
+              " " +
+              content_tag(:span, "(#{number_to_human_size(att.blob.byte_size)})", class: "lcp-attachment-size")
+          end
+        })
+      end
+    rescue StandardError
+      content_tag(:span, "Attachments", class: "lcp-attachment-list")
+    end
+
+    # Attachment display: single download link
+    def render_attachment_link(value, options, record: nil)
+      attachment = resolve_attachment(value, record)
+      return content_tag(:span, I18n.t("lcp_ruby.file_upload.no_file", default: "No file"), class: "lcp-no-attachment") unless attachment_present?(attachment)
+
+      att = attachment.respond_to?(:blob) ? attachment : attachment.first
+      return content_tag(:span, I18n.t("lcp_ruby.file_upload.no_file", default: "No file"), class: "lcp-no-attachment") unless att&.respond_to?(:blob)
+
+      link_to(att.blob.filename.to_s, url_for(att), target: "_blank", rel: "noopener", class: "lcp-attachment-download")
+    rescue StandardError
+      content_tag(:span, "Download", class: "lcp-attachment-download")
+    end
+
+    def resolve_attachment(value, record)
+      # value may be the attachment proxy itself (from record.send(field_name))
+      value
+    end
+
+    def attachment_present?(attachment)
+      return false if attachment.nil?
+      return attachment.attached? if attachment.respond_to?(:attached?)
+      return attachment.any? { |a| a.respond_to?(:blob) } if attachment.respond_to?(:any?)
+      attachment.respond_to?(:blob)
+    end
+
+    def single_attachment?(attachment)
+      attachment.respond_to?(:blob)
+    end
+
+    def render_single_preview(attachment, options)
+      blob = attachment.respond_to?(:blob) ? attachment.blob : attachment
+      variant_name = options["variant"]
+
+      if blob.image?
+        img = if variant_name && attachment.respond_to?(:variant)
+          model_class = attachment.record.class
+          variants = model_class.respond_to?(:lcp_attachment_variants) ? model_class.lcp_attachment_variants : {}
+          field_variants = variants[attachment.name.to_s] || {}
+          variant_config = field_variants[variant_name.to_s]
+
+          if variant_config
+            image_tag(url_for(attachment.variant(variant_config.transform_keys(&:to_sym))),
+              class: "lcp-attachment-image", alt: blob.filename.to_s)
+          else
+            image_tag(url_for(attachment), class: "lcp-attachment-image", alt: blob.filename.to_s)
+          end
+        else
+          image_tag(url_for(attachment), class: "lcp-attachment-image", alt: blob.filename.to_s)
+        end
+
+        content_tag(:div, img, class: "lcp-attachment-preview-item")
+      else
+        link_to(blob.filename.to_s, url_for(attachment), target: "_blank", rel: "noopener", class: "lcp-attachment-download")
+      end
+    rescue StandardError
+      content_tag(:span, blob&.filename.to_s || "File", class: "lcp-attachment-download")
     end
   end
 end

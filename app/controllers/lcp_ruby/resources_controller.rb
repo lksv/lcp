@@ -66,6 +66,7 @@ module LcpRuby
     def update
       authorize @record
       @record.assign_attributes(permitted_params)
+      purge_removed_attachments!(@record)
 
       validate_association_values!(@record)
 
@@ -183,6 +184,16 @@ module LcpRuby
 
     def set_record
       @record = @model_class.find(params[:id])
+    end
+
+    def purge_removed_attachments!(record)
+      current_model_definition.fields.select(&:attachment?).each do |field|
+        remove_key = "remove_#{field.name}"
+        next unless params[:record]&.dig(remove_key) == "1"
+
+        attachment = record.send(field.name)
+        attachment.purge if attachment.attached?
+      end
     end
 
     def find_form_field_config(field_name)
@@ -368,6 +379,12 @@ module LcpRuby
         .map { |a| a.foreign_key.to_sym }
 
       flat_fields = (writable + fk_fields).uniq
+
+      # Separate attachment fields from flat fields (they need special permitting)
+      attachment_fields = current_model_definition.fields.select(&:attachment?)
+      attachment_names = attachment_fields.map { |f| f.name.to_sym }
+      flat_fields -= attachment_names
+
       nested = build_nested_permits
 
       # Detect multi_select fields and permit array params
@@ -377,6 +394,16 @@ module LcpRuby
         .flat_map { |s| s["fields"] || [] }
         .select { |f| f["input_type"] == "multi_select" }
         .each { |f| array_fields[f["field"].to_sym] = [] }
+
+      # Add attachment fields: single as scalar, multiple as array
+      attachment_fields.each do |field|
+        name = field.name.to_sym
+        if field.attachment_multiple?
+          array_fields[name] = []
+        else
+          flat_fields << name
+        end
+      end
 
       permit_args = flat_fields + array_fields.map { |k, v| { k => v } }
 

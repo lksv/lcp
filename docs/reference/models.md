@@ -120,6 +120,7 @@ Determines the database column type and default form input behavior. Accepts one
 | `rich_text` | `:text` | Rich text content. Default form input: rich text editor. |
 | `json` | `:jsonb` / `:json` | JSON data. Uses jsonb on PostgreSQL, json on other adapters. |
 | `uuid` | `:string` | UUID stored as string. |
+| `attachment` | none (uses Active Storage) | File attachment (single or multiple). Requires Active Storage. |
 
 **Built-in business types:**
 
@@ -131,6 +132,49 @@ Determines the database column type and default form input behavior. Accepts one
 | `color` | string | strip, downcase | `<input type="color">` | Hex color (`#rrggbb`) with format validation |
 
 Business types bundle transforms (normalization), validations, HTML input hints, and column options into a reusable definition. See [Types Reference](types.md) for defining custom types.
+
+##### Attachment Fields
+
+The `attachment` type uses Active Storage instead of a database column. It supports both single-file (`has_one_attached`) and multi-file (`has_many_attached`) attachments.
+
+**Options:**
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `multiple` | boolean | `false` | Use `has_many_attached` instead of `has_one_attached` |
+| `accept` | string | none | HTML accept attribute for file input (e.g., `"image/*"`) |
+| `max_size` | string | global default | Maximum file size per file (e.g., `"10MB"`, `"512KB"`) |
+| `min_size` | string | none | Minimum file size per file |
+| `content_types` | array | global default | Allowed MIME types. Supports wildcards (e.g., `"image/*"`) |
+| `max_files` | integer | none | Maximum number of files (only for `multiple: true`) |
+| `variants` | hash | none | Named image variant configurations |
+
+```yaml
+fields:
+  # Single image attachment with variants
+  - name: photo
+    type: attachment
+    label: "Photo"
+    options:
+      accept: "image/*"
+      max_size: 5MB
+      content_types: [image/jpeg, image/png, image/webp]
+      variants:
+        thumbnail: { resize_to_limit: [100, 100] }
+        medium: { resize_to_limit: [300, 300] }
+
+  # Multiple file attachment
+  - name: files
+    type: attachment
+    label: "Documents"
+    options:
+      multiple: true
+      max_files: 10
+      max_size: 50MB
+      content_types: [application/pdf, "image/*"]
+```
+
+Attachment fields require Active Storage to be set up in the host application. See the [Attachments Guide](../guides/attachments.md) for prerequisites and complete examples.
 
 #### `label`
 
