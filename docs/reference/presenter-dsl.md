@@ -115,6 +115,7 @@ The `index` block configures the list/table view.
 
 ```ruby
 index do
+  description "Manage all deals in your pipeline."
   default_view :table
   views_available :table, :tiles
   default_sort :created_at, :desc
@@ -125,6 +126,14 @@ end
 ```
 
 ### Index Methods
+
+#### `description(text)`
+
+Descriptive text displayed below the page heading on the index view.
+
+```ruby
+description "Browse and filter all deals in your pipeline."
+```
 
 #### `default_view(value)`
 
@@ -221,6 +230,8 @@ The `show` block configures the detail view.
 
 ```ruby
 show do
+  description "View deal details and related contacts."
+
   section "Deal Information", columns: 2 do
     field :title, display: :heading
     field :stage, display: :badge
@@ -233,17 +244,25 @@ end
 
 ### Show Methods
 
+#### `description(text)`
+
+Descriptive text displayed below the page heading on the show view.
+
+```ruby
+description "View deal details and related contacts."
+```
+
 #### `includes(*associations)` / `eager_load(*associations)`
 
 Same as index. Manually specify associations to preload for the show page. Auto-detection handles `association_list` sections automatically. See [Eager Loading](eager-loading.md).
 
-#### `section(title, columns: 1, responsive: nil, &block)`
+#### `section(title, columns: 1, description: nil, responsive: nil, &block)`
 
-Creates a section with fields. The `columns:` option controls the layout grid. The `responsive:` option controls how the section adapts to different screen sizes.
+Creates a section with fields. The `columns:` option controls the layout grid. The `description:` option adds explanatory text below the section heading. The `responsive:` option controls how the section adapts to different screen sizes.
 
 ```ruby
 show do
-  section "Deal Information", columns: 2, responsive: { mobile: 1 } do
+  section "Deal Information", columns: 2, description: "Key metrics for this deal", responsive: { mobile: 1 } do
     field :title, display: :heading
     field :stage, display: :badge
   end
@@ -303,6 +322,8 @@ The `form` block configures create and edit forms.
 
 ```ruby
 form do
+  description "Enter the deal details below."
+
   section "Deal Details", columns: 2 do
     field :title, placeholder: "Deal title...", autofocus: true
     field :stage, input_type: :select
@@ -313,6 +334,14 @@ end
 ```
 
 ### Form Methods
+
+#### `description(text)`
+
+Descriptive text displayed at the top of the form, below error messages.
+
+```ruby
+description "Fill in the deal details. Required fields are marked with *."
+```
 
 #### `includes(*associations)` / `eager_load(*associations)`
 
@@ -341,13 +370,14 @@ form do
 end
 ```
 
-#### `section(title, columns: 1, collapsible: false, collapsed: false, responsive: nil, visible_when: nil, disable_when: nil, &block)`
+#### `section(title, columns: 1, description: nil, collapsible: false, collapsed: false, responsive: nil, visible_when: nil, disable_when: nil, &block)`
 
 Creates a form section. Multiple sections create visual groupings.
 
 | Option | Type | Description |
 |--------|------|-------------|
 | `columns:` | integer | Number of layout columns (default: 1) |
+| `description:` | string | Explanatory text displayed below the section heading |
 | `collapsible:` | boolean | Whether the section can be collapsed/expanded by the user |
 | `collapsed:` | boolean | Whether the section starts in collapsed state (requires `collapsible: true`) |
 | `responsive:` | hash | Responsive column overrides (e.g., `{ mobile: 1 }`) |
@@ -519,6 +549,22 @@ form do
   end
 end
 ```
+
+#### `info(text)`
+
+Adds an informational text block inside a section. Renders as a styled callout spanning the full width of the grid. Use this to provide contextual help or explanations within a form or show section.
+
+```ruby
+form do
+  section "Pricing", columns: 2 do
+    info "Prices are in USD. Tax is calculated automatically at checkout."
+    field :price, input_type: :number, prefix: "$"
+    field :tax_rate, input_type: :number, suffix: "%"
+  end
+end
+```
+
+Both `divider` and `info` are available in `section` blocks for both `show` and `form` views.
 
 ## Search Configuration
 

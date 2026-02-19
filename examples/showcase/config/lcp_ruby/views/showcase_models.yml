@@ -1,0 +1,10 @@
+view_group:
+  model: showcase_model
+  primary: showcase_models
+  navigation:
+    menu: main
+    position: 2
+  views:
+    - presenter: showcase_models
+      label: "Model Features"
+      icon: layers

@@ -95,6 +95,7 @@ Controls the record list view.
 
 ```yaml
 index:
+  description: "Browse and manage all records."
   default_view: table
   views_available: [table, tiles]
   default_sort: { field: created_at, direction: desc }
@@ -103,6 +104,20 @@ index:
   empty_message: "No records found."
   actions_position: dropdown
   table_columns: []
+```
+
+### `description`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | string |
+
+Descriptive text displayed below the page heading. Available on `index`, `show`, and `form` views.
+
+```yaml
+index:
+  description: "Browse all deals in your pipeline."
 ```
 
 ### `default_view`
@@ -683,13 +698,16 @@ Controls the record detail view.
 
 ```yaml
 show:
+  description: "View record details and related items."
   includes: [contacts, deals]
   layout:
     - section: "Section Title"
+      description: "Key information about this record."
       columns: 2
       fields:
         - { field: title, display: heading }
         - { field: stage, display: badge }
+        - { type: info, text: "This explains the fields above." }
     - section: "Related Items"
       type: association_list
       association: contacts
@@ -708,6 +726,7 @@ Array of section objects. Each section is rendered as a card or panel.
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `section` | string | Section heading text |
+| `description` | string | Explanatory text displayed below the section heading |
 | `columns` | integer | Number of columns in the field grid (default: 1) |
 | `fields` | array | Fields to display (see below) |
 | `type` | string | Set to `association_list` for related record sections |
@@ -808,12 +827,15 @@ Controls the create and edit forms.
 
 ```yaml
 form:
+  description: "Fill in the record details below."
   layout: flat
   includes: [todo_items]
   sections:
     - title: "Section Title"
+      description: "Basic information about the record."
       columns: 2
       fields:
+        - { type: info, text: "Prices are in USD." }
         - { field: title, placeholder: "Enter title...", autofocus: true }
         - { field: stage, input_type: select }
         - { field: value, input_type: number, prefix: "$" }
@@ -860,6 +882,7 @@ Array of form section objects.
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `title` | string | Section heading text |
+| `description` | string | Explanatory text displayed below the section heading |
 | `columns` | integer | Number of columns in the field grid (default: 1) |
 | `fields` | array | Form fields (see below) |
 | `collapsible` | boolean | When `true`, the section can be collapsed/expanded by clicking its header |
@@ -1281,6 +1304,19 @@ fields:
 ```
 
 A divider with a `label` renders a labeled horizontal rule. A divider without a `label` renders a plain separator line.
+
+#### Info Pseudo-Field
+
+Use an info pseudo-field to add contextual help text within a section. The info text spans the full width of the grid and renders as a styled callout.
+
+```yaml
+fields:
+  - { type: info, text: "Prices are in USD. Tax is calculated automatically." }
+  - { field: price, input_type: number }
+  - { field: tax_rate, input_type: number }
+```
+
+Info pseudo-fields work in both `form` and `show` sections.
 
 #### Nested Fields
 

@@ -1,0 +1,10 @@
+view_group:
+  model: project
+  primary: projects
+  navigation:
+    menu: main
+    position: 9
+  views:
+    - presenter: projects
+      label: "Projects"
+      icon: briefcase

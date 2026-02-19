@@ -1,6 +1,9 @@
 <div class="lcp-resources-index">
   <div class="lcp-header">
     <h1><%= current_presenter.label %></h1>
+    <% if current_presenter.index_config["description"].present? %>
+      <p class="lcp-view-description"><%= current_presenter.index_config["description"] %></p>
+    <% end %>
     <div class="lcp-toolbar">
       <%= render "lcp_ruby/resources/view_switcher" %>
       <% @action_set.collection_actions.each do |action| %>

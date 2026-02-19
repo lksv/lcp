@@ -1,0 +1,10 @@
+view_group:
+  model: article
+  primary: articles
+  navigation:
+    menu: main
+    position: 3
+  views:
+    - presenter: articles
+      label: "Articles"
+      icon: file-text

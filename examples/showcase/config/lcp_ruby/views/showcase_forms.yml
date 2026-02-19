@@ -1,0 +1,10 @@
+view_group:
+  model: showcase_form
+  primary: showcase_forms
+  navigation:
+    menu: main
+    position: 7
+  views:
+    - presenter: showcase_forms
+      label: "Form Features"
+      icon: edit

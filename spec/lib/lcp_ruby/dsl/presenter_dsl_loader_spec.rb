@@ -149,6 +149,87 @@ RSpec.describe LcpRuby::Dsl::DslLoader, ".load_presenters" do
       end
     end
 
+    it "supports description on index, show, and form views" do
+      Dir.mktmpdir do |dir|
+        File.write(File.join(dir, "desc.rb"), <<~RUBY)
+          define_presenter :desc_test do
+            model :project
+            slug "desc-test"
+
+            index do
+              description "This is the index description."
+              column :title
+            end
+
+            show do
+              description "This is the show description."
+              section "Details", description: "Section-level description" do
+                field :title
+              end
+            end
+
+            form do
+              description "This is the form description."
+              section "Basics", description: "Fill in basic info" do
+                field :title
+              end
+              nested_fields "Items", association: :items, description: "Manage items"
+            end
+          end
+        RUBY
+
+        definitions = described_class.load_presenters(Pathname.new(dir))
+        presenter = definitions["desc_test"]
+
+        expect(presenter.index_config["description"]).to eq("This is the index description.")
+        expect(presenter.show_config["description"]).to eq("This is the show description.")
+        expect(presenter.show_config["layout"][0]["description"]).to eq("Section-level description")
+        expect(presenter.form_config["description"]).to eq("This is the form description.")
+        expect(presenter.form_config["sections"][0]["description"]).to eq("Fill in basic info")
+        expect(presenter.form_config["sections"][1]["description"]).to eq("Manage items")
+      end
+    end
+
+    it "supports info pseudo-field in sections" do
+      Dir.mktmpdir do |dir|
+        File.write(File.join(dir, "info.rb"), <<~RUBY)
+          define_presenter :info_test do
+            model :project
+            slug "info-test"
+
+            show do
+              section "Details" do
+                info "This explains the section."
+                field :title
+              end
+            end
+
+            form do
+              section "Basics" do
+                info "This is a helpful message."
+                field :title
+                divider label: "More"
+                info "Another info block."
+              end
+            end
+          end
+        RUBY
+
+        definitions = described_class.load_presenters(Pathname.new(dir))
+        presenter = definitions["info_test"]
+
+        show_fields = presenter.show_config["layout"][0]["fields"]
+        expect(show_fields[0]).to eq({ "type" => "info", "text" => "This explains the section." })
+        expect(show_fields[1]["field"]).to eq("title")
+
+        form_fields = presenter.form_config["sections"][0]["fields"]
+        expect(form_fields[0]).to eq({ "type" => "info", "text" => "This is a helpful message." })
+        expect(form_fields[1]["field"]).to eq("title")
+        expect(form_fields[2]["type"]).to eq("divider")
+        expect(form_fields[3]).to eq({ "type" => "info", "text" => "Another info block." })
+      end
+    end
+
     it "resolves inheritance across separate files" do
       Dir.mktmpdir do |dir|
         File.write(File.join(dir, "parent.rb"), <<~RUBY)

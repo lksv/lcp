@@ -1,0 +1,30 @@
+permissions:
+  model: _default
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+    editor:
+      crud: [index, show, create, update]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+    viewer:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+    owner:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+  default_role: viewer

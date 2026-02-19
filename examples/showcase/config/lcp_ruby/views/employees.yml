@@ -1,0 +1,10 @@
+view_group:
+  model: employee
+  primary: employees
+  navigation:
+    menu: main
+    position: 8
+  views:
+    - presenter: employees
+      label: "Employees"
+      icon: users

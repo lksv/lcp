@@ -171,6 +171,11 @@ module LcpRuby
         @actions_position_value = nil
         @includes_list = nil
         @eager_load_list = nil
+        @description_value = nil
+      end
+
+      def description(text)
+        @description_value = text
       end
 
       def default_view(value)
@@ -219,6 +224,7 @@ module LcpRuby
 
       def to_hash
         hash = {}
+        hash["description"] = @description_value if @description_value
         hash["default_view"] = @default_view if @default_view
         hash["views_available"] = @views_available if @views_available
         hash["default_sort"] = @default_sort if @default_sort
@@ -252,6 +258,10 @@ module LcpRuby
         @fields << d
       end
 
+      def info(text)
+        @fields << { "type" => "info", "text" => text }
+      end
+
       def to_fields
         @fields
       end
@@ -262,10 +272,16 @@ module LcpRuby
         @layout = []
         @includes_list = nil
         @eager_load_list = nil
+        @description_value = nil
       end
 
-      def section(title, columns: 1, responsive: nil, &block)
+      def description(text)
+        @description_value = text
+      end
+
+      def section(title, columns: 1, description: nil, responsive: nil, &block)
         section_hash = { "section" => title, "columns" => columns }
+        section_hash["description"] = description if description
         section_hash["responsive"] = stringify_deep(responsive) if responsive
         if block
           builder = SectionBuilder.new
@@ -300,7 +316,9 @@ module LcpRuby
       end
 
       def to_hash
-        hash = { "layout" => @layout }
+        hash = {}
+        hash["description"] = @description_value if @description_value
+        hash["layout"] = @layout
         hash["includes"] = @includes_list if @includes_list
         hash["eager_load"] = @eager_load_list if @eager_load_list
         hash
@@ -319,15 +337,21 @@ module LcpRuby
         @layout_value = nil
         @includes_list = nil
         @eager_load_list = nil
+        @description_value = nil
+      end
+
+      def description(text)
+        @description_value = text
       end
 
       def layout(value)
         @layout_value = value.to_s
       end
 
-      def section(title, columns: 1, responsive: nil, collapsible: false, collapsed: false,
+      def section(title, columns: 1, description: nil, responsive: nil, collapsible: false, collapsed: false,
                   visible_when: nil, disable_when: nil, &block)
         section_hash = { "title" => title, "columns" => columns }
+        section_hash["description"] = description if description
         section_hash["responsive"] = stringify_deep(responsive) if responsive
         section_hash["collapsible"] = collapsible if collapsible
         section_hash["collapsed"] = collapsed if collapsed
@@ -341,7 +365,7 @@ module LcpRuby
         @sections << section_hash
       end
 
-      def nested_fields(title, association:, allow_add: true, allow_remove: true,
+      def nested_fields(title, association:, description: nil, allow_add: true, allow_remove: true,
                         min: nil, max: nil, add_label: nil, empty_message: nil,
                         sortable: false, columns: nil, visible_when: nil, disable_when: nil, &block)
         section_hash = {
@@ -351,6 +375,7 @@ module LcpRuby
           "allow_add" => allow_add,
           "allow_remove" => allow_remove
         }
+        section_hash["description"] = description if description
         section_hash["columns"] = columns if columns
         section_hash["min"] = min if min
         section_hash["max"] = max if max
@@ -376,7 +401,9 @@ module LcpRuby
       end
 
       def to_hash
-        hash = { "sections" => @sections }
+        hash = {}
+        hash["description"] = @description_value if @description_value
+        hash["sections"] = @sections
         hash["layout"] = @layout_value if @layout_value
         hash["includes"] = @includes_list if @includes_list
         hash["eager_load"] = @eager_load_list if @eager_load_list

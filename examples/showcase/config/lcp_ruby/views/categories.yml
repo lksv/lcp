@@ -1,0 +1,10 @@
+view_group:
+  model: category
+  primary: categories
+  navigation:
+    menu: main
+    position: 4
+  views:
+    - presenter: categories
+      label: "Categories"
+      icon: folder
