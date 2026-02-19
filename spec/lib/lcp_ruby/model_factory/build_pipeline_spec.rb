@@ -80,7 +80,7 @@ RSpec.describe "Model build pipeline" do
 
     it "applies discovered transform to field values" do
       model_class = build_from_dsl do
-        field :name, :string, transforms: [:upcase]
+        field :name, :string, transforms: [ :upcase ]
         timestamps false
       end
 
@@ -90,7 +90,7 @@ RSpec.describe "Model build pipeline" do
 
     it "combines discovered transform with built-in transforms" do
       model_class = build_from_dsl do
-        field :name, :string, transforms: [:strip, :upcase]
+        field :name, :string, transforms: [ :strip, :upcase ]
         timestamps false
       end
 
@@ -102,7 +102,7 @@ RSpec.describe "Model build pipeline" do
   describe "field-level transforms via DSL" do
     it "applies built-in transforms defined in DSL" do
       model_class = build_from_dsl do
-        field :email, :string, transforms: [:strip, :downcase]
+        field :email, :string, transforms: [ :strip, :downcase ]
         timestamps false
       end
 
@@ -455,7 +455,7 @@ RSpec.describe "Model build pipeline" do
       LcpRuby.registry.register("pipeline_parent", parent_class)
       LcpRuby.registry.register("pipeline_child", child_class)
 
-      [parent_class, child_class]
+      [ parent_class, child_class ]
     end
 
     it "creates working belongs_to and has_many associations" do
@@ -492,13 +492,13 @@ RSpec.describe "Model build pipeline" do
     it "allows optional belongs_to when required: false" do
       parent_def = LcpRuby::Metadata::ModelDefinition.from_hash(
         "name" => "pipeline_parent",
-        "fields" => [{ "name" => "title", "type" => "string" }],
+        "fields" => [ { "name" => "title", "type" => "string" } ],
         "options" => { "timestamps" => false }
       )
 
       child_def = LcpRuby::Metadata::ModelDefinition.from_hash(
         "name" => "pipeline_child",
-        "fields" => [{ "name" => "name", "type" => "string" }],
+        "fields" => [ { "name" => "name", "type" => "string" } ],
         "associations" => [
           { "type" => "belongs_to", "name" => "pipeline_parent", "target_model" => "pipeline_parent", "required" => false }
         ],
@@ -561,7 +561,7 @@ RSpec.describe "Model build pipeline" do
 
       result = model_class.top3
       expect(result.count).to eq(3)
-      expect(result.map(&:priority)).to eq([4, 3, 2])
+      expect(result.map(&:priority)).to eq([ 4, 3, 2 ])
     end
   end
 
@@ -596,7 +596,7 @@ RSpec.describe "Model build pipeline" do
       model_class = build_from_hash(
         "name" => "pipeline_test",
         "fields" => [
-          { "name" => "title", "type" => "string", "transforms" => ["strip"] },
+          { "name" => "title", "type" => "string", "transforms" => [ "strip" ] },
           { "name" => "active", "type" => "boolean", "default" => true },
           { "name" => "start_date", "type" => "date", "default" => "current_date" },
           {

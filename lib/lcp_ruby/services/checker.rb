@@ -10,7 +10,7 @@ module LcpRuby
           if valid?
             "All service references are valid."
           else
-            lines = ["Service reference errors (#{errors.size}):"]
+            lines = [ "Service reference errors (#{errors.size}):" ]
             errors.each { |e| lines << "  [ERROR] #{e}" }
             lines.join("\n")
           end
@@ -103,7 +103,6 @@ module LcpRuby
                      "validator service '#{validation.service_key}' not found in Services::Registry"
         end
       end
-
     end
   end
 end

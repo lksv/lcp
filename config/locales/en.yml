@@ -1,0 +1,17 @@
+en:
+  lcp_ruby:
+    select:
+      include_blank: "-- Select --"
+      no_results: "No results found"
+      loading_more: "Loading more..."
+      add_new: "+ Add new..."
+      legacy_group: "Archived"
+    form:
+      create: "Create"
+      update: "Update"
+      cancel: "Cancel"
+      errors:
+        contains_not_allowed: "contains a value that is not allowed"
+    tree_select:
+      expand: "Expand"
+      collapse: "Collapse"

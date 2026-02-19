@@ -3,12 +3,12 @@ define_model :contact do
   label_plural "Contacts"
 
   field :first_name, :string, label: "First Name", limit: 100, null: false,
-    transforms: [:strip, :titlecase] do
+    transforms: [ :strip, :titlecase ] do
     validates :presence
   end
 
   field :last_name, :string, label: "Last Name", limit: 100, null: false,
-    transforms: [:strip, :titlecase] do
+    transforms: [ :strip, :titlecase ] do
     validates :presence
   end
 

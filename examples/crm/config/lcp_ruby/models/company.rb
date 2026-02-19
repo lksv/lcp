@@ -20,8 +20,20 @@ define_model :company do
   field :website, :url, label: "Website"
   field :phone, :phone, label: "Phone"
 
+  field :address_type, :enum, label: "Address Type", default: "unknown",
+    values: {
+      unknown: "Unknown",
+      known: "Known"
+    }
+
+  field :street, :string, label: "Street"
+
   has_many :contacts, model: :contact, foreign_key: :company_id, dependent: :destroy
   has_many :deals, model: :deal, foreign_key: :company_id, dependent: :destroy
+
+  belongs_to :country, model: :country, required: false
+  belongs_to :region, model: :region, required: false
+  belongs_to :city, model: :city, required: false
 
   timestamps true
   label_method :name

@@ -27,7 +27,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
     end
 
     it "handles single-element array" do
-      config = { "hidden_on" => ["desktop"] }
+      config = { "hidden_on" => [ "desktop" ] }
       expect(hidden_on_classes(config)).to eq("lcp-hidden-desktop")
     end
   end

@@ -3,6 +3,7 @@
 <head>
   <title>LCP Ruby</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <%= csrf_meta_tags %>
   <%= stylesheet_link_tag "lcp_ruby/tom-select", media: "all" if Rails.application.config.respond_to?(:assets) %>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -105,6 +106,10 @@
     /* Character counter */
     .lcp-char-counter { display: block; font-size: 0.7rem; color: #6c757d; text-align: right; margin-top: 0.15rem; }
 
+    /* Radio group */
+    .lcp-radio-group { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .lcp-radio-label { display: inline-flex; align-items: center; gap: 0.3rem; cursor: pointer; font-size: 0.875rem; }
+
     /* Toggle switch */
     .lcp-toggle { position: relative; display: inline-block; width: 44px; height: 24px; cursor: pointer; }
     .lcp-toggle-input { opacity: 0; width: 0; height: 0; position: absolute; }
@@ -200,10 +205,47 @@
     /* Multi-select validation error */
     .lcp-multi-select-error { display: block; color: #dc3545; font-size: 0.75rem; margin-top: 0.2rem; }
 
+    /* Inline create dialog */
+    .lcp-inline-dialog { border: 1px solid #dee2e6; border-radius: 8px; padding: 1.5rem; max-width: 500px; width: 90vw; }
+    .lcp-inline-dialog::backdrop { background: rgba(0,0,0,0.4); }
+    .lcp-inline-dialog h3 { margin-bottom: 1rem; font-size: 1.1rem; }
+    .lcp-inline-dialog .lcp-form-field { margin-bottom: 0.75rem; }
+    .lcp-inline-dialog .lcp-form-field label { display: block; font-weight: 500; margin-bottom: 0.25rem; font-size: 0.875rem; }
+    .lcp-inline-dialog .lcp-form-field input,
+    .lcp-inline-dialog .lcp-form-field textarea,
+    .lcp-inline-dialog .lcp-form-field select { width: 100%; padding: 0.4rem 0.75rem; border: 1px solid #ccc; border-radius: 4px; font-size: 0.875rem; }
+    .lcp-inline-dialog .lcp-form-field input[type="checkbox"] { width: auto; }
+    .lcp-dialog-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; }
+    .lcp-dialog-errors { background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; color: #721c24; font-size: 0.875rem; display: none; }
+    .lcp-ts-add-new { border-top: 1px solid #dee2e6; padding: 0.4rem 0.5rem; }
+    .lcp-ts-add-new-btn { background: none; border: none; color: #0d6efd; cursor: pointer; font-size: 0.875rem; padding: 0.25rem 0.5rem; width: 100%; text-align: left; }
+    .lcp-ts-add-new-btn:hover { background: #f8f9fa; }
+
+    /* Legacy (archived) options */
+    .lcp-legacy-option { font-style: italic; color: #999; }
+    .ts-wrapper .ts-dropdown .option.lcp-legacy-option { font-style: italic; color: #999; }
+
+    /* Tree select */
+    .lcp-tree-select-wrapper { position: relative; width: 100%; }
+    .lcp-tree-trigger { width: 100%; padding: 0.4rem 0.75rem; border: 1px solid #ccc; border-radius: 4px; background: #fff; cursor: pointer; text-align: left; font-size: 0.875rem; color: #333; }
+    .lcp-tree-trigger:hover { border-color: #86b7fe; }
+    .lcp-tree-dropdown { display: none; position: absolute; z-index: 20; top: 100%; left: 0; right: 0; max-height: 300px; overflow-y: auto; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-top: 2px; }
+    .lcp-tree-dropdown.open { display: block; }
+    .lcp-tree-node { }
+    .lcp-tree-item { display: flex; align-items: center; padding: 0.35rem 0.5rem; cursor: pointer; font-size: 0.875rem; }
+    .lcp-tree-item:hover { background: #e9ecef; }
+    .lcp-tree-item.selected { background: #0d6efd; color: #fff; }
+    .lcp-tree-toggle { width: 1.2rem; text-align: center; flex-shrink: 0; font-size: 0.65rem; color: #6c757d; cursor: pointer; }
+    .lcp-tree-item.selected .lcp-tree-toggle { color: #fff; }
+    .lcp-tree-label { flex: 1; }
+    .lcp-tree-children { padding-left: 1.2rem; }
+    .lcp-tree-children.collapsed { display: none; }
+
     /* Tom Select overrides */
     .ts-wrapper { font-size: 0.875rem; }
     .ts-wrapper .ts-control { border: 1px solid #ccc; border-radius: 4px; padding: 0.3rem 0.5rem; min-height: 34px; background: #fff; }
     .ts-wrapper .ts-control input { font-size: 0.875rem; }
+    .lcp-form-field .ts-wrapper .ts-control > input { width: 0; min-width: 0; }
     .ts-wrapper.focus .ts-control { border-color: #86b7fe; box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25); }
     .ts-wrapper .ts-dropdown { border: 1px solid #ccc; border-radius: 4px; font-size: 0.875rem; }
     .ts-wrapper .ts-dropdown .active { background: #e9ecef; color: #333; }
@@ -212,6 +254,11 @@
     .ts-wrapper .ts-dropdown .loading-more-results { padding: 0.5rem 0.75rem; color: #6c757d; text-align: center; }
     .ts-wrapper.multi .ts-control .item { background: #e9ecef; border: 1px solid #ccc; border-radius: 3px; padding: 0.1rem 0.4rem; font-size: 0.8rem; }
     .ts-wrapper.multi .ts-control .item .remove { border-left: 1px solid #ccc; margin-left: 0.3rem; }
+
+    /* Multi-select display modes */
+    .ts-wrapper.multi.lcp-single-line .ts-control { flex-wrap: nowrap; overflow: hidden; }
+    .ts-wrapper.multi.lcp-single-line .ts-control > input { min-width: 30px; }
+    .ts-wrapper.multi.lcp-single-line .ts-control .item { flex-shrink: 0; }
 
     /* Navigation */
     .lcp-nav { background: #fff; border-bottom: 1px solid #dee2e6; margin-bottom: 1rem; padding: 0 2rem; }
@@ -703,6 +750,13 @@
             } else {
               el.classList.remove('lcp-conditionally-disabled');
             }
+            /* Properly disable/enable all form controls and Tom Select instances */
+            el.querySelectorAll('input, select, textarea').forEach(function(ctrl) {
+              ctrl.disabled = disabled;
+              if (ctrl.tomselect) {
+                disabled ? ctrl.tomselect.disable() : ctrl.tomselect.enable();
+              }
+            });
           }
         });
 
@@ -818,6 +872,32 @@
         function handleParentChange() {
           var parentValue = getFieldValue(form, parentFieldName);
           var fieldName = dep.name.replace(/^record\[/, '').replace(/\]$/, '');
+
+          // When parent is blank, just clear the dependent — no fetch needed
+          if (!parentValue || parentValue === '') {
+            var blankOpt = dep.querySelector('option[value=""]');
+            var blankTxt = blankOpt ? blankOpt.textContent : '';
+            if (dep.tomselect) {
+              dep.tomselect.destroy();
+              dep.innerHTML = '';
+              if (blankTxt) {
+                var bo = document.createElement('option');
+                bo.value = ''; bo.textContent = blankTxt;
+                dep.appendChild(bo);
+              }
+              dep.value = '';
+              new TomSelect(dep, { plugins: [], create: false, allowEmptyOption: true });
+            } else {
+              dep.innerHTML = '';
+              if (blankOpt) dep.appendChild(blankOpt.cloneNode(true));
+              dep.value = '';
+            }
+            dep._lcpKeepIfValid = false;
+            dep.dispatchEvent(new Event('change', { bubbles: true }));
+            dep.dispatchEvent(new CustomEvent('lcp:cascade-done'));
+            return;
+          }
+
           var url = selectOptionsPath + '?field=' + encodeURIComponent(fieldName) +
                     '&depends_on[' + encodeURIComponent(parentFieldName) + ']=' + encodeURIComponent(parentValue);
 
@@ -825,37 +905,91 @@
           dep.disabled = true;
           dep.classList.add('lcp-loading');
 
+          var effectiveReset = dep._lcpKeepIfValid ? 'keep_if_valid' : resetStrategy;
+
           fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function(resp) { return resp.json(); })
             .then(function(data) {
               var currentValue = dep.value;
               var includeBlank = dep.querySelector('option[value=""]');
+              var blankText = includeBlank ? includeBlank.textContent : '';
 
-              // Handle Tom Select integration
+              // Collect all valid values
+              var allValues = [];
+              var flatOpts = [];
+
+              if (Array.isArray(data) && data.length > 0 && data[0].group !== undefined) {
+                data.forEach(function(g) {
+                  g.options.forEach(function(opt) {
+                    flatOpts.push(opt);
+                    allValues.push(String(opt.value));
+                  });
+                });
+              } else if (Array.isArray(data)) {
+                data.forEach(function(opt) {
+                  flatOpts.push(opt);
+                  allValues.push(String(opt.value));
+                });
+              }
+
+              var keepValid = effectiveReset === 'keep_if_valid' && allValues.indexOf(currentValue) !== -1;
+
               if (dep.tomselect) {
-                dep.tomselect.clear(true);
-                dep.tomselect.clearOptions();
-                if (includeBlank) {
-                  dep.tomselect.addOption({ value: '', text: includeBlank.textContent });
+                // Destroy and re-init Tom Select to fully reset the sifter
+                var hadInlineCreate = dep.hasAttribute('data-lcp-inline-create');
+                var isRemote = dep.getAttribute('data-lcp-search') === 'remote';
+                dep.tomselect.destroy();
+
+                // Rebuild <option> elements on the underlying <select>
+                dep.innerHTML = '';
+                if (includeBlank || blankText) {
+                  var blankEl = document.createElement('option');
+                  blankEl.value = '';
+                  blankEl.textContent = blankText;
+                  dep.appendChild(blankEl);
+                }
+                flatOpts.forEach(function(opt) {
+                  var el = document.createElement('option');
+                  el.value = opt.value;
+                  el.textContent = opt.label;
+                  if (opt.disabled) el.disabled = true;
+                  dep.appendChild(el);
+                });
+
+                dep.value = keepValid ? currentValue : '';
+                dep.disabled = false; // clear before Tom Select init so it starts enabled
+                dep.classList.remove('lcp-loading'); // clear before init — Tom Select copies classes to wrapper
+
+                // Re-init Tom Select with local mode (options are already populated)
+                var tsSettings = { plugins: [], create: false, allowEmptyOption: true };
+                var newTs = new TomSelect(dep, tsSettings);
+
+                // Re-attach inline create footer if needed
+                if (hadInlineCreate) {
+                  var footer = document.createElement('div');
+                  footer.className = 'lcp-ts-add-new';
+                  var addBtnEl = document.createElement('button');
+                  addBtnEl.type = 'button';
+                  addBtnEl.className = 'lcp-ts-add-new-btn';
+                  addBtnEl.textContent = window.LcpI18n && window.LcpI18n.select.add_new || '+ Add new...';
+                  addBtnEl.addEventListener('mousedown', function(ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    newTs.blur();
+                    window.lcpOpenInlineCreate(dep);
+                  });
+                  footer.appendChild(addBtnEl);
+                  newTs.dropdown_content.parentNode.appendChild(footer);
                 }
               } else {
+                // Plain <select> — rebuild options
                 dep.innerHTML = '';
                 if (includeBlank) {
                   dep.appendChild(includeBlank.cloneNode(true));
                 }
-              }
 
-              // Detect grouped vs flat response format
-              var allValues = [];
-              if (Array.isArray(data) && data.length > 0 && data[0].group !== undefined) {
-                // Grouped: [{group: "...", options: [{value, label}]}]
-                data.forEach(function(g) {
-                  if (dep.tomselect) {
-                    g.options.forEach(function(opt) {
-                      dep.tomselect.addOption({ value: String(opt.value), text: opt.label, optgroup: g.group, disabled: !!opt.disabled });
-                      allValues.push(String(opt.value));
-                    });
-                  } else {
+                if (Array.isArray(data) && data.length > 0 && data[0].group !== undefined) {
+                  data.forEach(function(g) {
                     var optgroup = document.createElement('optgroup');
                     optgroup.label = g.group;
                     g.options.forEach(function(opt) {
@@ -864,59 +998,168 @@
                       el.textContent = opt.label;
                       if (opt.disabled) el.disabled = true;
                       optgroup.appendChild(el);
-                      allValues.push(String(opt.value));
                     });
                     dep.appendChild(optgroup);
-                  }
-                });
-              } else if (Array.isArray(data)) {
-                // Flat: [{value, label}] or envelope: {options: [...]}
-                var opts = data;
-                opts.forEach(function(opt) {
-                  if (dep.tomselect) {
-                    dep.tomselect.addOption({ value: String(opt.value), text: opt.label, disabled: !!opt.disabled });
-                  } else {
+                  });
+                } else {
+                  flatOpts.forEach(function(opt) {
                     var el = document.createElement('option');
                     el.value = opt.value;
                     el.textContent = opt.label;
                     if (opt.disabled) el.disabled = true;
                     dep.appendChild(el);
-                  }
-                  allValues.push(String(opt.value));
-                });
+                  });
+                }
+
+                dep.value = keepValid ? currentValue : '';
               }
 
-              if (dep.tomselect) {
-                dep.tomselect.refreshOptions(false);
-                if (resetStrategy === 'keep_if_valid' && allValues.indexOf(currentValue) !== -1) {
-                  dep.tomselect.setValue(currentValue, true);
-                } else {
-                  dep.tomselect.setValue('', true);
-                }
-              } else {
-                if (resetStrategy === 'keep_if_valid') {
-                  if (allValues.indexOf(currentValue) !== -1) {
-                    dep.value = currentValue;
-                  } else {
-                    dep.value = '';
-                  }
-                } else {
-                  dep.value = '';
-                }
-              }
-
+              dep._lcpKeepIfValid = false;
               dep.dispatchEvent(new Event('change', { bubbles: true }));
             })
             .catch(function(err) { console.warn('[LcpRuby] Dependent select fetch failed:', err); })
             .finally(function() {
               dep.disabled = false;
               dep.classList.remove('lcp-loading');
+              if (dep.tomselect) dep.tomselect.enable();
+              dep.dispatchEvent(new CustomEvent('lcp:cascade-done'));
             });
         }
 
         // Bind change listener to each parent input
         parentInputs.forEach(function(parentInput) {
           parentInput.addEventListener('change', handleParentChange);
+        });
+      });
+    })();
+
+    // Reverse cascade: auto-fill parent selects when a child is selected
+    (function() {
+      var form = document.querySelector('form.lcp-form');
+      if (!form) return;
+
+      var dependents = form.querySelectorAll('[data-lcp-depends-on]');
+      if (!dependents.length) return;
+
+      var selectOptionsPath = form.dataset.lcpSelectOptionsPath;
+      if (!selectOptionsPath) return;
+
+      // Build a map of field_name -> depends_on chain (bottom to top)
+      function getAncestorChain(dep) {
+        var chain = [];
+        var current = dep;
+        var seen = {};
+        while (current) {
+          var parentFieldName = current.getAttribute('data-lcp-depends-on');
+          if (!parentFieldName || seen[parentFieldName]) break;
+          seen[parentFieldName] = true;
+          var parentEl = form.querySelector('[name="record[' + parentFieldName + ']"]');
+          chain.push({ fieldName: parentFieldName, element: parentEl });
+          current = parentEl;
+        }
+        return chain;
+      }
+
+      function hasEmptyAncestor(chain) {
+        for (var i = 0; i < chain.length; i++) {
+          if (!chain[i].element) return true;
+          var val = chain[i].element.value;
+          if (!val || val === '') return true;
+        }
+        return false;
+      }
+
+      function setFieldValue(fieldEl, value, label) {
+        if (!fieldEl) return;
+        if (fieldEl.tomselect) {
+          fieldEl.tomselect.addOption({ value: String(value), text: label });
+          fieldEl.tomselect.setValue(String(value), true); // silent
+        } else {
+          // Ensure the option exists
+          var existing = fieldEl.querySelector('option[value="' + value + '"]');
+          if (!existing) {
+            var opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = label;
+            fieldEl.appendChild(opt);
+          }
+          fieldEl.value = String(value);
+        }
+      }
+
+      // Trigger cascade from the topmost ancestor down, waiting for each level
+      function cascadeFromTop(chain, callback) {
+        // chain is bottom-to-top; reverse for top-down processing
+        var topDown = chain.slice().reverse();
+        var idx = 0;
+
+        function next() {
+          if (idx >= topDown.length) {
+            if (callback) callback();
+            return;
+          }
+          var entry = topDown[idx];
+          idx++;
+          if (!entry.element) { next(); return; }
+
+          // Set keep_if_valid flag so cascade preserves child values
+          // Find all dependents of this field and set flag
+          var fieldName = entry.fieldName;
+          var children = form.querySelectorAll('[data-lcp-depends-on="' + fieldName + '"]');
+          children.forEach(function(child) { child._lcpKeepIfValid = true; });
+
+          // Listen for cascade-done on the immediate child
+          if (children.length > 0) {
+            var child = children[0];
+            var onDone = function() {
+              child.removeEventListener('lcp:cascade-done', onDone);
+              next();
+            };
+            child.addEventListener('lcp:cascade-done', onDone);
+          }
+
+          // Dispatch change to trigger cascade
+          entry.element.dispatchEvent(new Event('change', { bubbles: true }));
+
+          // If no children to cascade, proceed immediately
+          if (children.length === 0) { next(); }
+        }
+
+        next();
+      }
+
+      dependents.forEach(function(dep) {
+        dep.addEventListener('change', function() {
+          var selectedValue = dep.value;
+          if (!selectedValue || selectedValue === '') return;
+
+          var chain = getAncestorChain(dep);
+          if (!chain.length) return;
+          if (!hasEmptyAncestor(chain)) return;
+
+          var fieldName = dep.name.replace(/^record\[/, '').replace(/\]$/, '');
+          var url = selectOptionsPath + '?field=' + encodeURIComponent(fieldName) +
+                    '&ancestors_for=' + encodeURIComponent(selectedValue);
+
+          fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+              var ancestors = data.ancestors;
+              if (!ancestors || !ancestors.length) return;
+
+              // Set values top-down (ancestors are bottom-to-top from server, reverse for top-down)
+              var topDown = ancestors.slice().reverse();
+              topDown.forEach(function(anc) {
+                var el = form.querySelector('[name="record[' + anc.field + ']"]');
+                if (el) {
+                  setFieldValue(el, anc.value, anc.label);
+                }
+              });
+
+              // Now trigger cascade from the topmost parent down to populate dropdowns
+              cascadeFromTop(chain, null);
+            })
+            .catch(function(err) { console.warn('[LcpRuby] Reverse cascade failed:', err); });
         });
       });
     })();
@@ -963,6 +1206,24 @@
       });
     })();
   </script>
+  <script>
+    window.LcpI18n = {
+      select: {
+        include_blank: <%= I18n.t("lcp_ruby.select.include_blank").to_json.html_safe %>,
+        no_results: <%= I18n.t("lcp_ruby.select.no_results").to_json.html_safe %>,
+        loading_more: <%= I18n.t("lcp_ruby.select.loading_more").to_json.html_safe %>,
+        add_new: <%= I18n.t("lcp_ruby.select.add_new").to_json.html_safe %>
+      },
+      form: {
+        create: <%= I18n.t("lcp_ruby.form.create").to_json.html_safe %>,
+        cancel: <%= I18n.t("lcp_ruby.form.cancel").to_json.html_safe %>
+      },
+      tree_select: {
+        expand: <%= I18n.t("lcp_ruby.tree_select.expand").to_json.html_safe %>,
+        collapse: <%= I18n.t("lcp_ruby.tree_select.collapse").to_json.html_safe %>
+      }
+    };
+  </script>
   <%= javascript_include_tag "lcp_ruby/tom-select.base.min" if Rails.application.config.respond_to?(:assets) %>
   <script>
     // Tom Select initialization
@@ -980,7 +1241,7 @@
             var perPage = parseInt(selectEl.getAttribute('data-lcp-per-page')) || 25;
             var minQuery = parseInt(selectEl.getAttribute('data-lcp-min-query')) || 1;
             var isMultiple = selectEl.hasAttribute('multiple');
-            var plugins = ['virtual_scroll'];
+            var plugins = [];
             if (isMultiple) plugins.push('remove_button');
 
             // Clear pre-rendered options for remote mode (fetched on demand)
@@ -1006,6 +1267,18 @@
                 var page = self.currentPage || 1;
                 var url = searchUrl + '&q=' + encodeURIComponent(query) + '&page=' + page + '&per_page=' + perPage;
 
+                // Include depends_on parent filter for remote dependent selects
+                var dependsOn = selectEl.getAttribute('data-lcp-depends-on');
+                if (dependsOn) {
+                  var parentForm = selectEl.closest('form');
+                  if (parentForm) {
+                    var parentValue = getFieldValue(parentForm, dependsOn);
+                    if (parentValue) {
+                      url += '&depends_on[' + encodeURIComponent(dependsOn) + ']=' + encodeURIComponent(parentValue);
+                    }
+                  }
+                }
+
                 fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } })
                   .then(function(resp) { return resp.json(); })
                   .then(function(data) {
@@ -1025,10 +1298,10 @@
               },
               render: {
                 no_results: function() {
-                  return '<div class="no-results">No results found</div>';
+                  return '<div class="no-results">' + (window.LcpI18n && window.LcpI18n.select.no_results || 'No results found') + '</div>';
                 },
                 loading_more: function() {
-                  return '<div class="loading-more-results">Loading more...</div>';
+                  return '<div class="loading-more-results">' + (window.LcpI18n && window.LcpI18n.select.loading_more || 'Loading more...') + '</div>';
                 }
               }
             });
@@ -1044,6 +1317,282 @@
               allowEmptyOption: true
             });
           }
+
+          // Apply display mode class to Tom Select wrapper
+          var displayMode = selectEl.getAttribute('data-lcp-display-mode');
+          if (displayMode && selectEl.tomselect) {
+            selectEl.tomselect.wrapper.classList.add('lcp-' + displayMode);
+          }
+
+          // Inline create: add "Add new..." footer button to Tom Select dropdown
+          if (selectEl.hasAttribute('data-lcp-inline-create') && selectEl.tomselect) {
+            var ts = selectEl.tomselect;
+            var footer = document.createElement('div');
+            footer.className = 'lcp-ts-add-new';
+            var addBtn = document.createElement('button');
+            addBtn.type = 'button';
+            addBtn.className = 'lcp-ts-add-new-btn';
+            addBtn.textContent = window.LcpI18n && window.LcpI18n.select.add_new || '+ Add new...';
+            addBtn.addEventListener('mousedown', function(ev) {
+              ev.preventDefault();
+              ev.stopPropagation();
+              ts.blur();
+              window.lcpOpenInlineCreate(selectEl);
+            });
+            footer.appendChild(addBtn);
+            ts.dropdown_content.parentNode.appendChild(footer);
+          }
+        });
+      });
+    })();
+  </script>
+
+  <script>
+    // Tree select widget
+    (function() {
+      function initTreeSelect(hiddenInput) {
+        var treeData = JSON.parse(hiddenInput.getAttribute('data-lcp-tree-data') || '[]');
+        var includeBlank = hiddenInput.getAttribute('data-lcp-tree-include-blank') || '';
+        var wrapper = hiddenInput.closest('.lcp-tree-select-wrapper');
+        if (!wrapper) return;
+
+        var trigger = wrapper.querySelector('.lcp-tree-trigger');
+        var dropdown = wrapper.querySelector('.lcp-tree-dropdown');
+        if (!trigger || !dropdown) return;
+
+        function renderNodes(nodes, container, depth) {
+          nodes.forEach(function(node) {
+            var nodeEl = document.createElement('div');
+            nodeEl.className = 'lcp-tree-node';
+
+            var itemEl = document.createElement('div');
+            itemEl.className = 'lcp-tree-item';
+            itemEl.style.paddingLeft = (0.5 + depth * 1.2) + 'rem';
+            if (String(node.id) === String(hiddenInput.value)) {
+              itemEl.classList.add('selected');
+            }
+
+            var toggleEl = document.createElement('span');
+            toggleEl.className = 'lcp-tree-toggle';
+            if (node.children && node.children.length > 0) {
+              toggleEl.textContent = '\u25BC';
+            }
+            itemEl.appendChild(toggleEl);
+
+            var labelEl = document.createElement('span');
+            labelEl.className = 'lcp-tree-label';
+            labelEl.textContent = node.label;
+            itemEl.appendChild(labelEl);
+
+            nodeEl.appendChild(itemEl);
+
+            if (node.children && node.children.length > 0) {
+              var childrenEl = document.createElement('div');
+              childrenEl.className = 'lcp-tree-children';
+              renderNodes(node.children, childrenEl, depth + 1);
+              nodeEl.appendChild(childrenEl);
+
+              toggleEl.addEventListener('click', function(e) {
+                e.stopPropagation();
+                childrenEl.classList.toggle('collapsed');
+                toggleEl.textContent = childrenEl.classList.contains('collapsed') ? '\u25B6' : '\u25BC';
+              });
+            }
+
+            labelEl.addEventListener('click', function(e) {
+              e.stopPropagation();
+              // Deselect all
+              dropdown.querySelectorAll('.lcp-tree-item.selected').forEach(function(el) {
+                el.classList.remove('selected');
+              });
+              itemEl.classList.add('selected');
+              hiddenInput.value = node.id;
+              trigger.textContent = node.label;
+              dropdown.classList.remove('open');
+              hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
+            container.appendChild(nodeEl);
+          });
+        }
+
+        // Add blank option
+        if (includeBlank) {
+          var blankItem = document.createElement('div');
+          blankItem.className = 'lcp-tree-item';
+          blankItem.style.fontStyle = 'italic';
+          blankItem.style.color = '#6c757d';
+          blankItem.textContent = includeBlank;
+          if (!hiddenInput.value || hiddenInput.value === '') {
+            blankItem.classList.add('selected');
+          }
+          blankItem.addEventListener('click', function(e) {
+            e.stopPropagation();
+            dropdown.querySelectorAll('.lcp-tree-item.selected').forEach(function(el) {
+              el.classList.remove('selected');
+            });
+            blankItem.classList.add('selected');
+            hiddenInput.value = '';
+            trigger.textContent = includeBlank;
+            dropdown.classList.remove('open');
+            hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+          });
+          dropdown.appendChild(blankItem);
+        }
+
+        renderNodes(treeData, dropdown, 0);
+
+        // Toggle dropdown on trigger click
+        trigger.addEventListener('click', function(e) {
+          e.stopPropagation();
+          dropdown.classList.toggle('open');
+        });
+
+        // Close dropdown on outside click
+        document.addEventListener('click', function(e) {
+          if (!wrapper.contains(e.target)) {
+            dropdown.classList.remove('open');
+          }
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('[data-lcp-tree-select]').forEach(function(input) {
+          initTreeSelect(input);
+        });
+      });
+    })();
+  </script>
+
+  <!-- Inline create dialog -->
+  <dialog id="lcp-inline-create-dialog" class="lcp-inline-dialog">
+    <h3 id="lcp-inline-dialog-title"></h3>
+    <div class="lcp-dialog-errors" id="lcp-inline-dialog-errors"></div>
+    <div id="lcp-inline-dialog-content"></div>
+    <div class="lcp-dialog-actions">
+      <button type="button" class="btn" id="lcp-inline-dialog-cancel"><%= I18n.t("lcp_ruby.form.cancel") %></button>
+      <button type="button" class="btn btn-primary" id="lcp-inline-dialog-save"><%= I18n.t("lcp_ruby.form.create") %></button>
+    </div>
+  </dialog>
+
+  <script>
+    // Inline create functionality
+    (function() {
+      var dialog = document.getElementById('lcp-inline-create-dialog');
+      if (!dialog) return;
+
+      var currentSelectEl = null;
+
+      window.lcpOpenInlineCreate = function(selectEl) {
+        currentSelectEl = selectEl;
+        var formUrl = selectEl.getAttribute('data-lcp-inline-create-form-url');
+        var targetModel = selectEl.getAttribute('data-lcp-target-model');
+
+        var titleEl = document.getElementById('lcp-inline-dialog-title');
+        titleEl.textContent = (window.LcpI18n && window.LcpI18n.form.create || 'Create') + ' ' + (targetModel || '').replace(/_/g, ' ');
+
+        var contentEl = document.getElementById('lcp-inline-dialog-content');
+        contentEl.innerHTML = '';
+
+        var errorsEl = document.getElementById('lcp-inline-dialog-errors');
+        errorsEl.style.display = 'none';
+        errorsEl.textContent = '';
+
+        fetch(formUrl + '?target_model=' + encodeURIComponent(targetModel), {
+          headers: { 'Accept': 'text/html', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(function(resp) {
+          if (!resp.ok) throw new Error('Failed to load form');
+          return resp.text();
+        })
+        .then(function(html) {
+          contentEl.innerHTML = html;
+          dialog.showModal();
+        })
+        .catch(function(err) {
+          console.warn('[LcpRuby] Inline create form load failed:', err);
+        });
+      };
+
+      // Cancel button
+      document.getElementById('lcp-inline-dialog-cancel').addEventListener('click', function() {
+        dialog.close();
+        currentSelectEl = null;
+      });
+
+      // Close on backdrop click
+      dialog.addEventListener('click', function(e) {
+        if (e.target === dialog) {
+          dialog.close();
+          currentSelectEl = null;
+        }
+      });
+
+      // Save button
+      document.getElementById('lcp-inline-dialog-save').addEventListener('click', function() {
+        if (!currentSelectEl) return;
+
+        var createUrl = currentSelectEl.getAttribute('data-lcp-inline-create-url');
+        var targetModel = currentSelectEl.getAttribute('data-lcp-target-model');
+        var labelMethod = currentSelectEl.getAttribute('data-lcp-label-method');
+
+        var contentEl = document.getElementById('lcp-inline-dialog-content');
+        var errorsEl = document.getElementById('lcp-inline-dialog-errors');
+
+        // Build form data from inline fields
+        var formData = new FormData();
+        var inputs = contentEl.querySelectorAll('input, textarea, select');
+        inputs.forEach(function(input) {
+          if (input.type === 'hidden' && input.nextElementSibling && input.nextElementSibling.type === 'checkbox') {
+            // Skip Rails hidden field paired with a checkbox; the checkbox handles the value
+            return;
+          }
+          if (input.type === 'checkbox') {
+            formData.set(input.name, input.checked ? '1' : '0');
+          } else {
+            formData.append(input.name, input.value);
+          }
+        });
+
+        var url = createUrl + '?target_model=' + encodeURIComponent(targetModel);
+        if (labelMethod) url += '&label_method=' + encodeURIComponent(labelMethod);
+
+        var csrfToken = document.querySelector('meta[name="csrf-token"]');
+        var headers = { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
+        if (csrfToken) headers['X-CSRF-Token'] = csrfToken.content;
+
+        fetch(url, {
+          method: 'POST',
+          body: formData,
+          headers: headers
+        })
+        .then(function(resp) { return resp.json().then(function(data) { return { ok: resp.ok, data: data }; }); })
+        .then(function(result) {
+          if (result.ok) {
+            // Add new option to Tom Select and select it
+            if (currentSelectEl.tomselect) {
+              currentSelectEl.tomselect.addOption({ value: String(result.data.id), text: result.data.label });
+              currentSelectEl.tomselect.setValue(String(result.data.id), false);
+              currentSelectEl.tomselect.refreshOptions(false);
+            } else {
+              var opt = document.createElement('option');
+              opt.value = result.data.id;
+              opt.textContent = result.data.label;
+              opt.selected = true;
+              currentSelectEl.appendChild(opt);
+            }
+            dialog.close();
+            currentSelectEl.dispatchEvent(new Event('change', { bubbles: true }));
+            currentSelectEl = null;
+          } else {
+            errorsEl.textContent = (result.data.errors || []).join(', ');
+            errorsEl.style.display = 'block';
+          }
+        })
+        .catch(function(err) {
+          errorsEl.textContent = 'An error occurred. Please try again.';
+          errorsEl.style.display = 'block';
+          console.warn('[LcpRuby] Inline create failed:', err);
         });
       });
     })();

@@ -97,6 +97,18 @@ module LcpRuby
 
       input_options = field_config["input_options"] || {}
 
+      # Reverse cascade: resolve ancestor chain for a given value
+      if params[:ancestors_for].present?
+        ancestors = resolve_field_ancestors(field_name, params[:ancestors_for])
+        return render json: { ancestors: ancestors }
+      end
+
+      # Tree select mode
+      if params[:tree] == "true"
+        tree = build_tree_select_options(assoc, input_options)
+        return render json: tree
+      end
+
       # Paginated search mode when q or page param present
       if params[:q].present? || params[:page].present?
         result = build_select_options_search(assoc, input_options)
@@ -119,6 +131,54 @@ module LcpRuby
       render json: evaluate_service_conditions(@record)
     end
 
+    def inline_create_form
+      target_model_name = params[:target_model]
+      return head(:bad_request) unless target_model_name.present?
+
+      target_presenter = find_presenter_for_inline_create(target_model_name)
+      return head(:not_found) unless target_presenter
+
+      target_model_def = LcpRuby.loader.model_definition(target_model_name)
+      target_class = LcpRuby.registry.model_for(target_model_name)
+      target_record = target_class.new
+
+      # Authorize create on the target model
+      target_policy_class = Authorization::PolicyFactory.policy_for(target_model_name)
+      target_policy = target_policy_class.new(current_user, target_record)
+      raise Pundit::NotAuthorizedError unless target_policy.create?
+
+      layout_builder = Presenter::LayoutBuilder.new(target_presenter, target_model_def)
+      @inline_fields = inline_form_fields(layout_builder, target_model_def)
+
+      render partial: "lcp_ruby/resources/inline_create_form",
+             locals: { fields: @inline_fields, model_name: target_model_name },
+             layout: false
+    end
+
+    def inline_create
+      target_model_name = params[:target_model]
+      return head(:bad_request) unless target_model_name.present?
+
+      target_model_def = LcpRuby.loader.model_definition(target_model_name)
+      target_class = LcpRuby.registry.model_for(target_model_name)
+      target_record = target_class.new
+
+      # Authorize create on the target model
+      target_policy_class = Authorization::PolicyFactory.policy_for(target_model_name)
+      target_policy = target_policy_class.new(current_user, target_record)
+      raise Pundit::NotAuthorizedError unless target_policy.create?
+
+      permitted = inline_create_params(target_model_def)
+      record = target_class.new(permitted)
+
+      if record.save
+        label_method = resolve_inline_label_method(target_model_def, params[:label_method])
+        render json: { id: record.id, label: resolve_label(record, label_method) }, status: :created
+      else
+        render json: { errors: record.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
     private
 
     def set_record
@@ -138,64 +198,88 @@ module LcpRuby
       current_model_definition.associations.find { |a| a.foreign_key == field_name.to_s }
     end
 
-    def build_select_options_json(assoc, input_options)
-      target_class = LcpRuby.registry.model_for(assoc.target_model)
-      query = apply_select_scope(target_class, input_options)
+    # Walk up the depends_on chain from a field and resolve parent values.
+    # Returns an array of {field, value, label} hashes from the immediate parent
+    # up to the root of the dependency chain.
+    def resolve_field_ancestors(field_name, value_id)
+      ancestors = []
+      seen = Set.new
+      current_field = field_name.to_s
+      current_value = value_id.to_i
 
-      query = query.where(input_options["filter"]) if input_options["filter"]
+      loop do
+        break if seen.include?(current_field)
+        seen << current_field
 
-      # Apply depends_on filtering from request params
-      depends_on = input_options["depends_on"]
-      if depends_on && params[:depends_on].present?
-        fk = depends_on["foreign_key"]
-        parent_value = params[:depends_on][depends_on["field"]]
-        query = query.where(fk => parent_value) if fk && parent_value.present?
-      end
+        # Find the field config for the current field
+        field_config = find_form_field_config(current_field)
+        break unless field_config
 
-      query = query.order(input_options["sort"]) if input_options["sort"]
+        input_options = field_config["input_options"] || {}
+        depends_on = input_options["depends_on"]
+        break unless depends_on
 
-      label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
+        parent_field = depends_on["field"]
+        parent_fk = depends_on["foreign_key"]
+        break unless parent_field && parent_fk
 
-      # Only load :id + label column (+ group/sort columns) when all are real DB columns
-      select_cols = optimize_select_columns(
-        target_class, label_method, input_options["group_by"], sort: input_options["sort"]
-      )
-      query = query.select(*select_cols) if select_cols
+        # Look up the current record to get the parent FK value
+        assoc = field_config["association"] || resolve_association_for_field(current_field)
+        break unless assoc&.lcp_model?
 
-      disabled_ids = resolve_disabled_values(assoc, input_options)
+        target_class = LcpRuby.registry.model_for(assoc.target_model)
+        record = target_class.find_by(id: current_value)
+        break unless record
 
-      if input_options["group_by"]
-        group_attr = input_options["group_by"]
-        grouped = query.group_by { |r| r.respond_to?(group_attr) ? r.send(group_attr) : "Other" }
-        grouped.sort_by { |k, _| k.to_s }.map do |group_name, records|
-          {
-            group: group_name.to_s,
-            options: records.map { |r|
-              opt = { value: r.id, label: resolve_label(r, label_method) }
-              opt[:disabled] = true if disabled_ids.include?(r.id)
-              opt
-            }
-          }
+        parent_value = record.respond_to?(parent_fk) ? record.send(parent_fk) : nil
+        break unless parent_value.present?
+
+        # Resolve the parent's label
+        parent_field_config = find_form_field_config(parent_field)
+        parent_assoc = parent_field_config && (parent_field_config["association"] || resolve_association_for_field(parent_field))
+        parent_label = parent_value.to_s
+        if parent_assoc&.lcp_model?
+          parent_input_options = (parent_field_config["input_options"] || {}) if parent_field_config
+          label_method = ((parent_input_options && parent_input_options["label_method"]) || resolve_default_label_method(parent_assoc)).to_sym
+          parent_class = LcpRuby.registry.model_for(parent_assoc.target_model)
+          parent_record = parent_class.find_by(id: parent_value)
+          parent_label = resolve_label(parent_record, label_method) if parent_record
         end
-      else
-        query.map { |r|
-          opt = { value: r.id, label: resolve_label(r, label_method) }
-          opt[:disabled] = true if disabled_ids.include?(r.id)
-          opt
-        }
+
+        ancestors << { field: parent_field, value: parent_value, label: parent_label }
+
+        # Move up the chain
+        current_field = parent_field
+        current_value = parent_value
       end
+
+      ancestors
+    end
+
+    def build_select_options_json(assoc, input_options)
+      depends_on_values = extract_depends_on_from_params(input_options)
+      oq = build_options_query(assoc, input_options, role: current_user_role_name, depends_on_values: depends_on_values)
+      format_options_for_json(oq, input_options)
+    end
+
+    def extract_depends_on_from_params(input_options)
+      depends_on = input_options["depends_on"]
+      return {} unless depends_on && params[:depends_on].present?
+
+      field = depends_on["field"]
+      { field => params[:depends_on][field] }
     end
 
     def build_select_options_search(assoc, input_options)
       target_class = LcpRuby.registry.model_for(assoc.target_model)
-      query = apply_select_scope(target_class, input_options)
+      depends_on_values = extract_depends_on_from_params(input_options)
+      query = apply_option_scope(target_class, input_options, role: current_user_role_name)
       query = query.where(input_options["filter"]) if input_options["filter"]
 
-      # Apply depends_on filtering from request params
       depends_on = input_options["depends_on"]
-      if depends_on && params[:depends_on].present?
+      if depends_on && depends_on_values.present?
         fk = depends_on["foreign_key"]
-        parent_value = params[:depends_on][depends_on["field"]]
+        parent_value = depends_on_values[depends_on["field"]]
         query = query.where(fk => parent_value) if fk && parent_value.present?
       end
 
@@ -237,21 +321,31 @@ module LcpRuby
       }
     end
 
-    def apply_select_scope(target_class, input_options)
-      if input_options["scope_by_role"]
-        role = current_user_role_name
-        role_scope = input_options.dig("scope_by_role", role)
-        if role_scope && role_scope != "all" && target_class.respond_to?(role_scope)
-          return target_class.send(role_scope)
-        else
-          return target_class.all
-        end
-      end
+    def build_tree_select_options(assoc, input_options)
+      target_class = LcpRuby.registry.model_for(assoc.target_model)
+      query = apply_option_scope(target_class, input_options, role: current_user_role_name)
+      query = query.order(input_options["sort"]) if input_options["sort"]
 
-      if input_options["scope"] && target_class.respond_to?(input_options["scope"])
-        target_class.send(input_options["scope"])
-      else
-        target_class.all
+      max = (input_options["max_options"] || MAX_SELECT_OPTIONS).to_i
+      query = query.limit(max)
+
+      label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
+      parent_field = input_options["parent_field"] || "parent_id"
+      max_depth = (input_options["max_depth"] || 10).to_i
+
+      records = query.to_a
+      build_tree_json(records, parent_field, label_method, max_depth)
+    end
+
+    def build_tree_json(records, parent_field, label_method, max_depth, parent_id = nil, depth = 0)
+      return [] if depth >= max_depth
+
+      records.select { |r| r.send(parent_field) == parent_id }.map do |r|
+        {
+          id: r.id,
+          label: resolve_label(r, label_method),
+          children: build_tree_json(records, parent_field, label_method, max_depth, r.id, depth + 1)
+        }
       end
     end
 
@@ -413,7 +507,13 @@ module LcpRuby
 
           submitted_ids.each do |sid|
             unless allowed_ids.include?(sid) && !disabled_ids.include?(sid)
-              record.errors.add(field_name, "contains a value that is not allowed")
+              # Allow legacy scope values on existing records (edit)
+              if input_options["legacy_scope"] && !record.new_record?
+                legacy = resolve_legacy_record(assoc, input_options, sid)
+                next if legacy
+              end
+
+              record.errors.add(field_name, I18n.t("lcp_ruby.form.errors.contains_not_allowed"))
               break
             end
           end
@@ -544,6 +644,60 @@ module LcpRuby
       pol = policy(record)
       query ||= "#{action_name}?"
       raise Pundit::NotAuthorizedError unless pol.public_send(query)
+    end
+
+    # -- Inline create helpers --
+
+    def find_presenter_for_inline_create(model_name)
+      LcpRuby.loader.presenter_definitions.values.find do |p|
+        p.model == model_name && p.form_config["sections"]&.any?
+      end
+    end
+
+    def inline_create_params(model_def)
+      all_fields = model_def.fields.map { |f| f.name.to_sym }
+
+      # Filter through permission evaluator to respect field-level write restrictions
+      begin
+        perm_def = LcpRuby.loader.permission_definition(model_def.name)
+        evaluator = Authorization::PermissionEvaluator.new(perm_def, current_user, model_def.name)
+        writable = evaluator.writable_fields.map(&:to_sym)
+        allowed = all_fields & writable
+      rescue LcpRuby::MetadataError
+        # No permission definition found; allow all model fields
+        allowed = all_fields
+      end
+
+      params.require(:inline_record).permit(*allowed)
+    end
+
+    def resolve_inline_label_method(model_def, explicit_method)
+      return explicit_method.to_sym if explicit_method.present?
+      method = model_def.label_method
+      method && method != "to_s" ? method.to_sym : :to_label
+    end
+
+    def inline_form_fields(layout_builder, model_def)
+      simple_types = %w[string text integer float decimal boolean date datetime enum email phone url color]
+      layout_builder.form_sections
+        .flat_map { |s| s["fields"] || [] }
+        .select do |f|
+          field_def = model_def.fields.find { |fd| fd.name == f["field"] }
+          next false unless field_def
+          # Only include simple field types (no associations, no nested)
+          simple_types.include?(field_def.type.to_s) || field_def.enum?
+        end
+        .map do |f|
+          field_def = model_def.fields.find { |fd| fd.name == f["field"] }
+          {
+            name: f["field"],
+            label: f["label"] || f["field"].humanize,
+            type: field_def.type.to_s,
+            required: field_def.validations&.any? { |v| v.type == "presence" },
+            enum_values: field_def.enum? ? field_def.enum_value_names : nil,
+            placeholder: f["placeholder"]
+          }
+        end
     end
   end
 end

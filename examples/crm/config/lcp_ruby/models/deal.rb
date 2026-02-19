@@ -36,6 +36,7 @@ define_model :deal do
 
   belongs_to :company, model: :company, required: true
   belongs_to :contact, model: :contact, required: false
+  belongs_to :deal_category, model: :deal_category, required: false
 
   validates :contact_id, :presence, when: { field: :stage, operator: :in, value: %w[negotiation closed_won closed_lost] }
 

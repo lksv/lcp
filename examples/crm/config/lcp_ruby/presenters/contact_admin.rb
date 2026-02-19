@@ -52,5 +52,4 @@ define_presenter :contact_admin do
   action :show, type: :built_in, on: :single, icon: "eye"
   action :edit, type: :built_in, on: :single, icon: "pencil"
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
-
 end

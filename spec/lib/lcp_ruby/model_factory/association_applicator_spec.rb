@@ -10,7 +10,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
         type: "has_many", name: "items", target_model: "item",
         order: { "position" => "asc" }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_many).with(:items, kind_of(Proc), hash_including)
 
@@ -21,7 +21,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
       assoc = LcpRuby::Metadata::AssociationDefinition.new(
         type: "has_many", name: "items", target_model: "item"
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_many).with(:items, hash_including)
 
@@ -33,7 +33,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
         type: "has_one", name: "latest_item", target_model: "item",
         order: { "created_at" => "desc" }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_one).with(:latest_item, kind_of(Proc), hash_including)
 
@@ -48,7 +48,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
         inverse_of: "order",
         nested_attributes: { "allow_destroy" => true }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_many)
       expect(model_class).to receive(:accepts_nested_attributes_for)
@@ -62,7 +62,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
         type: "has_many", name: "items", target_model: "item",
         nested_attributes: { "reject_if" => "all_blank" }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_many)
       expect(model_class).to receive(:accepts_nested_attributes_for)
@@ -76,7 +76,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
         type: "has_many", name: "items", target_model: "item",
         nested_attributes: { "limit" => 50 }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_many)
       expect(model_class).to receive(:accepts_nested_attributes_for)
@@ -90,7 +90,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
         type: "has_one", name: "profile", target_model: "profile",
         nested_attributes: { "update_only" => true }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_one)
       expect(model_class).to receive(:accepts_nested_attributes_for)
@@ -109,7 +109,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
           "update_only" => false
         }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_many)
       expect(model_class).to receive(:accepts_nested_attributes_for)
@@ -122,7 +122,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
       assoc = LcpRuby::Metadata::AssociationDefinition.new(
         type: "has_many", name: "items", target_model: "item"
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_many)
       expect(model_class).not_to receive(:accepts_nested_attributes_for)
@@ -135,7 +135,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
         type: "has_many", name: "items", target_model: "item",
         nested_attributes: { "reject_if" => "custom_method" }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_many)
       expect(model_class).to receive(:accepts_nested_attributes_for)
@@ -149,7 +149,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
         type: "has_one", name: "address", target_model: "address",
         nested_attributes: { "allow_destroy" => false, "update_only" => true }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:has_one)
       expect(model_class).to receive(:accepts_nested_attributes_for)
@@ -163,7 +163,7 @@ RSpec.describe LcpRuby::ModelFactory::AssociationApplicator do
         type: "belongs_to", name: "company", target_model: "company",
         nested_attributes: { "allow_destroy" => true }
       )
-      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [assoc])
+      model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
 
       expect(model_class).to receive(:belongs_to)
       expect(model_class).not_to receive(:accepts_nested_attributes_for)

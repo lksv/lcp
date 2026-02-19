@@ -15,6 +15,10 @@ module LcpRuby
       load LcpRuby::Engine.root.join("lib", "tasks", "lcp_ruby.rake")
     end
 
+    initializer "lcp_ruby.i18n" do
+      config.i18n.load_path += Dir[root.join("config", "locales", "**", "*.{rb,yml}")]
+    end
+
     initializer "lcp_ruby.configuration" do
       LcpRuby.configuration.metadata_path ||= Rails.root.join("config", "lcp_ruby")
     end

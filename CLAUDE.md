@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-LCP Ruby is a **Rails mountable engine** that generates full CRUD information systems from YAML metadata. Models, presenters (UI config), and permissions are defined in YAML files. The engine dynamically builds ActiveRecord models, database tables, controllers, and views at runtime.
+LCP Ruby is a **low-code platform** implemented as a Rails mountable engine for building **full-featured information systems** (not just admin panels). It generates complete CRUD applications from YAML metadata — models, presenters (UI config), and permissions are defined in YAML files. The engine dynamically builds ActiveRecord models, database tables, controllers, and views at runtime.
+
+**Important:** The UI quality target is a production information system, not a quick admin scaffold. Form controls, display renderers, and interaction patterns should match the standards of professional business applications (e.g., proper disabled states via widget APIs, not just CSS overlays).
 
 ## Documentation
 
