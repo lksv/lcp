@@ -10,6 +10,29 @@ LCP Ruby is a **low-code platform** implemented as a Rails mountable engine for 
 
 **Pre-production stage:** This platform is not yet used in production. There is no need to worry about breaking changes, backward compatibility, migration guides, or changelogs. Just make the best design decisions without legacy constraints.
 
+## Configuration Source Principle
+
+**Every platform configuration concept** (custom fields, roles, permissions, groups, workflows, approval processes, etc.) **must support three input sources:**
+
+1. **DSL (or YAML)** — Static definition in code, version-controlled, deployed with the app. YAML files in `config/lcp_ruby/` or Ruby DSL blocks.
+2. **Dynamic table (DB)** — Runtime-managed records in the database. Enables end-user configuration through the platform's own UI (generated presenters, management screens).
+3. **Host application contract API** — The host app provides its own implementation via a defined interface/contract. The platform consumes it through a registry or adapter pattern.
+
+This principle applies to all existing concepts and **must be followed for every future concept** (workflow, approval process, organizational units, notification rules, etc.). The platform should define a clear contract (required fields, methods, or interface) for each concept, and the three sources are just different ways to fulfill that contract.
+
+**Current status of this principle:**
+| Concept | DSL/YAML | DB (dynamic) | Host API |
+|---------|----------|--------------|----------|
+| Models | YAML + DSL | — | — |
+| Presenters | YAML + DSL | — | — |
+| Permissions | YAML | — | — |
+| Roles | implicit (YAML keys) | `role_source: :model` | `role_method` on user |
+| Custom Fields | generator (DSL/YAML) | DB definitions | contract validator |
+| Types | YAML | — | — |
+| Menu | YAML | — | — |
+| Groups | — | — | — |
+| Workflows | — | — | — |
+
 ## Documentation
 
 - [Documentation Index](docs/README.md) — Links to all documentation
