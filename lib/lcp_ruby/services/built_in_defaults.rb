@@ -2,7 +2,7 @@ module LcpRuby
   module Services
     class BuiltInDefaults
       DEFAULTS = {
-        "current_date" => ->(record, field_name) { Date.today },
+        "current_date" => ->(record, field_name) { Date.current },
         "current_datetime" => ->(record, field_name) { Time.current },
         "current_user_id" => ->(record, field_name) { LcpRuby::Current.user&.id }
       }.freeze

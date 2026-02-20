@@ -34,12 +34,12 @@ RSpec.describe LcpRuby::ModelFactory::DefaultApplicator do
     it "sets current_date default on new records" do
       model_class = build_full_model(model_hash)
       record = model_class.new(title: "Test")
-      expect(record.start_date).to eq(Date.today)
+      expect(record.start_date).to eq(Date.current)
     end
 
     it "does not override explicitly set values" do
       model_class = build_full_model(model_hash)
-      custom_date = Date.today + 5
+      custom_date = Date.current + 5
       record = model_class.new(title: "Test", start_date: custom_date)
       expect(record.start_date).to eq(custom_date)
     end

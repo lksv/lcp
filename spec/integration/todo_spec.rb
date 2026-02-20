@@ -480,7 +480,7 @@ RSpec.describe "TODO App Integration", type: :request do
 
       expect(response).to have_http_status(:ok)
       # start_date should be pre-filled with today's date
-      expect(response.body).to include(Date.today.to_s)
+      expect(response.body).to include(Date.current.to_s)
     end
 
     it "does not overwrite existing value on edit form" do

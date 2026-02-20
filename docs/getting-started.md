@@ -151,8 +151,7 @@ model:
       validations:
         - type: presence
         - type: length
-          minimum: 3
-          maximum: 255
+          options: { minimum: 3, maximum: 255 }
 
     - name: description
       type: text
@@ -208,8 +207,6 @@ define_presenter :task_list do
   action :show,   type: :built_in, on: :single, icon: "eye"
   action :edit,   type: :built_in, on: :single, icon: "pencil"
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
-
-  navigation menu: :main, position: 1
 end
 ```
 
@@ -219,7 +216,6 @@ Key concepts:
 - **`form`** — configures create/edit forms with input types and placeholders
 - **`search`** — enables text search across specified fields
 - **`action`** — defines UI buttons (built-in CRUD or custom business logic)
-- **`navigation`** — places the model in the navigation menu
 
 <details>
 <summary>YAML equivalent</summary>
@@ -267,10 +263,6 @@ presenter:
       - { name: show, type: built_in, icon: eye }
       - { name: edit, type: built_in, icon: pencil }
       - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }
-
-  navigation:
-    menu: main
-    position: 1
 ```
 </details>
 
@@ -447,8 +439,7 @@ model:
       validations:
         - type: presence
         - type: length
-          minimum: 3
-          maximum: 255
+          options: { minimum: 3, maximum: 255 }
 
     - name: description
       type: text
@@ -579,8 +570,6 @@ define_presenter :task do
   action :show,    type: :built_in, on: :single, icon: "eye"
   action :edit,    type: :built_in, on: :single, icon: "pencil"
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
-
-  navigation menu: :main, position: 2
 end
 ```
 
@@ -653,10 +642,6 @@ presenter:
       - { name: show, type: built_in, icon: eye }
       - { name: edit, type: built_in, icon: pencil }
       - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }
-
-  navigation:
-    menu: main
-    position: 2
 ```
 </details>
 
