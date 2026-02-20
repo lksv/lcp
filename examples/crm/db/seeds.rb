@@ -700,10 +700,23 @@ tony = Contact.create!(first_name: "Tony", last_name: "Martinez", email: "tony@s
 # DEALS (6 original, 2 with deal_category)
 # ============================================================================
 
-Deal.create!(title: "Enterprise License - Acme", stage: "negotiation", value: 150000.00, company: acme, contact: john, deal_category: new_biz)
-Deal.create!(title: "Consulting Package - Globex", stage: "proposal", value: 75000.00, company: globex, contact: jane, deal_category: consulting)
+# Create a dummy PDF for deals that require document attachments
+dummy_pdf = StringIO.new("%PDF-1.4 dummy")
+
+deal1 = Deal.new(title: "Enterprise License - Acme", stage: "negotiation", value: 150000.00, company: acme, contact: john, deal_category: new_biz)
+deal1.documents.attach(io: StringIO.new("%PDF-1.4 dummy"), filename: "contract.pdf", content_type: "application/pdf")
+deal1.save!
+
+deal2 = Deal.new(title: "Consulting Package - Globex", stage: "proposal", value: 75000.00, company: globex, contact: jane, deal_category: consulting)
+deal2.documents.attach(io: StringIO.new("%PDF-1.4 dummy"), filename: "proposal.pdf", content_type: "application/pdf")
+deal2.save!
+
 Deal.create!(title: "SaaS Migration - Initech", stage: "qualified", value: 200000.00, company: initech, contact: bob)
-Deal.create!(title: "Financial Platform - Wayne", stage: "closed_won", value: 500000.00, company: wayne, contact: alice)
+
+deal4 = Deal.new(title: "Financial Platform - Wayne", stage: "closed_won", value: 500000.00, company: wayne, contact: alice)
+deal4.documents.attach(io: StringIO.new("%PDF-1.4 dummy"), filename: "agreement.pdf", content_type: "application/pdf")
+deal4.save!
+
 Deal.create!(title: "Hardware Supply - Stark", stage: "lead", value: 50000.00, company: stark, contact: tony)
 Deal.create!(title: "Support Contract - Acme", stage: "closed_lost", value: 30000.00, company: acme, contact: john)
 
