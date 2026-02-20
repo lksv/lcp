@@ -20,6 +20,7 @@ require "lcp_ruby/metadata/view_group_definition"
 require "lcp_ruby/metadata/menu_item"
 require "lcp_ruby/metadata/menu_definition"
 require "lcp_ruby/metadata/loader"
+require "lcp_ruby/metadata/contract_result"
 require "lcp_ruby/metadata/configuration_validator"
 require "lcp_ruby/metadata/erd_generator"
 
@@ -61,13 +62,13 @@ require "lcp_ruby/model_factory/attachment_applicator"
 require "lcp_ruby/model_factory/builder"
 
 # Custom Fields
+require "lcp_ruby/custom_fields"
 require "lcp_ruby/custom_fields/registry"
 require "lcp_ruby/custom_fields/applicator"
-require "lcp_ruby/custom_fields/built_in_model"
 require "lcp_ruby/custom_fields/query"
-require "lcp_ruby/custom_fields/built_in_presenter"
 require "lcp_ruby/custom_fields/utils"
 require "lcp_ruby/custom_fields/definition_change_handler"
+require "lcp_ruby/custom_fields/contract_validator"
 require "lcp_ruby/custom_fields/setup"
 
 # Roles

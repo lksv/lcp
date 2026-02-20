@@ -13,8 +13,8 @@ define_presenter :features_table, inherits: :features_card do
         field_types: "blue", display_types: "purple", input_types: "teal",
         model_features: "green", presenter: "orange", form: "cyan",
         permissions: "red", extensibility: "pink", navigation: "gray",
-        attachments: "yellow",
-        authentication: "indigo"
+        attachments: "yellow", authentication: "indigo",
+        custom_fields: "cyan"
       }
     }, sortable: true
     column :description, display: :truncate, display_options: { max: 80 }

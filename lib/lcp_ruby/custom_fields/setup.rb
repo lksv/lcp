@@ -1,11 +1,34 @@
 module LcpRuby
   module CustomFields
     module Setup
-      # Shared setup logic called after the custom_field_definition model is built and registered.
+      # Shared setup logic called after models are built and registered.
       # Used by both Engine.load_metadata! and IntegrationHelper.load_integration_metadata!.
       #
       # @param loader [LcpRuby::Metadata::Loader] the metadata loader instance
       def self.apply!(loader)
+        # Check if any model uses custom fields
+        cf_models = loader.model_definitions.values.select(&:custom_fields_enabled?)
+        return if cf_models.empty?
+
+        # Validate that custom_field_definition model exists
+        unless loader.model_definitions.key?("custom_field_definition")
+          raise MetadataError,
+            "One or more models have custom_fields enabled (#{cf_models.map(&:name).join(', ')}), " \
+            "but the 'custom_field_definition' model is not defined. " \
+            "Run `rails generate lcp_ruby:custom_fields` to generate the required metadata files."
+        end
+
+        # Validate the custom_field_definition model contract
+        cfd_def = loader.model_definitions["custom_field_definition"]
+        result = ContractValidator.validate(cfd_def)
+        unless result.valid?
+          raise MetadataError,
+            "Custom field definition model contract validation failed:\n  #{result.errors.join("\n  ")}"
+        end
+        result.warnings.each do |warning|
+          Rails.logger.warn("[LcpRuby::CustomFields] #{warning}")
+        end
+
         Registry.mark_available!
 
         # Install cache invalidation on custom_field_definition model
@@ -13,9 +36,7 @@ module LcpRuby
         DefinitionChangeHandler.install!(cfd_class)
 
         # Apply custom field accessors and scopes for enabled models
-        loader.model_definitions.each_value do |model_def|
-          next unless model_def.custom_fields_enabled?
-
+        cf_models.each do |model_def|
           model_class = LcpRuby.registry.model_for(model_def.name)
           model_class.apply_custom_field_accessors!
 

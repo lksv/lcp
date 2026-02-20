@@ -149,6 +149,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "mentor_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.json "custom_data"
     t.index [ "department_id" ], name: "index_employees_on_department_id"
     t.index [ "mentor_id" ], name: "index_employees_on_mentor_id"
   end
@@ -197,6 +198,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "lead_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.json "custom_data"
     t.index [ "department_id" ], name: "index_projects_on_department_id"
     t.index [ "lead_id" ], name: "index_projects_on_lead_id"
   end

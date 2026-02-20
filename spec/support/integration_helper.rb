@@ -35,19 +35,6 @@ module IntegrationHelper
       LcpRuby.registry.register(model_def.name, model_class)
     end
 
-    # Build built-in custom_field_definition model (unless user defined one)
-    unless LcpRuby.registry.registered?("custom_field_definition")
-      cfd_def = LcpRuby::CustomFields::BuiltInModel.model_definition
-      schema_manager = LcpRuby::ModelFactory::SchemaManager.new(cfd_def)
-      schema_manager.ensure_table!
-
-      builder = LcpRuby::ModelFactory::Builder.new(cfd_def)
-      model_class = builder.build
-
-      LcpRuby.registry.register(cfd_def.name, model_class)
-      loader.model_definitions["custom_field_definition"] = cfd_def
-    end
-
     LcpRuby::CustomFields::Setup.apply!(loader)
     LcpRuby::Roles::Setup.apply!(loader)
 
@@ -86,8 +73,6 @@ module IntegrationHelper
       connection.drop_table(table_name, if_exists: true)
     end
 
-    # Drop built-in custom_field_definitions table if it was auto-created
-    connection.drop_table("custom_field_definitions", if_exists: true)
   end
 
   # Stub the current_user method for integration tests

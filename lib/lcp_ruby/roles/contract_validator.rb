@@ -1,16 +1,10 @@
 module LcpRuby
   module Roles
     class ContractValidator
-      ContractResult = Struct.new(:errors, :warnings, keyword_init: true) do
-        def valid?
-          errors.empty?
-        end
-      end
-
       # Validates that the given model definition satisfies the role model contract.
       # @param model_def [Metadata::ModelDefinition] the role model definition
       # @param field_mapping [Hash] field mapping from configuration (e.g., { name: "name", active: "active" })
-      # @return [ContractResult]
+      # @return [Metadata::ContractResult]
       def self.validate(model_def, field_mapping = nil)
         new(model_def, field_mapping).validate
       end
@@ -26,7 +20,7 @@ module LcpRuby
         validate_name_field
         validate_active_field
 
-        ContractResult.new(errors: @errors, warnings: @warnings)
+        Metadata::ContractResult.new(errors: @errors, warnings: @warnings)
       end
 
       private

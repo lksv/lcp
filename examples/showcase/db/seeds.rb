@@ -402,6 +402,224 @@ puts "  Created #{EmpSkillModel.count} employee-skill links"
 ].each { |p| ProjModel.create!(p) }
 puts "  Created #{ProjModel.count} projects"
 
+# Phase 5b: Custom Fields
+# Create custom field definitions on employees (all types) and projects (practical subset)
+CfdModel = LcpRuby.registry.model_for("custom_field_definition")
+
+# -- Employee custom fields: one of every type for showcase --
+employee_cfds = [
+  # String: nickname with length constraints
+  {
+    target_model: "employee", field_name: "nickname", custom_type: "string",
+    label: "Nickname", section: "Personal Info", position: 0,
+    active: true, required: false, placeholder: "e.g., Johnny",
+    min_length: 2, max_length: 30,
+    show_in_table: true, sortable: true, searchable: true
+  },
+  # Text: bio with longer content
+  {
+    target_model: "employee", field_name: "bio", custom_type: "text",
+    label: "Biography", section: "Personal Info", position: 1,
+    active: true, required: false, placeholder: "Brief biography...",
+    max_length: 1000, show_in_table: false, show_in_form: true, show_in_show: true
+  },
+  # Integer: years of experience with min/max
+  {
+    target_model: "employee", field_name: "years_experience", custom_type: "integer",
+    label: "Years of Experience", section: "Professional", position: 0,
+    active: true, required: false, default_value: "0",
+    min_value: 0, max_value: 50,
+    show_in_table: true, sortable: true
+  },
+  # Float: performance score
+  {
+    target_model: "employee", field_name: "performance_score", custom_type: "float",
+    label: "Performance Score", section: "Professional", position: 1,
+    active: true, required: false,
+    min_value: 0.0, max_value: 10.0,
+    show_in_table: true, sortable: true
+  },
+  # Decimal: hourly rate with precision
+  {
+    target_model: "employee", field_name: "hourly_rate", custom_type: "decimal",
+    label: "Hourly Rate (USD)", section: "Compensation", position: 0,
+    active: true, required: false,
+    min_value: 0, precision: 2,
+    show_in_table: true, sortable: true
+  },
+  # Boolean: remote worker flag
+  {
+    target_model: "employee", field_name: "remote_worker", custom_type: "boolean",
+    label: "Remote Worker", section: "Work Arrangement", position: 0,
+    active: true, required: false, default_value: "false",
+    show_in_table: true
+  },
+  # Date: start date
+  {
+    target_model: "employee", field_name: "start_date", custom_type: "date",
+    label: "Start Date", section: "Employment", position: 0,
+    active: true, required: false,
+    show_in_table: true, sortable: true
+  },
+  # Datetime: last review
+  {
+    target_model: "employee", field_name: "last_review_at", custom_type: "datetime",
+    label: "Last Performance Review", section: "Employment", position: 1,
+    active: true, required: false,
+    show_in_table: false, show_in_show: true
+  },
+  # Enum: t-shirt size with custom values
+  {
+    target_model: "employee", field_name: "tshirt_size", custom_type: "enum",
+    label: "T-Shirt Size", section: "Personal Info", position: 2,
+    active: true, required: false, default_value: "M",
+    enum_values: [
+      { "value" => "XS", "label" => "Extra Small" },
+      { "value" => "S", "label" => "Small" },
+      { "value" => "M", "label" => "Medium" },
+      { "value" => "L", "label" => "Large" },
+      { "value" => "XL", "label" => "Extra Large" },
+      { "value" => "XXL", "label" => "XXL" }
+    ],
+    show_in_table: true
+  },
+  # Inactive field: demonstrates that inactive fields are hidden
+  {
+    target_model: "employee", field_name: "legacy_id", custom_type: "string",
+    label: "Legacy System ID", section: "System", position: 99,
+    active: false, required: false,
+    show_in_table: false, show_in_form: false, show_in_show: false
+  }
+]
+
+employee_cfds.each { |attrs| CfdModel.create!(attrs) }
+puts "  Created #{employee_cfds.size} employee custom field definitions"
+
+# -- Project custom fields: practical business fields --
+project_cfds = [
+  # Enum: priority
+  {
+    target_model: "project", field_name: "priority", custom_type: "enum",
+    label: "Priority", section: "Project Details", position: 0,
+    active: true, required: true,
+    enum_values: %w[low medium high critical],
+    default_value: "medium",
+    show_in_table: true, sortable: true
+  },
+  # Decimal: budget
+  {
+    target_model: "project", field_name: "budget", custom_type: "decimal",
+    label: "Budget (USD)", section: "Financials", position: 0,
+    active: true, required: false,
+    min_value: 0, precision: 2,
+    show_in_table: true, sortable: true
+  },
+  # Date: deadline
+  {
+    target_model: "project", field_name: "deadline", custom_type: "date",
+    label: "Deadline", section: "Project Details", position: 1,
+    active: true, required: false,
+    show_in_table: true, sortable: true
+  },
+  # Integer: team size
+  {
+    target_model: "project", field_name: "team_size", custom_type: "integer",
+    label: "Team Size", section: "Project Details", position: 2,
+    active: true, required: false,
+    min_value: 1, max_value: 500,
+    show_in_table: true
+  },
+  # Text: notes
+  {
+    target_model: "project", field_name: "notes", custom_type: "text",
+    label: "Project Notes", section: "Documentation", position: 0,
+    active: true, required: false, placeholder: "Additional project notes...",
+    searchable: true
+  },
+  # Boolean: is_public
+  {
+    target_model: "project", field_name: "is_public", custom_type: "boolean",
+    label: "Public Project", section: "Visibility", position: 0,
+    active: true, required: false, default_value: "false",
+    show_in_table: true
+  },
+  # String: client name with search
+  {
+    target_model: "project", field_name: "client_name", custom_type: "string",
+    label: "Client Name", section: "Financials", position: 1,
+    active: true, required: false,
+    max_length: 100, searchable: true,
+    show_in_table: true
+  }
+]
+
+project_cfds.each { |attrs| CfdModel.create!(attrs) }
+puts "  Created #{project_cfds.size} project custom field definitions"
+
+# Force-refresh custom field accessors after creating definitions
+LcpRuby::CustomFields::Registry.reload!
+employee_model_class = LcpRuby.registry.model_for("employee")
+project_model_class = LcpRuby.registry.model_for("project")
+employee_model_class.apply_custom_field_accessors!
+project_model_class.apply_custom_field_accessors!
+
+# Fill some employees with custom field data.
+# Order matches the `employees` array created in Phase 5 above.
+emp_custom_data = [
+  # employees[0]: Jane Smith (manager)
+  { nickname: "JaneS", bio: "Engineering lead with a passion for clean architecture.", years_experience: 12,
+    performance_score: 9.2, hourly_rate: 85.00, remote_worker: false,
+    start_date: "2018-03-15", last_review_at: "2025-12-01 10:00:00", tshirt_size: "M" },
+  # employees[1]: John Doe (developer)
+  { nickname: "JD", years_experience: 5, performance_score: 7.8, hourly_rate: 55.00,
+    remote_worker: true, start_date: "2021-06-01", tshirt_size: "L" },
+  # employees[2]: Alice Brown
+  { nickname: "Ali", years_experience: 8, performance_score: 8.5, hourly_rate: 70.00,
+    remote_worker: false, start_date: "2019-09-20", tshirt_size: "S" },
+  # employees[3]: Bob Wilson
+  { years_experience: 3, performance_score: 6.5, hourly_rate: 45.00,
+    remote_worker: true, start_date: "2023-01-10", tshirt_size: "XL" },
+  # employees[4]: Carol Davis (designer)
+  { nickname: "Cee", years_experience: 6, performance_score: 8.0, hourly_rate: 60.00,
+    remote_worker: false, start_date: "2020-04-01", tshirt_size: "XS" },
+  # employees[5]: Dan Lee (admin)
+  { nickname: "DanTheMan", bio: "Operations and people management.", years_experience: 15,
+    performance_score: 8.8, hourly_rate: 95.00, remote_worker: false,
+    start_date: "2015-01-01", last_review_at: "2025-11-15 14:30:00", tshirt_size: "L" }
+]
+
+employees.first(emp_custom_data.size).each_with_index do |emp, idx|
+  emp.assign_attributes(emp_custom_data[idx])
+  emp.save!
+end
+puts "  Filled custom field data for #{emp_custom_data.size} employees"
+
+# Fill projects with custom field data.
+# ProjModel defined in Phase 5 above. Order matches creation order.
+proj_records = ProjModel.all.to_a
+proj_custom_data = [
+  # proj_records[0]: Website Redesign
+  { priority: "high", budget: 50000.00, deadline: (Date.today + 90).to_s, team_size: 8,
+    notes: "Major redesign of the public-facing website.", is_public: true, client_name: "Internal" },
+  # proj_records[1]: API v3
+  { priority: "critical", budget: 120000.00, deadline: (Date.today + 180).to_s, team_size: 12,
+    notes: "Full API rewrite with GraphQL support.", is_public: false },
+  # proj_records[2]: Cloud Migration
+  { priority: "high", budget: 200000.00, deadline: (Date.today + 365).to_s, team_size: 6,
+    is_public: false, client_name: "Ops Team" },
+  # proj_records[3]: Brand Refresh
+  { priority: "low", budget: 15000.00, team_size: 3, is_public: true, client_name: "Marketing" },
+  # proj_records[4]: Internal Tools
+  { priority: "medium", budget: 30000.00, deadline: (Date.today + 60).to_s, team_size: 4,
+    notes: "Build internal dashboards and admin tools.", is_public: false }
+]
+
+proj_records.first(proj_custom_data.size).each_with_index do |proj, idx|
+  proj.assign_attributes(proj_custom_data[idx])
+  proj.save!
+end
+puts "  Filled custom field data for #{proj_custom_data.size} projects"
+
 # Phase 6: Attachments (just create empty records — files need manual upload)
 AttachModel = LcpRuby.registry.model_for("showcase_attachment")
 AttachModel.create!(title: "Sample Record (upload files via edit)")
@@ -1315,6 +1533,116 @@ features = [
     config_example: "```ruby\nshow do\n  section \"Notes\",\n    disable_when: { field: :status, operator: :eq, value: \"archived\" } do\n    field :notes\n  end\nend\n```",
     demo_path: "/showcase/showcase-forms/3",
     demo_hint: "View **Special Request** — 'Standard Notes' section has a disabled appearance because form_type is 'special'.",
+    status: "stable"
+  },
+
+  # === Custom Fields ===
+  {
+    name: "Custom Fields Overview",
+    category: "custom_fields",
+    description: "Custom fields let users define additional fields on models at runtime — no code changes, no migrations, no server restarts.\n\nEnable with `custom_fields: true` on any model. Field definitions are stored in the `custom_field_definitions` table. Values are stored in a `custom_data` JSONB column on each model's table.\n\nSupported types: `string`, `text`, `integer`, `float`, `decimal`, `boolean`, `date`, `datetime`, `enum`.",
+    config_example: "```ruby\n# Enable custom fields on a model\ndefine_model :employee do\n  custom_fields true\n  field :name, :string\n  field :email, :email\nend\n```\n\n```bash\n# Generate custom field definition metadata\nrails generate lcp_ruby:custom_fields\n```",
+    demo_path: "/showcase/employees/custom-fields",
+    demo_hint: "Navigate to **Employees → Custom Fields** to see all 10 custom field definitions. Click any field to view its configuration.",
+    status: "stable"
+  },
+  {
+    name: "Custom Fields Generator",
+    category: "custom_fields",
+    description: "A Rails generator scaffolds the full custom field definition setup: model, presenter, permissions, and view group.\n\nSupports both Ruby DSL (`--format=dsl`, default) and YAML (`--format=yaml`) output formats.\n\nThe generated files are fully customizable — modify the presenter to change columns, sections, or actions.",
+    config_example: "```bash\n# Generate with Ruby DSL (default)\nrails generate lcp_ruby:custom_fields\n\n# Generate with YAML format\nrails generate lcp_ruby:custom_fields --format=yaml\n\n# Creates:\n#   config/lcp_ruby/models/custom_field_definition.rb\n#   config/lcp_ruby/presenters/custom_fields.rb\n#   config/lcp_ruby/permissions/custom_field_definition.yml\n#   config/lcp_ruby/views/custom_fields.rb\n```",
+    demo_path: "/showcase/employees/custom-fields",
+    demo_hint: "The showcase app used the DSL generator. Check `config/lcp_ruby/models/custom_field_definition.rb` for the generated model.",
+    status: "stable"
+  },
+  {
+    name: "String Custom Fields",
+    category: "custom_fields",
+    description: "String custom fields support `min_length`, `max_length`, `placeholder`, `default_value`, `searchable`, and `show_in_table`.\n\nIn the showcase, the **Nickname** field on employees demonstrates a searchable, sortable string custom field with length constraints (2–30 chars).",
+    config_example: "Create via UI or programmatically:\n```ruby\ncfd = LcpRuby.registry.model_for(\"custom_field_definition\")\ncfd.create!(\n  target_model: \"employee\",\n  field_name: \"nickname\",\n  custom_type: \"string\",\n  label: \"Nickname\",\n  section: \"Personal Info\",\n  min_length: 2,\n  max_length: 30,\n  searchable: true,\n  show_in_table: true,\n  sortable: true\n)\n```",
+    demo_path: "/showcase/employees",
+    demo_hint: "Look at the **Nickname** column in the employees table. Edit an employee to see the string custom field in the form.",
+    status: "stable"
+  },
+  {
+    name: "Numeric Custom Fields",
+    category: "custom_fields",
+    description: "Integer, float, and decimal custom fields support `min_value`, `max_value`, `precision` (decimal only), and `default_value`.\n\nIn the showcase:\n- **Years of Experience** (integer, 0–50)\n- **Performance Score** (float, 0.0–10.0)\n- **Hourly Rate** (decimal, precision 2)",
+    config_example: "```ruby\ncfd.create!(\n  target_model: \"employee\",\n  field_name: \"hourly_rate\",\n  custom_type: \"decimal\",\n  label: \"Hourly Rate (USD)\",\n  section: \"Compensation\",\n  min_value: 0,\n  precision: 2,\n  show_in_table: true,\n  sortable: true\n)\n```",
+    demo_path: "/showcase/employees/1",
+    demo_hint: "Open any employee's show view — the **Professional** and **Compensation** sections show numeric custom fields.",
+    status: "stable"
+  },
+  {
+    name: "Boolean Custom Fields",
+    category: "custom_fields",
+    description: "Boolean custom fields support `default_value` (`true`/`false`) and `required`.\n\nIn the showcase, the **Remote Worker** field on employees and **Public Project** on projects demonstrate boolean custom fields with default values.",
+    config_example: "```ruby\ncfd.create!(\n  target_model: \"employee\",\n  field_name: \"remote_worker\",\n  custom_type: \"boolean\",\n  label: \"Remote Worker\",\n  default_value: \"false\",\n  show_in_table: true\n)\n```",
+    demo_path: "/showcase/employees",
+    demo_hint: "Look at the **Remote Worker** column — boolean custom fields render as Yes/No badges.",
+    status: "stable"
+  },
+  {
+    name: "Date & DateTime Custom Fields",
+    category: "custom_fields",
+    description: "Date and datetime custom fields support `required` and `default_value`.\n\nIn the showcase:\n- **Start Date** (date, visible in table)\n- **Last Performance Review** (datetime, visible in show view only)",
+    config_example: "```ruby\ncfd.create!(\n  target_model: \"employee\",\n  field_name: \"start_date\",\n  custom_type: \"date\",\n  label: \"Start Date\",\n  section: \"Employment\",\n  show_in_table: true,\n  sortable: true\n)\n```",
+    demo_path: "/showcase/employees/1",
+    demo_hint: "Open an employee's show view — the **Employment** section shows start date and last review datetime.",
+    status: "stable"
+  },
+  {
+    name: "Enum Custom Fields",
+    category: "custom_fields",
+    description: "Enum custom fields require `enum_values` — a JSON array of strings or `{value, label}` objects. Support `default_value` and `required`.\n\nIn the showcase:\n- **T-Shirt Size** on employees uses labeled values (`{value: \"XS\", label: \"Extra Small\"}`)\n- **Priority** on projects uses simple string values (`[\"low\", \"medium\", \"high\", \"critical\"]`)",
+    config_example: "```ruby\n# Simple enum values\ncfd.create!(\n  target_model: \"project\",\n  field_name: \"priority\",\n  custom_type: \"enum\",\n  label: \"Priority\",\n  enum_values: %w[low medium high critical],\n  default_value: \"medium\",\n  required: true\n)\n\n# Enum with custom labels\ncfd.create!(\n  target_model: \"employee\",\n  field_name: \"tshirt_size\",\n  custom_type: \"enum\",\n  label: \"T-Shirt Size\",\n  enum_values: [\n    { value: \"XS\", label: \"Extra Small\" },\n    { value: \"M\", label: \"Medium\" },\n    { value: \"XL\", label: \"Extra Large\" }\n  ]\n)\n```",
+    demo_path: "/showcase/employees/1/edit",
+    demo_hint: "Edit an employee — the **T-Shirt Size** field shows a dropdown with human-readable labels.",
+    status: "stable"
+  },
+  {
+    name: "Custom Field Sections",
+    category: "custom_fields",
+    description: "Custom fields are grouped into **sections** by their `section` attribute. Each section renders as a separate heading in forms and show views.\n\nUse `position` to control ordering within a section. Lower numbers appear first.\n\nIn the showcase, employee custom fields are grouped into: Personal Info, Professional, Compensation, Work Arrangement, Employment.",
+    config_example: "```ruby\n# Fields with the same section appear together\ncfd.create!(target_model: \"employee\", field_name: \"nickname\",\n  section: \"Personal Info\", position: 0, ...)\ncfd.create!(target_model: \"employee\", field_name: \"bio\",\n  section: \"Personal Info\", position: 1, ...)\ncfd.create!(target_model: \"employee\", field_name: \"hourly_rate\",\n  section: \"Compensation\", position: 0, ...)\n```",
+    demo_path: "/showcase/employees/1",
+    demo_hint: "Open an employee's show view — custom fields are organized under 5 different section headings.",
+    status: "stable"
+  },
+  {
+    name: "Custom Field Display Options",
+    category: "custom_fields",
+    description: "Control visibility with `show_in_table`, `show_in_form`, `show_in_show`. Enable sorting with `sortable: true` and search with `searchable: true`.\n\nThe `column_width` attribute sets CSS width for table columns.\n\nInactive fields (`active: false`) are completely hidden from all views.",
+    config_example: "```ruby\ncfd.create!(\n  target_model: \"employee\",\n  field_name: \"nickname\",\n  custom_type: \"string\",\n  label: \"Nickname\",\n  show_in_table: true,    # Appears in index table\n  show_in_form: true,     # Appears in create/edit forms\n  show_in_show: true,     # Appears in show view\n  sortable: true,         # Column header is clickable\n  searchable: true,       # Included in text search\n  column_width: \"120px\"   # Fixed column width\n)\n```",
+    demo_path: "/showcase/employees",
+    demo_hint: "The **Nickname** column is sortable (click header). The **Legacy ID** field has `active: false` — it is completely hidden.",
+    status: "stable"
+  },
+  {
+    name: "Custom Field Permissions",
+    category: "custom_fields",
+    description: "Access to custom fields is controlled by a single permission key — `custom_data`. Include it in `readable` and `writable` field lists.\n\nCustom field definitions have their own separate permissions file (`permissions/custom_field_definition.yml`).\n\n| Config | Result |\n|--------|--------|\n| `readable: all` | All custom fields visible |\n| `writable: []` | Custom fields read-only |\n| `readable: [name]` (no `custom_data`) | Custom fields hidden |",
+    config_example: "```yaml\n# permissions/employee.yml (if custom permissions needed)\npermissions:\n  model: employee\n  roles:\n    admin:\n      fields:\n        readable: all     # includes custom_data\n        writable: all\n    viewer:\n      fields:\n        readable: all     # includes custom_data (read-only)\n        writable: []\n```",
+    demo_path: "/showcase/employees/custom-fields",
+    demo_hint: "The custom field definitions management UI uses its own permission set — admins can CRUD, viewers can only list/view.",
+    status: "stable"
+  },
+  {
+    name: "Custom Fields on Multiple Models",
+    category: "custom_fields",
+    description: "Multiple models can enable `custom_fields: true` independently. Each model's custom fields are scoped by `target_model` — field definitions for 'employee' don't affect 'project'.\n\nManagement URLs are nested under each model's slug: `/employees/custom-fields`, `/projects/custom-fields`.",
+    config_example: "```ruby\n# Enable on multiple models\ndefine_model :employee do\n  custom_fields true\n  # ...\nend\n\ndefine_model :project do\n  custom_fields true\n  # ...\nend\n```\n\nManagement routes:\n```\n/employees/custom-fields     → Employee field definitions\n/projects/custom-fields      → Project field definitions\n```",
+    demo_path: "/showcase/projects/custom-fields",
+    demo_hint: "Navigate to **Projects → Custom Fields** — these are separate from employee custom fields, scoped by `target_model`.",
+    status: "stable"
+  },
+  {
+    name: "Programmatic Custom Field Access",
+    category: "custom_fields",
+    description: "Custom field values can be read and written in Ruby code using dynamic accessors or the low-level API.\n\nAfter creating definitions, `after_commit` callbacks automatically refresh accessor methods on the target model — no restart needed.",
+    config_example: "```ruby\nmodel = LcpRuby.registry.model_for(\"employee\")\nrecord = model.find(1)\n\n# Dynamic accessors\nrecord.nickname                  # => \"JaneS\"\nrecord.nickname = \"Jane\"\nrecord.save!\n\n# Low-level API\nrecord.read_custom_field(\"nickname\")\nrecord.write_custom_field(\"nickname\", \"Jane\")\nrecord.save!\n\n# Create definitions programmatically\ncfd = LcpRuby.registry.model_for(\"custom_field_definition\")\ncfd.create!(\n  target_model: \"employee\",\n  field_name: \"badge_number\",\n  custom_type: \"integer\",\n  label: \"Badge #\"\n)\n# Accessors available immediately!\n```",
+    demo_path: "/showcase/employees/1",
+    demo_hint: "View an employee record — custom field values like Nickname, Years of Experience, and T-Shirt Size are set via dynamic accessors in seed data.",
     status: "stable"
   }
 ]

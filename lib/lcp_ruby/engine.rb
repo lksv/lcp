@@ -84,13 +84,6 @@ module LcpRuby
           build_model(model_def)
         end
 
-        # Build built-in custom_field_definition model (unless user defined one)
-        unless LcpRuby.registry.registered?("custom_field_definition")
-          cfd_def = CustomFields::BuiltInModel.model_definition
-          build_model(cfd_def)
-          loader.model_definitions["custom_field_definition"] = cfd_def
-        end
-
         CustomFields::Setup.apply!(loader)
         Roles::Setup.apply!(loader)
 

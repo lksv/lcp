@@ -61,11 +61,8 @@ module LcpRuby
 
       private
 
-      # Built-in models that are auto-created at runtime and not defined in user YAML.
-      BUILT_IN_MODEL_NAMES = %w[custom_field_definition].freeze
-
       def model_names
-        @model_names ||= loader.model_definitions.keys + BUILT_IN_MODEL_NAMES
+        @model_names ||= loader.model_definitions.keys
       end
 
       def model_field_names(model_name)
@@ -824,9 +821,20 @@ module LcpRuby
       # --- Custom fields validations ---
 
       def validate_custom_fields
-        # The custom_data column is auto-added at runtime by SchemaManager
-        # when custom_fields: true is set, so no explicit field declaration
-        # is required in the model definition.
+        cf_models = loader.model_definitions.values.select(&:custom_fields_enabled?)
+        return if cf_models.empty?
+
+        unless loader.model_definitions.key?("custom_field_definition")
+          @errors << "One or more models have custom_fields enabled " \
+                     "(#{cf_models.map(&:name).join(', ')}), but the 'custom_field_definition' model " \
+                     "is not defined. Run `rails generate lcp_ruby:custom_fields` to generate it."
+          return
+        end
+
+        cfd_def = loader.model_definitions["custom_field_definition"]
+        result = CustomFields::ContractValidator.validate(cfd_def)
+        result.errors.each { |e| @errors << e }
+        result.warnings.each { |w| @warnings << w }
       end
     end
   end

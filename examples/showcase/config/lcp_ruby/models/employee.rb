@@ -1,6 +1,7 @@
 define_model :employee do
   label "Employee"
   label_plural "Employees"
+  custom_fields true
 
   field :name, :string, label: "Name", limit: 100, null: false do
     validates :presence

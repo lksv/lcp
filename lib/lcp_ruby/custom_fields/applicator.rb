@@ -68,7 +68,7 @@ module LcpRuby
           definitions.each do |defn|
             field_name = defn.field_name
             next if field_name.blank?
-            next if BuiltInModel.reserved_name?(field_name)
+            next if CustomFields.reserved_name?(field_name)
 
             # Skip if a real column or method already exists (conflict avoidance)
             next if column_names.include?(field_name)

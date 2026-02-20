@@ -1,6 +1,7 @@
 define_model :project do
   label "Project"
   label_plural "Projects"
+  custom_fields true
 
   field :name, :string, label: "Name", limit: 200, null: false do
     validates :presence

@@ -69,6 +69,10 @@ bundle exec rubocop
 # Lint with auto-fix
 bundle exec rubocop -a
 
+# Generate custom fields metadata (run from host app directory)
+bundle exec rails generate lcp_ruby:custom_fields          # DSL format (default)
+bundle exec rails generate lcp_ruby:custom_fields --format=yaml  # YAML format
+
 # Validate YAML metadata (run from example app directory when changing examples/)
 bundle exec rake lcp_ruby:validate
 
@@ -98,8 +102,7 @@ YAML metadata (config/lcp_ruby/)
                                 ↓
               LcpRuby.registry.register(name, model_class)
                                 ↓
-              CustomFields::BuiltInModel → custom_field_definition model (auto-created)
-              CustomFields::Setup.apply!(loader) → registry, handlers, accessors, scopes
+              CustomFields::Setup.apply!(loader) → contract validation, registry, handlers, accessors, scopes
                                 ↓
               Roles::Setup.apply!(loader) → contract validation, registry, change handler (if role_source == :model)
                                 ↓
@@ -120,7 +123,7 @@ YAML metadata (config/lcp_ruby/)
 | `Types` | `lib/lcp_ruby/types/` | TypeRegistry, TypeDefinition, ServiceRegistry, built-in types (email, phone, url, color), transforms (strip, downcase, normalize_url, normalize_phone) |
 | `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator |
 | `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections), ColumnSet (visible columns), ActionSet (visible actions), IncludesResolver (auto-detects and applies eager loading from presenter metadata), FieldValueResolver (dot-path, template, FK, and simple field resolution with permission checks) |
-| `CustomFields` | `lib/lcp_ruby/custom_fields/` | Registry (per-model definition cache), Applicator (dynamic accessors + validations + defaults + stale cleanup), BuiltInModel (definition schema), BuiltInPresenter (presenter definition for management UI), Query (DB-portable JSON queries with field name validation), DefinitionChangeHandler (cache invalidation), Setup (shared boot logic), Utils (env-aware JSON/numeric parsing) |
+| `CustomFields` | `lib/lcp_ruby/custom_fields/` | Registry (per-model definition cache), Applicator (dynamic accessors + validations + defaults + stale cleanup), ContractValidator (boot-time model contract checks), Query (DB-portable JSON queries with field name validation), DefinitionChangeHandler (cache invalidation), Setup (shared boot logic with contract validation), Utils (env-aware JSON/numeric parsing) |
 | `Roles` | `lib/lcp_ruby/roles/` | Registry (thread-safe role name cache), ContractValidator (boot-time model contract checks), ChangeHandler (after_commit cache invalidation), Setup (boot orchestration). Only active when `role_source == :model` |
 | `Display` | `lib/lcp_ruby/display/` | BaseRenderer (base class), 26 built-in renderer classes in `renderers/`, badge renderers (CountBadge, TextBadge, IconBadge), RendererRegistry (registers built-ins + auto-discovers host renderers from `app/renderers/`) |
 | `Authorization` | `lib/lcp_ruby/authorization/` | PolicyFactory (dynamic Pundit policies), PermissionEvaluator (can?, readable_fields, writable_fields, with optional role validation via Roles::Registry), ScopeBuilder |
@@ -145,7 +148,7 @@ YAML metadata (config/lcp_ruby/)
 
 `CustomFieldsController` (`app/controllers/lcp_ruby/custom_fields_controller.rb`):
 - Nested under `/:lcp_slug/custom-fields` for managing custom field definitions
-- Dual context: parent model from `:lcp_slug`, CFD model + BuiltInPresenter for views
+- Dual context: parent model from `:lcp_slug`, CFD model + generated presenter for views
 - Records scoped by `target_model` from parent URL context (prevents cross-model access)
 - Reuses `lcp_ruby/resources` views via `controller_path` override
 - Separate authorization via `custom_field_definition` permissions

@@ -4,9 +4,9 @@ Custom fields allow users to add new fields to models at runtime without code ch
 
 ## How It Works
 
-1. A model opts in via `options: { custom_fields: true }`
-2. The engine automatically adds a `custom_data` column to the model's table
-3. A built-in `custom_field_definition` model is auto-created for storing field definitions
+1. Run `rails generate lcp_ruby:custom_fields` to generate the `custom_field_definition` model, presenter, permissions, and view group
+2. A model opts in via `options: { custom_fields: true }`
+3. The engine automatically adds a `custom_data` column to the model's table
 4. Custom field management is available via nested routes at `/<model_slug>/custom-fields`
 5. Custom fields appear in form and show views grouped by section
 6. Values are stored in the `custom_data` JSON column and accessed via dynamic getters/setters
@@ -359,7 +359,7 @@ DELETE /:lcp_slug/custom-fields/:id      # Destroy
 
 For example, if your model presenter has slug `projects`, the management UI is available at `/projects/custom-fields`. The `target_model` is resolved from the parent URL context. Record lookups are scoped to prevent cross-model access.
 
-The `CustomFieldsController` uses a built-in presenter definition (`BuiltInPresenter`) that provides:
+The `CustomFieldsController` uses the generated `custom_fields` presenter definition that provides:
 - **Index**: table with field_name, custom_type, label, section, position, active, required columns
 - **Form**: grouped sections for general info, text constraints, numeric constraints, enum values, and display options
 - **Show**: all field definition attributes in organized sections

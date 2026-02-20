@@ -83,7 +83,7 @@ module LcpRuby
 
     # Override ApplicationController#set_presenter_and_model to set up dual context:
     # - Parent: resolved from :lcp_slug (e.g., "projects" -> project model)
-    # - CFD: custom_field_definition model + BuiltInPresenter
+    # - CFD: custom_field_definition model + generated presenter
     def set_presenter_and_model
       slug = params[:lcp_slug]
       return unless slug
@@ -97,9 +97,7 @@ module LcpRuby
       @parent_model_definition = LcpRuby.loader.model_definition(parent_presenter.model)
 
       # Set up CFD presenter and model as the "current" context for views
-      @presenter_definition = CustomFields::BuiltInPresenter.presenter_definition(
-        target_model: @parent_model_definition.name
-      )
+      @presenter_definition = LcpRuby.loader.presenter_definition("custom_fields")
       @cfd_model_definition = LcpRuby.loader.model_definition("custom_field_definition")
       @model_definition = @cfd_model_definition
       @cfd_model_class = LcpRuby.registry.model_for("custom_field_definition")

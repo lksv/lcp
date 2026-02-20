@@ -13,7 +13,23 @@ Custom fields are **not** a replacement for regular model fields. Use regular fi
 
 ## Quick Start
 
-### Step 1: Enable custom fields on a model
+### Step 1: Generate custom field definition metadata
+
+Run the generator to create the `custom_field_definition` model, presenter, permissions, and view group:
+
+```bash
+rails generate lcp_ruby:custom_fields
+```
+
+This creates:
+- `config/lcp_ruby/models/custom_field_definition.rb` — model definition (DSL format)
+- `config/lcp_ruby/presenters/custom_fields.rb` — presenter definition (DSL format)
+- `config/lcp_ruby/permissions/custom_field_definition.yml` — permissions
+- `config/lcp_ruby/views/custom_fields.rb` — view group (DSL format)
+
+For YAML format instead of DSL, use `--format=yaml`.
+
+### Step 2: Enable custom fields on a model
 
 ```yaml
 # config/lcp_ruby/models/project.yml
@@ -42,7 +58,7 @@ define_model :project do
 end
 ```
 
-### Step 2: Set up permissions
+### Step 3: Set up permissions
 
 The `custom_data` virtual field controls access to all custom fields. Include it in `readable` and `writable` field lists:
 
@@ -63,9 +79,9 @@ permissions:
         writable: []
 ```
 
-### Step 3: Set up permissions for custom field definitions
+### Step 4: Customize permissions for custom field definitions (optional)
 
-The management UI requires its own permission file for the built-in `custom_field_definition` model:
+The generator already created a permissions file for the `custom_field_definition` model. You can customize it:
 
 ```yaml
 # config/lcp_ruby/permissions/custom_field_definition.yml
@@ -87,9 +103,7 @@ permissions:
   default_role: viewer
 ```
 
-Without this file, Pundit will deny access to the custom fields management routes.
-
-### Step 4: Boot the app and create field definitions
+### Step 5: Boot the app and create field definitions
 
 After starting the application, navigate to `/projects/custom-fields` (the nested custom fields management route). Create a new custom field definition:
 
@@ -100,7 +114,7 @@ After starting the application, navigate to `/projects/custom-fields` (the neste
 
 The `target_model` is automatically set from the parent URL context (e.g., `/projects/custom-fields` sets it to `project`).
 
-### Step 5: Use the custom fields
+### Step 6: Use the custom fields
 
 Navigate to `/projects/new`. A new "Contact Info" section appears at the bottom of the form with the "Website URL" field. Fill it in, save, and the value persists.
 
@@ -299,8 +313,7 @@ The custom fields system consists of eight components:
 |-----------|----------|---------|
 | `CustomFields::Registry` | `lib/lcp_ruby/custom_fields/registry.rb` | Per-model cache of active definitions |
 | `CustomFields::Applicator` | `lib/lcp_ruby/custom_fields/applicator.rb` | Installs read/write methods, accessors, validations, and defaults |
-| `CustomFields::BuiltInModel` | `lib/lcp_ruby/custom_fields/built_in_model.rb` | Definition model schema (30 fields) |
-| `CustomFields::BuiltInPresenter` | `lib/lcp_ruby/custom_fields/built_in_presenter.rb` | Generates presenter definition for the management UI |
+| `CustomFields::ContractValidator` | `lib/lcp_ruby/custom_fields/contract_validator.rb` | Validates the custom_field_definition model contract at boot |
 | `CustomFields::Query` | `lib/lcp_ruby/custom_fields/query.rb` | DB-portable JSON query helpers with field name validation |
 | `CustomFields::DefinitionChangeHandler` | `lib/lcp_ruby/custom_fields/definition_change_handler.rb` | Cache invalidation on definition changes |
 | `CustomFields::Setup` | `lib/lcp_ruby/custom_fields/setup.rb` | Shared boot logic (registry, handlers, accessors, scopes) |

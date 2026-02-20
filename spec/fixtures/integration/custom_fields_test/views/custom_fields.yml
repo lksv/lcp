@@ -1,0 +1,7 @@
+# Keep in sync with lib/generators/lcp_ruby/templates/custom_fields/view_group.yml
+view_group:
+  model: custom_field_definition
+  primary: custom_fields
+  views:
+    - presenter: custom_fields
+      label: "Custom Fields"
