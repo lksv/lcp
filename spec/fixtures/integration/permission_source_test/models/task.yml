@@ -1,0 +1,21 @@
+model:
+  name: task
+  label: "Task"
+  label_plural: "Tasks"
+
+  options:
+    timestamps: true
+    label_method: title
+
+  fields:
+    - name: title
+      type: string
+      validations:
+        - type: presence
+
+    - name: status
+      type: string
+      default: "open"
+
+    - name: priority
+      type: string

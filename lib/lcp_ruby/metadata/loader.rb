@@ -104,6 +104,10 @@ module LcpRuby
       end
 
       def permission_definition(model_name)
+        Permissions::SourceResolver.for(model_name.to_s, self)
+      end
+
+      def yaml_permission_definition(model_name)
         @permission_definitions[model_name.to_s] || @permission_definitions["_default"]
       end
 

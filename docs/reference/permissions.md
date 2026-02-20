@@ -449,4 +449,38 @@ end
 
 This allows host applications to implement custom audit logging, alerting, or metrics collection.
 
+## Custom Field Permissions
+
+When a model has `custom_fields: true`, individual custom field names can be used in `fields.readable`, `fields.writable`, and `field_overrides`.
+
+The aggregate `custom_data` key still works as a catch-all for all custom fields. Individual field names provide per-field granularity:
+
+```yaml
+permissions:
+  model: project
+  roles:
+    admin:
+      fields:
+        readable: all           # all fields including all custom fields
+        writable: all
+    editor:
+      fields:
+        readable: [name, website, phone]  # specific custom fields
+        writable: [name, website]          # only website writable
+    support:
+      fields:
+        readable: [name, custom_data]      # name + ALL custom fields
+        writable: []
+  field_overrides:
+    internal_notes:                         # per-custom-field override
+      readable_by: [admin, manager]
+      writable_by: [admin]
+```
+
+See [Custom Fields Reference](custom-fields.md#permissions) for details.
+
+## DB-Backed Permissions
+
+Permissions can be stored in a database model instead of YAML files, enabling runtime editing. See [Permission Source Reference](permission-source.md) for setup and configuration.
+
 Source: `lib/lcp_ruby/metadata/permission_definition.rb`, `lib/lcp_ruby/authorization/permission_evaluator.rb`, `lib/lcp_ruby/authorization/scope_builder.rb`

@@ -150,9 +150,18 @@ module LcpRuby
     def available_roles_for_impersonation
       return [] unless can_impersonate_current_user?
 
-      LcpRuby.loader.permission_definitions.values
+      roles = LcpRuby.loader.permission_definitions.values
         .flat_map { |pd| pd.roles.keys }
-        .uniq.sort
+
+      # Include roles from DB-backed permission definitions
+      if Permissions::Registry.available?
+        roles.concat(
+          Permissions::Registry.all_definitions
+            .flat_map { |pd| pd.roles.keys }
+        )
+      end
+
+      roles.uniq.sort
     end
 
     def can_impersonate_current_user?

@@ -1,0 +1,28 @@
+model:
+  name: permission_config
+  table_name: permission_configs
+  label: "Permission Config"
+  label_plural: "Permission Configs"
+
+  options:
+    timestamps: true
+    label_method: target_model
+
+  fields:
+    - name: target_model
+      type: string
+      validations:
+        - type: presence
+        - type: uniqueness
+
+    - name: definition
+      type: json
+      validations:
+        - type: presence
+
+    - name: active
+      type: boolean
+      default: true
+
+    - name: notes
+      type: text

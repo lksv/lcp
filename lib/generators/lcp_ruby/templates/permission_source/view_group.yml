@@ -1,0 +1,9 @@
+view_group:
+  model: permission_config
+  primary: permission_configs
+  navigation:
+    menu: main
+    position: 95
+  views:
+    - presenter: permission_configs
+      label: "Permission Configs"

@@ -1,0 +1,41 @@
+presenter:
+  name: tasks
+  model: task
+  label: "Tasks"
+  slug: tasks
+
+  index:
+    default_sort: { field: title, direction: asc }
+    table_columns:
+      - { field: title, label: "Title", sortable: true }
+      - { field: status, label: "Status" }
+      - { field: priority, label: "Priority" }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+          - { field: status }
+          - { field: priority }
+
+  form:
+    layout: sections
+    sections:
+      - title: "Details"
+        fields:
+          - { field: title }
+          - { field: status }
+          - { field: priority }
+
+  search:
+    enabled: true
+    searchable_fields: [title, status]
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Task" }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: "Are you sure?" }

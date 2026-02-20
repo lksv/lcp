@@ -1,0 +1,9 @@
+view_group:
+  model: task
+  primary: tasks
+  navigation:
+    menu: main
+    position: 1
+  views:
+    - presenter: tasks
+      label: "Tasks"

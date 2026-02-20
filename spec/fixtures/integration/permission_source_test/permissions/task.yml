@@ -1,0 +1,19 @@
+permissions:
+  model: task
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    yaml_viewer:
+      crud: [index, show]
+      fields: { readable: [title, status], writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+
+  default_role: yaml_viewer

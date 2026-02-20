@@ -257,7 +257,11 @@ This means `record.respond_to?(:deleted_field)` returns `false` after deletion a
 
 ## Permission Model
 
-Custom fields use a single permission key — `custom_data` — rather than per-field permissions. This keeps the permission system simple:
+Custom fields support both aggregate and per-field permissions.
+
+### Aggregate: `custom_data` catch-all
+
+The `custom_data` key grants access to **all** active custom fields at once:
 
 | Scenario | Permission Config | Result |
 |----------|------------------|--------|
@@ -266,7 +270,31 @@ Custom fields use a single permission key — `custom_data` — rather than per-
 | No access | `readable: [name, status]` (no `custom_data`) | Custom fields hidden entirely |
 | Explicit | `readable: [name, custom_data], writable: [custom_data]` | Only custom fields writable |
 
-> **Note:** The `readable_by_roles` and `writable_by_roles` attributes on individual field definitions are reserved for future per-field role-based access control.
+### Per-field: individual custom field names
+
+Individual custom field names can appear in `readable`, `writable`, and `field_overrides`:
+
+```yaml
+permissions:
+  model: project
+  roles:
+    editor:
+      fields:
+        readable: [name, status, website, phone]
+        writable: [name, website]
+    viewer:
+      fields:
+        readable: [name, custom_data]  # catch-all: ALL custom fields
+        writable: []
+  field_overrides:
+    internal_notes:
+      readable_by: [admin, manager]
+      writable_by: [admin]
+```
+
+The `custom_data` catch-all and individual field names are backward compatible — `custom_data` still works as before, but you can now selectively grant access to specific custom fields.
+
+> **Note:** The `readable_by_roles` and `writable_by_roles` attributes on individual field definitions provide field-level role filtering independent of the permission system.
 
 ## Management UI
 

@@ -86,6 +86,7 @@ module LcpRuby
 
         CustomFields::Setup.apply!(loader)
         Roles::Setup.apply!(loader)
+        Permissions::Setup.apply!(loader)
 
         LcpRuby.check_services!
 

@@ -5,6 +5,9 @@ LcpRuby.configure do |config|
   # DB-backed role management
   config.role_source = :model
 
+  # DB-backed permission management
+  config.permission_source = :model
+
   # Built-in authentication (Devise-based)
   config.authentication = :built_in
   config.auth_allow_registration = true

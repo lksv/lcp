@@ -1,0 +1,50 @@
+presenter:
+  name: permission_configs
+  model: permission_config
+  label: "Permission Configs"
+  slug: permission-configs
+
+  index:
+    default_sort: { field: target_model, direction: asc }
+    empty_message: "No permission configs defined yet."
+    table_columns:
+      - { field: target_model, label: "Target Model", sortable: true }
+      - { field: active, label: "Active", renderer: boolean }
+      - { field: updated_at, label: "Updated At", sortable: true }
+
+  show:
+    layout:
+      - section: "General"
+        columns: 2
+        fields:
+          - { field: target_model }
+          - { field: active }
+          - { field: notes, col_span: 2 }
+      - section: "Definition"
+        fields:
+          - { field: definition, renderer: code, options: { language: json } }
+
+  form:
+    layout: sections
+    sections:
+      - title: "General"
+        columns: 2
+        fields:
+          - { field: target_model }
+          - { field: active }
+          - { field: notes, col_span: 2 }
+      - title: "Definition"
+        fields:
+          - { field: definition, input_type: textarea }
+
+  search:
+    enabled: true
+    searchable_fields: [target_model]
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Permission Config" }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: "Are you sure?" }

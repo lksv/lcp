@@ -6,10 +6,14 @@ module LcpRuby
       input_options = field_config["input_options"] || {}
 
       case input_type.to_s
-      when "text", "rich_text_editor"
+      when "text", "textarea", "rich_text_editor"
         opts = { placeholder: field_config["placeholder"] }
         opts[:rows] = input_options["rows"] if input_options["rows"]
         opts[:maxlength] = input_options["max_length"] if input_options["max_length"]
+        if field_def&.type == "json"
+          raw_value = form.object&.public_send(field_name)
+          opts[:value] = pretty_print_json_value(raw_value) if raw_value.present?
+        end
         result = form.text_area(field_name, **opts.compact)
         if input_options["show_counter"] && input_options["max_length"]
           result += content_tag(:span, "", class: "lcp-char-counter",
@@ -462,6 +466,14 @@ module LcpRuby
       return nil unless current_value.present?
       record = records.find { |r| r.id == current_value.to_i }
       record ? resolve_label(record, label_method) : nil
+    end
+
+    def pretty_print_json_value(value)
+      raw = value.is_a?(String) ? value : value.to_json
+      parsed = JSON.parse(raw)
+      JSON.pretty_generate(parsed)
+    rescue JSON::ParserError
+      value.to_s
     end
   end
 end

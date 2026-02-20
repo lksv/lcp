@@ -16,8 +16,9 @@ module LcpRuby
                   :auth_after_login_path,
                   :auth_after_logout_path
 
-    attr_reader :menu_mode, :authentication, :role_source
-    attr_accessor :role_model, :role_model_fields
+    attr_reader :menu_mode, :authentication, :role_source, :permission_source
+    attr_accessor :role_model, :role_model_fields,
+                  :permission_model, :permission_model_fields
 
     def menu_mode=(value)
       @menu_mode = value&.to_sym
@@ -39,6 +40,14 @@ module LcpRuby
       @role_source = value
     end
 
+    def permission_source=(value)
+      value = value&.to_sym
+      unless %i[yaml model].include?(value)
+        raise ArgumentError, "permission_source must be :yaml or :model (got #{value.inspect})"
+      end
+      @permission_source = value
+    end
+
     def initialize
       @metadata_path = Rails.root.join("config", "lcp_ruby") if defined?(Rails)
       @role_method = :lcp_role
@@ -58,6 +67,11 @@ module LcpRuby
       @role_source = :implicit
       @role_model = "role"
       @role_model_fields = { name: "name", active: "active" }
+
+      # Permission source defaults
+      @permission_source = :yaml
+      @permission_model = "permission_config"
+      @permission_model_fields = { target_model: "target_model", definition: "definition", active: "active" }
 
       # Authentication defaults
       @authentication = :external

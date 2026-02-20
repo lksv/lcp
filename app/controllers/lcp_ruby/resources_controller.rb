@@ -380,12 +380,13 @@ module LcpRuby
 
       flat_fields = (writable + fk_fields).uniq
 
-      # Permit custom field names if custom_fields is enabled and custom_data is writable
-      if current_model_definition.custom_fields_enabled? &&
-         current_evaluator.field_writable?("custom_data")
+      # Permit custom field names if custom_fields is enabled (per-field permission check)
+      if current_model_definition.custom_fields_enabled?
         cf_definitions = CustomFields::Registry.for_model(current_model_definition.name)
           .select { |d| d.active && d.show_in_form }
-        cf_definitions.each { |d| flat_fields << d.field_name.to_sym }
+        cf_definitions.each do |d|
+          flat_fields << d.field_name.to_sym if current_evaluator.field_writable?(d.field_name)
+        end
       end
 
       # Separate attachment fields from flat fields (they need special permitting)

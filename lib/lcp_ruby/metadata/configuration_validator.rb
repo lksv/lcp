@@ -55,6 +55,7 @@ module LcpRuby
         validate_menu
         validate_custom_fields
         validate_role_model
+        validate_permission_source_model
 
         ValidationResult.new(errors: @errors.dup, warnings: @warnings.dup)
       end
@@ -570,6 +571,9 @@ module LcpRuby
         valid_fields = model_field_names(perm.model)
         return if valid_fields.empty? # Model may not exist (caught elsewhere)
 
+        model_def = loader.model_definitions[perm.model]
+        has_custom_fields = model_def&.custom_fields_enabled?
+
         %w[readable writable].each do |access|
           field_list = fields_config[access]
           next if field_list.nil? || field_list == "all" || field_list == []
@@ -581,6 +585,10 @@ module LcpRuby
             # are valid in writable but not in model fields
             next if fname.to_s.end_with?("_id")
             next if fname.to_s.end_with?("_type")
+            # Skip custom_data aggregate permission
+            next if fname.to_s == "custom_data" && has_custom_fields
+            # Skip unknown fields on models with custom_fields (could be custom field names)
+            next if has_custom_fields && !valid_fields.include?(fname.to_s)
 
             unless valid_fields.include?(fname.to_s)
               @warnings << "Permission '#{perm.model}', role '#{role_name}': " \
@@ -594,7 +602,13 @@ module LcpRuby
         valid_fields = model_field_names(perm.model)
         return if valid_fields.empty?
 
+        model_def = loader.model_definitions[perm.model]
+        has_custom_fields = model_def&.custom_fields_enabled?
+
         perm.field_overrides.each_key do |field_name|
+          # Skip unknown fields on models with custom_fields (could be custom field names)
+          next if has_custom_fields && !valid_fields.include?(field_name.to_s)
+
           unless valid_fields.include?(field_name.to_s)
             @warnings << "Permission '#{perm.model}': field_override for " \
                          "unknown field '#{field_name}'"
@@ -814,6 +828,23 @@ module LcpRuby
 
         model_def = loader.model_definitions[role_model_name]
         result = Roles::ContractValidator.validate(model_def)
+        result.errors.each { |e| @errors << e }
+        result.warnings.each { |w| @warnings << w }
+      end
+
+      # --- Permission source model validations ---
+
+      def validate_permission_source_model
+        return unless LcpRuby.configuration.permission_source == :model
+
+        perm_model_name = LcpRuby.configuration.permission_model
+        unless model_names.include?(perm_model_name)
+          @errors << "permission_source is :model but model '#{perm_model_name}' is not defined"
+          return
+        end
+
+        model_def = loader.model_definitions[perm_model_name]
+        result = Permissions::ContractValidator.validate(model_def)
         result.errors.each { |e| @errors << e }
         result.warnings.each { |w| @warnings << w }
       end

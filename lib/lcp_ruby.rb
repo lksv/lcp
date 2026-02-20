@@ -77,6 +77,14 @@ require "lcp_ruby/roles/contract_validator"
 require "lcp_ruby/roles/change_handler"
 require "lcp_ruby/roles/setup"
 
+# Permissions (DB-backed permission source)
+require "lcp_ruby/permissions/registry"
+require "lcp_ruby/permissions/contract_validator"
+require "lcp_ruby/permissions/change_handler"
+require "lcp_ruby/permissions/definition_validator"
+require "lcp_ruby/permissions/source_resolver"
+require "lcp_ruby/permissions/setup"
+
 # Authorization
 require "lcp_ruby/authorization/scope_builder"
 require "lcp_ruby/authorization/permission_evaluator"
@@ -202,6 +210,7 @@ module LcpRuby
       Services::Registry.clear!
       CustomFields::Registry.clear!
       Roles::Registry.clear!
+      Permissions::Registry.clear!
 
       # Remove dynamic constants to avoid "already initialized" warnings
       Dynamic.constants.each do |const|

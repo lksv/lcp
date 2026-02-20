@@ -649,6 +649,124 @@ RoleModel = LcpRuby.registry.model_for("role")
 ].each { |attrs| RoleModel.create!(attrs) }
 puts "  Created #{RoleModel.count} role records"
 
+# Phase 8b: Permission Configs (DB-backed permissions)
+PermConfigModel = LcpRuby.registry.model_for("permission_config")
+
+[
+  {
+    target_model: "article",
+    definition: {
+      roles: {
+        admin: {
+          crud: %w[index show create update destroy],
+          fields: { readable: "all", writable: "all" },
+          actions: "all",
+          scope: "all",
+          presenters: "all"
+        },
+        editor: {
+          crud: %w[index show create update],
+          fields: { readable: "all", writable: %w[title body category_id author_id published featured] },
+          actions: { allowed: [] },
+          scope: "all",
+          presenters: "all"
+        },
+        viewer: {
+          crud: %w[index show],
+          fields: { readable: %w[title body category_id author_id published], writable: [] },
+          actions: { allowed: [] },
+          scope: "all",
+          presenters: "all"
+        }
+      },
+      default_role: "viewer"
+    }.to_json,
+    active: true,
+    notes: "DB-backed permissions for articles. Overrides the YAML _default. Editors can publish but not delete."
+  },
+  {
+    target_model: "department",
+    definition: {
+      roles: {
+        admin: {
+          crud: %w[index show create update destroy],
+          fields: { readable: "all", writable: "all" },
+          actions: "all",
+          scope: "all",
+          presenters: "all"
+        },
+        editor: {
+          crud: %w[index show update],
+          fields: { readable: "all", writable: %w[name description] },
+          actions: { allowed: [] },
+          scope: "all"
+        },
+        viewer: {
+          crud: %w[index show],
+          fields: { readable: "all", writable: [] },
+          actions: { allowed: [] },
+          scope: "all"
+        }
+      },
+      default_role: "viewer"
+    }.to_json,
+    active: true,
+    notes: "DB-backed permissions for departments. Editors can update but not create or delete."
+  },
+  {
+    target_model: "employee",
+    definition: {
+      roles: {
+        admin: {
+          crud: %w[index show create update destroy],
+          fields: { readable: "all", writable: "all" },
+          actions: "all",
+          scope: "all",
+          presenters: "all"
+        },
+        editor: {
+          crud: %w[index show create update],
+          fields: { readable: "all", writable: %w[name email role status department_id mentor_id nickname bio years_experience] },
+          actions: { allowed: [] },
+          scope: "all",
+          presenters: "all"
+        },
+        viewer: {
+          crud: %w[index show],
+          fields: { readable: %w[name email role status department_id nickname bio years_experience tshirt_size], writable: [] },
+          actions: { allowed: [] },
+          scope: "all",
+          presenters: "all"
+        }
+      },
+      default_role: "viewer",
+      field_overrides: {
+        hourly_rate: { readable_by: %w[admin], writable_by: %w[admin] },
+        performance_score: { readable_by: %w[admin editor], writable_by: %w[admin] }
+      }
+    }.to_json,
+    active: true,
+    notes: "Per-field custom field permissions demo. Viewers see basic custom fields but not salary/performance. field_overrides restrict hourly_rate to admin only."
+  },
+  {
+    target_model: "inactive_demo",
+    definition: {
+      roles: {
+        admin: {
+          crud: %w[index show create update destroy],
+          fields: { readable: "all", writable: "all" },
+          actions: "all",
+          scope: "all"
+        }
+      },
+      default_role: "admin"
+    }.to_json,
+    active: false,
+    notes: "Inactive permission config — ignored by the resolver. Demonstrates that inactive records don't affect authorization."
+  }
+].each { |attrs| PermConfigModel.create!(attrs) }
+puts "  Created #{PermConfigModel.count} permission config records"
+
 # Phase 9: Extensibility (was Phase 8)
 ExtModel = LcpRuby.registry.model_for("showcase_extensibility")
 
@@ -1329,6 +1447,62 @@ features = [
     status: "stable"
   },
 
+  # === Permission Source ===
+  {
+    name: "DB-Backed Permission Source",
+    category: "permission_source",
+    description: "Store permission definitions as JSON documents in a database model instead of YAML files. Enable with `config.permission_source = :model`.\n\nEach record holds a complete permission definition for one model. Changes take effect immediately — no restart needed.\n\nSource priority (first found wins, no merging):\n1. DB record for this model\n2. DB record for `_default`\n3. YAML file for this model\n4. YAML `_default`",
+    config_example: "```ruby\n# config/initializers/lcp_ruby.rb\nLcpRuby.configure do |config|\n  config.permission_source = :model\nend\n```\n\nDB record example:\n```json\n{\n  \"roles\": {\n    \"admin\": {\n      \"crud\": [\"index\", \"show\", \"create\", \"update\", \"destroy\"],\n      \"fields\": { \"readable\": \"all\", \"writable\": \"all\" },\n      \"actions\": \"all\",\n      \"scope\": \"all\",\n      \"presenters\": \"all\"\n    },\n    \"viewer\": {\n      \"crud\": [\"index\", \"show\"],\n      \"fields\": { \"readable\": \"all\", \"writable\": [] },\n      \"actions\": { \"allowed\": [] },\n      \"scope\": \"all\"\n    }\n  },\n  \"default_role\": \"viewer\"\n}\n```",
+    demo_path: "/showcase/permission-configs",
+    demo_hint: "Browse existing permission config records. Each one holds a full JSON permission definition for a specific model.",
+    status: "stable"
+  },
+  {
+    name: "Permission Definition Contract",
+    category: "permission_source",
+    description: "At boot time, the engine validates that your permission config model has the required fields:\n\n| Field | Type | Required |\n|-------|------|----------|\n| `target_model` | string | Yes |\n| `definition` | json | Yes |\n| `active` | boolean | No |\n\nIf the contract fails, the engine raises a clear error message listing missing or mistyped fields.",
+    config_example: "```ruby\n# Customize field mapping if your model uses different column names\nLcpRuby.configure do |config|\n  config.permission_model = \"permission_config\"\n  config.permission_model_fields = {\n    target_model: \"target_model\",\n    definition: \"definition\",\n    active: \"active\"\n  }\nend\n```",
+    demo_path: "/showcase/permission-configs",
+    demo_hint: "The showcase permission_config model follows the default contract — `target_model`, `definition`, `active`, plus an optional `notes` field.",
+    status: "stable"
+  },
+  {
+    name: "Permission Registry & Caching",
+    category: "permission_source",
+    description: "Parsed permission definitions are cached in a thread-safe registry. When a `permission_config` record is saved or destroyed, the `after_commit` callback:\n\n1. Clears the registry cache for that specific `target_model`\n2. Clears the PolicyFactory cache (policies capture permission definitions in closures)\n\nThis ensures authorization decisions always reflect the latest DB state.",
+    config_example: "```ruby\n# Programmatic access\nLcpRuby::Permissions::Registry.for_model(\"project\")\n# => PermissionDefinition or nil\n\nLcpRuby::Permissions::Registry.all_definitions\n# => { \"project\" => PermissionDefinition, ... }\n\n# Manual cache clear (rarely needed)\nLcpRuby::Permissions::Registry.reload!(\"project\")\nLcpRuby::Permissions::Registry.reload!  # all\n```",
+    demo_path: "/showcase/permission-configs",
+    demo_hint: "Edit a permission config record and save — the cache is automatically cleared. No restart required.",
+    status: "stable"
+  },
+  {
+    name: "Source Resolution Priority",
+    category: "permission_source",
+    description: "When `permission_source` is `:model`, the resolver follows a first-found-wins chain:\n\n1. **DB record** for the exact model name → use it entirely\n2. **DB `_default`** record → use it as a catch-all\n3. **YAML file** for the model → fallback when DB has no record\n\nThis is **not merging** — the first source that has a definition wins completely. DB and YAML are never combined for the same model.\n\nWhen `permission_source` is `:yaml` (default), only YAML files are consulted.",
+    config_example: "```ruby\n# Resolution logic (simplified)\ndef self.for(model_name, loader)\n  if config.permission_source == :model && Registry.available?\n    return Registry.for_model(model_name) ||\n           Registry.for_model(\"_default\") ||\n           loader.yaml_permission_definition(model_name)\n  end\n  loader.yaml_permission_definition(model_name)\nend\n```",
+    demo_path: "/showcase/permission-configs",
+    demo_hint: "The showcase has DB permission configs for specific models. Models without a DB record fall back to their YAML permission files.",
+    status: "stable"
+  },
+  {
+    name: "Permission Definition Validator",
+    category: "permission_source",
+    description: "JSON definitions are validated on every save. The validator checks:\n\n- `roles` must be a Hash; each role's `crud` must be a subset of valid actions\n- `fields.readable` / `writable` must be `\"all\"` or an Array\n- `default_role` must be a String\n- `field_overrides` must be a Hash (if present)\n- `record_rules` must be an Array (if present)\n\nInvalid definitions fail with clear error messages.",
+    config_example: "```json\n// Valid definition structure\n{\n  \"roles\": {\n    \"admin\": {\n      \"crud\": [\"index\", \"show\", \"create\", \"update\", \"destroy\"],\n      \"fields\": { \"readable\": \"all\", \"writable\": \"all\" },\n      \"actions\": \"all\",\n      \"scope\": \"all\"\n    }\n  },\n  \"default_role\": \"admin\",\n  \"field_overrides\": {\n    \"salary\": { \"readable_by\": [\"admin\"], \"writable_by\": [\"admin\"] }\n  }\n}\n```",
+    demo_path: "/showcase/permission-configs",
+    demo_hint: "Try creating a permission config with invalid JSON — the validator will reject it with a specific error.",
+    status: "stable"
+  },
+  {
+    name: "Permission Source Generator",
+    category: "permission_source",
+    description: "A Rails generator scaffolds the complete permission source setup: model, presenter, permissions, view group, and initializer config.\n\nSupports `--format dsl` (Ruby DSL, default) and `--format yaml` output.",
+    config_example: "```bash\n# Generate permission source files (DSL format)\nrails generate lcp_ruby:permission_source\n\n# Generate in YAML format\nrails generate lcp_ruby:permission_source --format=yaml\n\n# Creates:\n#   config/lcp_ruby/models/permission_config.rb (or .yml)\n#   config/lcp_ruby/presenters/permission_configs.rb (or .yml)\n#   config/lcp_ruby/permissions/permission_config.yml\n#   config/lcp_ruby/views/permission_configs.rb (or .yml)\n# Updates:\n#   config/initializers/lcp_ruby.rb → adds permission_source = :model\n```",
+    demo_path: "/showcase/permission-configs",
+    demo_hint: "The showcase permission_config model was created manually (using Ruby DSL), but the generator produces equivalent files.",
+    status: "stable"
+  },
+
   # === Extensibility ===
   {
     name: "Custom Actions",
@@ -1621,10 +1795,10 @@ features = [
   {
     name: "Custom Field Permissions",
     category: "custom_fields",
-    description: "Access to custom fields is controlled by a single permission key — `custom_data`. Include it in `readable` and `writable` field lists.\n\nCustom field definitions have their own separate permissions file (`permissions/custom_field_definition.yml`).\n\n| Config | Result |\n|--------|--------|\n| `readable: all` | All custom fields visible |\n| `writable: []` | Custom fields read-only |\n| `readable: [name]` (no `custom_data`) | Custom fields hidden |",
-    config_example: "```yaml\n# permissions/employee.yml (if custom permissions needed)\npermissions:\n  model: employee\n  roles:\n    admin:\n      fields:\n        readable: all     # includes custom_data\n        writable: all\n    viewer:\n      fields:\n        readable: all     # includes custom_data (read-only)\n        writable: []\n```",
+    description: "Custom fields support **per-field permission granularity**. Individual custom field names can appear in `fields.readable`, `fields.writable`, and `field_overrides`.\n\nThe aggregate `custom_data` key still works as a catch-all for backward compatibility.\n\n| Config | Result |\n|--------|--------|\n| `readable: all` | All fields including all custom fields |\n| `readable: [title, custom_data]` | title + ALL custom fields (aggregate) |\n| `readable: [title, website]` | title + only the \"website\" custom field |\n| `field_overrides: { website: { readable_by: [admin] } }` | Per-field override |\n\nCustom field definitions have their own separate permissions file (`permissions/custom_field_definition.yml`).",
+    config_example: "```yaml\n# permissions/employee.yml — per-field custom field permissions\npermissions:\n  model: employee\n  roles:\n    admin:\n      fields:\n        readable: all           # all fields + all custom fields\n        writable: all\n    editor:\n      fields:\n        readable: [name, email, nickname, bio]  # specific custom fields\n        writable: [name, nickname]               # only some writable\n    viewer:\n      fields:\n        readable: [name, custom_data]  # aggregate: all custom fields\n        writable: []\n  field_overrides:\n    hourly_rate:\n      readable_by: [admin]      # only admin sees hourly_rate\n      writable_by: [admin]\n```",
     demo_path: "/showcase/employees/custom-fields",
-    demo_hint: "The custom field definitions management UI uses its own permission set — admins can CRUD, viewers can only list/view.",
+    demo_hint: "Custom fields use per-field permissions. Use impersonation to see different custom fields visible for different roles.",
     status: "stable"
   },
   {

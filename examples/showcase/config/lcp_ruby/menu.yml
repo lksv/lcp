@@ -9,6 +9,7 @@ menu:
         - separator: true
         - view_group: showcase_attachments
         - view_group: showcase_permissions
+        - view_group: permission_configs
         - view_group: roles
         - view_group: showcase_extensibility
 

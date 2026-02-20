@@ -320,28 +320,71 @@ Reserved for future use. Per-field role-based write access control.
 
 ## Permissions
 
-Custom field access is controlled through a single virtual field name: `custom_data`. When a role has `custom_data` in its `readable` list (or `readable: all`), all active custom fields are visible. When `custom_data` is in the `writable` list (or `writable: all`), all active custom fields are editable.
+Custom field access supports both aggregate and per-field permission granularity.
+
+### Aggregate Access (`custom_data`)
+
+The `custom_data` virtual field acts as a catch-all: when present in `readable` or `writable`, it grants access to **all** active custom fields.
 
 ```yaml
 permissions:
   model: project
   roles:
     admin:
-      crud: [index, show, create, update, destroy]
       fields:
-        readable: all      # includes custom_data
-        writable: all      # includes custom_data
+        readable: all      # includes custom_data → all custom fields readable
+        writable: all      # includes custom_data → all custom fields writable
     viewer:
-      crud: [index, show]
       fields:
-        readable: all      # can see custom fields
-        writable: []        # cannot edit custom fields
+        readable: all      # can see all custom fields
+        writable: []        # cannot edit any custom fields
     restricted:
-      crud: [index, show]
       fields:
-        readable: [name, status]   # no custom_data -> custom fields hidden
+        readable: [name, status]   # no custom_data → custom fields hidden
         writable: []
 ```
+
+### Per-Field Access
+
+Individual custom field names can appear directly in `readable`, `writable`, and `field_overrides`:
+
+```yaml
+permissions:
+  model: project
+  roles:
+    editor:
+      fields:
+        readable: [name, status, website, phone]  # specific custom fields
+        writable: [name, website]                   # only website writable
+    support:
+      fields:
+        readable: [name, custom_data]  # name + ALL custom fields
+        writable: [custom_data]        # ALL custom fields writable
+```
+
+### Resolution Rules
+
+| Permission Config | Result |
+|-------------------|--------|
+| `readable: all` | All custom fields readable |
+| `readable: [title, custom_data]` | title + ALL custom fields |
+| `readable: [title, website]` | title + only "website" custom field |
+| `readable: [title]` | No custom fields visible |
+
+### Field Overrides for Custom Fields
+
+Per-field role-based overrides work for custom fields:
+
+```yaml
+permissions:
+  model: project
+  field_overrides:
+    internal_notes:
+      readable_by: [admin, manager]
+      writable_by: [admin]
+```
+
+See also [Permission Source](permission-source.md) for DB-backed permission management.
 
 ## Management Routes
 

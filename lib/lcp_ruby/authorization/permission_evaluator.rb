@@ -73,7 +73,10 @@ module LcpRuby
           return (roles & override["readable_by"].map(&:to_s)).any?
         end
 
-        readable_fields.include?(field_name.to_s)
+        return true if readable_fields.include?(field_name.to_s)
+
+        # Fallback: custom_data grants access to all custom fields
+        custom_field_name?(field_name) && readable_fields.include?("custom_data")
       end
 
       def field_writable?(field_name)
@@ -82,7 +85,10 @@ module LcpRuby
           return (roles & override["writable_by"].map(&:to_s)).any?
         end
 
-        writable_fields.include?(field_name.to_s)
+        return true if writable_fields.include?(field_name.to_s)
+
+        # Fallback: custom_data grants access to all custom fields
+        custom_field_name?(field_name) && writable_fields.include?("custom_data")
       end
 
       def field_masked?(field_name)
@@ -157,10 +163,24 @@ module LcpRuby
         model_def = LcpRuby.loader.model_definition(model_name)
         names = model_def.fields.map(&:name)
         names.concat(model_def.belongs_to_fk_map.keys)
-        names << "custom_data" if model_def.custom_fields_enabled?
+        if model_def.custom_fields_enabled?
+          names << "custom_data"
+          cf_names = CustomFields::Registry.for_model(model_name)
+            .select(&:active).map(&:field_name)
+          names.concat(cf_names)
+        end
         names.uniq
       rescue MetadataError
         []
+      end
+
+      def custom_field_name?(field_name)
+        model_def = LcpRuby.loader.model_definition(model_name)
+        return false unless model_def.custom_fields_enabled?
+
+        CustomFields::Registry.for_model(model_name).any? { |d| d.field_name == field_name.to_s }
+      rescue MetadataError
+        false
       end
 
       def apply_field_overrides_readable(field_names)
