@@ -65,10 +65,15 @@ bundle exec rubocop
 # Lint with auto-fix
 bundle exec rubocop -a
 
+# Validate YAML metadata (run from example app directory when changing examples/)
+bundle exec rake lcp_ruby:validate
+
 # Run example apps (from their directory)
 cd examples/todo && bundle exec rails db:prepare && bundle exec rails s -p 3000
 cd examples/crm && bundle exec rails db:prepare && bundle exec rails s -p 3001
 ```
+
+**Important:** When making changes in `examples/` apps, always run `bundle exec rake lcp_ruby:validate` from that example app's directory to verify YAML metadata is valid.
 
 ## Architecture
 

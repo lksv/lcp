@@ -1,4 +1,6 @@
 permissions:
+  model: showcase_permission
+
   roles:
     admin:
       crud: [index, show, create, update, destroy]

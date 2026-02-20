@@ -265,7 +265,11 @@ module LcpRuby
             cols << "#{a.name}_type" if a.polymorphic
             cols
           }
-        all_valid = valid_fields + fk_fields + %w[created_at updated_at id]
+        # has_many :through associations expose *_ids accessor (e.g., tag_ids for has_many :tags)
+        collection_id_fields = model_def.associations
+          .select { |a| a.through? }
+          .map { |a| "#{a.name.to_s.singularize}_ids" }
+        all_valid = valid_fields + fk_fields + collection_id_fields + %w[created_at updated_at id]
 
         # Check table columns
         presenter.table_columns.each do |col|
@@ -293,6 +297,9 @@ module LcpRuby
         sections.each do |section|
           section = section.transform_keys(&:to_s) if section.is_a?(Hash)
           next unless section.is_a?(Hash)
+
+          # Skip nested_fields sections — their fields belong to the associated model, not the presenter model
+          next if section["type"] == "nested_fields"
 
           # Validate section-level conditions
           %w[visible_when disable_when].each do |cond_key|
@@ -588,6 +595,8 @@ module LcpRuby
           end
 
           validate_breadcrumb_relation(vg)
+
+          next unless vg.navigable?
 
           pos = vg.navigation_config["position"]
           if pos
