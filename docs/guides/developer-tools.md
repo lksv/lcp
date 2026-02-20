@@ -1,6 +1,6 @@
 # Developer Tools
 
-LCP Ruby includes two rake tasks for validating your YAML configuration and visualizing model relationships.
+LCP Ruby includes rake tasks for validating YAML configuration, visualizing model relationships, auditing permissions, and managing users.
 
 ## `lcp_ruby:validate`
 
@@ -14,8 +14,9 @@ bundle exec rake lcp_ruby:validate
 
 ### What It Checks
 
-The validator loads all YAML files through the metadata parser and runs `ConfigurationValidator`, which checks:
+The task runs two validation passes:
 
+**1. Configuration validation** (`ConfigurationValidator`):
 - YAML syntax errors
 - Required attributes (model name, field types, etc.)
 - Valid field types (must be one of the 14 supported types)
@@ -23,6 +24,11 @@ The validator loads all YAML files through the metadata parser and runs `Configu
 - Valid validation types (must be one of the 8 supported types)
 - Cross-references (presenter `model` must reference an existing model, etc.)
 - Duplicate field names within a model
+
+**2. Service reference validation** (`Services::Checker`):
+- Registered built-in types, transforms, and defaults
+- Auto-discovered data providers from `app/lcp_services/data_providers/`
+- Verifies all service references in model definitions resolve to registered services
 
 ### Example Output
 
@@ -132,4 +138,56 @@ The matrix displays one table per model with permission files. For each role it 
 
 This is useful for auditing permissions and verifying that roles have the expected access levels.
 
-Source: `lib/tasks/lcp_ruby.rake`, `lib/lcp_ruby/metadata/configuration_validator.rb`, `lib/lcp_ruby/metadata/erd_generator.rb`
+## `lcp_ruby:create_admin`
+
+Creates or updates an admin user for LCP Ruby's built-in authentication system.
+
+> **Note:** This task only works when `config.authentication = :built_in` is set in your initializer. It will abort with an error message otherwise.
+
+### Usage
+
+```bash
+# Minimal (required parameters only)
+bundle exec rake lcp_ruby:create_admin EMAIL=admin@example.com PASSWORD=secret123
+
+# Full (all parameters)
+bundle exec rake lcp_ruby:create_admin EMAIL=admin@example.com PASSWORD=secret123 NAME="Jane Admin" ROLES=admin,manager
+```
+
+### Parameters
+
+| Parameter | Required | Default | Description |
+|-----------|----------|---------|-------------|
+| `EMAIL` | Yes | — | Email address for the admin user |
+| `PASSWORD` | Yes | — | Password for the admin user |
+| `NAME` | No | `"Admin"` | Display name |
+| `ROLES` | No | `"admin"` | Comma-separated list of roles |
+
+### Behavior
+
+- If a user with the given email already exists, the task **updates** their attributes (name, password, roles, active status).
+- If no user exists with that email, the task **creates** a new one.
+- The user is always set to `active: true`.
+- On success, prints whether the user was created or updated.
+- On failure (validation errors), prints the error messages and exits with status code 1.
+
+### Example Output
+
+```
+Created admin user: admin@example.com (roles: admin)
+```
+
+Or when updating an existing user:
+
+```
+Updated admin user: admin@example.com (roles: admin, manager)
+```
+
+## Summary
+
+| Task | Purpose | Source |
+|------|---------|--------|
+| `lcp_ruby:validate` | Validate YAML configuration | `lib/tasks/lcp_ruby.rake` |
+| `lcp_ruby:erd` | Generate ERD diagrams | `lib/tasks/lcp_ruby.rake` |
+| `lcp_ruby:permissions` | Display permission matrix | `lib/tasks/lcp_ruby.rake` |
+| `lcp_ruby:create_admin` | Create/update admin user | `lib/tasks/lcp_ruby_auth.rake` |
