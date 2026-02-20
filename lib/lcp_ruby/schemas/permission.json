@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lcp-ruby.dev/schemas/permission.json",
+  "title": "LCP Ruby Permission Definition",
+  "description": "Schema for permission metadata that defines role-based access control: CRUD, field visibility, scopes, and record rules.",
+  "type": "object",
+  "properties": {
+    "model": { "type": "string" },
+    "default_role": { "type": "string" },
+    "roles": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/role_config" }
+    },
+    "field_overrides": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/field_override" }
+    },
+    "record_rules": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/record_rule" }
+    }
+  },
+  "required": ["model", "roles"],
+  "additionalProperties": false,
+
+  "$defs": {
+    "crud_action": {
+      "type": "string",
+      "enum": ["index", "show", "create", "update", "destroy"]
+    },
+
+    "role_config": {
+      "type": "object",
+      "properties": {
+        "crud": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/crud_action" }
+        },
+        "fields": { "$ref": "#/$defs/field_access" },
+        "actions": { "$ref": "#/$defs/actions_access" },
+        "scope": { "$ref": "#/$defs/scope_config" },
+        "presenters": { "$ref": "#/$defs/presenter_access" }
+      },
+      "additionalProperties": false
+    },
+
+    "field_access": {
+      "type": "object",
+      "properties": {
+        "readable": { "$ref": "#/$defs/field_list" },
+        "writable": { "$ref": "#/$defs/field_list" }
+      },
+      "additionalProperties": false
+    },
+
+    "field_list": {
+      "description": "\"all\" or array of field names.",
+      "oneOf": [
+        { "type": "string", "const": "all" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    },
+
+    "actions_access": {
+      "description": "\"all\" or object with allowed/denied action lists.",
+      "oneOf": [
+        { "type": "string", "const": "all" },
+        {
+          "type": "object",
+          "properties": {
+            "allowed": {
+              "oneOf": [
+                { "type": "string", "const": "all" },
+                { "type": "array", "items": { "type": "string" } }
+              ]
+            },
+            "denied": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "scope_config": {
+      "description": "\"all\" or scope configuration object.",
+      "oneOf": [
+        { "type": "string", "const": "all" },
+        {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["field_match", "association", "where", "custom"]
+            },
+            "field": { "type": "string" },
+            "value": { "type": "string" },
+            "method": { "type": "string" },
+            "conditions": { "type": "object" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "presenter_access": {
+      "description": "\"all\" or array of presenter names.",
+      "oneOf": [
+        { "type": "string", "const": "all" },
+        { "type": "array", "items": { "type": "string" } }
+      ]
+    },
+
+    "field_override": {
+      "type": "object",
+      "properties": {
+        "readable_by": { "type": "array", "items": { "type": "string" } },
+        "writable_by": { "type": "array", "items": { "type": "string" } },
+        "masked_for": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+
+    "record_rule": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "condition": { "$ref": "#/$defs/rule_condition" },
+        "effect": { "$ref": "#/$defs/rule_effect" }
+      },
+      "required": ["name", "condition", "effect"],
+      "additionalProperties": false
+    },
+
+    "rule_condition": {
+      "type": "object",
+      "properties": {
+        "field": { "type": "string" },
+        "operator": {
+          "type": "string",
+          "enum": ["eq", "not_eq", "neq", "in", "not_in", "gt", "gte", "lt", "lte", "present", "blank", "matches", "not_matches"]
+        },
+        "value": {}
+      },
+      "required": ["field", "operator"],
+      "additionalProperties": false
+    },
+
+    "rule_effect": {
+      "type": "object",
+      "properties": {
+        "deny_crud": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/crud_action" }
+        },
+        "except_roles": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "required": ["deny_crud"],
+      "additionalProperties": false
+    }
+  }
+}

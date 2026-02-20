@@ -136,7 +136,7 @@ RSpec.describe "Presenter Loader DSL integration" do
 
             show do
               section "Details" do
-                field :title, display: :heading
+                field :title, renderer: :heading
               end
             end
 

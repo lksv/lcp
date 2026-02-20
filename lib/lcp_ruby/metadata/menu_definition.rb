@@ -1,11 +1,12 @@
 module LcpRuby
   module Metadata
     class MenuDefinition
-      attr_reader :top_menu, :sidebar_menu
+      attr_reader :top_menu, :sidebar_menu, :raw_hash
 
-      def initialize(top_menu: nil, sidebar_menu: nil)
+      def initialize(top_menu: nil, sidebar_menu: nil, raw_hash: nil)
         @top_menu = top_menu
         @sidebar_menu = sidebar_menu
+        @raw_hash = raw_hash
 
         validate!
       end
@@ -16,7 +17,7 @@ module LcpRuby
         top = data["top_menu"]&.map { |item| MenuItem.from_hash(item) }
         sidebar = data["sidebar_menu"]&.map { |item| MenuItem.from_hash(item) }
 
-        new(top_menu: top, sidebar_menu: sidebar)
+        new(top_menu: top, sidebar_menu: sidebar, raw_hash: data)
       end
 
       def has_top_menu?

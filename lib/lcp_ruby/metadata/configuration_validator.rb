@@ -46,6 +46,10 @@ module LcpRuby
         @errors = []
         @warnings = []
 
+        # Phase 1: Structural validation via JSON Schema
+        validate_schemas
+
+        # Phase 2: Cross-reference validation (semantic)
         validate_models
         validate_associations
         validate_presenters
@@ -61,6 +65,30 @@ module LcpRuby
       end
 
       private
+
+      def validate_schemas
+        schema_validator = SchemaValidator.new
+
+        loader.model_definitions.each_value do |model|
+          schema_validator.validate_model(model).each { |msg| @warnings << msg }
+        end
+
+        loader.presenter_definitions.each_value do |presenter|
+          schema_validator.validate_presenter(presenter).each { |msg| @warnings << msg }
+        end
+
+        loader.permission_definitions.each_value do |permission|
+          schema_validator.validate_permission(permission).each { |msg| @warnings << msg }
+        end
+
+        loader.view_group_definitions.each_value do |view_group|
+          schema_validator.validate_view_group(view_group).each { |msg| @warnings << msg }
+        end
+
+        if loader.menu_definition
+          schema_validator.validate_menu(loader.menu_definition).each { |msg| @warnings << msg }
+        end
+      end
 
       def model_names
         @model_names ||= loader.model_definitions.keys

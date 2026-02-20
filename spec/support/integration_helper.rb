@@ -73,7 +73,6 @@ module IntegrationHelper
       table_name = model_name.pluralize
       connection.drop_table(table_name, if_exists: true)
     end
-
   end
 
   # Stub the current_user method for integration tests

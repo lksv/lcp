@@ -13,6 +13,7 @@ view_group:
   name: <group_name>
   model: <model_name>
   primary: <presenter_name>
+  public: false
   navigation:
     menu: main
     position: 3
@@ -56,6 +57,27 @@ Name of the [model](models.md) this view group covers. Must match a model's `nam
 | **Type** | string |
 
 Name of the primary presenter in this group. The primary presenter is used as the representative entry in the navigation menu (its label, slug, and icon are shown). Must be one of the presenters listed in `views`.
+
+### `public`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `false` |
+| **Type** | boolean |
+
+When `true`, this view group allows unauthenticated access. Requests to presenters in a public view group bypass the `authenticate_user!` check — an anonymous user object with empty roles is used instead. This is useful for public-facing pages like landing pages or public directories.
+
+```yaml
+view_group:
+  name: public_catalog
+  model: product
+  primary: product_catalog
+  public: true
+  navigation: false
+  views:
+    - presenter: product_catalog
+```
 
 ### `navigation`
 

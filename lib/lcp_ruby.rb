@@ -21,6 +21,7 @@ require "lcp_ruby/metadata/menu_item"
 require "lcp_ruby/metadata/menu_definition"
 require "lcp_ruby/metadata/loader"
 require "lcp_ruby/metadata/contract_result"
+require "lcp_ruby/metadata/schema_validator"
 require "lcp_ruby/metadata/configuration_validator"
 require "lcp_ruby/metadata/erd_generator"
 

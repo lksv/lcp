@@ -314,21 +314,22 @@ Attachment fields work like any other field in the permission system. Control re
 
 ```yaml
 permissions:
+  model: document
   roles:
-    - name: admin
-      crud: [create, read, update, destroy]
+    admin:
+      crud: [index, show, create, update, destroy]
       fields:
         readable: all
         writable: all
 
-    - name: viewer
-      crud: [read]
+    viewer:
+      crud: [index, show]
       fields:
         readable: [title, photo, files]
         writable: []
 
-    - name: editor
-      crud: [create, read, update]
+    editor:
+      crud: [index, show, create, update]
       fields:
         readable: all
         writable: [title, photo, files]

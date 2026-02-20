@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lcp-ruby.dev/schemas/view_group.json",
+  "title": "LCP Ruby View Group Definition",
+  "description": "Schema for view group metadata that defines presenter switching, navigation, and breadcrumbs.",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "model": { "type": "string" },
+    "primary": { "type": "string" },
+    "public": { "type": "boolean" },
+    "navigation": { "$ref": "#/$defs/navigation_config" },
+    "breadcrumb": { "$ref": "#/$defs/breadcrumb_config" },
+    "views": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/view" },
+      "minItems": 1
+    }
+  },
+  "required": ["model", "primary", "views"],
+  "additionalProperties": false,
+
+  "$defs": {
+    "view": {
+      "type": "object",
+      "properties": {
+        "presenter": { "type": "string" },
+        "label": { "type": "string" },
+        "icon": { "type": "string" }
+      },
+      "required": ["presenter"],
+      "additionalProperties": false
+    },
+
+    "navigation_config": {
+      "description": "Navigation settings or false to exclude from navigation.",
+      "oneOf": [
+        { "type": "boolean", "const": false },
+        {
+          "type": "object",
+          "properties": {
+            "position": { "type": "integer" },
+            "menu": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "breadcrumb_config": {
+      "description": "Breadcrumb settings or false to disable.",
+      "oneOf": [
+        { "type": "boolean", "const": false },
+        {
+          "type": "object",
+          "properties": {
+            "relation": { "type": "string" }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

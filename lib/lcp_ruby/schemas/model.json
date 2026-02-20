@@ -1,0 +1,198 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lcp-ruby.dev/schemas/model.json",
+  "title": "LCP Ruby Model Definition",
+  "description": "Schema for model metadata that defines database structure, validations, associations, scopes, and events.",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "label": { "type": "string" },
+    "label_plural": { "type": "string" },
+    "table_name": { "type": "string" },
+    "fields": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/field" }
+    },
+    "associations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/association" }
+    },
+    "validations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/validation" }
+    },
+    "scopes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/scope" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/event" }
+    },
+    "display_templates": {
+      "type": "object",
+      "additionalProperties": { "$ref": "#/$defs/display_template" }
+    },
+    "options": { "$ref": "#/$defs/model_options" }
+  },
+  "required": ["name"],
+  "additionalProperties": false,
+
+  "$defs": {
+    "model_options": {
+      "type": "object",
+      "properties": {
+        "timestamps": { "type": "boolean" },
+        "label_method": { "type": "string" },
+        "custom_fields": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+
+    "field": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string" },
+        "label": { "type": "string" },
+        "default": {},
+        "transforms": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "column_options": { "$ref": "#/$defs/column_options" },
+        "validations": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/validation" }
+        },
+        "enum_values": {
+          "type": "array",
+          "items": {}
+        },
+        "computed": { "type": ["string", "object"] },
+        "options": { "type": "object" }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+
+    "column_options": {
+      "type": "object",
+      "properties": {
+        "limit": { "type": "integer" },
+        "null": { "type": "boolean" },
+        "precision": { "type": "integer" },
+        "scale": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+
+    "validation": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["presence", "length", "numericality", "format", "inclusion", "exclusion", "uniqueness", "confirmation", "custom", "comparison", "service"]
+        },
+        "options": { "type": "object" },
+        "when": { "$ref": "#/$defs/condition" },
+        "message": { "type": "string" },
+        "validator_class": { "type": "string" },
+        "field_ref": { "type": "string" },
+        "operator": { "type": "string" },
+        "service": { "type": "string" },
+        "field": { "type": "string" }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    },
+
+    "association": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["belongs_to", "has_many", "has_one"]
+        },
+        "name": { "type": "string" },
+        "target_model": { "type": "string" },
+        "class_name": { "type": "string" },
+        "foreign_key": { "type": "string" },
+        "dependent": { "type": "string", "enum": ["destroy", "delete", "delete_all", "nullify", "restrict_with_exception", "restrict_with_error"] },
+        "required": { "type": "boolean" },
+        "inverse_of": { "type": "string" },
+        "counter_cache": { "type": ["string", "boolean"] },
+        "touch": { "type": ["string", "boolean"] },
+        "polymorphic": { "type": "boolean" },
+        "as": { "type": "string" },
+        "through": { "type": "string" },
+        "source": { "type": "string" },
+        "autosave": { "type": "boolean" },
+        "validate": { "type": "boolean" },
+        "order": { "type": "object" },
+        "nested_attributes": { "$ref": "#/$defs/nested_attributes" }
+      },
+      "required": ["type", "name"],
+      "additionalProperties": false
+    },
+
+    "nested_attributes": {
+      "type": "object",
+      "properties": {
+        "allow_destroy": { "type": "boolean" },
+        "reject_if": { "type": "string" },
+        "limit": { "type": "integer" },
+        "update_only": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+
+    "scope": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["custom"] },
+        "where": { "type": "object" },
+        "where_not": { "type": "object" },
+        "order": { "type": "object" },
+        "limit": { "type": "integer" }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+
+    "event": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["lifecycle", "field_change"]
+        },
+        "field": { "type": "string" },
+        "condition": { "type": ["string", "object"] }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+
+    "display_template": {
+      "type": "object",
+      "properties": {
+        "template": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "icon": { "type": "string" },
+        "badge": { "type": "string" },
+        "renderer": { "type": "string" },
+        "partial": { "type": "string" },
+        "options": { "type": "object" }
+      },
+      "additionalProperties": false
+    },
+
+    "condition": {
+      "description": "Conditional trigger: field-based check or service reference.",
+      "type": ["object", "string"]
+    }
+  }
+}

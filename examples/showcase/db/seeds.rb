@@ -925,7 +925,7 @@ features = [
     name: "Badge Display",
     category: "display_types",
     description: "Renders value as a colored pill/badge. Uses `color_map` to assign colors per value.\n\nAvailable colors: green, red, blue, yellow, orange, purple, gray, teal, cyan, pink.",
-    config_example: "```yaml\ntable_columns:\n  - field: status\n    display: badge\n    display_options:\n      color_map:\n        active: green\n        draft: gray\n        archived: orange\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: status\n    renderer: badge\n    options:\n      color_map:\n        active: green\n        draft: gray\n        archived: orange\n```",
     demo_path: "/showcase/showcase-fields/1#field-status",
     demo_hint: "Look at the **Status** and **Priority** fields — both use badge display with different color maps.",
     status: "stable"
@@ -934,7 +934,7 @@ features = [
     name: "Rating Display",
     category: "display_types",
     description: "Renders a numeric value as filled/empty stars. Configurable `max` (default 5).",
-    config_example: "```yaml\ntable_columns:\n  - field: rating_value\n    display: rating\n    display_options:\n      max: 5\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: rating_value\n    renderer: rating\n    options:\n      max: 5\n```",
     demo_path: "/showcase/showcase-fields/1#field-rating_value",
     demo_hint: "Look at the **Rating value** field — shows stars like ★★★★☆.",
     status: "stable"
@@ -943,7 +943,7 @@ features = [
     name: "Currency Display",
     category: "display_types",
     description: "Formats a numeric value as currency with symbol, thousand separators, and decimal precision.",
-    config_example: "```yaml\ntable_columns:\n  - field: price\n    display: currency\n    display_options:\n      currency: EUR\n      precision: 2\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: price\n    renderer: currency\n    options:\n      currency: EUR\n      precision: 2\n```",
     demo_path: "/showcase/showcase-fields/1#field-price",
     demo_hint: "Look at the **Price** field — displays values like `USD1,299.99`.",
     status: "stable"
@@ -952,7 +952,7 @@ features = [
     name: "Progress Bar Display",
     category: "display_types",
     description: "Visual progress bar. Value is rendered as percentage of configurable `max` (default 100).",
-    config_example: "```yaml\ntable_columns:\n  - field: completion\n    display: progress_bar\n    display_options:\n      max: 100\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: completion\n    renderer: progress_bar\n    options:\n      max: 100\n```",
     demo_path: "/showcase/showcase-forms",
     demo_hint: "Edit a form record and look at the **Priority** slider — the value drives a progress bar display.",
     status: "stable"
@@ -961,7 +961,7 @@ features = [
     name: "Truncate Display",
     category: "display_types",
     description: "Truncates long text to a maximum number of characters with `...` suffix. Full text shown in tooltip on hover.",
-    config_example: "```yaml\ntable_columns:\n  - field: description\n    display: truncate\n    display_options:\n      max: 80\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: description\n    renderer: truncate\n    options:\n      max: 80\n```",
     demo_path: "/showcase/showcase-fields/1#field-description",
     demo_hint: "Look at the **Description** field. In the index table, long text is truncated with ellipsis — hover to see full text.",
     status: "stable"
@@ -970,7 +970,7 @@ features = [
     name: "Boolean Icon Display",
     category: "display_types",
     description: "Shows Yes/No text with green/red coloring. Customizable labels via `true_icon` and `false_icon` options.",
-    config_example: "```yaml\ntable_columns:\n  - field: is_active\n    display: boolean_icon\n    display_options:\n      true_icon: Active\n      false_icon: Inactive\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: is_active\n    renderer: boolean_icon\n    options:\n      true_icon: Active\n      false_icon: Inactive\n```",
     demo_path: "/showcase/showcase-fields/1#field-is_active",
     demo_hint: "Look at the **Is active** field — green 'Yes' or red 'No'.",
     status: "stable"
@@ -979,7 +979,7 @@ features = [
     name: "Color Swatch Display",
     category: "display_types",
     description: "Shows a small colored square preview next to the hex value. Validates input against safe CSS color patterns to prevent injection.",
-    config_example: "```yaml\ntable_columns:\n  - field: brand_color\n    display: color_swatch\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: brand_color\n    renderer: color_swatch\n```",
     demo_path: "/showcase/showcase-fields/1#field-brand_color",
     demo_hint: "Look at the **Brand color** field — shows a colored square matching the hex value.",
     status: "stable"
@@ -988,7 +988,7 @@ features = [
     name: "Relative Date Display",
     category: "display_types",
     description: "Shows dates as human-readable relative time: '3 days ago', 'about 2 months ago', etc.",
-    config_example: "```yaml\ntable_columns:\n  - field: event_time\n    display: relative_date\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: event_time\n    renderer: relative_date\n```",
     demo_path: "/showcase/showcase-fields/1#field-event_time",
     demo_hint: "Look at the **Event time** field — shows values like '7 days ago' instead of absolute dates.",
     status: "stable"
@@ -997,7 +997,7 @@ features = [
     name: "Heading Display",
     category: "display_types",
     description: "Renders text as bold `<strong>` tag. Used for primary identifiers in tables (name, title).",
-    config_example: "```yaml\ntable_columns:\n  - field: title\n    display: heading\n    link_to: show\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: title\n    renderer: heading\n    link_to: show\n```",
     demo_path: "/showcase/showcase-fields/1#field-title",
     demo_hint: "Look at the **Title** field — rendered as bold `<strong>` text.",
     status: "stable"
@@ -1006,7 +1006,7 @@ features = [
     name: "Code Display",
     category: "display_types",
     description: "Renders value in monospace font inside a `<code>` tag. Ideal for UUIDs, JSON, technical identifiers.",
-    config_example: "```yaml\nshow:\n  fields:\n    - field: external_id\n      display: code\n```",
+    config_example: "```yaml\nshow:\n  fields:\n    - field: external_id\n      renderer: code\n```",
     demo_path: "/showcase/showcase-fields/1#field-external_id",
     demo_hint: "Open a record's show view — **External id** renders in monospace code style.",
     status: "stable"
@@ -1015,7 +1015,7 @@ features = [
     name: "Email / Phone / URL Link Displays",
     category: "display_types",
     description: "Renders values as clickable links:\n- `email_link` → `mailto:` link\n- `phone_link` → `tel:` link\n- `url_link` → external link (opens in new tab)",
-    config_example: "```yaml\ntable_columns:\n  - field: email\n    display: email_link\n  - field: phone\n    display: phone_link\n  - field: website\n    display: url_link\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: email\n    renderer: email_link\n  - field: phone\n    renderer: phone_link\n  - field: website\n    renderer: url_link\n```",
     demo_path: "/showcase/showcase-fields/1#field-email",
     demo_hint: "Look at **Email**, **Phone**, and **Website** fields — each is a clickable link (mailto, tel, external).",
     status: "stable"
@@ -1024,7 +1024,7 @@ features = [
     name: "Markdown Display",
     category: "display_types",
     description: "Renders Markdown content as formatted HTML. Supports GFM: tables, task lists, fenced code blocks, strikethrough, autolinks.\n\nPowered by Commonmarker (Rust-based GFM parser).",
-    config_example: "```yaml\nshow:\n  fields:\n    - field: description\n      display: markdown\n```",
+    config_example: "```yaml\nshow:\n  fields:\n    - field: description\n      renderer: markdown\n```",
     demo_path: "/showcase/features",
     demo_hint: "You're looking at it now! The **Description** and **Configuration Example** fields on this page use markdown display.",
     status: "stable"
@@ -1033,7 +1033,7 @@ features = [
     name: "Internal Link Display",
     category: "display_types",
     description: "Renders a field value as a clickable internal link. Use `label` option to customize link text.",
-    config_example: "```yaml\ntable_columns:\n  - field: demo_path\n    display: internal_link\n    display_options:\n      label: \"View Demo\"\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: demo_path\n    renderer: internal_link\n    options:\n      label: \"View Demo\"\n```",
     demo_path: "/showcase/features",
     demo_hint: "Look at the **Demo Link** column in the feature catalog — 'View Demo' links that navigate within the app.",
     status: "stable"
@@ -1041,8 +1041,8 @@ features = [
   {
     name: "Collection Display",
     category: "display_types",
-    description: "Renders an array of values joined by a separator. Supports `limit` with overflow indicator, and `item_display` to apply a display type to each item.",
-    config_example: "```yaml\ntable_columns:\n  - field: tags\n    display: collection\n    display_options:\n      separator: \", \"\n      limit: 3\n      overflow: \"...\"\n      item_display: badge\n```",
+    description: "Renders an array of values joined by a separator. Supports `limit` with overflow indicator, and `item_renderer` to apply a renderer to each item.",
+    config_example: "```yaml\ntable_columns:\n  - field: tags\n    renderer: collection\n    options:\n      separator: \", \"\n      limit: 3\n      overflow: \"...\"\n      item_renderer: badge\n```",
     demo_path: "/showcase/articles",
     demo_hint: "Look at article records — tags are displayed as a collection of badge items.",
     status: "stable"
@@ -1051,7 +1051,7 @@ features = [
     name: "Number / Percentage / File Size Displays",
     category: "display_types",
     description: "Numeric formatting display types:\n- `number` — thousands separator\n- `percentage` — appends % with configurable precision\n- `file_size` — human-readable bytes (KB, MB, GB)",
-    config_example: "```yaml\ntable_columns:\n  - field: count\n    display: number\n  - field: completion\n    display: percentage\n    display_options: { precision: 1 }\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: count\n    renderer: number\n  - field: completion\n    renderer: percentage\n    options: { precision: 1 }\n```",
     demo_path: "/showcase/showcase-fields/1#field-count",
     demo_hint: "Look at the **Count** field — values like `2,500` with thousands separator.",
     status: "stable"
@@ -1060,7 +1060,7 @@ features = [
     name: "Attachment Display Types",
     category: "display_types",
     description: "Three display types for Active Storage attachments:\n- `attachment_preview` — image thumbnail or download link\n- `attachment_list` — list of download links with file sizes\n- `attachment_link` — single download link",
-    config_example: "```yaml\nshow:\n  fields:\n    - field: avatar\n      display: attachment_preview\n      display_options:\n        variant: thumb\n    - field: documents\n      display: attachment_list\n```",
+    config_example: "```yaml\nshow:\n  fields:\n    - field: avatar\n      renderer: attachment_preview\n      options:\n        variant: thumb\n    - field: documents\n      renderer: attachment_list\n```",
     demo_path: "/showcase/showcase-attachments",
     demo_hint: "Upload files to see preview, list, and link display types in action.",
     status: "stable"
@@ -1255,7 +1255,7 @@ features = [
     name: "Column Configuration",
     category: "presenter",
     description: "Fine-grained table column control: `width`, `sortable`, `link_to: show`, `hidden_on: [mobile]`, `pinned: left`, `summary: sum|avg|count`.",
-    config_example: "```yaml\ntable_columns:\n  - field: title\n    width: \"20%\"\n    link_to: show\n    sortable: true\n    display: heading\n    pinned: left\n  - field: price\n    summary: sum\n```",
+    config_example: "```yaml\ntable_columns:\n  - field: title\n    width: \"20%\"\n    link_to: show\n    sortable: true\n    renderer: heading\n    pinned: left\n  - field: price\n    summary: sum\n```",
     demo_path: "/showcase/showcase-fields",
     demo_hint: "The table has sortable columns (click headers), a price **sum** in the footer, and linked titles.",
     status: "stable"
@@ -1282,7 +1282,7 @@ features = [
     name: "Presenter Inheritance (DSL)",
     category: "presenter",
     description: "A presenter can inherit from another with `inherits:`. Child overrides specific sections while keeping the rest.",
-    config_example: "```ruby\ndefine_presenter :features_table, inherits: :features_card do\n  label \"Feature Catalog (Table)\"\n  slug \"features-table\"\n\n  index do\n    per_page 100\n    column :description, display: :truncate\n  end\nend\n```",
+    config_example: "```ruby\ndefine_presenter :features_table, inherits: :features_card do\n  label \"Feature Catalog (Table)\"\n  slug \"features-table\"\n\n  index do\n    per_page 100\n    column :description, renderer: :truncate\n  end\nend\n```",
     demo_path: "/showcase/features",
     demo_hint: "Switch between Card/Table views — the table view inherits from card but overrides the index columns.",
     status: "stable"

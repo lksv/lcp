@@ -1,7 +1,7 @@
 module LcpRuby
   module Metadata
     class PermissionDefinition
-      attr_reader :model, :roles, :default_role, :field_overrides, :record_rules
+      attr_reader :model, :roles, :default_role, :field_overrides, :record_rules, :raw_hash
 
       def initialize(attrs = {})
         @model = attrs[:model].to_s
@@ -9,6 +9,7 @@ module LcpRuby
         @default_role = attrs[:default_role] || "viewer"
         @field_overrides = attrs[:field_overrides] || {}
         @record_rules = attrs[:record_rules] || []
+        @raw_hash = attrs[:raw_hash]
       end
 
       def self.from_hash(hash)
@@ -17,7 +18,8 @@ module LcpRuby
           roles: hash["roles"] || {},
           default_role: hash["default_role"],
           field_overrides: hash["field_overrides"] || {},
-          record_rules: hash["record_rules"] || []
+          record_rules: hash["record_rules"] || [],
+          raw_hash: hash
         )
       end
 

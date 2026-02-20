@@ -20,7 +20,6 @@ presenter:
   form: {}
   search: {}
   actions: {}
-  navigation: {}
 ```
 
 ### `name`
@@ -978,6 +977,7 @@ form:
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `field` | string | Model field name or FK column name |
+| `label` | string | Custom label for the field. Defaults to the model field's label. Also used as the text label on `type: divider` pseudo-fields |
 | `input_type` | string | Override the default input type (see below) |
 | `placeholder` | string | Placeholder text for the input |
 | `autofocus` | boolean | Auto-focus this field when the form loads |
@@ -1366,7 +1366,7 @@ form:
       min: 1
       max: 20
       empty_message: "No line items yet. Click 'Add Line Item' to begin."
-      columns:
+      fields:
         - { field: product_id, input_type: association_select }
         - { field: quantity, input_type: number }
         - { field: unit_price, input_type: number, prefix: "$" }
@@ -1384,7 +1384,7 @@ form:
 | `min` | integer | - | Minimum number of child records required |
 | `max` | integer | - | Maximum number of child records allowed |
 | `empty_message` | string | - | Message displayed when there are no child records |
-| `columns` | array | - | Field definitions for each child record row (same format as form fields) |
+| `fields` | array | - | Field definitions for each child record row (same format as form fields) |
 | `sortable` | boolean or string | `false` | Enable drag-and-drop reordering. Set to `true` to use a `position` field, or a string to specify a custom position field name |
 
 ##### Sortable Nested Forms
@@ -1723,10 +1723,6 @@ presenter:
         visible_when: { field: stage, operator: not_in, value: [closed_won, closed_lost] }
         disable_when: { field: value, operator: blank }
       - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }
-
-  navigation:
-    menu: main
-    position: 3
 ```
 
 Source: `lib/lcp_ruby/metadata/presenter_definition.rb`, `lib/lcp_ruby/presenter/layout_builder.rb`, `lib/lcp_ruby/presenter/column_set.rb`, `lib/lcp_ruby/presenter/action_set.rb`

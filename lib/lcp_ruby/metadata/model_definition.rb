@@ -3,7 +3,7 @@ module LcpRuby
     class ModelDefinition
       attr_reader :name, :label, :label_plural, :table_name, :fields,
                   :validations, :associations, :scopes, :events, :options,
-                  :display_templates
+                  :display_templates, :raw_hash
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -17,6 +17,7 @@ module LcpRuby
         @events = attrs[:events] || []
         @options = attrs[:options] || {}
         @display_templates = attrs[:display_templates] || {}
+        @raw_hash = attrs[:raw_hash]
 
         validate!
       end
@@ -33,7 +34,8 @@ module LcpRuby
           scopes: (hash["scopes"] || []).map { |s| HashUtils.stringify_deep(s) },
           events: parse_events(hash["events"]),
           options: hash["options"] || {},
-          display_templates: parse_display_templates(hash["display_templates"])
+          display_templates: parse_display_templates(hash["display_templates"]),
+          raw_hash: hash
         )
       end
 

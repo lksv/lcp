@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lcp-ruby.dev/schemas/type.json",
+  "title": "LCP Ruby Type Definition",
+  "description": "Schema for custom business type metadata that bundles storage type, transforms, validations, and form hints.",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" },
+    "base_type": {
+      "type": "string",
+      "enum": ["string", "text", "integer", "float", "decimal", "boolean", "date", "datetime", "enum", "file", "rich_text", "json", "uuid"]
+    },
+    "transforms": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "validations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/validation" }
+    },
+    "input_type": { "type": "string" },
+    "renderer": { "type": "string" },
+    "column_options": {
+      "type": "object",
+      "properties": {
+        "limit": { "type": "integer" },
+        "null": { "type": "boolean" },
+        "precision": { "type": "integer" },
+        "scale": { "type": "integer" }
+      },
+      "additionalProperties": false
+    },
+    "html_input_attrs": { "type": "object" }
+  },
+  "required": ["name", "base_type"],
+  "additionalProperties": false,
+
+  "$defs": {
+    "validation": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["presence", "length", "numericality", "format", "inclusion", "exclusion", "uniqueness", "confirmation", "custom", "comparison", "service"]
+        },
+        "options": { "type": "object" },
+        "message": { "type": "string" }
+      },
+      "required": ["type"],
+      "additionalProperties": false
+    }
+  }
+}

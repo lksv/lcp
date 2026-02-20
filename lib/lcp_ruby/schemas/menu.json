@@ -1,0 +1,64 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lcp-ruby.dev/schemas/menu.json",
+  "title": "LCP Ruby Menu Definition",
+  "description": "Schema for menu metadata that defines navigation layout: top bar, sidebar, or combined.",
+  "type": "object",
+  "properties": {
+    "top_menu": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/menu_item" }
+    },
+    "sidebar_menu": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/menu_item" }
+    }
+  },
+  "additionalProperties": false,
+
+  "$defs": {
+    "menu_item": {
+      "description": "Menu item: separator, view_group reference, group with children, or custom link.",
+      "type": "object",
+      "properties": {
+        "separator": { "type": "boolean", "const": true },
+        "view_group": { "type": "string" },
+        "label": { "type": "string" },
+        "icon": { "type": "string" },
+        "url": { "type": "string" },
+        "position": { "type": "string", "enum": ["bottom"] },
+        "visible_when": { "$ref": "#/$defs/visibility_condition" },
+        "badge": { "$ref": "#/$defs/badge_config" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/menu_item" }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "visibility_condition": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "badge_config": {
+      "type": "object",
+      "properties": {
+        "provider": { "type": "string" },
+        "renderer": { "type": "string" },
+        "template": { "type": "string" },
+        "partial": { "type": "string" },
+        "options": { "type": "object" }
+      },
+      "required": ["provider"],
+      "additionalProperties": false
+    }
+  }
+}

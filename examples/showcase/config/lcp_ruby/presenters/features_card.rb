@@ -11,8 +11,8 @@ define_presenter :features_card do
     per_page 50
     row_click :show
 
-    column :name, link_to: :show, display: :heading, sortable: true
-    column :category, display: :badge, display_options: {
+    column :name, link_to: :show, renderer: :heading, sortable: true
+    column :category, renderer: :badge, options: {
       color_map: {
         field_types: "blue", display_types: "purple", input_types: "teal",
         model_features: "green", presenter: "orange", form: "cyan",
@@ -21,18 +21,18 @@ define_presenter :features_card do
         custom_fields: "cyan"
       }
     }, sortable: true
-    column :status, display: :badge, display_options: {
+    column :status, renderer: :badge, options: {
       color_map: { stable: "green", beta: "orange", planned: "gray" }
     }
-    column :demo_path, display: :internal_link, display_options: { label: "View Demo" }
+    column :demo_path, renderer: :internal_link, options: { label: "View Demo" }
   end
 
   show do
     description "Feature documentation with configuration example and link to live demo."
 
     section "Overview", columns: 2 do
-      field :name, display: :heading
-      field :category, display: :badge, display_options: {
+      field :name, renderer: :heading
+      field :category, renderer: :badge, options: {
         color_map: {
           field_types: "blue", display_types: "purple", input_types: "teal",
           model_features: "green", presenter: "orange", form: "cyan",
@@ -41,22 +41,22 @@ define_presenter :features_card do
           custom_fields: "cyan"
         }
       }
-      field :status, display: :badge, display_options: {
+      field :status, renderer: :badge, options: {
         color_map: { stable: "green", beta: "orange", planned: "gray" }
       }
-      field :demo_path, display: :internal_link, display_options: { label: "Open Demo →" }
+      field :demo_path, renderer: :internal_link, options: { label: "Open Demo →" }
     end
 
     section "Description" do
-      field :description, display: :markdown
+      field :description, renderer: :markdown
     end
 
     section "Configuration Example", description: "YAML/DSL snippet showing how to use this feature." do
-      field :config_example, display: :markdown
+      field :config_example, renderer: :markdown
     end
 
     section "Demo Hint", description: "What to look for when viewing the live demo." do
-      field :demo_hint, display: :markdown
+      field :demo_hint, renderer: :markdown
     end
   end
 

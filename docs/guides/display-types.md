@@ -905,10 +905,6 @@ presenter:
           - { field: website, renderer: url_link }
           - { field: support_email, renderer: email_link }
           - { field: support_phone, renderer: phone_link }
-
-  navigation:
-    menu: main
-    position: 2
 ```
 
 **Ruby DSL:**
@@ -962,8 +958,6 @@ define_presenter :product_catalog do
       field :support_phone, renderer: :phone_link
     end
   end
-
-  navigation menu: :main, position: 2
 end
 ```
 

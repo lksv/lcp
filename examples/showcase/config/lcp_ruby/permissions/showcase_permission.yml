@@ -7,13 +7,15 @@ permissions:
       fields:
         readable: all
         writable: all
-      actions: [lock, bulk_archive, export]
+      actions:
+        allowed: [lock, bulk_archive, export]
     editor:
       crud: [index, show, create, update]
       fields:
         readable: [title, status, owner_id, assignee_id, priority, confidential, public_notes]
         writable: [title, status, assignee_id, priority, public_notes]
-      actions: [lock]
+      actions:
+        allowed: [lock]
     viewer:
       crud: [index, show]
       fields:
@@ -28,14 +30,18 @@ permissions:
         field: owner_id
         value: current_user_id
   record_rules:
-    - deny: [update]
-      when:
+    - name: locked_readonly
+      condition:
         field: status
         operator: eq
         value: locked
-      except: [admin]
-    - deny: [destroy]
-      when:
+      effect:
+        deny_crud: [update]
+        except_roles: [admin]
+    - name: archived_no_destroy
+      condition:
         field: status
         operator: eq
         value: archived
+      effect:
+        deny_crud: [destroy]

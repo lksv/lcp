@@ -711,7 +711,7 @@ form:
       min: 1
       max: 20
       empty_message: "No line items yet. Click 'Add Line Item' to begin."
-      columns:
+      fields:
         - { field: product_id, input_type: association_select }
         - { field: quantity, input_type: number }
         - { field: unit_price, input_type: number, prefix: "$" }
@@ -759,7 +759,7 @@ Enable drag-and-drop reordering by setting `sortable: true`. The position field 
   association: checklist_items
   sortable: true
   add_label: "Add Item"
-  columns:
+  fields:
     - { field: title }
     - { field: completed, input_type: boolean }
 ```
@@ -1141,8 +1141,6 @@ define_presenter :deal do
   action :show,   type: :built_in, on: :single, icon: "eye"
   action :edit,   type: :built_in, on: :single, icon: "pencil"
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
-
-  navigation menu: :main, position: 3
 end
 ```
 
@@ -1168,8 +1166,6 @@ define_presenter :deal_pipeline, inherits: :deal do
 
   # Replaces parent's actions
   action :show, type: :built_in, on: :single, icon: "eye"
-
-  navigation menu: :main, position: 4
 end
 ```
 
@@ -1331,8 +1327,6 @@ define_presenter :order do
   action :show,    type: :built_in, on: :single, icon: "eye"
   action :edit,    type: :built_in, on: :single, icon: "pencil"
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
-
-  navigation menu: :main, position: 2
 end
 ```
 

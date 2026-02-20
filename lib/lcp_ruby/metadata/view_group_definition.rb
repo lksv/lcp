@@ -1,7 +1,7 @@
 module LcpRuby
   module Metadata
     class ViewGroupDefinition
-      attr_reader :name, :model, :primary_presenter, :navigation_config, :views, :breadcrumb_config, :public
+      attr_reader :name, :model, :primary_presenter, :navigation_config, :views, :breadcrumb_config, :public, :raw_hash
       alias_method :public?, :public
 
       def initialize(attrs = {})
@@ -13,6 +13,7 @@ module LcpRuby
         @views = (attrs[:views] || []).map { |v| HashUtils.stringify_deep(v) }
         @breadcrumb_config = parse_breadcrumb(attrs[:breadcrumb_config])
         @public = attrs[:public] == true
+        @raw_hash = attrs[:raw_hash]
 
         validate!
       end
@@ -37,7 +38,8 @@ module LcpRuby
           navigation_config: navigation_config,
           views: views,
           breadcrumb_config: data["breadcrumb"],
-          public: data["public"]
+          public: data["public"],
+          raw_hash: data
         )
       end
 

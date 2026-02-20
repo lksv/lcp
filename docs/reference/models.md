@@ -726,7 +726,7 @@ The foreign key column name. Specify this when the column name does not follow R
 | **Required** | no |
 | **Default** | none |
 | **Type** | string |
-| **Allowed** | `destroy`, `delete_all`, `nullify`, `restrict_with_error`, `restrict_with_exception` |
+| **Allowed** | `destroy`, `delete`, `delete_all`, `nullify`, `restrict_with_error`, `restrict_with_exception` |
 
 What happens to associated records when the parent is destroyed. Applicable to all association types.
 
