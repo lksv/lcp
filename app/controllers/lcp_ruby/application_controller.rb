@@ -63,7 +63,7 @@ module LcpRuby
         # Use a distinct ivar to avoid collision with Devise's @current_user
         @_lcp_none_user ||= OpenStruct.new(
           id: 0,
-          LcpRuby.configuration.role_method => ["admin"],
+          LcpRuby.configuration.role_method => [ "admin" ],
           name: "Development User"
         )
       when :built_in

@@ -53,7 +53,7 @@ RSpec.describe "Authentication modes", type: :request do
       expect(response).to have_http_status(:ok)
       expect(captured_user).not_to be_nil
       expect(captured_user.name).to eq("Development User")
-      expect(captured_user.lcp_role).to eq(["admin"])
+      expect(captured_user.lcp_role).to eq([ "admin" ])
     end
   end
 
@@ -63,7 +63,7 @@ RSpec.describe "Authentication modes", type: :request do
         name: "public_view",
         model: "todo_list",
         primary_presenter: "todo_list",
-        views: [{ "presenter" => "todo_list", "label" => "Lists" }],
+        views: [ { "presenter" => "todo_list", "label" => "Lists" } ],
         public: true
       )
       expect(vg.public?).to be true
@@ -74,7 +74,7 @@ RSpec.describe "Authentication modes", type: :request do
         name: "private_view",
         model: "todo_list",
         primary_presenter: "todo_list",
-        views: [{ "presenter" => "todo_list", "label" => "Lists" }]
+        views: [ { "presenter" => "todo_list", "label" => "Lists" } ]
       )
       expect(vg.public?).to be false
     end
@@ -86,7 +86,7 @@ RSpec.describe "Authentication modes", type: :request do
           "model" => "todo_list",
           "primary" => "todo_list",
           "public" => true,
-          "views" => [{ "presenter" => "todo_list", "label" => "Lists" }]
+          "views" => [ { "presenter" => "todo_list", "label" => "Lists" } ]
         }
       })
       expect(vg.public?).to be true
