@@ -1,0 +1,24 @@
+<h2><%= t("lcp_ruby.auth.forgot_password.heading", default: "Forgot your password?") %></h2>
+
+<%= form_for(resource, as: resource_name, url: password_path(resource_name), html: { method: :post }) do |f| %>
+  <% if resource.errors.any? %>
+    <div class="lcp-errors">
+      <ul>
+        <% resource.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="lcp-form-field">
+    <%= f.label :email %>
+    <%= f.email_field :email, autofocus: true, autocomplete: "email" %>
+  </div>
+
+  <div class="lcp-form-actions">
+    <%= f.submit t("lcp_ruby.auth.forgot_password.submit", default: "Send reset instructions"), class: "btn btn-primary" %>
+  </div>
+<% end %>
+
+<%= render "lcp_ruby/auth/shared/links" %>

@@ -1,0 +1,26 @@
+<h2><%= t("lcp_ruby.auth.login.heading", default: "Log in") %></h2>
+
+<%= form_for(resource, as: resource_name, url: session_path(resource_name)) do |f| %>
+  <div class="lcp-form-field">
+    <%= f.label :email %>
+    <%= f.email_field :email, autofocus: true, autocomplete: "email" %>
+  </div>
+
+  <div class="lcp-form-field">
+    <%= f.label :password %>
+    <%= f.password_field :password, autocomplete: "current-password" %>
+  </div>
+
+  <% if devise_mapping.rememberable? %>
+    <div class="lcp-auth-remember">
+      <%= f.check_box :remember_me %>
+      <%= f.label :remember_me, t("lcp_ruby.auth.login.remember_me", default: "Remember me") %>
+    </div>
+  <% end %>
+
+  <div class="lcp-form-actions">
+    <%= f.submit t("lcp_ruby.auth.login.submit", default: "Log in"), class: "btn btn-primary" %>
+  </div>
+<% end %>
+
+<%= render "lcp_ruby/auth/shared/links" %>

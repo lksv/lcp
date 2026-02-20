@@ -100,6 +100,9 @@ require "lcp_ruby/presenter/breadcrumb_path_helper"
 # Routing
 require "lcp_ruby/routing/presenter_routes"
 
+# Authentication
+require "lcp_ruby/authentication"
+
 # Engine (must be last)
 require "lcp_ruby/engine"
 

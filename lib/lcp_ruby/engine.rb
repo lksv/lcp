@@ -4,6 +4,7 @@ require "kaminari"
 require "view_component"
 require "turbo-rails"
 require "stimulus-rails"
+require "devise"
 
 module LcpRuby
   class Engine < ::Rails::Engine
@@ -13,6 +14,7 @@ module LcpRuby
 
     rake_tasks do
       load LcpRuby::Engine.root.join("lib", "tasks", "lcp_ruby.rake")
+      load LcpRuby::Engine.root.join("lib", "tasks", "lcp_ruby_auth.rake")
     end
 
     initializer "lcp_ruby.i18n" do
@@ -21,6 +23,18 @@ module LcpRuby
 
     initializer "lcp_ruby.configuration" do
       LcpRuby.configuration.metadata_path ||= Rails.root.join("config", "lcp_ruby")
+    end
+
+    # Always set up Devise so that Warden middleware is properly configured.
+    # This is needed because Devise is always a dependency and Warden middleware
+    # is always in the stack. Only routes are conditional on :built_in mode.
+    initializer "lcp_ruby.authentication", before: :add_routing_paths do |_app|
+      LcpRuby::Authentication.setup_devise!
+    end
+
+    # Install Warden audit hooks after Devise middleware is loaded.
+    config.after_initialize do
+      LcpRuby::Authentication::AuditSubscriber.install!
     end
 
     initializer "lcp_ruby.ignore_renderers", before: :set_autoload_paths do |app|

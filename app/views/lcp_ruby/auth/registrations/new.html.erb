@@ -1,0 +1,43 @@
+<h2><%= t("lcp_ruby.auth.register.heading", default: "Create account") %></h2>
+
+<%= form_for(resource, as: resource_name, url: registration_path(resource_name)) do |f| %>
+  <% if resource.errors.any? %>
+    <div class="lcp-errors">
+      <h3><%= pluralize(resource.errors.count, "error") %> prevented registration:</h3>
+      <ul>
+        <% resource.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="lcp-form-field">
+    <%= f.label :name %>
+    <%= f.text_field :name, autofocus: true, autocomplete: "name" %>
+  </div>
+
+  <div class="lcp-form-field">
+    <%= f.label :email %>
+    <%= f.email_field :email, autocomplete: "email" %>
+  </div>
+
+  <div class="lcp-form-field">
+    <%= f.label :password %>
+    <% if @minimum_password_length %>
+      <em>(<%= t("lcp_ruby.auth.register.password_hint", count: @minimum_password_length, default: "%{count} characters minimum") %>)</em>
+    <% end %>
+    <%= f.password_field :password, autocomplete: "new-password" %>
+  </div>
+
+  <div class="lcp-form-field">
+    <%= f.label :password_confirmation %>
+    <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+  </div>
+
+  <div class="lcp-form-actions">
+    <%= f.submit t("lcp_ruby.auth.register.submit", default: "Create account"), class: "btn btn-primary" %>
+  </div>
+<% end %>
+
+<%= render "lcp_ruby/auth/shared/links" %>

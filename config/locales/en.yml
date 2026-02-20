@@ -19,3 +19,37 @@ en:
       home: "Home"
       edit: "Edit"
       new: "New"
+    auth:
+      title: "Authentication"
+      account_deactivated: "Your account has been deactivated. Please contact an administrator."
+      login:
+        heading: "Log in"
+        submit: "Log in"
+        remember_me: "Remember me"
+      register:
+        heading: "Create account"
+        submit: "Create account"
+        password_hint: "%{count} characters minimum"
+      profile:
+        heading: "Edit profile"
+        submit: "Update"
+        password_hint: "leave blank if you don't want to change it"
+        current_password_hint: "we need your current password to confirm changes"
+      forgot_password:
+        heading: "Forgot your password?"
+        submit: "Send reset instructions"
+      reset_password:
+        heading: "Change your password"
+        new_password: "New password"
+        confirm_password: "Confirm new password"
+        submit: "Change my password"
+      links:
+        login: "Log in"
+        register: "Create an account"
+        forgot_password: "Forgot your password?"
+      mailer:
+        greeting: "Hello %{name}!"
+        reset_instructions: "Someone has requested a link to change your password. You can do this through the link below."
+        reset_link_text: "Change my password"
+        ignore_notice: "If you didn't request this, please ignore this email."
+        no_change_notice: "Your password won't change until you access the link above and create a new one."

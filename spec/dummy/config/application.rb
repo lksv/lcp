@@ -5,6 +5,7 @@ require "active_model/railtie"
 require "active_record/railtie"
 require "active_storage/engine"
 require "action_controller/railtie"
+require "action_mailer/railtie"
 require "action_view/railtie"
 require "active_job/railtie"
 
@@ -18,5 +19,7 @@ module Dummy
     config.active_job.queue_adapter = :test
     config.action_controller.allow_forgery_protection = false
     config.active_storage.service = :test
+    config.action_mailer.delivery_method = :test
+    config.action_mailer.default_url_options = { host: "localhost", port: 3000 }
   end
 end
