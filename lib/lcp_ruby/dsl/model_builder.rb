@@ -52,6 +52,16 @@ module LcpRuby
         field_hash["transforms"] = options[:transforms].map(&:to_s) if options[:transforms]
         field_hash["computed"] = options[:computed] if options.key?(:computed)
 
+        if options.key?(:source)
+          src = options[:source]
+          field_hash["source"] =
+            case src
+            when :external, "external" then "external"
+            when Hash then stringify_keys(src)
+            else src.to_s
+            end
+        end
+
         # Extract column options from top-level kwargs
         column_opts = {}
         COLUMN_OPTION_KEYS.each do |key|

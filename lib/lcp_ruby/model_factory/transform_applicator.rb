@@ -8,6 +8,7 @@ module LcpRuby
 
       def apply!
         @model_definition.fields.each do |field|
+          next if field.virtual?
           type_transforms = field.type_definition&.transforms || []
           field_transforms = field.transforms
 

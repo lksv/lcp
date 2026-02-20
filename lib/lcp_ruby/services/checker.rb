@@ -40,6 +40,7 @@ module LcpRuby
           check_field_computed(model_def, field)
           check_field_transforms(model_def, field)
           check_field_validations(model_def, field)
+          check_field_accessors(model_def, field)
         end
 
         check_model_validations(model_def)
@@ -91,6 +92,16 @@ module LcpRuby
       def check_model_validations(model_def)
         model_def.validations.each do |validation|
           check_service_validation(model_def, validation)
+        end
+      end
+
+      def check_field_accessors(model_def, field)
+        return unless field.service_accessor?
+
+        service_key = field.source["service"]
+        unless Services::Registry.registered?("accessors", service_key)
+          @errors << "Model '#{model_def.name}', field '#{field.name}': " \
+                     "accessor service '#{service_key}' not found in Services::Registry"
         end
       end
 

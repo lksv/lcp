@@ -47,6 +47,8 @@ require "lcp_ruby/dsl/dsl_loader"
 require "lcp_ruby/services/registry"
 require "lcp_ruby/services/built_in_defaults"
 require "lcp_ruby/services/built_in_transforms"
+require "lcp_ruby/services/accessors/json_field"
+require "lcp_ruby/services/built_in_accessors"
 require "lcp_ruby/services/checker"
 
 # Model Factory
@@ -59,6 +61,7 @@ require "lcp_ruby/model_factory/callback_applicator"
 require "lcp_ruby/model_factory/transform_applicator"
 require "lcp_ruby/model_factory/default_applicator"
 require "lcp_ruby/model_factory/computed_applicator"
+require "lcp_ruby/model_factory/service_accessor_applicator"
 require "lcp_ruby/model_factory/attachment_applicator"
 require "lcp_ruby/model_factory/builder"
 

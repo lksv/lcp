@@ -1,6 +1,11 @@
 module LcpRuby
   module ModelFactory
     class DefaultApplicator
+      # Wrapper for literal default values (virtual fields).
+      # Distinguishes them from service keys so resolve_default never
+      # mistakes a string literal for a missing service reference.
+      LiteralDefault = Struct.new(:value)
+
       def initialize(model_class, model_definition)
         @model_class = model_class
         @model_definition = model_definition
@@ -24,9 +29,14 @@ module LcpRuby
 
       def self.resolve_default(record, field_name, default_config)
         case default_config
+        when LiteralDefault
+          default_config.value
         when Hash
           service_key = default_config["service"] || default_config[:service]
-          return unless service_key
+          unless service_key
+            Rails.logger.warn("[LcpRuby] Default for '#{field_name}' is a Hash without 'service' key") if defined?(Rails)
+            return
+          end
 
           service = Services::Registry.lookup("defaults", service_key.to_s)
           unless service
@@ -58,6 +68,10 @@ module LcpRuby
             defaults[field.name] = field.default
           elsif field.default.is_a?(String) && Services::Registry.registered?("defaults", field.default)
             defaults[field.name] = field.default
+          elsif field.virtual?
+            # Virtual fields have no DB column, so static defaults must be applied dynamically.
+            # Wrapped in LiteralDefault so resolve_default treats them as plain values.
+            defaults[field.name] = LiteralDefault.new(field.default)
           end
         end
 

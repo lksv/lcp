@@ -207,6 +207,57 @@ RSpec.describe LcpRuby::Services::Checker do
       expect(result.errors.first).to include("model-level")
     end
 
+    it "returns valid result when accessor service exists" do
+      LcpRuby::Services::BuiltInAccessors.register_all!
+
+      definitions = build_model_definitions([
+        {
+          "name" => "order",
+          "fields" => [
+            { "name" => "metadata", "type" => "json" },
+            { "name" => "color", "type" => "string",
+              "source" => { "service" => "json_field", "options" => { "column" => "metadata", "key" => "color" } } }
+          ]
+        }
+      ])
+
+      result = described_class.new(definitions).check
+      expect(result).to be_valid
+    end
+
+    it "reports error for missing accessor service" do
+      definitions = build_model_definitions([
+        {
+          "name" => "order",
+          "fields" => [
+            { "name" => "metadata", "type" => "json" },
+            { "name" => "color", "type" => "string",
+              "source" => { "service" => "missing_accessor", "options" => {} } }
+          ]
+        }
+      ])
+
+      result = described_class.new(definitions).check
+      expect(result).not_to be_valid
+      expect(result.errors.first).to include("missing_accessor")
+      expect(result.errors.first).to include("accessor service")
+    end
+
+    it "skips external fields (no service to check)" do
+      definitions = build_model_definitions([
+        {
+          "name" => "order",
+          "fields" => [
+            { "name" => "title", "type" => "string" },
+            { "name" => "stock", "type" => "integer", "source" => "external" }
+          ]
+        }
+      ])
+
+      result = described_class.new(definitions).check
+      expect(result).to be_valid
+    end
+
     it "collects multiple errors across models and fields" do
       definitions = build_model_definitions([
         {

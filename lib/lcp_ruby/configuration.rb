@@ -16,7 +16,7 @@ module LcpRuby
                   :auth_after_login_path,
                   :auth_after_logout_path
 
-    attr_reader :menu_mode, :authentication, :role_source, :permission_source
+    attr_reader :menu_mode, :authentication, :role_source, :permission_source, :model_extensions
     attr_accessor :role_model, :role_model_fields,
                   :permission_model, :permission_model_fields
 
@@ -62,6 +62,7 @@ module LcpRuby
       @attachment_allowed_content_types = nil
       @breadcrumb_home_path = "/"
       @menu_mode = :auto
+      @model_extensions = {}
 
       # Role source defaults
       @role_source = :implicit
@@ -83,6 +84,10 @@ module LcpRuby
       @auth_mailer_sender = "noreply@example.com"
       @auth_after_login_path = "/"
       @auth_after_logout_path = nil
+    end
+
+    def on_model_ready(model_name, &block)
+      (@model_extensions[model_name.to_s] ||= []) << block
     end
 
     # Returns true when strict_loading should be enabled on AR scopes.

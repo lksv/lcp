@@ -1,7 +1,7 @@
 module LcpRuby
   module Services
     class Registry
-      VALID_CATEGORIES = %w[transforms validators conditions defaults computed data_providers].freeze
+      VALID_CATEGORIES = %w[transforms validators conditions defaults computed data_providers accessors].freeze
 
       class << self
         def register(category, key, service)

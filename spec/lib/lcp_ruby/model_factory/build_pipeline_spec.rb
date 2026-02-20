@@ -9,6 +9,7 @@ RSpec.describe "Model build pipeline" do
     LcpRuby::Types::BuiltInTypes.register_all!
     LcpRuby::Services::BuiltInTransforms.register_all!
     LcpRuby::Services::BuiltInDefaults.register_all!
+    LcpRuby::Services::BuiltInAccessors.register_all!
   end
 
   after do
@@ -635,6 +636,227 @@ RSpec.describe "Model build pipeline" do
       # Comparison skipped when: active=false
       record.active = false
       expect(record).to be_valid
+    end
+  end
+
+  describe "virtual fields via service accessor" do
+    it "full CRUD with json_field virtual fields" do
+      model_class = build_from_dsl do
+        field :title, :string
+        field :metadata, :json
+        field :color, :string, source: { service: "json_field", options: { column: "metadata", key: "color" } }
+        timestamps false
+      end
+
+      # Create
+      record = model_class.create!(title: "Test", metadata: {})
+      record.color = "red"
+      record.save!
+
+      # Read
+      found = model_class.find(record.id)
+      expect(found.color).to eq("red")
+
+      # Update
+      found.color = "blue"
+      found.save!
+      expect(model_class.find(record.id).color).to eq("blue")
+
+      # Destroy
+      found.destroy!
+      expect(model_class.count).to eq(0)
+    end
+
+    it "getter returns nil when JSON column is nil" do
+      model_class = build_from_dsl do
+        field :title, :string
+        field :metadata, :json
+        field :color, :string, source: { service: "json_field", options: { column: "metadata", key: "color" } }
+        timestamps false
+      end
+
+      record = model_class.new(title: "Test", metadata: nil)
+      expect(record.color).to be_nil
+    end
+
+    it "setter initializes JSON column when nil" do
+      model_class = build_from_dsl do
+        field :title, :string
+        field :metadata, :json
+        field :color, :string, source: { service: "json_field", options: { column: "metadata", key: "color" } }
+        timestamps false
+      end
+
+      record = model_class.new(title: "Test", metadata: nil)
+      record.color = "green"
+      expect(record.metadata).to eq({ "color" => "green" })
+    end
+
+    it "validates virtual fields" do
+      model_class = build_from_hash(
+        "name" => "pipeline_test",
+        "fields" => [
+          { "name" => "title", "type" => "string" },
+          { "name" => "metadata", "type" => "json" },
+          { "name" => "priority", "type" => "integer",
+            "source" => { "service" => "json_field", "options" => { "column" => "metadata", "key" => "priority" } },
+            "validations" => [
+              { "type" => "numericality", "options" => { "greater_than_or_equal_to" => 1, "less_than_or_equal_to" => 5 } }
+            ] }
+        ],
+        "options" => { "timestamps" => false }
+      )
+
+      record = model_class.new(title: "Test", metadata: {})
+      record.priority = 0
+      expect(record).not_to be_valid
+
+      record.priority = 3
+      expect(record).to be_valid
+    end
+
+    it "does not create DB columns for virtual fields" do
+      build_from_dsl do
+        field :title, :string
+        field :metadata, :json
+        field :color, :string, source: { service: "json_field", options: { column: "metadata", key: "color" } }
+        timestamps false
+      end
+
+      columns = ActiveRecord::Base.connection.columns(:pipeline_tests).map(&:name)
+      expect(columns).to include("title", "metadata")
+      expect(columns).not_to include("color")
+    end
+
+    it "raises on missing accessor service" do
+      expect {
+        build_from_hash(
+          "name" => "pipeline_test",
+          "fields" => [
+            { "name" => "x", "type" => "string",
+              "source" => { "service" => "nonexistent", "options" => {} } }
+          ],
+          "options" => { "timestamps" => false }
+        )
+      }.to raise_error(LcpRuby::MetadataError, /accessor service 'nonexistent' not found/)
+    end
+  end
+
+  describe "virtual fields via external source" do
+    it "raises when external getter is missing" do
+      expect {
+        build_from_hash(
+          "name" => "pipeline_test",
+          "fields" => [
+            { "name" => "title", "type" => "string" },
+            { "name" => "stock", "type" => "integer", "source" => "external" }
+          ],
+          "options" => { "timestamps" => false }
+        )
+      }.to raise_error(LcpRuby::MetadataError, /no getter method defined/)
+    end
+
+    it "validate_external_methods! passes when methods are defined" do
+      definition = LcpRuby::Metadata::ModelDefinition.from_hash(
+        "name" => "pipeline_test",
+        "fields" => [
+          { "name" => "title", "type" => "string" },
+          { "name" => "stock", "type" => "integer", "source" => "external" }
+        ],
+        "options" => { "timestamps" => false }
+      )
+
+      # Simulate what a host app does in an initializer:
+      # create the model class and add methods before Builder validates
+      klass = Class.new(ActiveRecord::Base)
+      klass.define_method(:stock) { 42 }
+      klass.define_method(:stock=) { |_v| }
+
+      builder = LcpRuby::ModelFactory::Builder.new(definition)
+      expect {
+        builder.send(:validate_external_methods!, klass)
+      }.not_to raise_error
+    end
+
+    it "validate_external_methods! raises when only getter is missing" do
+      definition = LcpRuby::Metadata::ModelDefinition.from_hash(
+        "name" => "pipeline_test",
+        "fields" => [
+          { "name" => "title", "type" => "string" },
+          { "name" => "stock", "type" => "integer", "source" => "external" }
+        ],
+        "options" => { "timestamps" => false }
+      )
+
+      klass = Class.new(ActiveRecord::Base)
+      klass.define_method(:stock=) { |_v| }
+
+      builder = LcpRuby::ModelFactory::Builder.new(definition)
+      expect {
+        builder.send(:validate_external_methods!, klass)
+      }.to raise_error(LcpRuby::MetadataError, /no getter method defined/)
+    end
+  end
+
+  describe "virtual fields via DSL source: :external" do
+    it "passes source through to FieldDefinition" do
+      definition = LcpRuby.define_model(:pipeline_test) do
+        field :title, :string
+        field :stock, :integer, source: :external
+        timestamps false
+      end
+
+      field = definition.field("stock")
+      expect(field.virtual?).to be true
+      expect(field.external?).to be true
+    end
+
+    it "passes source: { service: ... } through to FieldDefinition" do
+      definition = LcpRuby.define_model(:pipeline_test) do
+        field :metadata, :json
+        field :color, :string, source: { service: "json_field", options: { column: "metadata", key: "color" } }
+        timestamps false
+      end
+
+      field = definition.field("color")
+      expect(field.virtual?).to be true
+      expect(field.service_accessor?).to be true
+    end
+  end
+
+  describe "virtual enum fields" do
+    it "auto-adds inclusion validation instead of AR enum macro" do
+      model_class = build_from_dsl do
+        field :title, :string
+        field :metadata, :json
+        field :status, :enum,
+              values: %w[draft active archived],
+              source: { service: "json_field", options: { column: "metadata", key: "status" } }
+        timestamps false
+      end
+
+      record = model_class.new(title: "Test", metadata: {})
+      record.status = "invalid"
+      expect(record).not_to be_valid
+
+      record.status = "active"
+      expect(record).to be_valid
+    end
+  end
+
+  describe "virtual field static defaults" do
+    it "applies static default on new records" do
+      model_class = build_from_dsl do
+        field :title, :string
+        field :metadata, :json
+        field :color, :string,
+              default: "red",
+              source: { service: "json_field", options: { column: "metadata", key: "color" } }
+        timestamps false
+      end
+
+      record = model_class.new(title: "Test", metadata: {})
+      expect(record.color).to eq("red")
     end
   end
 end

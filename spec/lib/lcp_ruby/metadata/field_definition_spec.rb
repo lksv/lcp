@@ -60,6 +60,46 @@ RSpec.describe LcpRuby::Metadata::FieldDefinition do
     end
   end
 
+  describe "virtual fields (source)" do
+    it "parses source: external" do
+      field = described_class.from_hash(
+        "name" => "stock", "type" => "integer", "source" => "external"
+      )
+      expect(field.virtual?).to be true
+      expect(field.external?).to be true
+      expect(field.service_accessor?).to be false
+      expect(field.column_type).to be_nil
+    end
+
+    it "parses source with service accessor" do
+      field = described_class.from_hash(
+        "name" => "color",
+        "type" => "string",
+        "source" => { "service" => "json_field", "options" => { "column" => "metadata", "key" => "color" } }
+      )
+      expect(field.virtual?).to be true
+      expect(field.external?).to be false
+      expect(field.service_accessor?).to be true
+      expect(field.column_type).to be_nil
+    end
+
+    it "non-virtual fields are not virtual" do
+      field = described_class.from_hash("name" => "title", "type" => "string")
+      expect(field.virtual?).to be false
+      expect(field.external?).to be false
+      expect(field.service_accessor?).to be false
+    end
+
+    it "raises when both source and computed are set" do
+      expect {
+        described_class.from_hash(
+          "name" => "x", "type" => "string",
+          "source" => "external", "computed" => "{y}"
+        )
+      }.to raise_error(LcpRuby::MetadataError, /cannot have both 'source' and 'computed'/)
+    end
+  end
+
   describe "validation" do
     it "raises on missing name" do
       expect {

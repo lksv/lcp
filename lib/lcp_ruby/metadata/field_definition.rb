@@ -12,7 +12,7 @@ module LcpRuby
 
       attr_reader :name, :type, :label, :column_options, :validations,
                   :enum_values, :default, :type_definition, :transforms, :computed,
-                  :attachment_options
+                  :attachment_options, :source
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -25,6 +25,7 @@ module LcpRuby
         @transforms = Array(attrs[:transforms]).map(&:to_s)
         @computed = attrs[:computed]
         @attachment_options = attrs[:attachment_options] || {}
+        @source = attrs[:source]
 
         validate!
         resolve_type_definition!
@@ -41,7 +42,8 @@ module LcpRuby
           default: hash["default"],
           transforms: hash["transforms"],
           computed: hash["computed"],
-          attachment_options: hash["options"] || {}
+          attachment_options: hash["options"] || {},
+          source: hash["source"]
         )
       end
 
@@ -49,8 +51,21 @@ module LcpRuby
         !!@computed
       end
 
+      def virtual?
+        source.present?
+      end
+
+      def external?
+        source == "external" || source == :external
+      end
+
+      def service_accessor?
+        source.is_a?(Hash) && source.key?("service")
+      end
+
       def column_type
         return nil if attachment?
+        return nil if virtual?
 
         if @type_definition
           @type_definition.column_type
@@ -89,6 +104,11 @@ module LcpRuby
 
         unless BASE_TYPES.include?(@type) || Types::TypeRegistry.registered?(@type)
           raise MetadataError, "Field type '#{@type}' is invalid for field '#{@name}'"
+        end
+
+        if @source && @computed
+          raise MetadataError,
+            "Field '#{@name}': cannot have both 'source' and 'computed' — use one or the other"
         end
       end
 

@@ -129,6 +129,36 @@ module LcpRuby
       def validate_model_fields(model)
         model.fields.each do |field|
           validate_enum_field(model, field) if field.enum?
+          validate_virtual_field(model, field) if field.virtual?
+        end
+      end
+
+      def validate_virtual_field(model, field)
+        if field.service_accessor?
+          service_key = field.source["service"]
+          unless Services::Registry.registered?("accessors", service_key)
+            @errors << "Model '#{model.name}', field '#{field.name}': " \
+                       "accessor service '#{service_key}' not found"
+          end
+
+          options = field.source["options"]
+          if options.is_a?(Hash) && options["column"]
+            col = options["column"]
+            ref_field = model.field(col)
+            unless ref_field
+              @errors << "Model '#{model.name}', field '#{field.name}': " \
+                         "source references column '#{col}' which is not a defined field"
+            end
+            if ref_field&.virtual?
+              @errors << "Model '#{model.name}', field '#{field.name}': " \
+                         "source references column '#{col}' which is itself a virtual field"
+            end
+          end
+        end
+
+        if field.transforms.any?
+          @warnings << "Model '#{model.name}', field '#{field.name}': " \
+                       "transforms are ignored on virtual fields"
         end
       end
 
@@ -168,6 +198,11 @@ module LcpRuby
           unless field_names.include?(field_name.to_s)
             @warnings << "Model '#{model.name}', scope '#{scope_name}': " \
                          "references unknown field '#{field_name}'"
+          end
+          ref_field = model.field(field_name.to_s)
+          if ref_field&.virtual?
+            @warnings << "Model '#{model.name}', scope '#{scope_name}': " \
+                         "references virtual field '#{field_name}' which has no DB column"
           end
         end
       end

@@ -19,8 +19,11 @@ module LcpRuby
         apply_callbacks(model_class)
         apply_defaults(model_class)
         apply_computed(model_class)
+        apply_external_fields(model_class)
+        apply_model_extensions(model_class)
         apply_custom_fields(model_class)
         apply_label_method(model_class)
+        validate_external_methods!(model_class)
         model_class
       rescue => e
         raise LcpRuby::MetadataError,
@@ -45,6 +48,13 @@ module LcpRuby
 
       def apply_enums(model_class)
         model_definition.enum_fields.each do |field|
+          if field.virtual?
+            # Virtual enums can't use AR enum macro (no DB column).
+            # Auto-add inclusion validation so enum constraints are enforced.
+            valid_values = field.enum_value_names
+            model_class.validates field.name.to_sym, inclusion: { in: valid_values }, allow_nil: true
+            next
+          end
           values = field.enum_value_names.index_with(&:itself)
           model_class.enum field.name.to_sym, values, default: field.default
         end
@@ -80,6 +90,32 @@ module LcpRuby
 
       def apply_computed(model_class)
         ComputedApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_external_fields(model_class)
+        ServiceAccessorApplicator.new(model_class, model_definition).apply!
+      end
+
+      def validate_external_methods!(model_class)
+        model_definition.fields.select(&:external?).each do |field|
+          unless model_class.method_defined?(field.name.to_sym)
+            raise LcpRuby::MetadataError,
+              "Model '#{model_definition.name}', field '#{field.name}': " \
+              "source is 'external' but no getter method defined. " \
+              "Define it in Rails.application.config.after_initialize (runs before LcpRuby.boot!)."
+          end
+          unless model_class.method_defined?(:"#{field.name}=")
+            raise LcpRuby::MetadataError,
+              "Model '#{model_definition.name}', field '#{field.name}': " \
+              "source is 'external' but no setter method defined. " \
+              "Define it in Rails.application.config.after_initialize (runs before LcpRuby.boot!)."
+          end
+        end
+      end
+
+      def apply_model_extensions(model_class)
+        extensions = LcpRuby.configuration.model_extensions[model_definition.name] || []
+        extensions.each { |block| block.call(model_class) }
       end
 
       def apply_custom_fields(model_class)

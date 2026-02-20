@@ -73,6 +73,7 @@ module LcpRuby
         Types::BuiltInTypes.register_all!
         Services::BuiltInTransforms.register_all!
         Services::BuiltInDefaults.register_all!
+        Services::BuiltInAccessors.register_all!
         Services::Registry.discover!(Rails.root.join("app").to_s)
         Display::RendererRegistry.register_built_ins!
         Display::RendererRegistry.discover!(Rails.root.join("app").to_s)
