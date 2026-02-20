@@ -30,4 +30,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency "commonmarker", "~> 2.0"
   spec.add_dependency "devise", "~> 4.9"
   spec.add_dependency "json_schemer", "~> 2.0"
+  spec.add_dependency "ostruct", ">= 0.6"
 end
