@@ -335,13 +335,13 @@ RSpec.describe LcpRuby::Authorization::PermissionEvaluator do
     it "filters out roles not in the registry" do
       user = double("User", lcp_role: %w[admin nonexistent], id: 1)
       evaluator = described_class.new(perm_def, user, "project")
-      expect(evaluator.roles).to eq(["admin"])
+      expect(evaluator.roles).to eq([ "admin" ])
     end
 
     it "falls back to default_role when all roles are invalid" do
       user = double("User", lcp_role: %w[nonexistent unknown], id: 1)
       evaluator = described_class.new(perm_def, user, "project")
-      expect(evaluator.roles).to eq(["viewer"])
+      expect(evaluator.roles).to eq([ "viewer" ])
     end
 
     it "keeps all valid roles" do
@@ -358,7 +358,7 @@ RSpec.describe LcpRuby::Authorization::PermissionEvaluator do
 
       user = double("User", lcp_role: %w[admin], id: 1)
       evaluator = described_class.new(perm_def, user, "project")
-      expect(evaluator.roles).to eq(["admin"])
+      expect(evaluator.roles).to eq([ "admin" ])
     end
   end
 end
