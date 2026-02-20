@@ -1,0 +1,7 @@
+view_group:
+  model: showcase_virtual_field
+  primary: showcase_virtual_fields
+  views:
+    - presenter: showcase_virtual_fields
+      label: "Virtual Fields"
+      icon: zap

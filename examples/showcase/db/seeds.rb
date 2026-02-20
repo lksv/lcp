@@ -779,7 +779,47 @@ ExtModel = LcpRuby.registry.model_for("showcase_extensibility")
 ].each { |attrs| ExtModel.create!(attrs) }
 puts "  Created #{ExtModel.count} showcase_extensibility records"
 
-# Phase 10: Feature Catalog
+# Phase 10: Virtual Fields
+VirtualModel = LcpRuby.registry.model_for("showcase_virtual_field")
+
+[
+  {
+    name: "Premium Widget",
+    properties: { color: "blue", priority: 4, unit_price: 29.99, featured: true,
+                  category: "electronics", warehouse: "WEST-07", release_date: "2025-06-15",
+                  sku_code: "ELEC-PW-001", city: "San Francisco", country: "USA" }
+  },
+  {
+    name: "Basic Gadget",
+    properties: { color: "gray", priority: 2, unit_price: 9.99, featured: false,
+                  category: "electronics", warehouse: "MAIN-01", release_date: "2025-01-10",
+                  sku_code: "ELEC-BG-042", city: "Berlin", country: "Germany" }
+  },
+  {
+    name: "Limited Edition Box",
+    properties: { color: "gold", priority: 5, unit_price: 149.00, featured: true,
+                  category: "furniture", warehouse: "EAST-03", release_date: "2025-12-01",
+                  sku_code: "FURN-LE-100", city: "Tokyo", country: "Japan" }
+  },
+  {
+    name: "Clearance Item",
+    properties: { color: "red", priority: 1, unit_price: 2.50, featured: false,
+                  category: "clothing", sku_code: "CLTH-CI-999" }
+  },
+  {
+    name: "New Arrival",
+    properties: { color: "green", priority: 3, unit_price: 45.00, featured: true,
+                  category: "food", warehouse: "MAIN-01", release_date: "2026-02-01",
+                  sku_code: "FOOD-NA-007" }
+  },
+  {
+    name: "Empty Properties Test",
+    properties: {}
+  }
+].each { |attrs| VirtualModel.create!(attrs) }
+puts "  Created #{VirtualModel.count} showcase_virtual_field records"
+
+# Phase 11: Feature Catalog
 FeatureModel = LcpRuby.registry.model_for("feature")
 
 features = [
@@ -1818,6 +1858,88 @@ features = [
     demo_path: "/showcase/employees/1",
     demo_hint: "View an employee record — custom field values like Nickname, Years of Experience, and T-Shirt Size are set via dynamic accessors in seed data.",
     status: "stable"
+  },
+  # === Virtual Fields ===
+  {
+    name: "Virtual Fields Overview",
+    category: "virtual_fields",
+    description: "Virtual fields have no database column — their values are stored elsewhere (JSON column, external service, computed). Two source types:\n\n| Source | How it works |\n|--------|-------------|\n| `source: { service: \"json_field\" }` | Reads/writes a key inside a JSON column via built-in accessor |\n| `source: external` | Host app defines getter/setter methods via `on_model_ready` |\n\nVirtual fields support validations, defaults, and enums just like regular fields.",
+    config_example: "```ruby\n# JSON-backed virtual field\nfield :color, :string, label: \"Color\",\n  source: { service: \"json_field\",\n            options: { column: \"properties\", key: \"color\" } }\n\n# External (host-defined) virtual field\nfield :full_location, :string, label: \"Full Location\",\n  source: :external\n```",
+    demo_path: "/showcase/showcase-virtual-fields",
+    demo_hint: "Browse the list — notice that columns like color, priority, and category are not real DB columns but read from JSON.",
+    status: "beta"
+  },
+  {
+    name: "JSON Field Accessor (String)",
+    category: "virtual_fields",
+    description: "The `json_field` service accessor stores a string value inside a JSON column. Specify `column` (the real JSON column name) and `key` (the JSON key).\n\nThe accessor transparently reads and writes the JSON, marking the column dirty so ActiveRecord persists the change.",
+    config_example: "```ruby\nfield :color, :string, label: \"Color\",\n  source: {\n    service: \"json_field\",\n    options: { column: \"properties\", key: \"color\" }\n  }\n```",
+    demo_path: "/showcase/showcase-virtual-fields",
+    demo_hint: "Edit a record and change the **Color** field — then check the Raw JSON section to see the properties column updated.",
+    status: "beta"
+  },
+  {
+    name: "JSON Field Accessor (Integer with Validation)",
+    category: "virtual_fields",
+    description: "Virtual fields support standard validations. An integer stored in JSON can have `numericality` constraints just like a column-backed field.\n\nValidation errors appear on the virtual field name, not the JSON column.",
+    config_example: "```ruby\nfield :priority, :integer, label: \"Priority\",\n  source: { service: \"json_field\",\n            options: { column: \"properties\", key: \"priority\" } } do\n  validates :numericality, only_integer: true,\n    greater_than_or_equal_to: 1, less_than_or_equal_to: 5,\n    allow_nil: true\nend\n```",
+    demo_path: "/showcase/showcase-virtual-fields",
+    demo_hint: "Try entering **priority = 0** or **priority = 6** — validation rejects values outside 1–5.",
+    status: "beta"
+  },
+  {
+    name: "JSON Field Accessor (Boolean)",
+    category: "virtual_fields",
+    description: "Boolean values stored in JSON work seamlessly with checkbox inputs. The accessor reads `true`/`false` from the JSON key.",
+    config_example: "```ruby\nfield :featured, :boolean, label: \"Featured\",\n  source: { service: \"json_field\",\n            options: { column: \"properties\", key: \"featured\" } }\n```",
+    demo_path: "/showcase/showcase-virtual-fields",
+    demo_hint: "Look at the **Featured** column in the index — it renders as a boolean icon (check/cross).",
+    status: "beta"
+  },
+  {
+    name: "Virtual Enum (Inclusion Validation)",
+    category: "virtual_fields",
+    description: "Virtual enums cannot use the ActiveRecord `enum` macro (no DB column), so LCP automatically adds an `inclusion` validation instead.\n\nThe enum values are used for select inputs and badge rendering.",
+    config_example: "```ruby\nfield :category, :enum, label: \"Category\",\n  values: %w[electronics clothing food furniture other],\n  source: { service: \"json_field\",\n            options: { column: \"properties\", key: \"category\" } }\n```",
+    demo_path: "/showcase/showcase-virtual-fields",
+    demo_hint: "Look at the **Category** column — rendered as a colored badge. Edit a record to see the select dropdown.",
+    status: "beta"
+  },
+  {
+    name: "Virtual Field with Default",
+    category: "virtual_fields",
+    description: "Virtual fields support static defaults. When a new record is created, the default value is applied if the field is blank.\n\nNote: `current_date` and service defaults also work on virtual fields.",
+    config_example: "```ruby\nfield :warehouse, :string, label: \"Warehouse\",\n  default: \"MAIN-01\",\n  source: { service: \"json_field\",\n            options: { column: \"properties\", key: \"warehouse\" } }\n```",
+    demo_path: "/showcase/showcase-virtual-fields",
+    demo_hint: "Create a new record without filling the **Warehouse** field — it defaults to MAIN-01.",
+    status: "beta"
+  },
+  {
+    name: "Multiple Virtual Fields from One JSON Column",
+    category: "virtual_fields",
+    description: "Any number of virtual fields can share the same JSON column. Each field targets a different key. This is the primary use case — a single `properties` column backs many typed fields.\n\nThe JSON column itself can also be shown/edited directly.",
+    config_example: "```ruby\n# All share the same 'properties' column\nfield :color, :string,\n  source: { service: \"json_field\",\n            options: { column: \"properties\", key: \"color\" } }\nfield :priority, :integer,\n  source: { service: \"json_field\",\n            options: { column: \"properties\", key: \"priority\" } }\nfield :sku_code, :string,\n  source: { service: \"json_field\",\n            options: { column: \"properties\", key: \"sku_code\" } }\n```",
+    demo_path: "/showcase/showcase-virtual-fields",
+    demo_hint: "Look at the **Raw JSON** section on the show page — all virtual field values live in one JSON object.",
+    status: "beta"
+  },
+  {
+    name: "External Source (Computed Field)",
+    category: "virtual_fields",
+    description: "Fields with `source: external` require the host app to define getter/setter methods. Use `on_model_ready` in the initializer to inject methods before validation runs.\n\n`full_location` concatenates `city` and `country` (both JSON-backed) into a single read-only string.",
+    config_example: "```ruby\n# Model definition\nfield :full_location, :string, label: \"Full Location\",\n  source: :external\n\n# config/initializers/lcp_ruby.rb\nLcpRuby.configure do |config|\n  config.on_model_ready(\"showcase_virtual_field\") do |klass|\n    klass.define_method(:full_location) do\n      parts = [city, country].compact_blank\n      parts.any? ? parts.join(\", \") : nil\n    end\n    klass.define_method(:full_location=) { |_v| }\n  end\nend\n```",
+    demo_path: "/showcase/showcase-virtual-fields",
+    demo_hint: "View a record with city and country set — **Full Location** shows \"San Francisco, USA\". Records without location show blank.",
+    status: "beta"
+  },
+  {
+    name: "External Source (Derived Field)",
+    category: "virtual_fields",
+    description: "External fields can derive values from other virtual fields. `priority_label` maps the integer priority (1–5) to a human label.\n\nThis pattern is useful for display-only fields that depend on other field values.",
+    config_example: "```ruby\n# Model definition\nfield :priority_label, :string, label: \"Priority Label\",\n  source: :external\n\n# config/initializers/lcp_ruby.rb\nconfig.on_model_ready(\"showcase_virtual_field\") do |klass|\n  klass.define_method(:priority_label) do\n    { 1 => \"Lowest\", 2 => \"Low\", 3 => \"Medium\",\n      4 => \"High\", 5 => \"Critical\" }[priority]\n  end\n  klass.define_method(:priority_label=) { |_v| }\nend\n```",
+    demo_path: "/showcase/showcase-virtual-fields",
+    demo_hint: "Look at the **Priority Label** column in the index — it shows \"High\", \"Low\", etc. based on the integer priority value.",
+    status: "beta"
   }
 ]
 

@@ -12,6 +12,7 @@ menu:
         - view_group: permission_configs
         - view_group: roles
         - view_group: showcase_extensibility
+        - view_group: showcase_virtual_fields
 
     - label: "Blog"
       icon: file-text

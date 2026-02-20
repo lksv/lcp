@@ -7,7 +7,7 @@ define_model :feature do
   end
 
   field :category, :enum, label: "Category", null: false,
-    values: %w[field_types display_types input_types model_features presenter form permissions permission_source role_source extensibility navigation attachments authentication custom_fields] do
+    values: %w[field_types display_types input_types model_features presenter form permissions permission_source role_source extensibility navigation attachments authentication custom_fields virtual_fields] do
     validates :presence
   end
 
@@ -36,4 +36,5 @@ define_model :feature do
   scope :by_category_attachments, where: { category: "attachments" }
   scope :by_category_authentication, where: { category: "authentication" }
   scope :by_category_custom_fields, where: { category: "custom_fields" }
+  scope :by_category_virtual_fields, where: { category: "virtual_fields" }
 end
