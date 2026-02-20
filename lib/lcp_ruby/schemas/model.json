@@ -70,7 +70,21 @@
           "items": {}
         },
         "computed": { "type": ["string", "object"] },
-        "options": { "type": "object" }
+        "options": { "type": "object" },
+        "source": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "object",
+              "properties": {
+                "service": { "type": "string" },
+                "options": { "type": "object" }
+              },
+              "required": ["service"],
+              "additionalProperties": false
+            }
+          ]
+        }
       },
       "required": ["name", "type"],
       "additionalProperties": false

@@ -141,6 +141,41 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
       expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
     end
 
+    it "accepts field with source: external (string)" do
+      model = build_model(fields: [
+        { name: "location", type: "string", source: "external" }
+      ])
+      expect(validator.validate_model(model)).to be_empty
+    end
+
+    it "accepts field with source as service accessor object" do
+      model = build_model(fields: [
+        { name: "color", type: "string",
+          source: { service: "json_field", options: { column: "properties", key: "color" } } }
+      ])
+      expect(validator.validate_model(model)).to be_empty
+    end
+
+    it "catches source object missing required service key" do
+      raw = LcpRuby::HashUtils.stringify_deep(
+        name: "test", fields: [
+          { name: "color", type: "string", source: { options: { column: "properties" } } }
+        ]
+      )
+      errors = validator.send(:validate, :model, raw, context_name: "Model 'test'")
+      expect(errors).to include(a_string_matching(/missing required service|does not match any allowed format/))
+    end
+
+    it "catches source object with unknown attribute" do
+      raw = LcpRuby::HashUtils.stringify_deep(
+        name: "test", fields: [
+          { name: "color", type: "string", source: { service: "json_field", bogus: true } }
+        ]
+      )
+      errors = validator.send(:validate, :model, raw, context_name: "Model 'test'")
+      expect(errors).not_to be_empty
+    end
+
     it "returns no errors when raw_hash is nil" do
       model = LcpRuby::Metadata::ModelDefinition.new(name: "test")
       expect(validator.validate_model(model)).to be_empty

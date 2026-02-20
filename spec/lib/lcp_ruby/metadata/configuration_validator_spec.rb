@@ -1097,6 +1097,95 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
   end
 
+  # --- Virtual field validations ---
+
+  context "virtual field with service accessor" do
+    let(:metadata_path) { "" }
+
+    it "errors when accessor service column references non-existent field" do
+      LcpRuby::Services::Registry.register("accessors", "json_field", ->(_r, _f) {})
+
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: product
+            fields:
+              - { name: title, type: string }
+              - name: color
+                type: string
+                source:
+                  service: json_field
+                  options:
+                    column: nonexistent
+                    key: color
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/source references column 'nonexistent' which is not a defined field/)
+      )
+    ensure
+      LcpRuby::Services::Registry.clear!
+    end
+
+    it "warns when virtual field has transforms" do
+      LcpRuby::Services::Registry.register("accessors", "json_field", ->(_r, _f) {})
+
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: product
+            fields:
+              - { name: title, type: string }
+              - { name: data, type: json }
+              - name: color
+                type: string
+                transforms: [strip]
+                source:
+                  service: json_field
+                  options:
+                    column: data
+                    key: color
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/transforms are ignored on virtual fields/)
+      )
+    ensure
+      LcpRuby::Services::Registry.clear!
+    end
+
+    it "passes for valid virtual field configuration" do
+      LcpRuby::Services::Registry.register("accessors", "json_field", ->(_r, _f) {})
+
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: product
+            fields:
+              - { name: title, type: string }
+              - { name: data, type: json }
+              - name: color
+                type: string
+                source:
+                  service: json_field
+                  options:
+                    column: data
+                    key: color
+        YAML
+      )
+
+      result = v.validate
+      virtual_errors = result.errors.select { |e| e.include?("accessor") || e.include?("virtual") }
+      expect(virtual_errors).to be_empty
+    ensure
+      LcpRuby::Services::Registry.clear!
+    end
+  end
+
   # --- CRM integration fixtures (complex, multi-model) ---
 
   context "with CRM integration fixtures" do
