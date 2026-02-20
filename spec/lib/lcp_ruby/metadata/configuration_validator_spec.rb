@@ -1908,10 +1908,10 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
   # --- Custom fields validations ---
 
-  context "custom_fields enabled without custom_data field" do
+  context "custom_fields enabled" do
     let(:metadata_path) { "" }
 
-    it "warns when custom_data field is missing" do
+    it "does not warn about custom_data (auto-added at runtime)" do
       v = with_metadata(
         models: [ <<~YAML ]
           model:
@@ -1924,26 +1924,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       )
 
       result = v.validate
-      expect(result.warnings).to include(
-        a_string_matching(/custom_fields is enabled but model has no 'custom_data' field/)
-      )
-    end
-
-    it "does not warn when custom_data field exists" do
-      v = with_metadata(
-        models: [ <<~YAML ]
-          model:
-            name: project
-            fields:
-              - { name: title, type: string }
-              - { name: custom_data, type: json }
-            options:
-              custom_fields: true
-        YAML
-      )
-
-      result = v.validate
-      cf_warnings = result.warnings.select { |w| w.include?("custom_fields") }
+      cf_warnings = result.warnings.select { |w| w.include?("custom_fields") || w.include?("custom_data") }
       expect(cf_warnings).to be_empty
     end
   end

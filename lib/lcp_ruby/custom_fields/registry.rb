@@ -45,6 +45,7 @@ module LcpRuby
         # Mark registry as available (called after building the built-in model).
         def mark_available!
           @available = true
+          @cache ||= {}
         end
 
         private

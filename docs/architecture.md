@@ -22,7 +22,7 @@ YAML metadata (config/lcp_ruby/)
               CustomFields::Registry.mark_available!
               CustomFields::DefinitionChangeHandler.install! → after_commit cache invalidation
               CustomFields::Applicator → apply_custom_field_accessors! on enabled models
-              CustomFields::BuiltInPresenter → auto-register management presenters
+              CustomFieldsController → nested routes: /:lcp_slug/custom-fields
                                 ↓
               Roles::Setup.apply!(loader) → contract validation, registry, change handler
               (only when role_source == :model)
@@ -147,10 +147,10 @@ Runtime user-defined fields stored in a JSONB/JSON `custom_data` column.
 - **Registry** — per-model cache of active `custom_field_definition` records; `for_model`, `reload!`, `clear!`, `available?`, `mark_available!`
 - **Applicator** — installs `read_custom_field`/`write_custom_field` instance methods, `apply_custom_field_accessors!` class method (defines dynamic getters/setters from Registry, removes stale ones), `validate :validate_custom_fields` (enforces required, length for string/text, range for numeric, enum constraints), and `after_initialize` for default values on new records
 - **BuiltInModel** — returns model definition hash for the `custom_field_definition` model (30 fields covering type, validation, display, and rendering metadata); reserved name checking
-- **BuiltInPresenter** — generates a management presenter definition per target model (slug: `custom-fields-<model_name>`, scoped by `target_model` via `default_scope` in search config)
+- **BuiltInPresenter** — generates a presenter definition for the custom fields management UI (used by `CustomFieldsController`)
 - **Query** — DB-portable JSON query helpers: `text_search`, `exact_match`, `sort_expression`; uses PostgreSQL `->>` / `@>` operators or SQLite `JSON_EXTRACT`; validates field names against `/\A[a-z][a-z0-9_]*\z/`
 - **DefinitionChangeHandler** — `after_commit` callback on `custom_field_definition` that clears Registry cache and re-applies accessors on the target model
-- **Setup** — shared boot logic used by both `Engine.load_metadata!` and test helper; orchestrates registry, handlers, accessors, scopes, and presenter registration
+- **Setup** — shared boot logic used by both `Engine.load_metadata!` and test helper; orchestrates registry, handlers, accessors, and scopes
 - **Utils** — `safe_parse_json` and `safe_to_decimal` with environment-aware error handling (raise in dev/test, log in production)
 
 ### Routing (`lib/lcp_ruby/routing/`)
@@ -229,7 +229,7 @@ end
 5. Iterate `model_definitions` — for each: `SchemaManager.ensure_table!` + `Builder.build`
 6. `Registry.register(name, model_class)` for each built model
 7. Build built-in `custom_field_definition` model (if not already defined by user)
-8. `CustomFields::Setup.apply!(loader)` — marks registry available, installs `DefinitionChangeHandler`, applies custom field accessors (with stale cleanup), registers `for_<model>` scopes on `custom_field_definition`, registers built-in management presenters (scoped by `target_model`)
+8. `CustomFields::Setup.apply!(loader)` — marks registry available, installs `DefinitionChangeHandler`, applies custom field accessors (with stale cleanup), registers `for_<model>` scopes on `custom_field_definition`
 9. `Roles::Setup.apply!(loader)` — when `role_source == :model`: validates contract, marks registry available, installs `ChangeHandler`
 10. `check_services!` — verify all service references are valid
 

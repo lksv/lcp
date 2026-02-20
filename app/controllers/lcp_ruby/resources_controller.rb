@@ -449,75 +449,6 @@ module LcpRuby
       end
     end
 
-    def apply_search(scope)
-      search_config = current_presenter.search_config
-      return scope unless search_config["enabled"]
-
-      # Apply default scope if configured (e.g., management presenters scoped by target_model)
-      if search_config["default_scope"]
-        scope_name = search_config["default_scope"]
-        scope = scope.send(scope_name) if @model_class.respond_to?(scope_name)
-      end
-
-      if params[:filter].present?
-        predefined = search_config["predefined_filters"]&.find { |f| f["name"] == params[:filter] }
-        scope_name = predefined&.dig("scope")
-        scope = scope.send(scope_name) if scope_name && @model_class.respond_to?(scope_name)
-      end
-
-      if params[:q].present?
-        searchable = (search_config["searchable_fields"] || []).select { |f| @model_class.column_names.include?(f.to_s) }
-        conn = @model_class.connection
-        sanitized_q = ActiveRecord::Base.sanitize_sql_like(params[:q])
-
-        conditions = searchable.map { |f| "#{conn.quote_column_name(f)} LIKE :q" }.join(" OR ")
-
-        # Include searchable custom fields
-        if current_model_definition.custom_fields_enabled?
-          cf_searchable = CustomFields::Registry.for_model(current_model_definition.name)
-            .select { |d| d.active && d.searchable }
-          cf_conditions = cf_searchable.map do |d|
-            CustomFields::Query.text_search_condition(current_model_definition.table_name, d.field_name, sanitized_q)
-          end
-          all_conditions = [ conditions, *cf_conditions ].reject(&:blank?)
-          conditions = all_conditions.join(" OR ")
-        end
-
-        scope = scope.where(conditions, q: "%#{sanitized_q}%") if conditions.present?
-      end
-
-      scope
-    end
-
-    def apply_sort(scope)
-      sort_config = current_presenter.index_config["default_sort"]
-      return scope unless sort_config || params[:sort]
-
-      field = params[:sort] || sort_config&.dig("field")
-      direction = params[:direction] || sort_config&.dig("direction") || "asc"
-      direction = "asc" unless %w[asc desc].include?(direction.to_s.downcase)
-
-      if field.to_s.include?(".")
-        parts = field.to_s.split(".")
-        assoc_name = parts[0]
-        assoc = current_model_definition.associations.find { |a| a.name == assoc_name }
-        return scope unless assoc
-
-        target_def = LcpRuby.loader.model_definition(assoc.target_model)
-        return scope unless target_def
-
-        target_class = LcpRuby.registry.model_for(assoc.target_model)
-        col = parts.last
-        return scope unless target_class&.column_names&.include?(col)
-
-        conn = @model_class.connection
-        scope.order(Arel.sql("#{conn.quote_table_name(target_def.table_name)}.#{conn.quote_column_name(col)} #{direction}"))
-      else
-        return scope unless @model_class.column_names.include?(field.to_s)
-        scope.order(field => direction)
-      end
-    end
-
     def summary_columns_present?
       current_presenter.table_columns.any? { |c| c["summary"].present? }
     end
@@ -584,23 +515,6 @@ module LcpRuby
         options.each { |o| ids << o[:value].to_i }
       end
       ids
-    end
-
-    def apply_presenter_defaults(record)
-      layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
-      layout_builder.form_sections.each do |section|
-        (section["fields"] || []).each do |field_config|
-          field_name = field_config["field"]
-          next unless field_name
-
-          default_value = field_config.dig("input_options", "default_value")
-          next if default_value.nil?
-
-          if record.respond_to?("#{field_name}=") && record.public_send(field_name).blank?
-            record.public_send("#{field_name}=", default_value)
-          end
-        end
-      end
     end
 
     def build_nested_records(record)

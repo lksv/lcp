@@ -1,0 +1,18 @@
+permissions:
+  model: custom_field_definition
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+    viewer:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+
+  default_role: viewer

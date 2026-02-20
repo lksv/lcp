@@ -7,7 +7,7 @@ Custom fields allow users to add new fields to models at runtime without code ch
 1. A model opts in via `options: { custom_fields: true }`
 2. The engine automatically adds a `custom_data` column to the model's table
 3. A built-in `custom_field_definition` model is auto-created for storing field definitions
-4. A management presenter is auto-generated at `/custom-fields-<model_name>`
+4. Custom field management is available via nested routes at `/<model_slug>/custom-fields`
 5. Custom fields appear in form and show views grouped by section
 6. Values are stored in the `custom_data` JSON column and accessed via dynamic getters/setters
 
@@ -343,18 +343,28 @@ permissions:
         writable: []
 ```
 
-## Management Presenter
+## Management Routes
 
-For each model with `custom_fields: true`, the engine auto-generates a management presenter with slug `custom-fields-<model_name>`. This provides a full CRUD interface for managing field definitions.
+Custom field definitions are managed via nested routes under the parent model's slug:
 
-For example, if your model is named `project`, the management UI is available at `/custom-fields-project`. The index is automatically scoped to only show definitions for that target model (via a `default_scope` on the search config).
+```
+GET    /:lcp_slug/custom-fields          # Index (scoped to target_model)
+GET    /:lcp_slug/custom-fields/new      # New form (target_model set from URL)
+POST   /:lcp_slug/custom-fields          # Create (target_model set from URL)
+GET    /:lcp_slug/custom-fields/:id      # Show
+GET    /:lcp_slug/custom-fields/:id/edit # Edit form
+PATCH  /:lcp_slug/custom-fields/:id      # Update
+DELETE /:lcp_slug/custom-fields/:id      # Destroy
+```
 
-The management presenter includes:
-- **Index**: table with field_name, custom_type, label, section, position, active, required columns (scoped to `target_model`)
+For example, if your model presenter has slug `projects`, the management UI is available at `/projects/custom-fields`. The `target_model` is resolved from the parent URL context. Record lookups are scoped to prevent cross-model access.
+
+The `CustomFieldsController` uses a built-in presenter definition (`BuiltInPresenter`) that provides:
+- **Index**: table with field_name, custom_type, label, section, position, active, required columns
 - **Form**: grouped sections for general info, text constraints, numeric constraints, enum values, and display options
 - **Show**: all field definition attributes in organized sections
 
-You can override the auto-generated presenter by defining your own presenter YAML with name `custom_fields_<model_name>`.
+Authorization is controlled by the `permissions/custom_field_definition.yml` file, separate from the parent model's permissions.
 
 ## Cache Invalidation
 

@@ -50,6 +50,8 @@ define_model :company do
   belongs_to :region, model: :region, required: false
   belongs_to :city, model: :city, required: false
 
+  custom_fields true
+
   timestamps true
   label_method :name
 end

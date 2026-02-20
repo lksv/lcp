@@ -63,17 +63,44 @@ permissions:
         writable: []
 ```
 
-### Step 3: Boot the app and create field definitions
+### Step 3: Set up permissions for custom field definitions
 
-After starting the application, navigate to `/custom-fields-project` (the auto-generated management presenter). Create a new custom field definition:
+The management UI requires its own permission file for the built-in `custom_field_definition` model:
 
-- **Target model**: `project` (pre-filled)
+```yaml
+# config/lcp_ruby/permissions/custom_field_definition.yml
+permissions:
+  model: custom_field_definition
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+    viewer:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+  default_role: viewer
+```
+
+Without this file, Pundit will deny access to the custom fields management routes.
+
+### Step 4: Boot the app and create field definitions
+
+After starting the application, navigate to `/projects/custom-fields` (the nested custom fields management route). Create a new custom field definition:
+
 - **Field name**: `website` (lowercase, no spaces)
 - **Type**: `string`
 - **Label**: `Website URL`
 - **Section**: `Contact Info` (custom fields are grouped by section)
 
-### Step 4: Use the custom fields
+The `target_model` is automatically set from the parent URL context (e.g., `/projects/custom-fields` sets it to `project`).
+
+### Step 5: Use the custom fields
 
 Navigate to `/projects/new`. A new "Contact Info" section appears at the bottom of the form with the "Website URL" field. Fill it in, save, and the value persists.
 
@@ -227,21 +254,23 @@ Custom fields use a single permission key — `custom_data` — rather than per-
 
 > **Note:** The `readable_by_roles` and `writable_by_roles` attributes on individual field definitions are reserved for future per-field role-based access control.
 
-## Overriding the Management Presenter
+## Management UI
 
-The auto-generated management presenter covers common needs. If you need to customize it (e.g., different form layout, additional actions), create a presenter YAML with the name `custom_fields_<model_name>`:
+Custom field definitions are managed via nested routes under the parent model's slug:
 
-```yaml
-# config/lcp_ruby/presenters/custom_fields_project.yml
-presenter:
-  name: custom_fields_project
-  model: custom_field_definition
-  slug: custom-fields-project
-  label: "Project Custom Fields"
-  # ... your custom configuration
+```
+GET    /:lcp_slug/custom-fields          # Index
+GET    /:lcp_slug/custom-fields/new      # New form
+POST   /:lcp_slug/custom-fields          # Create
+GET    /:lcp_slug/custom-fields/:id      # Show
+GET    /:lcp_slug/custom-fields/:id/edit # Edit form
+PATCH  /:lcp_slug/custom-fields/:id      # Update
+DELETE /:lcp_slug/custom-fields/:id      # Destroy
 ```
 
-This overrides the auto-generated presenter entirely.
+For example, if your model presenter has slug `projects`, the management URL is `/projects/custom-fields`. The `target_model` is resolved from the parent URL context and cannot be tampered with via form params.
+
+Authorization is controlled by the `permissions/custom_field_definition.yml` file. Per-target-model restrictions are possible via `record_rules` on the `target_model` field.
 
 ## Database Details
 
@@ -271,10 +300,10 @@ The custom fields system consists of eight components:
 | `CustomFields::Registry` | `lib/lcp_ruby/custom_fields/registry.rb` | Per-model cache of active definitions |
 | `CustomFields::Applicator` | `lib/lcp_ruby/custom_fields/applicator.rb` | Installs read/write methods, accessors, validations, and defaults |
 | `CustomFields::BuiltInModel` | `lib/lcp_ruby/custom_fields/built_in_model.rb` | Definition model schema (30 fields) |
-| `CustomFields::BuiltInPresenter` | `lib/lcp_ruby/custom_fields/built_in_presenter.rb` | Auto-generated management UI per target model (scoped by `target_model`) |
+| `CustomFields::BuiltInPresenter` | `lib/lcp_ruby/custom_fields/built_in_presenter.rb` | Generates presenter definition for the management UI |
 | `CustomFields::Query` | `lib/lcp_ruby/custom_fields/query.rb` | DB-portable JSON query helpers with field name validation |
 | `CustomFields::DefinitionChangeHandler` | `lib/lcp_ruby/custom_fields/definition_change_handler.rb` | Cache invalidation on definition changes |
-| `CustomFields::Setup` | `lib/lcp_ruby/custom_fields/setup.rb` | Shared boot logic (registry, handlers, accessors, scopes, presenters) |
+| `CustomFields::Setup` | `lib/lcp_ruby/custom_fields/setup.rb` | Shared boot logic (registry, handlers, accessors, scopes) |
 | `CustomFields::Utils` | `lib/lcp_ruby/custom_fields/utils.rb` | Environment-aware JSON parsing and numeric conversion |
 
 ### Data Flow
@@ -293,7 +322,7 @@ custom_field_definitions table
   │   └── applies default_value to new records via after_initialize
   │
   ├── CustomFields::Setup.apply!(loader)
-  │   └── orchestrates boot: registry, handlers, accessors, scopes, presenters
+  │   └── orchestrates boot: registry, handlers, accessors, scopes
   │
   ├── Presenter::LayoutBuilder
   │   └── appends custom field sections to form_sections / show_sections
@@ -301,10 +330,14 @@ custom_field_definitions table
   ├── Presenter::ColumnSet
   │   └── filters custom fields by custom_data permission
   │
+  ├── CustomFieldsController
+  │   └── nested routes: /:lcp_slug/custom-fields
+  │   └── resolves target_model from parent URL context
+  │   └── scopes records by target_model
+  │
   └── ResourcesController
       └── permits custom field params when custom_data is writable
       └── includes searchable custom fields in text search
-      └── applies default_scope from search config (management presenters)
 ```
 
 ## See Also

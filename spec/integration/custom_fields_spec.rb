@@ -23,9 +23,9 @@ RSpec.describe "Custom Fields Integration", type: :request do
   let(:cfd_model) { LcpRuby.registry.model_for("custom_field_definition") }
 
   describe "Custom field definition CRUD" do
-    describe "GET /custom-fields-project (index)" do
+    describe "GET /projects/custom-fields (index)" do
       it "returns 200" do
-        get "/custom-fields-project"
+        get "/projects/custom-fields"
         expect(response).to have_http_status(:ok)
       end
 
@@ -35,7 +35,7 @@ RSpec.describe "Custom Fields Integration", type: :request do
           custom_type: "string", label: "Website"
         )
 
-        get "/custom-fields-project"
+        get "/projects/custom-fields"
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("website")
         expect(response.body).to include("Website")
@@ -51,19 +51,18 @@ RSpec.describe "Custom Fields Integration", type: :request do
           custom_type: "string", label: "Other Field"
         )
 
-        get "/custom-fields-project"
+        get "/projects/custom-fields"
         expect(response).to have_http_status(:ok)
         expect(response.body).to include("proj_field")
         expect(response.body).not_to include("other_field")
       end
     end
 
-    describe "POST /custom-fields-project (create)" do
-      it "creates a new custom field definition" do
+    describe "POST /projects/custom-fields (create)" do
+      it "creates a new custom field definition with target_model from URL context" do
         expect {
-          post "/custom-fields-project", params: {
+          post "/projects/custom-fields", params: {
             record: {
-              target_model: "project",
               field_name: "priority",
               custom_type: "integer",
               label: "Priority",
@@ -76,12 +75,12 @@ RSpec.describe "Custom Fields Integration", type: :request do
         defn = cfd_model.last
         expect(defn.field_name).to eq("priority")
         expect(defn.custom_type).to eq("integer")
+        expect(defn.target_model).to eq("project")
       end
 
       it "rejects invalid field names" do
-        post "/custom-fields-project", params: {
+        post "/projects/custom-fields", params: {
           record: {
-            target_model: "project",
             field_name: "123invalid",
             custom_type: "string",
             label: "Bad Name"
@@ -90,6 +89,98 @@ RSpec.describe "Custom Fields Integration", type: :request do
 
         expect(response).to have_http_status(:unprocessable_entity)
       end
+
+      it "ignores target_model tampering via params" do
+        post "/projects/custom-fields", params: {
+          record: {
+            field_name: "tampered",
+            custom_type: "string",
+            label: "Tampered",
+            target_model: "other_model"
+          }
+        }
+
+        expect(response).to have_http_status(:redirect)
+        defn = cfd_model.last
+        expect(defn.target_model).to eq("project")
+      end
+    end
+
+    describe "GET /projects/custom-fields/:id (show)" do
+      it "shows a custom field definition" do
+        defn = cfd_model.create!(
+          target_model: "project", field_name: "website",
+          custom_type: "string", label: "Website"
+        )
+
+        get "/projects/custom-fields/#{defn.id}"
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("website")
+      end
+
+      it "prevents cross-model record access" do
+        other_defn = cfd_model.create!(
+          target_model: "other_model", field_name: "other_field",
+          custom_type: "string", label: "Other"
+        )
+
+        get "/projects/custom-fields/#{other_defn.id}"
+        expect(response).to have_http_status(:not_found)
+      end
+    end
+
+    describe "PATCH /projects/custom-fields/:id (update)" do
+      it "updates a custom field definition" do
+        defn = cfd_model.create!(
+          target_model: "project", field_name: "website",
+          custom_type: "string", label: "Website"
+        )
+
+        patch "/projects/custom-fields/#{defn.id}", params: {
+          record: { label: "Website URL" }
+        }
+
+        expect(response).to have_http_status(:redirect)
+        defn.reload
+        expect(defn.label).to eq("Website URL")
+      end
+
+      it "prevents target_model tampering on update" do
+        defn = cfd_model.create!(
+          target_model: "project", field_name: "website",
+          custom_type: "string", label: "Website"
+        )
+
+        patch "/projects/custom-fields/#{defn.id}", params: {
+          record: { label: "Updated", target_model: "other_model" }
+        }
+
+        expect(response).to have_http_status(:redirect)
+        defn.reload
+        expect(defn.target_model).to eq("project")
+      end
+    end
+
+    describe "DELETE /projects/custom-fields/:id (destroy)" do
+      it "deletes a custom field definition" do
+        defn = cfd_model.create!(
+          target_model: "project", field_name: "website",
+          custom_type: "string", label: "Website"
+        )
+
+        expect {
+          delete "/projects/custom-fields/#{defn.id}"
+        }.to change { cfd_model.count }.by(-1)
+
+        expect(response).to have_http_status(:redirect)
+      end
+    end
+  end
+
+  describe "Error handling" do
+    it "returns 404 for non-existent slug" do
+      get "/non-existent-slug/custom-fields"
+      expect(response).to have_http_status(:not_found)
     end
   end
 

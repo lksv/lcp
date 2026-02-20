@@ -61,8 +61,11 @@ module LcpRuby
 
       private
 
+      # Built-in models that are auto-created at runtime and not defined in user YAML.
+      BUILT_IN_MODEL_NAMES = %w[custom_field_definition].freeze
+
       def model_names
-        @model_names ||= loader.model_definitions.keys
+        @model_names ||= loader.model_definitions.keys + BUILT_IN_MODEL_NAMES
       end
 
       def model_field_names(model_name)
@@ -820,15 +823,9 @@ module LcpRuby
       # --- Custom fields validations ---
 
       def validate_custom_fields
-        loader.model_definitions.each_value do |model|
-          next unless model.custom_fields_enabled?
-
-          has_custom_data = model.fields.any? { |f| f.name == "custom_data" && f.type == "json" }
-          unless has_custom_data
-            @warnings << "Model '#{model.name}': custom_fields is enabled but model has no " \
-                         "'custom_data' field of type json"
-          end
-        end
+        # The custom_data column is auto-added at runtime by SchemaManager
+        # when custom_fields: true is set, so no explicit field declaration
+        # is required in the model definition.
       end
     end
   end

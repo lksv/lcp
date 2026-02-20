@@ -17,6 +17,18 @@ LcpRuby::Engine.routes.draw do
   delete "impersonate",      to: "impersonation#destroy", as: :stop_impersonate
 
   scope ":lcp_slug" do
+    # Custom fields management (must precede /:id to avoid matching "custom-fields" as id)
+    scope "custom-fields", as: :custom_fields do
+      get    "/",          to: "custom_fields#index"
+      get    "/new",       to: "custom_fields#new",     as: :new
+      post   "/",          to: "custom_fields#create"
+      get    "/:id",       to: "custom_fields#show",    as: :show
+      get    "/:id/edit",  to: "custom_fields#edit",    as: :edit
+      patch  "/:id",       to: "custom_fields#update",  as: :update
+      put    "/:id",       to: "custom_fields#update"
+      delete "/:id",       to: "custom_fields#destroy", as: :destroy
+    end
+
     get    "/",          to: "resources#index",   as: :resources
     get    "/select_options",      to: "resources#select_options",      as: :select_options
     get    "/inline_create_form",  to: "resources#inline_create_form",  as: :inline_create_form

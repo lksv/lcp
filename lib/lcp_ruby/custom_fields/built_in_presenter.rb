@@ -2,6 +2,7 @@ module LcpRuby
   module CustomFields
     class BuiltInPresenter
       # Generate a presenter definition hash for managing custom fields of a target model.
+      # The target_model parameter is used only for naming; scoping is handled by the controller.
       #
       # @param target_model [String] the model name that custom fields are managed for
       # @return [Hash] presenter definition hash suitable for PresenterDefinition.from_hash
@@ -9,8 +10,7 @@ module LcpRuby
         {
           "name" => "custom_fields_#{target_model}",
           "model" => "custom_field_definition",
-          "label" => "Custom Fields (#{target_model.humanize})",
-          "slug" => "custom-fields-#{target_model}",
+          "label" => "Custom Fields",
           "index" => {
             "table_columns" => [
               { "field" => "field_name", "label" => "Field Name", "sortable" => true },
@@ -76,8 +76,6 @@ module LcpRuby
                 "title" => "General",
                 "columns" => 2,
                 "fields" => [
-                  { "field" => "target_model", "input_options" => { "default_value" => target_model },
-                    "visible_when" => { "field" => "id", "operator" => "blank" } },
                   { "field" => "field_name" },
                   { "field" => "custom_type" },
                   { "field" => "label" },
@@ -131,8 +129,7 @@ module LcpRuby
           },
           "search" => {
             "enabled" => true,
-            "searchable_fields" => %w[field_name label section],
-            "default_scope" => "for_#{target_model}"
+            "searchable_fields" => %w[field_name label section]
           },
           "actions" => {
             "collection" => [
