@@ -17,7 +17,8 @@ define_presenter :features_card do
         field_types: "blue", display_types: "purple", input_types: "teal",
         model_features: "green", presenter: "orange", form: "cyan",
         permissions: "red", extensibility: "pink", navigation: "gray",
-        attachments: "yellow"
+        attachments: "yellow",
+        authentication: "indigo"
       }
     }, sortable: true
     column :status, display: :badge, display_options: {
@@ -36,7 +37,8 @@ define_presenter :features_card do
           field_types: "blue", display_types: "purple", input_types: "teal",
           model_features: "green", presenter: "orange", form: "cyan",
           permissions: "red", extensibility: "pink", navigation: "gray",
-          attachments: "yellow"
+          attachments: "yellow",
+        authentication: "indigo"
         }
       }
       field :status, display: :badge, display_options: {
@@ -90,6 +92,7 @@ define_presenter :features_card do
     filter :extensibility, label: "Extensibility", scope: :by_category_extensibility
     filter :navigation, label: "Navigation", scope: :by_category_navigation
     filter :attachments, label: "Attachments", scope: :by_category_attachments
+    filter :authentication, label: "Authentication", scope: :by_category_authentication
   end
 
   action :create, type: :built_in, on: :collection, label: "New Feature", icon: "plus"
