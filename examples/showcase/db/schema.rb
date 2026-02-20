@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.2].define(version: 2026_02_19_124321) do
+ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
   create_table "active_storage_attachments", force: :cascade do |t|
     t.string "name", null: false
     t.string "record_type", null: false
@@ -37,6 +37,31 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_124321) do
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
     t.index [ "blob_id", "variation_digest" ], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "lcp_ruby_users", force: :cascade do |t|
+    t.string "name", null: false
+    t.json "lcp_role", default: [ "viewer" ]
+    t.boolean "active", default: true, null: false
+    t.json "profile_data", default: {}
+    t.string "email", default: "", null: false
+    t.string "encrypted_password", default: "", null: false
+    t.string "reset_password_token"
+    t.datetime "reset_password_sent_at"
+    t.datetime "remember_created_at"
+    t.integer "sign_in_count", default: 0, null: false
+    t.datetime "current_sign_in_at"
+    t.datetime "last_sign_in_at"
+    t.string "current_sign_in_ip"
+    t.string "last_sign_in_ip"
+    t.integer "failed_attempts", default: 0, null: false
+    t.string "unlock_token"
+    t.datetime "locked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index [ "email" ], name: "index_lcp_ruby_users_on_email", unique: true
+    t.index [ "reset_password_token" ], name: "index_lcp_ruby_users_on_reset_password_token", unique: true
+    t.index [ "unlock_token" ], name: "index_lcp_ruby_users_on_unlock_token", unique: true
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"

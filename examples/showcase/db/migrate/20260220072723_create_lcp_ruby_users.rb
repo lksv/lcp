@@ -1,13 +1,13 @@
-class CreateLcpRubyUsers < ActiveRecord::Migration[<%= ActiveRecord::Migration.current_version %>]
+class CreateLcpRubyUsers < ActiveRecord::Migration[7.2]
   def change
     create_table :lcp_ruby_users do |t|
       ## Required fields
       t.string :name,               null: false
 
       ## Role and status
-      t.<%= json_column_type %> :lcp_role,        default: [ "viewer" ]
+      t.json :lcp_role,        default: [ "viewer" ]
       t.boolean :active,            null: false, default: true
-      t.<%= json_column_type %> :profile_data,    default: {}
+      t.json :profile_data,    default: {}
 
       ## Database authenticatable
       t.string :email,              null: false, default: ""

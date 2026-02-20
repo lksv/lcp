@@ -12,7 +12,7 @@ module LcpRuby
 
       desc "Sets up LCP Ruby built-in authentication (Devise-based)"
 
-      def create_migration
+      def create_users_migration
         migration_template(
           "create_lcp_ruby_users.rb.erb",
           "db/migrate/create_lcp_ruby_users.rb"
