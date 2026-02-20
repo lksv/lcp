@@ -6,7 +6,7 @@ RSpec.describe LcpRuby::User, type: :model do
     ActiveRecord::Schema.define do
       create_table :lcp_ruby_users, force: true do |t|
         t.string :name,               null: false
-        t.json   :lcp_role,           default: ["viewer"]
+        t.json   :lcp_role,           default: [ "viewer" ]
         t.boolean :active,            null: false, default: true
         t.json   :profile_data,       default: {}
         t.string :email,              null: false, default: ""
@@ -100,21 +100,21 @@ RSpec.describe LcpRuby::User, type: :model do
       user = build_user
       user.save!
       user.reload
-      expect(user.lcp_role).to eq(["viewer"])
+      expect(user.lcp_role).to eq([ "viewer" ])
     end
 
     it "stores multiple roles" do
       user = build_user
-      user.lcp_role = ["admin", "editor"]
+      user.lcp_role = [ "admin", "editor" ]
       user.save!
       user.reload
-      expect(user.lcp_role).to eq(["admin", "editor"])
+      expect(user.lcp_role).to eq([ "admin", "editor" ])
     end
 
     it "wraps single role in array" do
       user = build_user
       user.write_attribute(:lcp_role, "admin")
-      expect(user.lcp_role).to eq(["admin"])
+      expect(user.lcp_role).to eq([ "admin" ])
     end
   end
 

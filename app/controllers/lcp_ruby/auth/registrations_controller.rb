@@ -5,7 +5,7 @@ module LcpRuby
     class RegistrationsController < Devise::RegistrationsController
       include BaseController
 
-      before_action :check_registration_enabled, only: [:new, :create]
+      before_action :check_registration_enabled, only: [ :new, :create ]
 
       protected
 

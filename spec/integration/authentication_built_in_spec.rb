@@ -10,7 +10,7 @@ RSpec.describe "Authentication built-in mode", type: :request do
     ActiveRecord::Schema.define do
       create_table :lcp_ruby_users, force: true do |t|
         t.string :name,               null: false
-        t.json   :lcp_role,           default: ["viewer"]
+        t.json   :lcp_role,           default: [ "viewer" ]
         t.boolean :active,            null: false, default: true
         t.json   :profile_data,       default: {}
         t.string :email,              null: false, default: ""
@@ -78,7 +78,7 @@ RSpec.describe "Authentication built-in mode", type: :request do
       email: "test@example.com",
       password: "password123",
       password_confirmation: "password123",
-      lcp_role: ["admin"]
+      lcp_role: [ "admin" ]
     )
   end
 

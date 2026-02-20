@@ -30,7 +30,7 @@ module LcpRuby
 
           # Security
           devise.sign_out_via = :delete
-          devise.strip_whitespace_keys = [:email]
+          devise.strip_whitespace_keys = [ :email ]
           devise.stretches = Rails.env.test? ? 1 : 12
 
           # Turbo-compatible HTTP status codes
