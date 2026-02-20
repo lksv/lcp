@@ -75,6 +75,8 @@ cd examples/crm && bundle exec rails db:prepare && bundle exec rails s -p 3001
 
 **Important:** When making changes in `examples/` apps, always run `bundle exec rake lcp_ruby:validate` from that example app's directory to verify YAML metadata is valid.
 
+**Important:** When changing or extending the YAML config schema (models, presenters, permissions, view groups), always update `ConfigurationValidator` (`lib/lcp_ruby/metadata/configuration_validator.rb`) and its tests accordingly.
+
 ## Architecture
 
 ### Data Flow
