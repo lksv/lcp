@@ -681,6 +681,46 @@ RSpec.describe "CRM App Integration", type: :request do
       expect(response.body).to include("Mark this deal as won?")
     end
 
+    describe "show page section conditions" do
+      it "hides Metrics section when stage is lead" do
+        deal = deal_model.create!(title: "Lead Deal", stage: "lead", company_id: company.id)
+
+        get "/deals/#{deal.id}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).not_to include("Metrics")
+      end
+
+      it "shows Metrics section when stage is qualified" do
+        deal = deal_model.create!(title: "Qualified Deal", stage: "qualified", company_id: company.id)
+
+        get "/deals/#{deal.id}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Metrics")
+      end
+
+      it "applies disabled class when disable_when is true" do
+        deal = deal_model.create!(title: "Won Deal", stage: "closed_won", company_id: company.id)
+
+        get "/deals/#{deal.id}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Deal Notes")
+        expect(response.body).to include("lcp-conditionally-disabled")
+      end
+
+      it "does not apply disabled class when disable_when is false" do
+        deal = deal_model.create!(title: "Active Deal", stage: "qualified", company_id: company.id)
+
+        get "/deals/#{deal.id}"
+
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("Deal Notes")
+        expect(response.body).not_to include("lcp-conditionally-disabled")
+      end
+    end
+
     it "renders disabled custom action as span on show page" do
       deal = deal_model.create!(title: "No Value Deal", stage: "qualified", company_id: company.id)
 

@@ -974,7 +974,7 @@ features = [
   {
     name: "Conditional Visibility (visible_when)",
     category: "form",
-    description: "Show/hide fields and sections based on other field values. Evaluated client-side in real-time as users fill the form.",
+    description: "Show/hide fields and sections based on other field values. Evaluated client-side in real-time as users fill the form. Also supported on show page sections (server-side evaluation).",
     config_example: "```yaml\nform:\n  fields:\n    - field: is_premium\n      input_type: toggle\n    - field: reason\n      visible_when:\n        field: is_premium\n        operator: eq\n        value: true\n```",
     demo_path: "/showcase/showcase-forms/2/edit",
     demo_hint: "Toggle **Is premium** — the **Reason** field appears/disappears based on the toggle state.",
@@ -983,7 +983,7 @@ features = [
   {
     name: "Conditional Disable (disable_when)",
     category: "form",
-    description: "Disable fields based on other field values. Uses the widget's native disabled API, not CSS overlay.",
+    description: "Disable fields based on other field values. Uses the widget's native disabled API, not CSS overlay. Also supported on show page sections (server-side evaluation).",
     config_example: "```yaml\nform:\n  fields:\n    - field: rejection_reason\n      disable_when:\n        field: status\n        operator: not_eq\n        value: rejected\n```",
     demo_path: "/showcase/showcase-forms/3/edit",
     demo_hint: "Look at fields that become grayed out based on the form type or status selection.",
@@ -1296,6 +1296,25 @@ features = [
     config_example: "```bash\n# Set up authentication\nrails generate lcp_ruby:install_auth\nrails db:migrate\n\n# Create first admin user\nrake lcp_ruby:create_admin\n```",
     demo_path: nil,
     demo_hint: "CLI tool — run the generator in a new Rails app to set up built-in authentication from scratch.",
+    status: "stable"
+  },
+  # === Show Page Conditions ===
+  {
+    name: "Show Section Visibility (visible_when)",
+    category: "presenter",
+    description: "Hide show page sections based on field values. Evaluated server-side — hidden sections are not rendered in the DOM.",
+    config_example: "```ruby\nshow do\n  section \"Advanced\",\n    visible_when: { field: :stage, operator: :not_eq, value: \"draft\" } do\n    field :details\n  end\nend\n```",
+    demo_path: "/showcase/showcase-forms/1",
+    demo_hint: "View **Simple Form** — 'Advanced Details' and 'Premium Info' sections are hidden. Then view **Advanced Config** — 'Advanced Details' appears.",
+    status: "stable"
+  },
+  {
+    name: "Show Section Disable (disable_when)",
+    category: "presenter",
+    description: "Visually disable show page sections based on field values. The section is rendered but with a disabled appearance.",
+    config_example: "```ruby\nshow do\n  section \"Notes\",\n    disable_when: { field: :status, operator: :eq, value: \"archived\" } do\n    field :notes\n  end\nend\n```",
+    demo_path: "/showcase/showcase-forms/3",
+    demo_hint: "View **Special Request** — 'Standard Notes' section has a disabled appearance because form_type is 'special'.",
     status: "stable"
   }
 ]

@@ -256,9 +256,9 @@ description "View deal details and related contacts."
 
 Same as index. Manually specify associations to preload for the show page. Auto-detection handles `association_list` sections automatically. See [Eager Loading](eager-loading.md).
 
-#### `section(title, columns: 1, description: nil, responsive: nil, &block)`
+#### `section(title, columns: 1, description: nil, responsive: nil, visible_when: nil, disable_when: nil, &block)`
 
-Creates a section with fields. The `columns:` option controls the layout grid. The `description:` option adds explanatory text below the section heading. The `responsive:` option controls how the section adapts to different screen sizes.
+Creates a section with fields. The `columns:` option controls the layout grid. The `description:` option adds explanatory text below the section heading. The `responsive:` option controls how the section adapts to different screen sizes. The `visible_when:` and `disable_when:` options control server-side conditional rendering — hidden sections are not rendered in the DOM.
 
 ```ruby
 show do
@@ -266,10 +266,16 @@ show do
     field :title, renderer: :heading
     field :stage, renderer: :badge
   end
+
+  section "Metrics",
+    visible_when: { field: :stage, operator: :not_eq, value: "lead" } do
+    field :priority
+    field :progress
+  end
 end
 ```
 
-#### `association_list(title, association:, display_template: nil, link: nil, sort: nil, limit: nil, empty_message: nil, scope: nil)`
+#### `association_list(title, association:, display_template: nil, link: nil, sort: nil, limit: nil, empty_message: nil, scope: nil, visible_when: nil, disable_when: nil)`
 
 Renders a list of associated records with optional display templates, links, sorting, and limits. The `association:` must match a `has_many` association on the model.
 
@@ -816,6 +822,7 @@ end
 | `empty_message "No records."` | `index: { empty_message: "No records." }` |
 | `actions_position :inline` | `index: { actions_position: inline }` |
 | `show do section "Info", responsive: {...} do ... end end` | `show: { layout: [{ section: "Info", responsive: {...}, ... }] }` |
+| `show do section "X", visible_when: { field: :f, operator: :eq, value: "v" } do ... end end` | `show: { layout: [{ section: "X", visible_when: { field: f, operator: eq, value: v }, ... }] }` |
 | `association_list "X", association: :y` | `{ section: "X", type: association_list, association: y }` |
 | `association_list "X", association: :y, display_template: :default, link: true, sort: { name: :asc }, limit: 5, empty_message: "None.", scope: :active` | `{ section: "X", type: association_list, association: y, display_template: default, link: true, sort: { name: asc }, limit: 5, empty_message: "None.", scope: active }` |
 | `form do layout :tabs end` | `form: { layout: tabs }` |

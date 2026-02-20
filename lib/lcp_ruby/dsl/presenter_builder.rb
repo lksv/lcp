@@ -279,10 +279,13 @@ module LcpRuby
         @description_value = text
       end
 
-      def section(title, columns: 1, description: nil, responsive: nil, &block)
+      def section(title, columns: 1, description: nil, responsive: nil,
+                  visible_when: nil, disable_when: nil, &block)
         section_hash = { "section" => title, "columns" => columns }
         section_hash["description"] = description if description
         section_hash["responsive"] = stringify_deep(responsive) if responsive
+        section_hash["visible_when"] = stringify_deep(visible_when) if visible_when
+        section_hash["disable_when"] = stringify_deep(disable_when) if disable_when
         if block
           builder = SectionBuilder.new
           builder.instance_eval(&block)
@@ -292,7 +295,8 @@ module LcpRuby
       end
 
       def association_list(title, association:, display_template: nil, link: nil, sort: nil,
-                                limit: nil, empty_message: nil, scope: nil)
+                                limit: nil, empty_message: nil, scope: nil,
+                                visible_when: nil, disable_when: nil)
         entry = {
           "section" => title,
           "type" => "association_list",
@@ -304,6 +308,8 @@ module LcpRuby
         entry["limit"] = limit if limit
         entry["empty_message"] = empty_message if empty_message
         entry["scope"] = scope.to_s if scope
+        entry["visible_when"] = stringify_deep(visible_when) if visible_when
+        entry["disable_when"] = stringify_deep(disable_when) if disable_when
         @layout << entry
       end
 

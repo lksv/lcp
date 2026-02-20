@@ -33,13 +33,17 @@ define_presenter :deal do
         ]
       }
       field :value, renderer: :currency, options: { currency: "EUR" }
+      field "company.name", label: "Company"
+      field :created_at, renderer: :relative_date
+      field :documents, renderer: :attachment_list
+    end
+
+    section "Metrics", columns: 2,
+      visible_when: { field: :stage, operator: :not_eq, value: "lead" } do
       field :weighted_value, renderer: :currency, options: { currency: "EUR" }
       field :progress, renderer: :progress_bar
       field :priority, renderer: :rating, options: { max: 5 }
       field :expected_close_date
-      field :created_at, renderer: :relative_date
-      field "company.name", label: "Company"
-      field :documents, renderer: :attachment_list
     end
   end
 

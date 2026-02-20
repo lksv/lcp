@@ -1,6 +1,6 @@
 # Conditional Rendering
 
-Conditional rendering allows showing/hiding or enabling/disabling form fields, form sections, and action buttons based on field values or custom service logic. There are two condition forms: field-value conditions (evaluated client-side with JavaScript) and service conditions (evaluated server-side and re-evaluated via AJAX).
+Conditional rendering allows showing/hiding or enabling/disabling form fields, form sections, show page sections, and action buttons based on field values or custom service logic. There are two condition forms: field-value conditions (evaluated client-side with JavaScript on forms, server-side on show pages) and service conditions (evaluated server-side and re-evaluated via AJAX on forms).
 
 ## Field-Level Conditions
 
@@ -122,6 +122,52 @@ end
 
 action :close_won, type: :custom, on: :single,
   disable_when: { field: :value, operator: :blank }
+```
+
+## Show Page Conditions
+
+Show page sections (both regular `section` and `association_list`) support `visible_when` and `disable_when`. Unlike form conditions which are evaluated client-side, show page conditions are evaluated **server-side only** — hidden sections are not rendered in the DOM at all (no JavaScript toggling needed).
+
+```yaml
+show:
+  layout:
+    - section: "Metrics"
+      visible_when: { field: stage, operator: not_eq, value: lead }
+      fields:
+        - { field: priority }
+        - { field: progress }
+    - section: "Related Contacts"
+      type: association_list
+      association: contacts
+      visible_when: { field: status, operator: eq, value: active }
+```
+
+Using the DSL:
+
+```ruby
+show do
+  section "Metrics",
+    visible_when: { field: :stage, operator: :not_eq, value: "lead" } do
+    field :priority
+    field :progress
+  end
+
+  association_list "Related Contacts", association: :contacts,
+    visible_when: { field: :status, operator: :eq, value: "active" }
+end
+```
+
+When `disable_when` evaluates to true, the section is rendered with a `lcp-conditionally-disabled` CSS class for visual styling.
+
+Service conditions also work on show page sections:
+
+```yaml
+show:
+  layout:
+    - section: "Internal Notes"
+      visible_when: { service: admin_only_check }
+      fields:
+        - { field: internal_notes }
 ```
 
 ## Operator Reference

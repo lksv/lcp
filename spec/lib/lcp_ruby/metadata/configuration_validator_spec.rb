@@ -1236,6 +1236,99 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       )
     end
 
+    it "accepts valid visible_when on show section" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            show:
+              layout:
+                - section: "Metrics"
+                  visible_when: { field: status, operator: not_eq, value: draft }
+                  fields:
+                    - { field: title }
+        YAML
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("visible_when") }
+      expect(condition_errors).to be_empty
+    end
+
+    it "reports error for unknown field in show section visible_when" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            show:
+              layout:
+                - section: "Metrics"
+                  visible_when: { field: nonexistent, operator: eq, value: x }
+                  fields:
+                    - { field: title }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/section 'Metrics', visible_when.*references unknown field 'nonexistent'/)
+      )
+    end
+
+    it "reports error for unknown field in association_list visible_when" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+            associations:
+              - { type: has_many, name: tasks, target_model: task }
+        YAML
+          model:
+            name: task
+            fields:
+              - { name: name, type: string }
+            associations:
+              - { type: belongs_to, name: project, target_model: project }
+        YAML2
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            show:
+              layout:
+                - section: "Tasks"
+                  type: association_list
+                  association: tasks
+                  visible_when: { field: ghost_field, operator: eq, value: x }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/section 'Tasks', visible_when.*references unknown field 'ghost_field'/)
+      )
+    end
+
     it "reports error for action disable_when with unknown operator" do
       v = with_metadata(
         models: [ <<~YAML ],

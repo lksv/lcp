@@ -338,18 +338,19 @@ module LcpRuby
 
           section_type = section["type"]
 
-          # Validate association reference for nested_fields and association_list sections
-          if %w[nested_fields association_list].include?(section_type)
-            validate_section_association(presenter, section, config_name)
-            next # Fields belong to the associated model — skip field-level validation
-          end
-
-          # Validate section-level conditions
+          # Validate section-level conditions (for ALL section types including association_list)
           %w[visible_when disable_when].each do |cond_key|
             condition = section[cond_key]
             next unless condition.is_a?(Hash)
 
-            validate_condition(presenter, condition, "#{config_name} section '#{section['title']}', #{cond_key}")
+            section_label = section["title"] || section["section"] || "(unnamed)"
+            validate_condition(presenter, condition, "#{config_name} section '#{section_label}', #{cond_key}")
+          end
+
+          # Validate association reference for nested_fields and association_list sections
+          if %w[nested_fields association_list].include?(section_type)
+            validate_section_association(presenter, section, config_name)
+            next # Fields belong to the associated model — skip field-level validation
           end
 
           fields = section["fields"] || []

@@ -25,6 +25,15 @@ presenter:
           - { field: stage, renderer: badge }
           - { field: value, renderer: currency }
           - { field: "company.name", label: "Company", renderer: test_highlight }
+      - section: "Metrics"
+        visible_when: { field: stage, operator: not_eq, value: lead }
+        fields:
+          - { field: priority }
+          - { field: progress }
+      - section: "Deal Notes"
+        disable_when: { field: stage, operator: in, value: [closed_won, closed_lost] }
+        fields:
+          - { field: title }
 
   form:
     layout: tabs

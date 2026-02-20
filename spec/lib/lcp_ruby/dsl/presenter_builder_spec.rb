@@ -454,6 +454,80 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(fields[1]["hidden_on"]).to eq("mobile")
       expect(fields[2]["options"]).to eq({ "currency" => "$", "precision" => 2 })
     end
+
+    it "supports visible_when on section" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        show do
+          section "Metrics",
+            visible_when: { field: :stage, operator: :not_eq, value: "lead" } do
+            field :priority
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["show"]["layout"][0]
+      expect(section["visible_when"]).to eq({
+        "field" => "stage", "operator" => "not_eq", "value" => "lead"
+      })
+    end
+
+    it "supports disable_when on section" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        show do
+          section "Notes",
+            disable_when: { field: :stage, operator: :eq, value: "archived" } do
+            field :notes
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["show"]["layout"][0]
+      expect(section["disable_when"]).to eq({
+        "field" => "stage", "operator" => "eq", "value" => "archived"
+      })
+    end
+
+    it "supports visible_when on association_list" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :company
+        show do
+          association_list "Contacts", association: :contacts,
+            visible_when: { field: :status, operator: :eq, value: "active" }
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["show"]["layout"][0]
+      expect(section["visible_when"]).to eq({
+        "field" => "status", "operator" => "eq", "value" => "active"
+      })
+    end
+
+    it "stringifies symbol values in visible_when" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        show do
+          section "Info",
+            visible_when: { field: :stage, operator: :not_eq, value: :lead } do
+            field :title
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["show"]["layout"][0]
+      expect(section["visible_when"]["field"]).to eq("stage")
+      expect(section["visible_when"]["operator"]).to eq("not_eq")
+      expect(section["visible_when"]["value"]).to eq("lead")
+    end
   end
 
   describe "form block" do

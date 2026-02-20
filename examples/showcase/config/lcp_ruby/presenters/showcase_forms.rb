@@ -28,13 +28,25 @@ define_presenter :showcase_forms do
       field :is_premium, renderer: :boolean_icon
     end
 
-    section "Details" do
-      field :detailed_notes, renderer: :rich_text
-      field :reason
-      field :rejection_reason
+    # visible_when: hidden when form_type is "simple"
+    section "Advanced Details", columns: 2,
+      visible_when: { field: :form_type, operator: :not_eq, value: "simple" } do
       field :advanced_field_1
       field :advanced_field_2
       field :config_data, renderer: :code
+    end
+
+    # disable_when: disabled when form_type is "special"
+    section "Standard Notes",
+      disable_when: { field: :form_type, operator: :eq, value: "special" } do
+      field :detailed_notes, renderer: :rich_text
+    end
+
+    # visible_when on boolean
+    section "Premium Info",
+      visible_when: { field: :is_premium, operator: :eq, value: true } do
+      field :reason
+      field :rejection_reason
     end
   end
 

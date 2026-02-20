@@ -740,6 +740,18 @@ Array of section objects. Each section is rendered as a card or panel.
 | `type` | string | Set to `association_list` for related record sections |
 | `association` | string | Association name (required when `type: association_list`) |
 | `responsive` | hash | Responsive overrides per breakpoint (see below) |
+| `visible_when` | hash | Condition object. When false, the section is not rendered. Same syntax as [field conditions](#conditional-visibility) |
+| `disable_when` | hash | Condition object. When true, the section has a disabled appearance. Same syntax as [field conditions](#conditional-disabling) |
+
+Show page conditions are evaluated **server-side only** — hidden sections are not rendered in the DOM (no client-side JavaScript toggling).
+
+```yaml
+- section: "Metrics"
+  visible_when: { field: stage, operator: not_eq, value: lead }
+  fields:
+    - { field: priority }
+    - { field: progress }
+```
 
 #### Association List Sections
 
@@ -766,6 +778,8 @@ Use `type: association_list` to render a list of associated records within the s
 | `limit` | integer | — | Maximum number of records to display |
 | `empty_message` | string | `"No records."` | Message when no associated records exist |
 | `scope` | string | — | Named scope to apply on the association |
+| `visible_when` | hash | — | Condition object. When false, the section is not rendered |
+| `disable_when` | hash | — | Condition object. When true, the section has a disabled appearance |
 
 When `display_template` references a display template defined on the target model (see [Models Reference — Display Templates](models.md#display-templates)), records render with rich HTML including title, subtitle, icon, and badge. Without a display template, records fall back to `to_label`.
 
