@@ -31,6 +31,8 @@ module LcpRuby
 
       VALID_CRUD_ACTIONS = %w[index show create update destroy].freeze
       VALID_CONDITION_OPERATORS = %w[eq not_eq neq in not_in gt gte lt lte present blank matches not_matches].freeze
+      BUILT_IN_ACTION_NAMES = %w[show edit destroy create update].freeze
+      VALID_SORT_DIRECTIONS = %w[asc desc].freeze
 
       attr_reader :loader
 
@@ -50,6 +52,8 @@ module LcpRuby
         validate_permissions
         validate_uniqueness
         validate_view_groups
+        validate_menu
+        validate_custom_fields
 
         ValidationResult.new(errors: @errors.dup, warnings: @warnings.dup)
       end
@@ -74,6 +78,13 @@ module LcpRuby
         definition.scopes.map { |s| s.is_a?(Hash) ? (s["name"] || s[:name]).to_s : s.to_s }
       end
 
+      def model_association_names(model_name)
+        definition = loader.model_definitions[model_name]
+        return [] unless definition
+
+        definition.associations.map(&:name)
+      end
+
       # --- Model validations ---
 
       def validate_models
@@ -81,6 +92,7 @@ module LcpRuby
           validate_model_fields(model)
           validate_model_scopes(model)
           validate_model_events(model)
+          validate_display_templates(model)
         end
       end
 
@@ -150,6 +162,25 @@ module LcpRuby
           unless field_names.include?(event.field.to_s)
             @errors << "Model '#{model.name}', event '#{event.name}': " \
                        "field_change references unknown field '#{event.field}'"
+          end
+        end
+      end
+
+      def validate_display_templates(model)
+        return if model.display_templates.empty?
+
+        valid_fields = model.fields.map(&:name) + %w[created_at updated_at id]
+        model.display_templates.each_value do |tmpl|
+          next unless tmpl.structured?
+
+          tmpl.referenced_fields.each do |ref|
+            # Skip dot-path references (e.g., "category.name") — validated at runtime
+            next if ref.include?(".")
+
+            unless valid_fields.include?(ref)
+              @warnings << "Model '#{model.name}', display template '#{tmpl.name}': " \
+                           "references unknown field '#{ref}'"
+            end
           end
         end
       end
@@ -290,6 +321,9 @@ module LcpRuby
         validate_presenter_section_fields(presenter, presenter.form_config, "form", all_valid)
         # Check show fields
         validate_presenter_section_fields(presenter, presenter.show_config, "show", all_valid)
+
+        validate_presenter_default_sort(presenter, all_valid)
+        validate_presenter_includes(presenter)
       end
 
       def validate_presenter_section_fields(presenter, config, config_name, valid_fields)
@@ -298,8 +332,13 @@ module LcpRuby
           section = section.transform_keys(&:to_s) if section.is_a?(Hash)
           next unless section.is_a?(Hash)
 
-          # Skip nested_fields sections — their fields belong to the associated model, not the presenter model
-          next if section["type"] == "nested_fields"
+          section_type = section["type"]
+
+          # Validate association reference for nested_fields and association_list sections
+          if %w[nested_fields association_list].include?(section_type)
+            validate_section_association(presenter, section, config_name)
+            next # Fields belong to the associated model — skip field-level validation
+          end
 
           # Validate section-level conditions
           %w[visible_when disable_when].each do |cond_key|
@@ -335,6 +374,18 @@ module LcpRuby
         end
       end
 
+      def validate_section_association(presenter, section, config_name)
+        assoc_name = section["association"]
+        return unless assoc_name
+
+        assoc_names = model_association_names(presenter.model)
+        unless assoc_names.include?(assoc_name.to_s)
+          section_label = section["title"] || section["section"] || "(unnamed)"
+          @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}': " \
+                     "#{section['type']} references unknown association '#{assoc_name}' on model '#{presenter.model}'"
+        end
+      end
+
       def validate_presenter_scopes(presenter)
         search_config = presenter.search_config
         return unless search_config.is_a?(Hash)
@@ -363,6 +414,50 @@ module LcpRuby
         end
       end
 
+      def validate_presenter_default_sort(presenter, valid_fields)
+        default_sort = presenter.index_config["default_sort"]
+        return unless default_sort.is_a?(Hash)
+
+        sort = default_sort.transform_keys(&:to_s)
+        field = sort["field"]
+        direction = sort["direction"]
+
+        if field && !valid_fields.include?(field.to_s)
+          @errors << "Presenter '#{presenter.name}', index default_sort: " \
+                     "references unknown field '#{field}' on model '#{presenter.model}'"
+        end
+
+        if direction && !VALID_SORT_DIRECTIONS.include?(direction.to_s)
+          @errors << "Presenter '#{presenter.name}', index default_sort: " \
+                     "invalid direction '#{direction}'. Valid: #{VALID_SORT_DIRECTIONS.join(', ')}"
+        end
+      end
+
+      def validate_presenter_includes(presenter)
+        assoc_names = model_association_names(presenter.model)
+
+        %w[index_config show_config form_config].each do |config_method|
+          config = presenter.send(config_method)
+          next unless config.is_a?(Hash)
+
+          config_label = config_method.sub("_config", "")
+          %w[includes eager_load].each do |key|
+            entries = config[key]
+            next unless entries.is_a?(Array)
+
+            entries.each do |entry|
+              # Only validate simple string entries; skip deep hashes (too complex for static analysis)
+              next unless entry.is_a?(String)
+
+              unless assoc_names.include?(entry)
+                @warnings << "Presenter '#{presenter.name}', #{config_label}.#{key}: " \
+                             "references unknown association '#{entry}' on model '#{presenter.model}'"
+              end
+            end
+          end
+        end
+      end
+
       def validate_presenter_actions(presenter)
         all_actions = (presenter.collection_actions + presenter.single_actions + presenter.batch_actions)
         all_actions.each do |action|
@@ -370,6 +465,16 @@ module LcpRuby
           next unless action.is_a?(Hash)
 
           validate_action_visible_when(presenter, action)
+          validate_custom_action_name(presenter, action)
+        end
+      end
+
+      def validate_custom_action_name(presenter, action)
+        return unless action["type"].to_s == "custom"
+
+        if BUILT_IN_ACTION_NAMES.include?(action["name"].to_s)
+          @warnings << "Presenter '#{presenter.name}', action '#{action['name']}': " \
+                       "custom action uses built-in name '#{action['name']}', likely misconfigured"
         end
       end
 
@@ -653,6 +758,57 @@ module LcpRuby
                        "'#{tables[model.table_name]}' and '#{model.name}'"
           else
             tables[model.table_name] = model.name
+          end
+        end
+      end
+
+      # --- Menu validations ---
+
+      def validate_menu
+        return unless loader.respond_to?(:menu_definition)
+
+        menu_def = loader.menu_definition
+        return unless menu_def
+
+        all_roles = collect_all_defined_roles
+
+        validate_menu_items(menu_def.top_menu, all_roles) if menu_def.has_top_menu?
+        validate_menu_items(menu_def.sidebar_menu, all_roles) if menu_def.has_sidebar_menu?
+      end
+
+      # View group references are already validated by Loader.validate_menu_references! at load time.
+      # This method only validates role references in visible_when conditions.
+      def validate_menu_items(items, all_roles)
+        items.each do |item|
+          if item.has_role_constraint?
+            item.allowed_roles.each do |role|
+              unless all_roles.include?(role.to_s)
+                @warnings << "Menu item '#{item.label || item.view_group_name}': " \
+                             "visible_when references undefined role '#{role}'"
+              end
+            end
+          end
+
+          validate_menu_items(item.children, all_roles) if item.group?
+        end
+      end
+
+      def collect_all_defined_roles
+        loader.permission_definitions.each_with_object([]) do |(_, perm), roles|
+          perm.roles.each_key { |r| roles << r.to_s }
+        end.uniq
+      end
+
+      # --- Custom fields validations ---
+
+      def validate_custom_fields
+        loader.model_definitions.each_value do |model|
+          next unless model.custom_fields_enabled?
+
+          has_custom_data = model.fields.any? { |f| f.name == "custom_data" && f.type == "json" }
+          unless has_custom_data
+            @warnings << "Model '#{model.name}': custom_fields is enabled but model has no " \
+                         "'custom_data' field of type json"
           end
         end
       end

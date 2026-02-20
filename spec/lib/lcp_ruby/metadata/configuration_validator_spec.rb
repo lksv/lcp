@@ -9,7 +9,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
   before { loader.load_all }
 
   # Helper to create a temporary metadata directory with YAML files
-  def create_metadata(models: [], presenters: [], permissions: [], view_groups: [])
+  def create_metadata(models: [], presenters: [], permissions: [], view_groups: [], menu: nil)
     dir = Dir.mktmpdir("lcp_test")
     %w[models presenters permissions views].each { |d| FileUtils.mkdir_p(File.join(dir, d)) }
 
@@ -25,6 +25,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     view_groups.each_with_index do |yaml, i|
       File.write(File.join(dir, "views", "vg_#{i}.yml"), yaml)
     end
+    File.write(File.join(dir, "menu.yml"), menu) if menu
 
     dir
   end
@@ -1287,6 +1288,663 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       result = v.validate
       condition_errors = result.errors.select { |e| e.include?("visible_when") || e.include?("disable_when") }
       expect(condition_errors).to be_empty
+    end
+  end
+
+  # --- Display template validations ---
+
+  context "display template references unknown field" do
+    let(:metadata_path) { "" }
+
+    it "warns about unknown field in template placeholder" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+            display_templates:
+              default:
+                template: "{title} - {nonexistent}"
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/display template 'default'.*unknown field 'nonexistent'/)
+      )
+    end
+
+    it "does not warn for valid field references" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+            display_templates:
+              default:
+                template: "{title}"
+                subtitle: "{created_at}"
+        YAML
+      )
+
+      result = v.validate
+      template_warnings = result.warnings.select { |w| w.include?("display template") }
+      expect(template_warnings).to be_empty
+    end
+
+    it "skips dot-path references in templates" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+            display_templates:
+              default:
+                template: "{title} ({category.name})"
+        YAML
+      )
+
+      result = v.validate
+      template_warnings = result.warnings.select { |w| w.include?("display template") }
+      expect(template_warnings).to be_empty
+    end
+  end
+
+  # --- Nested fields association validation ---
+
+  context "nested_fields references unknown association" do
+    let(:metadata_path) { "" }
+
+    it "reports error for unknown association" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Tasks"
+                  type: nested_fields
+                  association: tasks
+                  fields:
+                    - { field: name }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/nested_fields references unknown association 'tasks'/)
+      )
+    end
+
+    it "passes when association exists" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+              associations:
+                - type: has_many
+                  name: tasks
+                  target_model: task
+          YAML
+          <<~YAML
+            model:
+              name: task
+              fields:
+                - { name: name, type: string }
+              associations:
+                - type: belongs_to
+                  name: project
+                  target_model: project
+                  foreign_key: project_id
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Tasks"
+                  type: nested_fields
+                  association: tasks
+                  fields:
+                    - { field: name }
+        YAML
+      )
+
+      result = v.validate
+      nested_errors = result.errors.select { |e| e.include?("nested_fields") }
+      expect(nested_errors).to be_empty
+    end
+  end
+
+  # --- Association list section validation ---
+
+  context "association_list references unknown association" do
+    let(:metadata_path) { "" }
+
+    it "reports error for unknown association" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            show:
+              layout:
+                - section: "Comments"
+                  type: association_list
+                  association: comments
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/association_list references unknown association 'comments'/)
+      )
+    end
+
+    it "passes when association exists" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+              associations:
+                - type: has_many
+                  name: comments
+                  target_model: comment
+          YAML
+          <<~YAML
+            model:
+              name: comment
+              fields:
+                - { name: body, type: text }
+              associations:
+                - type: belongs_to
+                  name: project
+                  target_model: project
+                  foreign_key: project_id
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            show:
+              layout:
+                - section: "Comments"
+                  type: association_list
+                  association: comments
+        YAML
+      )
+
+      result = v.validate
+      assoc_errors = result.errors.select { |e| e.include?("association_list") }
+      expect(assoc_errors).to be_empty
+    end
+  end
+
+  # --- Default sort validation ---
+
+  context "presenter default_sort" do
+    let(:metadata_path) { "" }
+
+    it "reports error for unknown sort field" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            index:
+              table_columns:
+                - { field: title }
+              default_sort:
+                field: nonexistent
+                direction: asc
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/default_sort.*unknown field 'nonexistent'/)
+      )
+    end
+
+    it "reports error for invalid direction" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            index:
+              table_columns:
+                - { field: title }
+              default_sort:
+                field: title
+                direction: upward
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/default_sort.*invalid direction 'upward'/)
+      )
+    end
+
+    it "passes with valid sort config" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            index:
+              table_columns:
+                - { field: title }
+              default_sort:
+                field: created_at
+                direction: desc
+        YAML
+      )
+
+      result = v.validate
+      sort_errors = result.errors.select { |e| e.include?("default_sort") }
+      expect(sort_errors).to be_empty
+    end
+  end
+
+  # --- Includes/eager_load validation ---
+
+  context "presenter includes references unknown association" do
+    let(:metadata_path) { "" }
+
+    it "warns about unknown association in includes" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+              associations:
+                - type: has_many
+                  name: tasks
+                  target_model: task
+          YAML
+          <<~YAML
+            model:
+              name: task
+              fields:
+                - { name: name, type: string }
+              associations:
+                - type: belongs_to
+                  name: project
+                  target_model: project
+                  foreign_key: project_id
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            index:
+              table_columns:
+                - { field: title }
+              includes: [nonexistent_assoc]
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/index\.includes.*unknown association 'nonexistent_assoc'/)
+      )
+    end
+
+    it "does not warn for valid association in eager_load" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+              associations:
+                - type: has_many
+                  name: tasks
+                  target_model: task
+          YAML
+          <<~YAML
+            model:
+              name: task
+              fields:
+                - { name: name, type: string }
+              associations:
+                - type: belongs_to
+                  name: project
+                  target_model: project
+                  foreign_key: project_id
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            show:
+              layout:
+                - section: "Info"
+                  fields:
+                    - { field: title }
+              eager_load: [tasks]
+        YAML
+      )
+
+      result = v.validate
+      includes_warnings = result.warnings.select { |w| w.include?("eager_load") }
+      expect(includes_warnings).to be_empty
+    end
+  end
+
+  # --- Custom action name validation ---
+
+  context "custom action with built-in name" do
+    let(:metadata_path) { "" }
+
+    it "warns when custom action uses built-in name" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            actions:
+              single:
+                - name: destroy
+                  type: custom
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/custom action uses built-in name 'destroy'/)
+      )
+    end
+
+    it "does not warn for properly named custom actions" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            actions:
+              single:
+                - name: archive
+                  type: custom
+        YAML
+      )
+
+      result = v.validate
+      action_warnings = result.warnings.select { |w| w.include?("custom action") }
+      expect(action_warnings).to be_empty
+    end
+  end
+
+  # --- Menu validations ---
+
+  context "menu references unknown view group" do
+    let(:metadata_path) { "" }
+
+    it "is caught by loader at load time for unknown view group" do
+      expect {
+        with_metadata(
+          models: [ <<~YAML ],
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+          YAML
+          presenters: [ <<~YAML ],
+            presenter:
+              name: project
+              model: project
+              slug: projects
+          YAML
+          view_groups: [ <<~YAML ],
+            view_group:
+              name: projects
+              model: project
+              primary: project
+              views:
+                - presenter: project
+          YAML
+          menu: <<~YAML
+            menu:
+              top_menu:
+                - view_group: projects
+                - view_group: nonexistent_group
+          YAML
+        )
+      }.to raise_error(LcpRuby::MetadataError, /unknown view group/)
+    end
+
+    it "is caught by loader at load time for unknown view group in children" do
+      expect {
+        with_metadata(
+          models: [ <<~YAML ],
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+          YAML
+          presenters: [ <<~YAML ],
+            presenter:
+              name: project
+              model: project
+              slug: projects
+          YAML
+          view_groups: [ <<~YAML ],
+            view_group:
+              name: projects
+              model: project
+              primary: project
+              views:
+                - presenter: project
+          YAML
+          menu: <<~YAML
+            menu:
+              sidebar_menu:
+                - label: "Group"
+                  children:
+                    - view_group: projects
+                    - view_group: ghost_group
+          YAML
+        )
+      }.to raise_error(LcpRuby::MetadataError, /unknown view group/)
+    end
+
+    it "passes with valid menu" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ],
+          presenter:
+            name: project
+            model: project
+            slug: projects
+        YAML
+        view_groups: [ <<~YAML ],
+          view_group:
+            name: projects
+            model: project
+            primary: project
+            views:
+              - presenter: project
+        YAML
+        menu: <<~YAML
+          menu:
+            top_menu:
+              - view_group: projects
+        YAML
+      )
+
+      result = v.validate
+      menu_errors = result.errors.select { |e| e.include?("Menu") }
+      expect(menu_errors).to be_empty
+    end
+  end
+
+  context "menu visible_when references undefined role" do
+    let(:metadata_path) { "" }
+
+    it "warns about undefined role" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ],
+          presenter:
+            name: project
+            model: project
+            slug: projects
+        YAML
+        permissions: [ <<~YAML ],
+          permissions:
+            model: project
+            roles:
+              admin:
+                crud: [index, show]
+                fields: { readable: all }
+            default_role: admin
+        YAML
+        view_groups: [ <<~YAML ],
+          view_group:
+            name: projects
+            model: project
+            primary: project
+            views:
+              - presenter: project
+        YAML
+        menu: <<~YAML
+          menu:
+            top_menu:
+              - view_group: projects
+                visible_when:
+                  role: [admin, superuser]
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/visible_when references undefined role 'superuser'/)
+      )
+    end
+  end
+
+  # --- Custom fields validations ---
+
+  context "custom_fields enabled without custom_data field" do
+    let(:metadata_path) { "" }
+
+    it "warns when custom_data field is missing" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+            options:
+              custom_fields: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/custom_fields is enabled but model has no 'custom_data' field/)
+      )
+    end
+
+    it "does not warn when custom_data field exists" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+              - { name: custom_data, type: json }
+            options:
+              custom_fields: true
+        YAML
+      )
+
+      result = v.validate
+      cf_warnings = result.warnings.select { |w| w.include?("custom_fields") }
+      expect(cf_warnings).to be_empty
     end
   end
 end
