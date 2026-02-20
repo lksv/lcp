@@ -95,7 +95,7 @@
           <% field_name = field_config["field"] %>
           <% field_def = field_config["field_definition"] %>
           <% next unless field_def %>
-          <% next unless field_config["association"] || field_config["multi_select_association"] || current_evaluator.field_writable?(field_name) %>
+          <% next unless field_config["association"] || field_config["multi_select_association"] || field_config["custom_field"] || current_evaluator.field_writable?(field_name) %>
 
           <%# Field-level conditional rendering (hash conditions) %>
           <%

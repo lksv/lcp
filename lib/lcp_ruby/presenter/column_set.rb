@@ -14,16 +14,23 @@ module LcpRuby
         all_columns = presenter_definition.table_columns
         readable = permission_evaluator.readable_fields
 
-        all_columns.select do |col|
+        result = all_columns.select do |col|
           field_visible?(col["field"], readable)
         end
+
+        # Append custom fields with show_in_table: true
+        append_custom_table_columns(result, readable)
       end
 
       def visible_form_fields(section_fields)
         writable = permission_evaluator.writable_fields
 
         section_fields.select do |field|
-          writable.include?(field["field"])
+          if field["custom_field"]
+            writable.include?("custom_data")
+          else
+            writable.include?(field["field"])
+          end
         end
       end
 
@@ -31,7 +38,11 @@ module LcpRuby
         readable = permission_evaluator.readable_fields
 
         section_fields.select do |field|
-          field_visible?(field["field"], readable)
+          if field["custom_field"]
+            readable.include?("custom_data")
+          else
+            field_visible?(field["field"], readable)
+          end
         end
       end
 
@@ -45,6 +56,29 @@ module LcpRuby
       end
 
       private
+
+      def append_custom_table_columns(columns, readable)
+        return columns unless readable.include?("custom_data")
+
+        model_name = presenter_definition.model
+        model_def = load_model_definition(model_name)
+        return columns unless model_def&.custom_fields_enabled?
+
+        definitions = CustomFields::Registry.for_model(model_name)
+        definitions.select { |d| d.active && d.show_in_table }.each do |defn|
+          columns << {
+            "field" => defn.field_name,
+            "label" => defn.label,
+            "sortable" => defn.sortable,
+            "custom_field" => true,
+            "width" => defn.column_width
+          }.compact
+        end
+
+        columns
+      rescue LcpRuby::Error
+        columns
+      end
 
       def field_visible?(field_path, readable)
         field_path = field_path.to_s

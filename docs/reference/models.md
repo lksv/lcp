@@ -1333,6 +1333,29 @@ Adds `created_at` and `updated_at` columns to the table.
 
 Method called on records to generate display text (e.g., in association select dropdowns). Should return a human-readable string.
 
+### `custom_fields`
+
+| | |
+|---|---|
+| **Default** | `false` |
+| **Type** | boolean |
+
+Enables user-defined custom fields on this model. When `true`, the engine:
+- Adds a `custom_data` column (JSONB on PostgreSQL, JSON on SQLite) to the model's table
+- Creates a GIN index on the column (PostgreSQL only)
+- Installs dynamic accessor methods for each custom field definition
+- Validates custom field values based on their definition constraints
+- Auto-generates a management presenter at `/custom-fields-<model_name>`
+
+Custom field definitions are stored in the built-in `custom_field_definition` model. Access is controlled through the `custom_data` virtual field in permissions.
+
+```yaml
+options:
+  custom_fields: true
+```
+
+See [Custom Fields Reference](custom-fields.md) for the complete attribute reference and [Custom Fields Guide](../guides/custom-fields.md) for a step-by-step tutorial.
+
 ## Complete Example
 
 ### YAML (TODO App)

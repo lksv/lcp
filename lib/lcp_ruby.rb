@@ -60,6 +60,16 @@ require "lcp_ruby/model_factory/computed_applicator"
 require "lcp_ruby/model_factory/attachment_applicator"
 require "lcp_ruby/model_factory/builder"
 
+# Custom Fields
+require "lcp_ruby/custom_fields/registry"
+require "lcp_ruby/custom_fields/applicator"
+require "lcp_ruby/custom_fields/built_in_model"
+require "lcp_ruby/custom_fields/query"
+require "lcp_ruby/custom_fields/built_in_presenter"
+require "lcp_ruby/custom_fields/utils"
+require "lcp_ruby/custom_fields/definition_change_handler"
+require "lcp_ruby/custom_fields/setup"
+
 # Authorization
 require "lcp_ruby/authorization/scope_builder"
 require "lcp_ruby/authorization/permission_evaluator"
@@ -164,9 +174,12 @@ module LcpRuby
       result
     end
 
+    def postgresql?
+      ActiveRecord::Base.connection.adapter_name.downcase.include?("postgresql")
+    end
+
     def json_column_type
-      adapter = ActiveRecord::Base.connection.adapter_name.downcase
-      adapter.include?("postgresql") ? :jsonb : :json
+      postgresql? ? :jsonb : :json
     end
 
     def reset!
@@ -180,6 +193,7 @@ module LcpRuby
       Display::RendererRegistry.clear!
       Authorization::PolicyFactory.clear!
       Services::Registry.clear!
+      CustomFields::Registry.clear!
 
       # Remove dynamic constants to avoid "already initialized" warnings
       Dynamic.constants.each do |const|

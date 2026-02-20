@@ -45,6 +45,10 @@ module LcpRuby
         options["label_method"] || "to_s"
       end
 
+      def custom_fields_enabled?
+        options.fetch("custom_fields", false) == true
+      end
+
       def field(name)
         fields.find { |f| f.name == name.to_s }
       end

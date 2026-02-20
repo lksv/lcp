@@ -1,0 +1,48 @@
+presenter:
+  name: project_presenter
+  model: project
+  label: Projects
+  slug: projects
+  index:
+    table_columns:
+      - field: name
+        sortable: true
+      - field: status
+    empty_state:
+      message: "No projects yet."
+  show:
+    layout:
+      - section: Details
+        columns: 2
+        fields:
+          - field: name
+          - field: status
+          - field: description
+            col_span: 2
+  form:
+    layout: sections
+    sections:
+      - title: Details
+        columns: 2
+        fields:
+          - field: name
+          - field: status
+          - field: description
+            col_span: 2
+  search:
+    enabled: true
+    searchable_fields:
+      - name
+      - status
+  actions:
+    collection:
+      - name: create
+        type: built_in
+    single:
+      - name: show
+        type: built_in
+      - name: edit
+        type: built_in
+      - name: destroy
+        type: built_in
+        confirm: "Are you sure?"

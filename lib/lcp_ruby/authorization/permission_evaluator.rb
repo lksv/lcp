@@ -147,6 +147,7 @@ module LcpRuby
         model_def = LcpRuby.loader.model_definition(model_name)
         names = model_def.fields.map(&:name)
         names.concat(model_def.belongs_to_fk_map.keys)
+        names << "custom_data" if model_def.custom_fields_enabled?
         names.uniq
       rescue MetadataError
         []

@@ -28,6 +28,7 @@ LCP Ruby provides extensibility through two systems:
 | Event Handlers | `(record, changes) -> void` | Yes | `Events::HandlerBase` | [Guide](event-handlers.md) |
 | Custom Renderers | `(value, options) -> HTML` | No | `Display::BaseRenderer` | [Guide](custom-renderers.md) |
 | Custom Validations | `(record, field) -> errors` | No | `ActiveModel::Validator` | [Reference](../reference/models.md#validations) |
+| Custom Fields | Runtime field definitions | No | `custom_fields: true` option | [Guide](custom-fields.md) |
 | Scopes | `(relation) -> relation` | No | YAML/DSL config | [Reference](../reference/models.md#scopes) |
 
 ## Choosing the Right Mechanism
@@ -44,6 +45,7 @@ Use this decision tree to pick the right extensibility point:
 - **Compute field/section visibility dynamically** (server-side condition) -> [Condition Service](#condition-services)
 - **Run validation only in certain states** -> [Conditional Validation](../reference/models.md#conditional-validations-when) (declarative `when:`)
 - **Reusable query filters** (named queries) -> [Scope](#scopes)
+- **End-users need to add fields at runtime** (no code/migration) -> [Custom Fields](custom-fields.md)
 
 ## Quick Examples
 

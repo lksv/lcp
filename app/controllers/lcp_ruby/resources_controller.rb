@@ -380,6 +380,14 @@ module LcpRuby
 
       flat_fields = (writable + fk_fields).uniq
 
+      # Permit custom field names if custom_fields is enabled and custom_data is writable
+      if current_model_definition.custom_fields_enabled? &&
+         current_evaluator.field_writable?("custom_data")
+        cf_definitions = CustomFields::Registry.for_model(current_model_definition.name)
+          .select { |d| d.active && d.show_in_form }
+        cf_definitions.each { |d| flat_fields << d.field_name.to_sym }
+      end
+
       # Separate attachment fields from flat fields (they need special permitting)
       attachment_fields = current_model_definition.fields.select(&:attachment?)
       attachment_names = attachment_fields.map { |f| f.name.to_sym }
@@ -445,6 +453,12 @@ module LcpRuby
       search_config = current_presenter.search_config
       return scope unless search_config["enabled"]
 
+      # Apply default scope if configured (e.g., management presenters scoped by target_model)
+      if search_config["default_scope"]
+        scope_name = search_config["default_scope"]
+        scope = scope.send(scope_name) if @model_class.respond_to?(scope_name)
+      end
+
       if params[:filter].present?
         predefined = search_config["predefined_filters"]&.find { |f| f["name"] == params[:filter] }
         scope_name = predefined&.dig("scope")
@@ -454,8 +468,21 @@ module LcpRuby
       if params[:q].present?
         searchable = (search_config["searchable_fields"] || []).select { |f| @model_class.column_names.include?(f.to_s) }
         conn = @model_class.connection
-        conditions = searchable.map { |f| "#{conn.quote_column_name(f)} LIKE :q" }.join(" OR ")
         sanitized_q = ActiveRecord::Base.sanitize_sql_like(params[:q])
+
+        conditions = searchable.map { |f| "#{conn.quote_column_name(f)} LIKE :q" }.join(" OR ")
+
+        # Include searchable custom fields
+        if current_model_definition.custom_fields_enabled?
+          cf_searchable = CustomFields::Registry.for_model(current_model_definition.name)
+            .select { |d| d.active && d.searchable }
+          cf_conditions = cf_searchable.map do |d|
+            CustomFields::Query.text_search_condition(current_model_definition.table_name, d.field_name, sanitized_q)
+          end
+          all_conditions = [ conditions, *cf_conditions ].reject(&:blank?)
+          conditions = all_conditions.join(" OR ")
+        end
+
         scope = scope.where(conditions, q: "%#{sanitized_q}%") if conditions.present?
       end
 

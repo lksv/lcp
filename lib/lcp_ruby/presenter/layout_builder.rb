@@ -11,13 +11,14 @@ module LcpRuby
       def form_sections
         config = presenter_definition.form_config
         sections = config["sections"] || []
-        sections.map do |s|
+        result = sections.map do |s|
           if s["type"] == "nested_fields"
             normalize_nested_section(s)
           else
             normalize_section(s)
           end
         end
+        append_custom_field_sections(result, context: :form)
       end
 
       def form_layout
@@ -27,16 +28,81 @@ module LcpRuby
       def show_sections
         config = presenter_definition.show_config
         layout = config["layout"] || []
-        layout.map do |s|
+        result = layout.map do |s|
           if s["type"] == "association_list"
             enrich_association_list_section(s)
           else
             normalize_section(s)
           end
         end
+        append_custom_field_sections(result, context: :show)
       end
 
       private
+
+      # Append custom field sections to form or show sections.
+      # Groups custom fields by their section attribute and creates
+      # synthetic section hashes with custom field configs.
+      def append_custom_field_sections(sections, context:)
+        return sections unless model_definition.custom_fields_enabled?
+
+        definitions = CustomFields::Registry.for_model(model_definition.name)
+        return sections if definitions.empty?
+
+        # Filter by context visibility
+        visible_defs = definitions.select do |defn|
+          defn.active && (context == :form ? defn.show_in_form : defn.show_in_show)
+        end
+        return sections if visible_defs.empty?
+
+        # Group by section attribute
+        grouped = visible_defs.group_by { |defn| defn.section.presence || "Custom Fields" }
+
+        grouped.each do |section_title, defs|
+          fields = defs.map do |defn|
+            cf_type = defn.custom_type.presence || "string"
+            field_config = {
+              "field" => defn.field_name,
+              "label" => defn.label,
+              "custom_field" => true,
+              "custom_field_definition" => defn,
+              "field_definition" => Metadata::FieldDefinition.new(
+                name: defn.field_name,
+                type: custom_type_to_base_type(cf_type),
+                label: defn.label
+              )
+            }
+            field_config["placeholder"] = defn.placeholder if defn.placeholder.present?
+            field_config["input_type"] = defn.input_type if defn.input_type.present?
+            field_config["renderer"] = defn.renderer if defn.renderer.present?
+            field_config["options"] = parse_renderer_options(defn.renderer_options) if defn.renderer_options.present?
+            field_config
+          end
+
+          sections << { "title" => section_title, "fields" => fields }
+        end
+
+        sections
+      end
+
+      # Map custom field types to base types supported by FieldDefinition.
+      def custom_type_to_base_type(custom_type)
+        case custom_type
+        when "enum" then "string"
+        else custom_type
+        end
+      end
+
+      def parse_renderer_options(options)
+        case options
+        when Hash then options
+        when String
+          CustomFields::Utils.safe_parse_json(
+            options, context: "#{model_definition.name} renderer_options"
+          )
+        else {}
+        end
+      end
 
       def enrich_association_list_section(section)
         assoc_name = section["association"]

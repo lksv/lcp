@@ -37,6 +37,10 @@ module LcpRuby
         @options["label_method"] = value.to_s
       end
 
+      def custom_fields(value = true)
+        @options["custom_fields"] = value
+      end
+
       def field(name, type, **options, &block)
         field_hash = {
           "name" => name.to_s,

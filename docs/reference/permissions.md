@@ -137,9 +137,11 @@ fields:
   writable: []           # Read-only: can read everything, write nothing
 ```
 
-- `"all"` — grants access to every field defined in the model
+- `"all"` — grants access to every field defined in the model (including `custom_data` if the model has `custom_fields: true`)
 - Array of field names — grants access to only those fields
 - `[]` (empty array) — no access
+
+> **Custom Fields:** For models with `custom_fields: true`, the virtual field name `custom_data` controls access to all custom fields. Include `custom_data` in the `readable`/`writable` list to grant access, or use `all` which includes it automatically. See [Custom Fields Reference](custom-fields.md#permissions) for details.
 
 ### `actions`
 

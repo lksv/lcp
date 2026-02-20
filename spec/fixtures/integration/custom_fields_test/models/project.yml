@@ -1,0 +1,19 @@
+model:
+  name: project
+  table_name: cf_projects
+  label: Project
+  label_plural: Projects
+  options:
+    timestamps: true
+    custom_fields: true
+    label_method: name
+  fields:
+    - name: name
+      type: string
+      validations:
+        - type: presence
+    - name: description
+      type: text
+    - name: status
+      type: string
+      default: "active"

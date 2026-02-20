@@ -46,7 +46,19 @@ module LcpRuby
             end
           end
 
+          if model_definition.custom_fields_enabled?
+            t.column :custom_data, LcpRuby.json_column_type, default: {}
+          end
+
           t.timestamps if timestamps
+        end
+
+        if model_definition.custom_fields_enabled? && LcpRuby.postgresql?
+          connection = ActiveRecord::Base.connection
+          connection.execute(
+            "CREATE INDEX IF NOT EXISTS #{custom_data_index_name(table)} " \
+            "ON #{connection.quote_table_name(table)} USING GIN (custom_data)"
+          )
         end
       end
 
@@ -87,6 +99,17 @@ module LcpRuby
           end
         end
 
+        if model_definition.custom_fields_enabled? && !existing_columns.include?("custom_data")
+          connection.add_column(table, "custom_data", LcpRuby.json_column_type, default: {})
+
+          if LcpRuby.postgresql? && !connection.index_exists?(table, :custom_data, using: :gin)
+            connection.execute(
+              "CREATE INDEX IF NOT EXISTS #{custom_data_index_name(table)} " \
+              "ON #{connection.quote_table_name(table)} USING GIN (custom_data)"
+            )
+          end
+        end
+
         if model_definition.timestamps?
           %w[created_at updated_at].each do |ts_col|
             unless existing_columns.include?(ts_col)
@@ -101,6 +124,15 @@ module LcpRuby
         col_type = field.column_type
 
         t.column field.name, col_type, **options
+      end
+
+      def custom_data_index_name(table)
+        name = "idx_#{table}_custom_data"
+        return name if name.length <= 63
+
+        # PostgreSQL limit is 63 chars; truncate and append hash for uniqueness
+        hash = Digest::SHA256.hexdigest(table)[0, 8]
+        "idx_#{table[0, 63 - 18]}_cd_#{hash}"
       end
 
       def build_column_options(field)

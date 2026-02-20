@@ -112,4 +112,28 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
       end
     end
   end
+
+  describe "#custom_data_index_name" do
+    it "returns short name for normal table names" do
+      name = schema_manager.send(:custom_data_index_name, "projects")
+      expect(name).to eq("idx_projects_custom_data")
+      expect(name.length).to be <= 63
+    end
+
+    it "truncates and hashes long table names" do
+      long_table = "a_very_long_table_name_that_exceeds_the_postgresql_sixty_three_character_limit"
+      name = schema_manager.send(:custom_data_index_name, long_table)
+      expect(name.length).to be <= 63
+      expect(name).to start_with("idx_")
+      expect(name).to include("_cd_")
+    end
+
+    it "produces different names for different long tables" do
+      table_a = "very_long_table_name_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      table_b = "very_long_table_name_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      name_a = schema_manager.send(:custom_data_index_name, table_a)
+      name_b = schema_manager.send(:custom_data_index_name, table_b)
+      expect(name_a).not_to eq(name_b)
+    end
+  end
 end

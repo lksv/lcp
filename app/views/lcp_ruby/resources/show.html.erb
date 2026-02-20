@@ -38,7 +38,7 @@
 
             <% field_name = field_config["field"] %>
             <% next unless field_name %>
-            <% next unless @record.respond_to?(field_name) || field_name.include?(".") || field_name.include?("{") %>
+            <% next unless @record.respond_to?(field_name) || field_name.include?(".") || field_name.include?("{") || field_config["custom_field"] %>
             <% value = @field_resolver.resolve(@record, field_name) %>
 
             <div class="lcp-field <%= hidden_on_classes(field_config) %>"

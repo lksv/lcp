@@ -18,6 +18,12 @@ YAML metadata (config/lcp_ruby/)
                                 ↓
               LcpRuby.registry.register(name, model_class)
                                 ↓
+              CustomFields::BuiltInModel → custom_field_definition model (auto-created)
+              CustomFields::Registry.mark_available!
+              CustomFields::DefinitionChangeHandler.install! → after_commit cache invalidation
+              CustomFields::Applicator → apply_custom_field_accessors! on enabled models
+              CustomFields::BuiltInPresenter → auto-register management presenters
+                                ↓
               Services::Registry.discover! → data providers from app/lcp_services/data_providers/
               Display::RendererRegistry.register_built_ins! → 26 built-in renderers + badge renderers
               Display::RendererRegistry.discover! → custom renderers from app/renderers/
@@ -122,6 +128,19 @@ Custom action system for operations beyond basic CRUD.
 
 **Result:** success flag, message, redirect_to, data, errors
 
+### Custom Fields (`lib/lcp_ruby/custom_fields/`)
+
+Runtime user-defined fields stored in a JSONB/JSON `custom_data` column.
+
+- **Registry** — per-model cache of active `custom_field_definition` records; `for_model`, `reload!`, `clear!`, `available?`, `mark_available!`
+- **Applicator** — installs `read_custom_field`/`write_custom_field` instance methods, `apply_custom_field_accessors!` class method (defines dynamic getters/setters from Registry, removes stale ones), `validate :validate_custom_fields` (enforces required, length for string/text, range for numeric, enum constraints), and `after_initialize` for default values on new records
+- **BuiltInModel** — returns model definition hash for the `custom_field_definition` model (30 fields covering type, validation, display, and rendering metadata); reserved name checking
+- **BuiltInPresenter** — generates a management presenter definition per target model (slug: `custom-fields-<model_name>`, scoped by `target_model` via `default_scope` in search config)
+- **Query** — DB-portable JSON query helpers: `text_search`, `exact_match`, `sort_expression`; uses PostgreSQL `->>` / `@>` operators or SQLite `JSON_EXTRACT`; validates field names against `/\A[a-z][a-z0-9_]*\z/`
+- **DefinitionChangeHandler** — `after_commit` callback on `custom_field_definition` that clears Registry cache and re-applies accessors on the target model
+- **Setup** — shared boot logic used by both `Engine.load_metadata!` and test helper; orchestrates registry, handlers, accessors, scopes, and presenter registration
+- **Utils** — `safe_parse_json` and `safe_to_decimal` with environment-aware error handling (raise in dev/test, log in production)
+
 ### Routing (`lib/lcp_ruby/routing/`)
 
 - **PresenterRoutes** — exists but is unused; only static engine routes defined in `config/routes.rb` are active
@@ -142,7 +161,7 @@ Custom action system for operations beyond basic CRUD.
 - CRUD: `index`, `show`, `new`, `create`, `edit`, `update`, `destroy`
 - Index pipeline: `policy_scope` -> `apply_search` -> `apply_sort` -> paginate (Kaminari)
 - Search: predefined_filters (scope-based) + text search (LIKE on searchable_fields)
-- `permitted_params`: writable fields + FK fields from belongs_to associations
+- `permitted_params`: writable fields + FK fields from belongs_to associations + custom field names (when `custom_data` is writable)
 
 ### ActionsController (`app/controllers/lcp_ruby/actions_controller.rb`)
 
@@ -194,7 +213,9 @@ end
 4. `Loader.load_all` — load types → models → presenters → permissions → menu (YAML + DSL)
 5. Iterate `model_definitions` — for each: `SchemaManager.ensure_table!` + `Builder.build`
 6. `Registry.register(name, model_class)` for each built model
-7. `check_services!` — verify all service references are valid
+7. Build built-in `custom_field_definition` model (if not already defined by user)
+8. `CustomFields::Setup.apply!(loader)` — marks registry available, installs `DefinitionChangeHandler`, applies custom field accessors (with stale cleanup), registers `for_<model>` scopes on `custom_field_definition`, registers built-in management presenters (scoped by `target_model`)
+9. `check_services!` — verify all service references are valid
 
 **`reload!`** — calls `reset!` then re-runs `load_metadata!`
 

@@ -19,6 +19,7 @@ module LcpRuby
         apply_callbacks(model_class)
         apply_defaults(model_class)
         apply_computed(model_class)
+        apply_custom_fields(model_class)
         apply_label_method(model_class)
         model_class
       rescue => e
@@ -79,6 +80,10 @@ module LcpRuby
 
       def apply_computed(model_class)
         ComputedApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_custom_fields(model_class)
+        CustomFields::Applicator.new(model_class, model_definition).apply!
       end
 
       def apply_label_method(model_class)

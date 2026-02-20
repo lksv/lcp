@@ -99,6 +99,20 @@ Method called on records to generate display text (e.g., in association select d
 label_method :title
 ```
 
+### `custom_fields`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `false` |
+| **Type** | boolean |
+
+Enables runtime user-defined custom fields on this model. See [Custom Fields Reference](custom-fields.md) for details.
+
+```ruby
+custom_fields true
+```
+
 ## Fields
 
 ```ruby
