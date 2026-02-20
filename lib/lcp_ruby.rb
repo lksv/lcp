@@ -70,6 +70,12 @@ require "lcp_ruby/custom_fields/utils"
 require "lcp_ruby/custom_fields/definition_change_handler"
 require "lcp_ruby/custom_fields/setup"
 
+# Roles
+require "lcp_ruby/roles/registry"
+require "lcp_ruby/roles/contract_validator"
+require "lcp_ruby/roles/change_handler"
+require "lcp_ruby/roles/setup"
+
 # Authorization
 require "lcp_ruby/authorization/scope_builder"
 require "lcp_ruby/authorization/permission_evaluator"
@@ -194,6 +200,7 @@ module LcpRuby
       Authorization::PolicyFactory.clear!
       Services::Registry.clear!
       CustomFields::Registry.clear!
+      Roles::Registry.clear!
 
       # Remove dynamic constants to avoid "already initialized" warnings
       Dynamic.constants.each do |const|

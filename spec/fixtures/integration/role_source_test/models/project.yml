@@ -1,0 +1,19 @@
+model:
+  name: project
+  label: "Project"
+  label_plural: "Projects"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      validations:
+        - type: presence
+
+    - name: status
+      type: string
+      label: "Status"
+
+  options:
+    timestamps: true
+    label_method: title

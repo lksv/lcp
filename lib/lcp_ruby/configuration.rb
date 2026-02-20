@@ -16,7 +16,8 @@ module LcpRuby
                   :auth_after_login_path,
                   :auth_after_logout_path
 
-    attr_reader :menu_mode, :authentication
+    attr_reader :menu_mode, :authentication, :role_source
+    attr_accessor :role_model, :role_model_fields
 
     def menu_mode=(value)
       @menu_mode = value&.to_sym
@@ -28,6 +29,14 @@ module LcpRuby
         raise ArgumentError, "authentication must be :none, :built_in, or :external (got #{value.inspect})"
       end
       @authentication = value
+    end
+
+    def role_source=(value)
+      value = value&.to_sym
+      unless %i[implicit model].include?(value)
+        raise ArgumentError, "role_source must be :implicit or :model (got #{value.inspect})"
+      end
+      @role_source = value
     end
 
     def initialize
@@ -44,6 +53,11 @@ module LcpRuby
       @attachment_allowed_content_types = nil
       @breadcrumb_home_path = "/"
       @menu_mode = :auto
+
+      # Role source defaults
+      @role_source = :implicit
+      @role_model = "role"
+      @role_model_fields = { name: "name", active: "active" }
 
       # Authentication defaults
       @authentication = :external

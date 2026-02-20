@@ -16,6 +16,7 @@ Complete attribute reference for every YAML configuration file:
 - [View Groups](reference/view-groups.md) — Navigation menu, view switching, auto-creation
 - [Menu](reference/menu.md) — Configurable navigation: top bar, sidebar, dropdowns, badges, role visibility
 - [Custom Fields](reference/custom-fields.md) — Runtime user-defined fields: definitions, types, permissions, querying
+- [Role Source](reference/role-source.md) — DB-backed role model: contract, registry, cache invalidation, generator
 - [Permissions](reference/permissions.md) — Roles, CRUD, field access, scopes, record rules
 - [Condition Operators](reference/condition-operators.md) — Shared operator reference for `visible_when`, `record_rules`, etc.
 - [Eager Loading](reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
@@ -42,6 +43,7 @@ Complete attribute reference for every YAML configuration file:
 - [Attachments](guides/attachments.md) — File upload with Active Storage
 - [Eager Loading](guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [Custom Fields](guides/custom-fields.md) — Runtime user-defined fields: enabling, defining, sections, permissions, programmatic access
+- [Role Source](guides/role-source.md) — DB-backed role management: setup, validation, cache, testing
 - [Impersonation](guides/impersonation.md) — "View as Role X" for testing permissions
 - [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate`, `lcp_ruby:erd`, `lcp_ruby:permissions`, and `lcp_ruby:create_admin` rake tasks
 

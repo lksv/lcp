@@ -49,6 +49,7 @@ module IntegrationHelper
     end
 
     LcpRuby::CustomFields::Setup.apply!(loader)
+    LcpRuby::Roles::Setup.apply!(loader)
 
     # Discover services from fixture path
     LcpRuby::ConditionServiceRegistry.discover!(fixture_path)

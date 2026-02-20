@@ -1,0 +1,54 @@
+presenter:
+  name: roles
+  model: role
+  label: "Roles"
+  slug: roles
+  icon: shield
+
+  index:
+    default_view: table
+    default_sort: { field: position, direction: asc }
+    per_page: 25
+    row_click: show
+    empty_message: "No roles defined yet."
+    table_columns:
+      - { field: name, width: "20%", link_to: show, sortable: true }
+      - { field: label, width: "25%", sortable: true }
+      - { field: description, width: "35%" }
+      - { field: active, width: "10%", renderer: boolean }
+      - { field: position, width: "10%", sortable: true }
+
+  show:
+    layout:
+      - section: "Role Details"
+        columns: 2
+        fields:
+          - { field: name }
+          - { field: label }
+          - { field: description, col_span: 2 }
+          - { field: active }
+          - { field: position }
+
+  form:
+    sections:
+      - title: "Role Details"
+        columns: 2
+        fields:
+          - { field: name, placeholder: "e.g. admin, manager, viewer", autofocus: true, hint: "Lowercase identifier used in permissions YAML" }
+          - { field: label, placeholder: "e.g. Administrator" }
+          - { field: description, input_type: text, col_span: 2 }
+          - { field: active, input_type: boolean }
+          - { field: position, input_type: number }
+
+  search:
+    enabled: true
+    searchable_fields: [name, label]
+    placeholder: "Search roles..."
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Role", icon: plus }
+    single:
+      - { name: show, type: built_in, icon: eye }
+      - { name: edit, type: built_in, icon: pencil }
+      - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }

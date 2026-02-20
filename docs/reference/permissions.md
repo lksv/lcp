@@ -43,6 +43,8 @@ permissions:
 
 Each key is a role name (matched against the values returned by `user.<role_method>`). A user can have multiple roles — see [Multiple Roles](#multiple-roles). See [Role Configuration](#role-configuration) below.
 
+> **DB-Backed Roles:** When `role_source` is set to `:model`, role names are validated against a database-backed registry before permission evaluation. Unknown roles are filtered out and logged. See [Role Source Reference](role-source.md) for setup details.
+
 ### `default_role`
 
 | | |

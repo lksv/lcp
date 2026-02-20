@@ -317,4 +317,48 @@ RSpec.describe LcpRuby::Authorization::PermissionEvaluator do
       expect(evaluator.field_masked?("secret")).to be false
     end
   end
+
+  describe "resolve_roles with role_source :model" do
+    before do
+      LcpRuby.configuration.role_source = :model
+      LcpRuby::Roles::Registry.mark_available!
+      allow(LcpRuby::Roles::Registry).to receive(:valid_role?) do |name|
+        %w[admin viewer].include?(name)
+      end
+    end
+
+    after do
+      LcpRuby.configuration.role_source = :implicit
+      LcpRuby::Roles::Registry.clear!
+    end
+
+    it "filters out roles not in the registry" do
+      user = double("User", lcp_role: %w[admin nonexistent], id: 1)
+      evaluator = described_class.new(perm_def, user, "project")
+      expect(evaluator.roles).to eq(["admin"])
+    end
+
+    it "falls back to default_role when all roles are invalid" do
+      user = double("User", lcp_role: %w[nonexistent unknown], id: 1)
+      evaluator = described_class.new(perm_def, user, "project")
+      expect(evaluator.roles).to eq(["viewer"])
+    end
+
+    it "keeps all valid roles" do
+      user = double("User", lcp_role: %w[admin viewer], id: 1)
+      evaluator = described_class.new(perm_def, user, "project")
+      expect(evaluator.roles).to match_array(%w[admin viewer])
+    end
+  end
+
+  describe "resolve_roles with role_source :implicit" do
+    it "does not filter through registry" do
+      LcpRuby.configuration.role_source = :implicit
+      expect(LcpRuby::Roles::Registry).not_to receive(:valid_role?)
+
+      user = double("User", lcp_role: %w[admin], id: 1)
+      evaluator = described_class.new(perm_def, user, "project")
+      expect(evaluator.roles).to eq(["admin"])
+    end
+  end
 end

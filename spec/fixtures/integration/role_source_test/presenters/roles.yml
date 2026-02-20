@@ -1,0 +1,45 @@
+presenter:
+  name: roles
+  model: role
+  label: "Roles"
+  slug: roles
+  icon: shield
+
+  index:
+    default_view: table
+    default_sort: { field: position, direction: asc }
+    per_page: 25
+    table_columns:
+      - { field: name, sortable: true }
+      - { field: label }
+      - { field: active, renderer: boolean }
+
+  show:
+    layout:
+      - section: "Role Details"
+        fields:
+          - { field: name }
+          - { field: label }
+          - { field: active }
+
+  form:
+    sections:
+      - title: "Role Details"
+        fields:
+          - { field: name }
+          - { field: label }
+          - { field: description, input_type: text }
+          - { field: active, input_type: boolean }
+          - { field: position, input_type: number }
+
+  search:
+    enabled: true
+    searchable_fields: [name, label]
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Role", icon: plus }
+    single:
+      - { name: show, type: built_in, icon: eye }
+      - { name: edit, type: built_in, icon: pencil }
+      - { name: destroy, type: built_in, icon: trash, confirm: true }

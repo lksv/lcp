@@ -2,6 +2,9 @@ LcpRuby.configure do |config|
   config.strict_loading = :development
   config.impersonation_roles = %w[admin]
 
+  # DB-backed role management
+  config.role_source = :model
+
   # Built-in authentication (Devise-based)
   config.authentication = :built_in
   config.auth_allow_registration = true

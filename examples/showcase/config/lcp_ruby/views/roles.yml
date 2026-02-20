@@ -1,0 +1,7 @@
+view_group:
+  model: role
+  primary: roles
+  views:
+    - presenter: roles
+      label: "Roles"
+      icon: shield-check

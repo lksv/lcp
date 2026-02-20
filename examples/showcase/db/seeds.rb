@@ -419,7 +419,19 @@ PermModel = LcpRuby.registry.model_for("showcase_permission")
 ].each { |attrs| PermModel.create!(attrs) }
 puts "  Created #{PermModel.count} showcase_permission records"
 
-# Phase 8: Extensibility
+# Phase 8: Roles
+RoleModel = LcpRuby.registry.model_for("role")
+
+[
+  { name: "admin", label: "Administrator", description: "Full system access. Can manage all records, roles, and settings.", active: true, position: 0 },
+  { name: "editor", label: "Editor", description: "Can create and edit records but cannot delete or manage roles.", active: true, position: 10 },
+  { name: "viewer", label: "Viewer", description: "Read-only access to all public data.", active: true, position: 20 },
+  { name: "owner", label: "Owner", description: "Full access scoped to own records only.", active: true, position: 30 },
+  { name: "deprecated_role", label: "Deprecated Role", description: "This role is no longer active. Kept for audit history.", active: false, position: 99 }
+].each { |attrs| RoleModel.create!(attrs) }
+puts "  Created #{RoleModel.count} role records"
+
+# Phase 9: Extensibility (was Phase 8)
 ExtModel = LcpRuby.registry.model_for("showcase_extensibility")
 
 [
@@ -431,7 +443,7 @@ ExtModel = LcpRuby.registry.model_for("showcase_extensibility")
 ].each { |attrs| ExtModel.create!(attrs) }
 puts "  Created #{ExtModel.count} showcase_extensibility records"
 
-# Phase 9: Feature Catalog
+# Phase 10: Feature Catalog
 FeatureModel = LcpRuby.registry.model_for("feature")
 
 features = [
@@ -1040,6 +1052,62 @@ features = [
     config_example: "```ruby\nLcpRuby.configure do |config|\n  config.impersonation_roles = %w[admin]\nend\n```",
     demo_path: "/showcase/showcase-permissions",
     demo_hint: "The yellow **View as** dropdown at the top — select a role to see the app from that role's perspective.",
+    status: "stable"
+  },
+
+  # === Role Source ===
+  {
+    name: "DB-Backed Role Source",
+    category: "role_source",
+    description: "Switch from implicit string-based roles to a DB-backed role model. Roles become database records with a management UI, validation, and automatic cache invalidation.\n\nConfigure with `config.role_source = :model`. The engine validates the role model contract at boot and filters unknown role names during authorization.",
+    config_example: "```ruby\nLcpRuby.configure do |config|\n  config.role_source = :model      # :implicit (default) or :model\n  config.role_model = \"role\"        # model name\n  config.role_model_fields = {      # field mapping\n    name: \"name\",\n    active: \"active\"\n  }\nend\n```",
+    demo_path: "/showcase/roles",
+    demo_hint: "Navigate to **Roles** under the Features dropdown. You can create, edit, and deactivate roles. Active roles are used for authorization validation.",
+    status: "stable"
+  },
+  {
+    name: "Role Model Contract",
+    category: "role_source",
+    description: "The role model must satisfy a contract:\n- **Required:** `name` field of type `string`\n- **Optional:** `active` field of type `boolean` (if present, only active roles are used)\n- **Recommended:** uniqueness validation on `name`\n\nContract is validated at boot. Violations raise `MetadataError` and prevent startup.",
+    config_example: "```yaml\n# config/lcp_ruby/models/role.yml\nmodel:\n  name: role\n  fields:\n    - name: name\n      type: string\n      validations:\n        - type: presence\n        - type: uniqueness\n    - name: active\n      type: boolean\n      default: true\n  options:\n    timestamps: true\n```",
+    demo_path: "/showcase/roles",
+    demo_hint: "The role model here has name, label, description, active, and position fields — exceeding the minimal contract requirements.",
+    status: "stable"
+  },
+  {
+    name: "Role Registry & Caching",
+    category: "role_source",
+    description: "Active role names are cached in a thread-safe singleton (`Roles::Registry`). Cache is automatically invalidated via `after_commit` when roles are created, updated, or destroyed.\n\nAccess programmatically via `LcpRuby::Roles::Registry.all_role_names` and `valid_role?(name)`.",
+    config_example: "```ruby\n# Check the role registry\nLcpRuby::Roles::Registry.all_role_names\n# => [\"admin\", \"editor\", \"owner\", \"viewer\"]\n\nLcpRuby::Roles::Registry.valid_role?(\"admin\")\n# => true\n\nLcpRuby::Roles::Registry.valid_role?(\"ghost\")\n# => false\n\n# Force cache refresh\nLcpRuby::Roles::Registry.reload!\n```",
+    demo_path: "/showcase/roles",
+    demo_hint: "Create or deactivate a role — the cache updates automatically. Deactivated roles are excluded from `all_role_names`.",
+    status: "stable"
+  },
+  {
+    name: "Role Validation in Authorization",
+    category: "role_source",
+    description: "When `role_source` is `:model`, `PermissionEvaluator.resolve_roles` adds an extra filtering step: user role names are checked against `Roles::Registry`. Unknown roles are silently removed and logged as warnings.\n\nThis prevents stale role assignments from granting permissions after roles are renamed or deactivated.",
+    config_example: "Authorization flow with role_source :model:\n```\nuser.lcp_role → [\"admin\", \"ghost_role\"]\n  ↓\nRegistry.valid_role?(\"admin\")      → true  (kept)\nRegistry.valid_role?(\"ghost_role\") → false (removed, warning logged)\n  ↓\nPermission evaluation with [\"admin\"]\n```\n\nLog output:\n```\n[LcpRuby::Roles] User #42 has unknown roles: ghost_role\n```",
+    demo_path: "/showcase/showcase-permissions",
+    demo_hint: "Use impersonation to test. Roles not in the DB are filtered — the user falls back to `default_role`.",
+    status: "stable"
+  },
+  {
+    name: "Role Model Generator",
+    category: "role_source",
+    description: "A Rails generator scaffolds the full role model setup: model YAML, presenter, permissions, view group, and initializer config.\n\nRun once to get started, then customize the generated files as needed.",
+    config_example: "```bash\n# Generate role model files\nrails generate lcp_ruby:role_model\n\n# Creates:\n#   config/lcp_ruby/models/role.yml\n#   config/lcp_ruby/presenters/roles.yml\n#   config/lcp_ruby/permissions/role.yml\n#   config/lcp_ruby/views/roles.yml\n# Updates:\n#   config/initializers/lcp_ruby.rb → adds role_source = :model\n```",
+    demo_path: "/showcase/roles",
+    demo_hint: "The showcase role model was created manually (using Ruby DSL), but the generator produces equivalent YAML files.",
+    status: "stable"
+  },
+  {
+    name: "Active/Inactive Roles",
+    category: "role_source",
+    description: "Roles with `active: false` are excluded from the registry. This lets you deactivate a role without deleting it — useful for preserving audit history.\n\nUsers assigned to a deactivated role will fall back to `default_role` during authorization.",
+    config_example: "```ruby\nrole_model = LcpRuby.registry.model_for(\"role\")\n\n# Deactivate a role\nrole = role_model.find_by(name: \"deprecated\")\nrole.update!(active: false)\n# → Registry cache invalidated, role excluded from authorization\n\n# Check active roles\nLcpRuby::Roles::Registry.all_role_names\n# => [\"admin\", \"editor\", \"viewer\"]  (\"deprecated\" excluded)\n```",
+    demo_path: "/showcase/roles",
+    demo_hint: "The **Deprecated Role** record has `active: false` — use the Active/Inactive filters to see it. It won't appear in `all_role_names`.",
     status: "stable"
   },
 

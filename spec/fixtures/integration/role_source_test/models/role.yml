@@ -1,0 +1,35 @@
+model:
+  name: role
+  label: "Role"
+  label_plural: "Roles"
+
+  fields:
+    - name: name
+      type: string
+      label: "Name"
+      transforms: [strip]
+      validations:
+        - type: presence
+        - type: uniqueness
+
+    - name: label
+      type: string
+      label: "Label"
+
+    - name: description
+      type: text
+      label: "Description"
+
+    - name: active
+      type: boolean
+      label: "Active"
+      default: true
+
+    - name: position
+      type: integer
+      label: "Position"
+      default: 0
+
+  options:
+    timestamps: true
+    label_method: label

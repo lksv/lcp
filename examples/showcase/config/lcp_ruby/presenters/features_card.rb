@@ -16,9 +16,8 @@ define_presenter :features_card do
       color_map: {
         field_types: "blue", display_types: "purple", input_types: "teal",
         model_features: "green", presenter: "orange", form: "cyan",
-        permissions: "red", extensibility: "pink", navigation: "gray",
-        attachments: "yellow",
-        authentication: "indigo"
+        permissions: "red", role_source: "teal", extensibility: "pink",
+        navigation: "gray", attachments: "yellow", authentication: "indigo"
       }
     }, sortable: true
     column :status, display: :badge, display_options: {
@@ -36,9 +35,8 @@ define_presenter :features_card do
         color_map: {
           field_types: "blue", display_types: "purple", input_types: "teal",
           model_features: "green", presenter: "orange", form: "cyan",
-          permissions: "red", extensibility: "pink", navigation: "gray",
-          attachments: "yellow",
-        authentication: "indigo"
+          permissions: "red", role_source: "teal", extensibility: "pink",
+          navigation: "gray", attachments: "yellow", authentication: "indigo"
         }
       }
       field :status, display: :badge, display_options: {
@@ -89,6 +87,7 @@ define_presenter :features_card do
     filter :presenter, label: "Presenter", scope: :by_category_presenter
     filter :form, label: "Form", scope: :by_category_form
     filter :permissions, label: "Permissions", scope: :by_category_permissions
+    filter :role_source, label: "Roles", scope: :by_category_role_source
     filter :extensibility, label: "Extensibility", scope: :by_category_extensibility
     filter :navigation, label: "Navigation", scope: :by_category_navigation
     filter :attachments, label: "Attachments", scope: :by_category_attachments

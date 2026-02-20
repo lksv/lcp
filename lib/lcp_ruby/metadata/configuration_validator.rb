@@ -54,6 +54,7 @@ module LcpRuby
         validate_view_groups
         validate_menu
         validate_custom_fields
+        validate_role_model
 
         ValidationResult.new(errors: @errors.dup, warnings: @warnings.dup)
       end
@@ -797,6 +798,23 @@ module LcpRuby
         loader.permission_definitions.each_with_object([]) do |(_, perm), roles|
           perm.roles.each_key { |r| roles << r.to_s }
         end.uniq
+      end
+
+      # --- Role model validations ---
+
+      def validate_role_model
+        return unless LcpRuby.configuration.role_source == :model
+
+        role_model_name = LcpRuby.configuration.role_model
+        unless model_names.include?(role_model_name)
+          @errors << "role_source is :model but model '#{role_model_name}' is not defined"
+          return
+        end
+
+        model_def = loader.model_definitions[role_model_name]
+        result = Roles::ContractValidator.validate(model_def)
+        result.errors.each { |e| @errors << e }
+        result.warnings.each { |w| @warnings << w }
       end
 
       # --- Custom fields validations ---

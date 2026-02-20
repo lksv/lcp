@@ -131,6 +131,16 @@ module LcpRuby
         if user.respond_to?(role_method)
           raw = user.send(role_method)
           role_names = Array(raw).map(&:to_s)
+
+          # When role_source is :model and registry is available, filter to valid DB roles
+          if LcpRuby.configuration.role_source == :model && Roles::Registry.available?
+            invalid = role_names.reject { |r| Roles::Registry.valid_role?(r) }
+            if invalid.any? && defined?(Rails) && Rails.respond_to?(:logger)
+              Rails.logger.warn("[LcpRuby::Roles] User ##{user.id} has unknown roles: #{invalid.join(', ')}")
+            end
+            role_names = role_names.select { |r| Roles::Registry.valid_role?(r) }
+          end
+
           # Filter to roles that have configs; fall back to default if none match
           matching = role_names.select { |r| permission_definition.roles.key?(r) }
           matching.empty? ? [ permission_definition.default_role ] : matching

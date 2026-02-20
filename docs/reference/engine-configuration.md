@@ -112,6 +112,48 @@ end
 
 See [Eager Loading](eager-loading.md) for details on the auto-detection system.
 
+### `role_source`
+
+| | |
+|---|---|
+| **Type** | `Symbol` |
+| **Default** | `:implicit` |
+| **Allowed values** | `:implicit`, `:model` |
+
+Controls where role definitions come from. When set to `:model`, roles are validated against a DB-backed model at authorization time. Unknown role names are filtered out and logged as warnings.
+
+```ruby
+LcpRuby.configure do |config|
+  config.role_source = :model
+end
+```
+
+See [Role Source Reference](role-source.md) for the model contract, registry API, and setup details.
+
+### `role_model`
+
+| | |
+|---|---|
+| **Type** | `String` |
+| **Default** | `"role"` |
+
+Name of the LCP Ruby model that stores role definitions. Only used when `role_source` is `:model`. The model must satisfy the [role model contract](role-source.md#model-contract).
+
+### `role_model_fields`
+
+| | |
+|---|---|
+| **Type** | `Hash` |
+| **Default** | `{ name: "name", active: "active" }` |
+
+Maps the role model contract's logical fields to actual field names on your model. Only used when `role_source` is `:model`.
+
+```ruby
+LcpRuby.configure do |config|
+  config.role_model_fields = { name: "role_key", active: "enabled" }
+end
+```
+
 ### `impersonation_roles`
 
 | | |

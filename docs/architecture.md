@@ -24,6 +24,9 @@ YAML metadata (config/lcp_ruby/)
               CustomFields::Applicator → apply_custom_field_accessors! on enabled models
               CustomFields::BuiltInPresenter → auto-register management presenters
                                 ↓
+              Roles::Setup.apply!(loader) → contract validation, registry, change handler
+              (only when role_source == :model)
+                                ↓
               Services::Registry.discover! → data providers from app/lcp_services/data_providers/
               Display::RendererRegistry.register_built_ins! → 26 built-in renderers + badge renderers
               Display::RendererRegistry.discover! → custom renderers from app/renderers/
@@ -83,7 +86,7 @@ Builds dynamic ActiveRecord models from metadata definitions.
 
 Permission enforcement via Pundit integration.
 
-- **PermissionEvaluator** — resolves user role via configurable `role_method`; provides `can?(action)` with action aliases (edit->update, new->create); `readable_fields`, `writable_fields` for field-level access; `can_execute_action?`, `can_access_presenter?`, `apply_scope` for row-level filtering; record-level rules evaluation via ConditionEvaluator
+- **PermissionEvaluator** — resolves user role via configurable `role_method`; provides `can?(action)` with action aliases (edit->update, new->create); `readable_fields`, `writable_fields` for field-level access; `can_execute_action?`, `can_access_presenter?`, `apply_scope` for row-level filtering; record-level rules evaluation via ConditionEvaluator; optional role validation via `Roles::Registry` when `role_source == :model`
 - **PolicyFactory** — generates Pundit policy classes dynamically with `index?`, `show?`, `create?`, `update?`, `destroy?`, `new?`, `edit?` + `permitted_attributes` + `Scope` inner class
 - **ScopeBuilder** — row-level filtering with scope types: `field_match`, `association`, `where`, `custom`
 
@@ -127,6 +130,15 @@ Custom action system for operations beyond basic CRUD.
 **Action types:** `single` (one record), `collection` (no record), `batch` (multiple records)
 
 **Result:** success flag, message, redirect_to, data, errors
+
+### Roles (`lib/lcp_ruby/roles/`)
+
+DB-backed role management. Active only when `role_source == :model`.
+
+- **Registry** — thread-safe singleton cache of active role names; `all_role_names`, `valid_role?`, `reload!`, `clear!`, `mark_available!`, `available?`; uses `Monitor` for synchronization; returns `[]` on DB errors
+- **ContractValidator** — validates model definition at boot: name field must be string, active field (if mapped) must be boolean; returns `ContractResult` with `errors` and `warnings`
+- **ChangeHandler** — installs `after_commit` on role model class → calls `Registry.reload!`
+- **Setup** — boot orchestrator: validates contract, marks registry available, installs change handler; raises `MetadataError` on contract failure or missing model
 
 ### Custom Fields (`lib/lcp_ruby/custom_fields/`)
 
@@ -196,6 +208,9 @@ end
 | `auto_migrate` | `true` | Auto-create/update DB tables on boot |
 | `label_method_default` | `:to_s` | Default method for record display labels |
 | `parent_controller` | `"::ApplicationController"` | Host app controller to inherit from |
+| `role_source` | `:implicit` | `:implicit` (string keys) or `:model` (DB-backed) |
+| `role_model` | `"role"` | Model name for role definitions (when `role_source == :model`) |
+| `role_model_fields` | `{ name: "name", active: "active" }` | Field mapping for the role model contract |
 
 ## Engine Loading (`lib/lcp_ruby/engine.rb`)
 
@@ -215,7 +230,8 @@ end
 6. `Registry.register(name, model_class)` for each built model
 7. Build built-in `custom_field_definition` model (if not already defined by user)
 8. `CustomFields::Setup.apply!(loader)` — marks registry available, installs `DefinitionChangeHandler`, applies custom field accessors (with stale cleanup), registers `for_<model>` scopes on `custom_field_definition`, registers built-in management presenters (scoped by `target_model`)
-9. `check_services!` — verify all service references are valid
+9. `Roles::Setup.apply!(loader)` — when `role_source == :model`: validates contract, marks registry available, installs `ChangeHandler`
+10. `check_services!` — verify all service references are valid
 
 **`reload!`** — calls `reset!` then re-runs `load_metadata!`
 

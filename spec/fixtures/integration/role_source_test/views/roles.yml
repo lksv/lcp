@@ -1,0 +1,9 @@
+view_group:
+  model: role
+  primary: roles
+  navigation:
+    menu: main
+    position: 90
+  views:
+    - presenter: roles
+      label: "Roles"
