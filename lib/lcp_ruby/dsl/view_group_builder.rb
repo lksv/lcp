@@ -18,9 +18,15 @@ module LcpRuby
         @primary_value = value.to_s
       end
 
-      def navigation(menu:, position: nil)
-        @navigation_hash = { "menu" => menu.to_s }
-        @navigation_hash["position"] = position if position
+      def navigation(value = nil, menu: nil, position: nil)
+        if value == false
+          @navigation_hash = false
+        elsif menu
+          @navigation_hash = { "menu" => menu.to_s }
+          @navigation_hash["position"] = position if position
+        else
+          raise ArgumentError, "navigation expects `false` or `menu:` keyword, got: #{value.inspect}"
+        end
       end
 
       def breadcrumb(value = nil, relation: nil)
@@ -49,7 +55,7 @@ module LcpRuby
         vg = hash["view_group"]
         vg["model"] = @model_name if @model_name
         vg["primary"] = @primary_value if @primary_value
-        vg["navigation"] = @navigation_hash if @navigation_hash
+        vg["navigation"] = @navigation_hash unless @navigation_hash.nil?
         vg["breadcrumb"] = @breadcrumb_value unless @breadcrumb_value.nil?
         vg["views"] = @views unless @views.empty?
         hash

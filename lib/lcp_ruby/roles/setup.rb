@@ -13,8 +13,17 @@ module LcpRuby
         # Verify the role model exists
         model_def = loader.model_definitions[role_model_name]
         unless model_def
-          raise MetadataError, "role_source is :model but model '#{role_model_name}' is not defined. " \
-                               "Define it in your models YAML or run: rails generate lcp_ruby:role_model"
+          message = "role_source is :model but model '#{role_model_name}' is not defined. " \
+                    "Define it in your models YAML or run: rails generate lcp_ruby:role_model"
+
+          # When running inside a generator, skip the hard error so the generator
+          # can boot the app and create the missing files (chicken-and-egg).
+          if LcpRuby.generator_context?
+            Rails.logger.warn("[LcpRuby::Roles] #{message}")
+            return
+          end
+
+          raise MetadataError, message
         end
 
         # Validate the model meets the contract

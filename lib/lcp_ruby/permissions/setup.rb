@@ -13,8 +13,17 @@ module LcpRuby
         # Verify the permission config model exists
         model_def = loader.model_definitions[perm_model_name]
         unless model_def
-          raise MetadataError, "permission_source is :model but model '#{perm_model_name}' is not defined. " \
-                               "Define it in your models YAML or run: rails generate lcp_ruby:permission_source"
+          message = "permission_source is :model but model '#{perm_model_name}' is not defined. " \
+                    "Define it in your models YAML or run: rails generate lcp_ruby:permission_source"
+
+          # When running inside a generator, skip the hard error so the generator
+          # can boot the app and create the missing files (chicken-and-egg).
+          if LcpRuby.generator_context?
+            Rails.logger.warn("[LcpRuby::Permissions] #{message}")
+            return
+          end
+
+          raise MetadataError, message
         end
 
         # Validate the model meets the contract

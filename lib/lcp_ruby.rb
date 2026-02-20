@@ -198,6 +198,16 @@ module LcpRuby
       postgresql? ? :jsonb : :json
     end
 
+    # Returns true when the process was invoked via `rails generate`.
+    # Used by Setup modules to downgrade hard errors to warnings so
+    # generators can boot the app and create the missing files
+    # (chicken-and-egg problem).
+    def generator_context?
+      defined?(Rails::Command) &&
+        $PROGRAM_NAME.end_with?("/rails") &&
+        ARGV.first&.match?(/\Ag(enerate)?\z/)
+    end
+
     def reset!
       @configuration = nil
       @loader = nil

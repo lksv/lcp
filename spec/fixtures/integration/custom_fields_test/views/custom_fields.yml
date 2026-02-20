@@ -2,6 +2,7 @@
 view_group:
   model: custom_field_definition
   primary: custom_fields
+  navigation: false
   views:
     - presenter: custom_fields
       label: "Custom Fields"

@@ -40,6 +40,22 @@ RSpec.describe LcpRuby::Roles::Setup do
         }.to raise_error(LcpRuby::MetadataError, /not defined/)
       end
 
+      it "warns and returns in generator context when role model is not defined" do
+        LcpRuby.reset!
+        LcpRuby.configuration.role_source = :model
+        LcpRuby.configuration.role_model = "nonexistent"
+
+        loader = instance_double(LcpRuby::Metadata::Loader,
+          model_definitions: {})
+
+        allow(LcpRuby).to receive(:generator_context?).and_return(true)
+        allow(Rails.logger).to receive(:warn)
+
+        expect { described_class.apply!(loader) }.not_to raise_error
+        expect(Rails.logger).to have_received(:warn).with(/not defined/)
+        expect(LcpRuby::Roles::Registry.available?).to be false
+      end
+
       it "raises MetadataError when contract validation fails" do
         LcpRuby.reset!
         LcpRuby.configuration.role_source = :model

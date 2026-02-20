@@ -12,10 +12,18 @@ module LcpRuby
 
         # Validate that custom_field_definition model exists
         unless loader.model_definitions.key?("custom_field_definition")
-          raise MetadataError,
-            "One or more models have custom_fields enabled (#{cf_models.map(&:name).join(', ')}), " \
+          message = "One or more models have custom_fields enabled (#{cf_models.map(&:name).join(', ')}), " \
             "but the 'custom_field_definition' model is not defined. " \
             "Run `rails generate lcp_ruby:custom_fields` to generate the required metadata files."
+
+          # When running inside a generator, skip the hard error so the generator
+          # can boot the app and create the missing files (chicken-and-egg).
+          if LcpRuby.generator_context?
+            Rails.logger.warn("[LcpRuby::CustomFields] #{message}")
+            return
+          end
+
+          raise MetadataError, message
         end
 
         # Validate the custom_field_definition model contract
