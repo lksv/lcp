@@ -1,4 +1,18 @@
 LcpRuby::Engine.routes.draw do
+  # Devise routes are always mounted so that URL helpers are available.
+  # Access is controlled by the controllers (require_built_in_auth! guard).
+  devise_for :users,
+    class_name: "LcpRuby::User",
+    module: "lcp_ruby/auth",
+    path: "auth",
+    router_name: :lcp_ruby,
+    path_names: {
+      sign_in: "login",
+      sign_out: "logout",
+      sign_up: "register",
+      password: "password"
+    }
+
   post   "impersonate",      to: "impersonation#create",  as: :impersonate
   delete "impersonate",      to: "impersonation#destroy", as: :stop_impersonate
 

@@ -28,9 +28,75 @@ module LcpRuby
     private
 
     def authenticate_user!
-      # Host app must override this or provide current_user
-      raise "Host app must implement authentication" unless current_user
-      LcpRuby::Current.user = current_user
+      # Public view groups allow unauthenticated access
+      if current_request_public?
+        LcpRuby::Current.user = current_user || anonymous_user
+        return
+      end
+
+      case LcpRuby.configuration.authentication
+      when :none
+        # No auth needed — current_user returns default OpenStruct
+        LcpRuby::Current.user = current_user
+      when :built_in
+        unless current_user
+          session[:"user_return_to"] = request.fullpath
+          redirect_to lcp_ruby.new_user_session_path
+          return
+        end
+        unless current_user.respond_to?(:active?) && current_user.active?
+          sign_out current_user if respond_to?(:sign_out, true)
+          redirect_to lcp_ruby.new_user_session_path,
+                      alert: I18n.t("lcp_ruby.auth.account_deactivated")
+          return
+        end
+        LcpRuby::Current.user = current_user
+      when :external
+        raise "Host app must implement authentication" unless current_user
+        LcpRuby::Current.user = current_user
+      end
+    end
+
+    def current_user
+      case LcpRuby.configuration.authentication
+      when :none
+        # Use a distinct ivar to avoid collision with Devise's @current_user
+        @_lcp_none_user ||= OpenStruct.new(
+          id: 0,
+          LcpRuby.configuration.role_method => ["admin"],
+          name: "Development User"
+        )
+      when :built_in
+        # Use Warden directly to bypass host app's current_user override
+        @current_user ||= warden.authenticate(scope: :user)
+      else
+        super
+      end
+    end
+
+    def warden
+      request.env["warden"]
+    end
+
+    def current_request_public?
+      slug = params[:lcp_slug]
+      return false unless slug
+
+      presenter = Presenter::Resolver.find_by_slug(slug)
+      return false unless presenter
+
+      view_group = LcpRuby.loader.view_group_for_presenter(presenter.name)
+      view_group&.public?
+    rescue LcpRuby::MetadataError
+      false
+    end
+
+    def anonymous_user
+      OpenStruct.new(
+        id: nil,
+        LcpRuby.configuration.role_method => [],
+        name: "Anonymous"
+      )
     end
 
     def set_presenter_and_model

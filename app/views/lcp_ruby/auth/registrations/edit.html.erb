@@ -1,0 +1,45 @@
+<h2><%= t("lcp_ruby.auth.profile.heading", default: "Edit profile") %></h2>
+
+<%= form_for(resource, as: resource_name, url: registration_path(resource_name), html: { method: :put }) do |f| %>
+  <% if resource.errors.any? %>
+    <div class="lcp-errors">
+      <h3><%= pluralize(resource.errors.count, "error") %> prevented update:</h3>
+      <ul>
+        <% resource.errors.full_messages.each do |message| %>
+          <li><%= message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div class="lcp-form-field">
+    <%= f.label :name %>
+    <%= f.text_field :name, autofocus: true, autocomplete: "name" %>
+  </div>
+
+  <div class="lcp-form-field">
+    <%= f.label :email %>
+    <%= f.email_field :email, autocomplete: "email" %>
+  </div>
+
+  <div class="lcp-form-field">
+    <%= f.label :password %>
+    <em>(<%= t("lcp_ruby.auth.profile.password_hint", default: "leave blank if you don't want to change it") %>)</em>
+    <%= f.password_field :password, autocomplete: "new-password" %>
+  </div>
+
+  <div class="lcp-form-field">
+    <%= f.label :password_confirmation %>
+    <%= f.password_field :password_confirmation, autocomplete: "new-password" %>
+  </div>
+
+  <div class="lcp-form-field">
+    <%= f.label :current_password %>
+    <em>(<%= t("lcp_ruby.auth.profile.current_password_hint", default: "we need your current password to confirm changes") %>)</em>
+    <%= f.password_field :current_password, autocomplete: "current-password" %>
+  </div>
+
+  <div class="lcp-form-actions">
+    <%= f.submit t("lcp_ruby.auth.profile.submit", default: "Update"), class: "btn btn-primary" %>
+  </div>
+<% end %>

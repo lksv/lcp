@@ -6,10 +6,28 @@ module LcpRuby
                   :attachment_max_size, :attachment_allowed_content_types,
                   :breadcrumb_home_path
 
-    attr_reader :menu_mode
+    # Authentication settings
+    attr_accessor :auth_allow_registration,
+                  :auth_password_min_length,
+                  :auth_session_timeout,
+                  :auth_lock_after_attempts,
+                  :auth_lock_duration,
+                  :auth_mailer_sender,
+                  :auth_after_login_path,
+                  :auth_after_logout_path
+
+    attr_reader :menu_mode, :authentication
 
     def menu_mode=(value)
       @menu_mode = value&.to_sym
+    end
+
+    def authentication=(value)
+      value = value&.to_sym
+      unless %i[none built_in external].include?(value)
+        raise ArgumentError, "authentication must be :none, :built_in, or :external (got #{value.inspect})"
+      end
+      @authentication = value
     end
 
     def initialize
@@ -26,6 +44,17 @@ module LcpRuby
       @attachment_allowed_content_types = nil
       @breadcrumb_home_path = "/"
       @menu_mode = :auto
+
+      # Authentication defaults
+      @authentication = :external
+      @auth_allow_registration = false
+      @auth_password_min_length = 8
+      @auth_session_timeout = nil
+      @auth_lock_after_attempts = 0
+      @auth_lock_duration = 30.minutes if defined?(ActiveSupport)
+      @auth_mailer_sender = "noreply@example.com"
+      @auth_after_login_path = "/"
+      @auth_after_logout_path = nil
     end
 
     # Returns true when strict_loading should be enabled on AR scopes.

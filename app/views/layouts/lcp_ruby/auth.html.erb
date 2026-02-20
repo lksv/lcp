@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title><%= t("lcp_ruby.auth.title", default: "Authentication") %> - LCP Ruby</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <%= csrf_meta_tags %>
+  <% if Rails.application.config.respond_to?(:assets) %>
+    <%= stylesheet_link_tag "lcp_ruby/application", media: "all" %>
+  <% end %>
+  <style>
+    .lcp-auth-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      background: #f5f5f5;
+    }
+    .lcp-auth-card {
+      background: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      padding: 2rem;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .lcp-auth-card h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      margin-bottom: 1.5rem;
+      text-align: center;
+    }
+    .lcp-auth-card .lcp-form-field {
+      margin-bottom: 1rem;
+    }
+    .lcp-auth-card .lcp-form-actions {
+      margin-top: 1.5rem;
+    }
+    .lcp-auth-card .btn-primary {
+      width: 100%;
+      padding: 0.6rem;
+      font-size: 1rem;
+    }
+    .lcp-auth-links {
+      margin-top: 1.25rem;
+      text-align: center;
+      font-size: 0.875rem;
+    }
+    .lcp-auth-links a {
+      color: #0d6efd;
+      text-decoration: none;
+    }
+    .lcp-auth-links a:hover {
+      text-decoration: underline;
+    }
+    .lcp-auth-remember {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.875rem;
+    }
+    .lcp-auth-remember input[type="checkbox"] {
+      width: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="lcp-auth-wrapper">
+    <div class="lcp-auth-card">
+      <% if flash[:notice] %>
+        <div class="lcp-flash lcp-flash-notice"><%= flash[:notice] %></div>
+      <% end %>
+      <% if flash[:alert] %>
+        <div class="lcp-flash lcp-flash-alert"><%= flash[:alert] %></div>
+      <% end %>
+      <%= yield %>
+    </div>
+  </div>
+</body>
+</html>
