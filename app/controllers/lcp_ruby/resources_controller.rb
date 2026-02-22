@@ -1,8 +1,10 @@
+require "digest"
+
 module LcpRuby
   class ResourcesController < ApplicationController
     include LcpRuby::AssociationOptionsBuilder
 
-    before_action :set_record, only: [ :show, :edit, :update, :destroy, :evaluate_conditions ]
+    before_action :set_record, only: [ :show, :edit, :update, :destroy, :evaluate_conditions, :reorder ]
 
     def index
       authorize @model_class
@@ -130,6 +132,28 @@ module LcpRuby
       @record = @model_class.new(permitted_params)
       authorize @record, :create?
       render json: evaluate_service_conditions(@record)
+    end
+
+    def reorder
+      unless current_model_definition.positioned?
+        head :not_found
+        return
+      end
+
+      authorize @record, :update?
+      authorize_position_field!
+
+      stale = verify_list_version!
+      return if stale
+
+      position_value = parse_position_param
+      pos_field = current_model_definition.positioning_field
+      @record.update!(pos_field => position_value)
+
+      render json: {
+        position: @record.reload.send(pos_field),
+        list_version: compute_list_version(@record)
+      }
     end
 
     def inline_create_form
@@ -644,6 +668,56 @@ module LcpRuby
       return explicit_method.to_sym if explicit_method.present?
       method = model_def.label_method
       method && method != "to_s" ? method.to_sym : :to_label
+    end
+
+    def authorize_position_field!
+      field = current_model_definition.positioning_field
+      unless current_evaluator.field_writable?(field)
+        raise Pundit::NotAuthorizedError,
+          "Not allowed to write positioning field '#{field}'"
+      end
+    end
+
+    def verify_list_version!
+      return false unless params[:list_version].present?
+
+      current_version = compute_list_version(@record)
+      return false if current_version == params[:list_version]
+
+      render json: { error: "list_version_mismatch", list_version: current_version },
+             status: :conflict
+      true
+    end
+
+    def compute_list_version(record)
+      scope = @model_class.all
+      current_model_definition.positioning_scope.each do |col|
+        scope = scope.where(col => record.send(col))
+      end
+      pos_field = current_model_definition.positioning_field
+      ids_in_order = scope.order(pos_field => :asc).pluck(:id)
+      Digest::SHA256.hexdigest(ids_in_order.join(","))
+    end
+
+    VALID_POSITION_KEYS = %i[after before].freeze
+
+    def parse_position_param
+      raw = params[:position]
+      case raw
+      when ActionController::Parameters, Hash
+        h = raw.to_unsafe_h.transform_values { |v| v.to_i }.symbolize_keys
+        invalid = h.keys - VALID_POSITION_KEYS
+        if invalid.any?
+          raise ActionController::BadRequest, "Invalid position keys: #{invalid.join(', ')}. Expected: after, before"
+        end
+        h
+      when "first"
+        :first
+      when "last"
+        :last
+      else
+        raw.to_i
+      end
     end
 
     def inline_form_fields(layout_builder, model_def)

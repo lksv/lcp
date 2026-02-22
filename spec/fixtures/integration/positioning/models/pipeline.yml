@@ -1,0 +1,10 @@
+model:
+  name: pipeline
+  fields:
+    - name: name
+      type: string
+      validations:
+        - type: presence
+  options:
+    timestamps: false
+    label_method: name

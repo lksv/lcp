@@ -19,6 +19,7 @@ module LcpRuby
         apply_callbacks(model_class)
         apply_defaults(model_class)
         apply_computed(model_class)
+        apply_positioning(model_class)
         apply_external_fields(model_class)
         apply_model_extensions(model_class)
         apply_custom_fields(model_class)
@@ -90,6 +91,10 @@ module LcpRuby
 
       def apply_computed(model_class)
         ComputedApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_positioning(model_class)
+        PositioningApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_external_fields(model_class)

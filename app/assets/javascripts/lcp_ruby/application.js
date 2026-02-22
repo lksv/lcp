@@ -13,6 +13,7 @@
 //= require lcp_ruby/form_handling
 //= require lcp_ruby/ui_components
 //= require lcp_ruby/nested_forms
+//= require lcp_ruby/index_sortable
 //= require lcp_ruby/input_enhancements
 //= require lcp_ruby/conditional_rendering
 //= require lcp_ruby/inline_create

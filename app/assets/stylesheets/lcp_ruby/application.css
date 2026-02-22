@@ -437,3 +437,13 @@ pre.lcp-code-block { display: block; padding: 0.75em 1em; overflow-x: auto; whit
 /* Internal link */
 .lcp-internal-link { color: #0d6efd; text-decoration: none; }
 .lcp-internal-link:hover { text-decoration: underline; }
+
+/* Index drag-and-drop reordering */
+.lcp-drag-column { width: 2rem; text-align: center; padding: 0.4rem 0.25rem !important; }
+th.lcp-drag-column { background: #f8f9fa; }
+.lcp-table .lcp-drag-handle { cursor: grab; font-size: 1rem; color: #adb5bd; user-select: none; }
+.lcp-table .lcp-drag-handle:active { cursor: grabbing; }
+.lcp-table .lcp-drag-handle-disabled { cursor: not-allowed; opacity: 0.3; }
+.lcp-table tr.dragging { opacity: 0.4; background: #e9ecef; }
+.lcp-table tr.drag-over { box-shadow: 0 -2px 0 0 #0d6efd inset; }
+.lcp-reorder-flash { margin-bottom: 1rem; }

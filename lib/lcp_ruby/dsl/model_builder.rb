@@ -14,6 +14,7 @@ module LcpRuby
         @scopes = []
         @events = []
         @display_templates = {}
+        @positioning_config = nil
         @options = {}
       end
 
@@ -178,6 +179,12 @@ module LcpRuby
         @display_templates[name.to_s] = tmpl
       end
 
+      def positioning(field: :position, scope: nil)
+        config = { "field" => field.to_s }
+        config["scope"] = Array(scope).map(&:to_s) if scope
+        @positioning_config = config
+      end
+
       # Field change events
       def on_field_change(name, field:, condition: nil)
         event_hash = {
@@ -205,6 +212,7 @@ module LcpRuby
         hash["scopes"] = @scopes unless @scopes.empty?
         hash["events"] = @events unless @events.empty?
         hash["display_templates"] = @display_templates unless @display_templates.empty?
+        hash["positioning"] = @positioning_config if @positioning_config
         hash["options"] = @options unless @options.empty?
 
         hash

@@ -161,6 +161,7 @@ module LcpRuby
 
     class IndexBuilder
       def initialize
+        @reorderable_value = nil
         @default_view = nil
         @default_sort = nil
         @per_page_value = nil
@@ -172,6 +173,10 @@ module LcpRuby
         @includes_list = nil
         @eager_load_list = nil
         @description_value = nil
+      end
+
+      def reorderable(value = true)
+        @reorderable_value = value
       end
 
       def description(text)
@@ -224,6 +229,7 @@ module LcpRuby
 
       def to_hash
         hash = {}
+        hash["reorderable"] = @reorderable_value unless @reorderable_value.nil?
         hash["description"] = @description_value if @description_value
         hash["default_view"] = @default_view if @default_view
         hash["views_available"] = @views_available if @views_available

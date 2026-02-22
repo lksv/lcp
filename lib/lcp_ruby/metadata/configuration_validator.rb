@@ -123,6 +123,7 @@ module LcpRuby
           validate_model_scopes(model)
           validate_model_events(model)
           validate_display_templates(model)
+          validate_positioning(model)
         end
       end
 
@@ -250,6 +251,60 @@ module LcpRuby
         end
       end
 
+      def validate_positioning(model)
+        return unless model.positioned?
+
+        config = model.positioning_config
+        field_name = config["field"] || "position"
+        field_def = model.field(field_name)
+
+        unless field_def
+          @errors << "Model '#{model.name}': positioning field '#{field_name}' is not defined"
+          return
+        end
+
+        unless field_def.type == "integer"
+          @errors << "Model '#{model.name}': positioning field '#{field_name}' must be type 'integer', got '#{field_def.type}'"
+        end
+
+        if field_def.virtual?
+          @errors << "Model '#{model.name}': positioning field '#{field_name}' cannot be a virtual field"
+        end
+
+        Array(config["scope"]).each do |scope_col|
+          scope_field = model.field(scope_col)
+          scope_fk = model.associations.any? { |a| a.foreign_key == scope_col }
+          unless scope_field || scope_fk
+            @errors << "Model '#{model.name}': positioning scope '#{scope_col}' is not a defined field or FK"
+          end
+        end
+      end
+
+      def validate_presenter_reorderable(presenter, model)
+        return unless presenter.reorderable?
+
+        unless model.positioned?
+          @errors << "Presenter '#{presenter.name}': index.reorderable is true but model '#{model.name}' has no positioning config"
+        end
+      end
+
+      def validate_positioning_field_not_in_form(presenter, model)
+        return unless model.positioned?
+
+        pos_field = model.positioning_field
+        sections = presenter.form_config["sections"] || []
+        sections.each do |section|
+          next unless section.is_a?(Hash)
+
+          fields = section["fields"] || []
+          if fields.any? { |f| f.is_a?(Hash) ? f["field"] == pos_field : f.to_s == pos_field }
+            @warnings << "Presenter '#{presenter.name}': positioning field '#{pos_field}' appears in a form section. " \
+                         "The position is managed automatically via drag-and-drop; editing it manually in a form may cause " \
+                         "confusing behavior. Consider removing it from the form."
+          end
+        end
+      end
+
       # --- Association validations ---
 
       def validate_associations
@@ -340,6 +395,12 @@ module LcpRuby
           validate_presenter_fields(presenter)
           validate_presenter_scopes(presenter)
           validate_presenter_actions(presenter)
+
+          model_def = loader.model_definitions[presenter.model]
+          if model_def
+            validate_presenter_reorderable(presenter, model_def)
+            validate_positioning_field_not_in_form(presenter, model_def)
+          end
         end
       end
 

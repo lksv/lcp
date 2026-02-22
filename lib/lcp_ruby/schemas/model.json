@@ -33,7 +33,25 @@
       "type": "object",
       "additionalProperties": { "$ref": "#/$defs/display_template" }
     },
-    "options": { "$ref": "#/$defs/model_options" }
+    "options": { "$ref": "#/$defs/model_options" },
+    "positioning": {
+      "oneOf": [
+        { "type": "boolean", "const": true },
+        {
+          "type": "object",
+          "properties": {
+            "field": { "type": "string" },
+            "scope": {
+              "oneOf": [
+                { "type": "string" },
+                { "type": "array", "items": { "type": "string" } }
+              ]
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
   },
   "required": ["name"],
   "additionalProperties": false,

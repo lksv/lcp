@@ -3,7 +3,7 @@ module LcpRuby
     class ModelDefinition
       attr_reader :name, :label, :label_plural, :table_name, :fields,
                   :validations, :associations, :scopes, :events, :options,
-                  :display_templates, :raw_hash
+                  :display_templates, :positioning_config, :raw_hash
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -17,6 +17,7 @@ module LcpRuby
         @events = attrs[:events] || []
         @options = attrs[:options] || {}
         @display_templates = attrs[:display_templates] || {}
+        @positioning_config = attrs[:positioning_config]
         @raw_hash = attrs[:raw_hash]
 
         validate!
@@ -35,6 +36,7 @@ module LcpRuby
           events: parse_events(hash["events"]),
           options: hash["options"] || {},
           display_templates: parse_display_templates(hash["display_templates"]),
+          positioning_config: normalize_positioning(hash["positioning"]),
           raw_hash: hash
         )
       end
@@ -63,6 +65,18 @@ module LcpRuby
         display_templates[name.to_s]
       end
 
+      def positioned?
+        @positioning_config.present?
+      end
+
+      def positioning_field
+        positioning_config&.fetch("field", "position") || "position"
+      end
+
+      def positioning_scope
+        Array(positioning_config&.fetch("scope", nil)).compact
+      end
+
       # Returns a Hash mapping FK field name to its belongs_to AssociationDefinition.
       # e.g. { "company_id" => <AssociationDefinition name="company"> }
       # Memoized since it's called from multiple places (ColumnSet, DependencyCollector, PermissionEvaluator).
@@ -84,6 +98,20 @@ module LcpRuby
         duplicates = names.select { |n| names.count(n) > 1 }.uniq
         if duplicates.any?
           raise MetadataError, "Duplicate field names in model '#{@name}': #{duplicates.join(', ')}"
+        end
+      end
+
+      private_class_method def self.normalize_positioning(raw)
+        case raw
+        when true
+          { "field" => "position" }
+        when Hash
+          result = {}
+          result["field"] = (raw["field"] || "position").to_s
+          result["scope"] = Array(raw["scope"]).map(&:to_s) if raw["scope"]
+          result
+        when nil, false
+          nil
         end
       end
 

@@ -859,4 +859,54 @@ RSpec.describe "Model build pipeline" do
       expect(record.color).to eq("red")
     end
   end
+
+  describe "positioning via DSL" do
+    # Use a dedicated model name to avoid schema cache collisions with other
+    # pipeline_test specs that create the same table without a position column.
+    def build_positioned_model(&block)
+      definition = LcpRuby.define_model(:pipeline_pos, &block)
+      LcpRuby::ModelFactory::SchemaManager.new(definition).ensure_table!
+      LcpRuby::ModelFactory::Builder.new(definition).build
+    end
+
+    after do
+      conn = ActiveRecord::Base.connection
+      conn.drop_table(:pipeline_pos, if_exists: true)
+    end
+
+    it "auto-assigns sequential positions on create" do
+      model_class = build_positioned_model do
+        field :title, :string
+        field :position, :integer
+        positioning
+        timestamps false
+      end
+
+      a = model_class.create!(title: "First")
+      b = model_class.create!(title: "Second")
+      c = model_class.create!(title: "Third")
+
+      expect(a.reload.position).to eq(1)
+      expect(b.reload.position).to eq(2)
+      expect(c.reload.position).to eq(3)
+    end
+
+    it "closes gaps on destroy" do
+      model_class = build_positioned_model do
+        field :title, :string
+        field :position, :integer
+        positioning
+        timestamps false
+      end
+
+      a = model_class.create!(title: "First")
+      b = model_class.create!(title: "Second")
+      c = model_class.create!(title: "Third")
+
+      b.destroy!
+
+      expect(a.reload.position).to eq(1)
+      expect(c.reload.position).to eq(2)
+    end
+  end
 end

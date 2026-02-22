@@ -230,4 +230,81 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       }.to raise_error(LcpRuby::MetadataError, /Duplicate field names/)
     end
   end
+
+  describe "positioning" do
+    it "returns positioned? false when no positioning config" do
+      definition = described_class.from_hash(
+        "name" => "simple",
+        "fields" => [{ "name" => "title", "type" => "string" }]
+      )
+      expect(definition.positioned?).to be false
+      expect(definition.positioning_config).to be_nil
+    end
+
+    it "parses positioning: true as default config" do
+      definition = described_class.from_hash(
+        "name" => "stage",
+        "fields" => [
+          { "name" => "title", "type" => "string" },
+          { "name" => "position", "type" => "integer" }
+        ],
+        "positioning" => true
+      )
+      expect(definition.positioned?).to be true
+      expect(definition.positioning_field).to eq("position")
+      expect(definition.positioning_scope).to eq([])
+    end
+
+    it "parses positioning with custom field" do
+      definition = described_class.from_hash(
+        "name" => "stage",
+        "fields" => [
+          { "name" => "title", "type" => "string" },
+          { "name" => "sort_order", "type" => "integer" }
+        ],
+        "positioning" => { "field" => "sort_order" }
+      )
+      expect(definition.positioned?).to be true
+      expect(definition.positioning_field).to eq("sort_order")
+      expect(definition.positioning_scope).to eq([])
+    end
+
+    it "parses positioning with scope" do
+      definition = described_class.from_hash(
+        "name" => "stage",
+        "fields" => [
+          { "name" => "title", "type" => "string" },
+          { "name" => "position", "type" => "integer" },
+          { "name" => "pipeline_id", "type" => "integer" }
+        ],
+        "positioning" => { "field" => "position", "scope" => "pipeline_id" }
+      )
+      expect(definition.positioned?).to be true
+      expect(definition.positioning_field).to eq("position")
+      expect(definition.positioning_scope).to eq(["pipeline_id"])
+    end
+
+    it "parses positioning with array scope" do
+      definition = described_class.from_hash(
+        "name" => "item",
+        "fields" => [
+          { "name" => "title", "type" => "string" },
+          { "name" => "position", "type" => "integer" },
+          { "name" => "category_id", "type" => "integer" },
+          { "name" => "group_id", "type" => "integer" }
+        ],
+        "positioning" => { "scope" => ["category_id", "group_id"] }
+      )
+      expect(definition.positioning_scope).to eq(["category_id", "group_id"])
+    end
+
+    it "returns nil for positioning: false" do
+      definition = described_class.from_hash(
+        "name" => "simple",
+        "fields" => [{ "name" => "title", "type" => "string" }],
+        "positioning" => false
+      )
+      expect(definition.positioned?).to be false
+    end
+  end
 end

@@ -1,0 +1,34 @@
+presenter:
+  name: priorities
+  model: priority
+  label: Priorities
+  slug: priorities
+  index:
+    reorderable: true
+    table_columns:
+      - field: label
+        sortable: true
+      - field: position
+        sortable: true
+  show:
+    layout:
+      - section: Details
+        fields:
+          - field: label
+          - field: position
+  form:
+    sections:
+      - title: Details
+        fields:
+          - field: label
+  actions:
+    collection:
+      - name: create
+        type: built_in
+    single:
+      - name: show
+        type: built_in
+      - name: edit
+        type: built_in
+      - name: destroy
+        type: built_in

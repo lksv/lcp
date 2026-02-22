@@ -1128,6 +1128,35 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
     end
   end
 
+  describe "index reorderable" do
+    it "includes reorderable in index config" do
+      builder = described_class.new(:stages)
+      builder.instance_eval do
+        model :stage
+        index do
+          reorderable
+          column :title
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]["reorderable"]).to eq(true)
+    end
+
+    it "omits reorderable when not set" do
+      builder = described_class.new(:stages)
+      builder.instance_eval do
+        model :stage
+        index do
+          column :title
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]).not_to have_key("reorderable")
+    end
+  end
+
   describe "full presenter parity with YAML" do
     let(:fixtures_path) { File.expand_path("../../../fixtures/metadata", __dir__) }
     let(:yaml_hash) do

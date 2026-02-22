@@ -51,6 +51,10 @@ module LcpRuby
         options["embeddable"] == true
       end
 
+      def reorderable?
+        index_config["reorderable"] == true
+      end
+
       def default_view
         index_config["default_view"] || "table"
       end

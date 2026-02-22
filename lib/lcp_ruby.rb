@@ -63,6 +63,7 @@ require "lcp_ruby/model_factory/default_applicator"
 require "lcp_ruby/model_factory/computed_applicator"
 require "lcp_ruby/model_factory/service_accessor_applicator"
 require "lcp_ruby/model_factory/attachment_applicator"
+require "lcp_ruby/model_factory/positioning_applicator"
 require "lcp_ruby/model_factory/builder"
 
 # Custom Fields

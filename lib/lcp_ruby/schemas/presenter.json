@@ -210,6 +210,7 @@
     "index_config": {
       "type": "object",
       "properties": {
+        "reorderable": { "type": "boolean" },
         "description": { "type": "string" },
         "default_view": { "type": "string" },
         "views_available": { "type": "array", "items": { "type": "string" } },

@@ -1,6 +1,7 @@
 require "pundit"
 require "ransack"
 require "kaminari"
+require "positioning"
 require "view_component"
 require "turbo-rails"
 require "stimulus-rails"

@@ -40,9 +40,22 @@
     </div>
   <% else %>
     <% columns = @column_set.visible_table_columns %>
-    <table class="lcp-table">
+    <% reorderable = current_presenter.reorderable? &&
+                     current_model_definition.positioned? &&
+                     current_evaluator.can?(:update) &&
+                     current_evaluator.field_writable?(current_model_definition.positioning_field) %>
+    <% reorder_disabled = reorderable && (params[:q].present? || (params[:sort].present? && params[:sort] != current_model_definition.positioning_field)) %>
+    <table class="lcp-table"
+      <% if reorderable %>
+        data-reorder-url="<%= reorder_resource_path(':id') %>"
+        data-list-version="<%= compute_list_version_from_records(@records) %>"
+        <% if reorder_disabled %>data-reorder-disabled="true"<% end %>
+      <% end %>>
       <thead>
         <tr>
+          <% if reorderable %>
+            <th class="lcp-drag-column"></th>
+          <% end %>
           <% columns.each do |col| %>
 
             <th style="<%= "width: #{col['width']}" if col['width'] %>"
@@ -66,7 +79,11 @@
       <tbody>
         <% @records.each do |record| %>
           <tr class="<%= 'lcp-row-clickable' if current_presenter.index_config['row_click'] %>"
+              data-record-id="<%= record.id %>"
               data-href="<%= resource_path(record) if current_presenter.index_config['row_click'] %>">
+            <% if reorderable %>
+              <td class="lcp-drag-column"><span class="lcp-drag-handle">&#9776;</span></td>
+            <% end %>
             <% columns.each do |col| %>
 
               <td class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
@@ -106,6 +123,9 @@
       <% if @summaries&.any? %>
         <tfoot>
           <tr class="lcp-summary-row">
+            <% if reorderable %>
+              <td></td>
+            <% end %>
             <% columns.each do |col| %>
 
               <td>

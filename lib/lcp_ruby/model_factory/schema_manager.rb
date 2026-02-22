@@ -61,6 +61,8 @@ module LcpRuby
             "ON #{connection.quote_table_name(table)} USING GIN (custom_data)"
           )
         end
+
+        apply_positioning_constraints!(table) if model_definition.positioned?
       end
 
       def update_table!
@@ -119,6 +121,57 @@ module LcpRuby
             end
           end
         end
+
+        apply_positioning_constraints!(table) if model_definition.positioned?
+      end
+
+      def apply_positioning_constraints!(table)
+        connection = ActiveRecord::Base.connection
+        col = model_definition.positioning_field
+
+        # Ensure NOT NULL on position column (for existing tables where the column may be nullable)
+        if connection.column_exists?(table, col)
+          column = connection.columns(table).find { |c| c.name == col }
+          if column&.null
+            connection.execute(
+              "UPDATE #{connection.quote_table_name(table)} SET #{connection.quote_column_name(col)} = 0 WHERE #{connection.quote_column_name(col)} IS NULL"
+            )
+            connection.change_column_null(table, col, false)
+          end
+        end
+
+        # Add a unique index on [scope_columns..., position_column] for databases
+        # that support row-level locking (PostgreSQL, MySQL). The positioning gem
+        # uses negative intermediate positions during reorder (never actual duplicates),
+        # so the unique constraint is safe as long as concurrent transactions are
+        # serialized via SELECT ... FOR UPDATE — which SQLite does not support.
+        add_positioning_index!(table, connection) unless sqlite?(connection)
+      end
+
+      def add_positioning_index!(table, connection)
+        col = model_definition.positioning_field
+        scope_cols = model_definition.positioning_scope
+        index_columns = scope_cols + [ col ]
+        index_name = "idx_#{table}_positioning"
+
+        return if connection.index_exists?(table, index_columns, unique: true)
+
+        begin
+          connection.add_index(table, index_columns, unique: true, name: index_name)
+        rescue ActiveRecord::RecordNotUnique, ActiveRecord::StatementInvalid => e
+          model_class_name = "LcpRuby::Dynamic::#{model_definition.name.classify}"
+          heal_method = "heal_#{col}_column!"
+          Rails.logger.warn(
+            "[LcpRuby] Could not create unique positioning index on #{table} " \
+            "(#{index_columns.join(', ')}): #{e.message}. " \
+            "This usually means the table has duplicate position values. " \
+            "Run `#{model_class_name}.#{heal_method}` in the Rails console to fix existing data, then restart."
+          )
+        end
+      end
+
+      def sqlite?(connection)
+        connection.adapter_name.downcase.include?("sqlite")
       end
 
       def add_column_to_table(t, field)

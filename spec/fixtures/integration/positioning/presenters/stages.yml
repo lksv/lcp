@@ -1,0 +1,36 @@
+presenter:
+  name: stages
+  model: stage
+  label: Stages
+  slug: stages
+  index:
+    reorderable: true
+    table_columns:
+      - field: name
+        sortable: true
+      - field: position
+        sortable: true
+  show:
+    layout:
+      - section: Details
+        fields:
+          - field: name
+          - field: position
+  form:
+    sections:
+      - title: Details
+        fields:
+          - field: name
+          - field: pipeline_id
+            input_type: association_select
+  actions:
+    collection:
+      - name: create
+        type: built_in
+    single:
+      - name: show
+        type: built_in
+      - name: edit
+        type: built_in
+      - name: destroy
+        type: built_in

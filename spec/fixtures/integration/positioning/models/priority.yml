@@ -1,0 +1,13 @@
+model:
+  name: priority
+  fields:
+    - name: label
+      type: string
+      validations:
+        - type: presence
+    - name: position
+      type: integer
+  positioning: true
+  options:
+    timestamps: false
+    label_method: label

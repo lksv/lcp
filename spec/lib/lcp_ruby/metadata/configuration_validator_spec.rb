@@ -2110,6 +2110,180 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       expect(cf_warnings).to be_empty
     end
   end
+
+  # --- Positioning validations ---
+
+  context "positioning field not defined" do
+    let(:metadata_path) { "" }
+
+    it "reports error when positioning field is missing" do
+      v = with_metadata(
+        models: [<<~YAML]
+          model:
+            name: stage
+            fields:
+              - { name: title, type: string }
+            positioning: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(match(/positioning field 'position' is not defined/))
+    end
+  end
+
+  context "positioning field wrong type" do
+    let(:metadata_path) { "" }
+
+    it "reports error when positioning field is not integer" do
+      v = with_metadata(
+        models: [<<~YAML]
+          model:
+            name: stage
+            fields:
+              - { name: title, type: string }
+              - { name: position, type: string }
+            positioning: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(match(/positioning field 'position' must be type 'integer'/))
+    end
+  end
+
+  context "positioning field is virtual" do
+    let(:metadata_path) { "" }
+
+    it "reports error when positioning field is virtual" do
+      v = with_metadata(
+        models: [<<~YAML]
+          model:
+            name: stage
+            fields:
+              - { name: title, type: string }
+              - { name: metadata, type: json }
+              - name: position
+                type: integer
+                source:
+                  service: json_field
+                  options:
+                    column: metadata
+                    key: position
+            positioning: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(match(/positioning field 'position' cannot be a virtual field/))
+    end
+  end
+
+  context "positioning scope references unknown field" do
+    let(:metadata_path) { "" }
+
+    it "reports error when scope field does not exist" do
+      v = with_metadata(
+        models: [<<~YAML]
+          model:
+            name: stage
+            fields:
+              - { name: title, type: string }
+              - { name: position, type: integer }
+            positioning:
+              scope: nonexistent_id
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(match(/positioning scope 'nonexistent_id' is not a defined field or FK/))
+    end
+  end
+
+  context "valid positioning config" do
+    let(:metadata_path) { "" }
+
+    it "passes validation with correct positioning config" do
+      v = with_metadata(
+        models: [<<~YAML]
+          model:
+            name: stage
+            fields:
+              - { name: title, type: string }
+              - { name: position, type: integer }
+            positioning: true
+        YAML
+      )
+
+      result = v.validate
+      positioning_errors = result.errors.select { |e| e.include?("positioning") }
+      expect(positioning_errors).to be_empty
+    end
+  end
+
+  context "presenter reorderable without model positioning" do
+    let(:metadata_path) { "" }
+
+    it "reports error when reorderable is true but model has no positioning" do
+      v = with_metadata(
+        models: [<<~YAML],
+          model:
+            name: stage
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [<<~YAML]
+          presenter:
+            name: stages
+            model: stage
+            slug: stages
+            index:
+              reorderable: true
+              table_columns:
+                - { field: title }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(match(/reorderable is true but model 'stage' has no positioning/))
+    end
+  end
+
+  context "positioning field in form section" do
+    let(:metadata_path) { "" }
+
+    it "adds warning when positioning field appears in form" do
+      v = with_metadata(
+        models: [<<~YAML],
+          model:
+            name: stage
+            fields:
+              - { name: title, type: string }
+              - { name: position, type: integer }
+            positioning: true
+        YAML
+        presenters: [<<~YAML]
+          presenter:
+            name: stages
+            model: stage
+            slug: stages
+            index:
+              reorderable: true
+              table_columns:
+                - { field: title }
+            form:
+              sections:
+                - title: Details
+                  fields:
+                    - { field: title }
+                    - { field: position }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(match(/positioning field 'position' appears in a form section/))
+    end
+  end
 end
 
 RSpec.describe LcpRuby::Metadata::ConfigurationValidator::ValidationResult do

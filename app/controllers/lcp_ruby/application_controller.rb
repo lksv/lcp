@@ -16,11 +16,11 @@ module LcpRuby
 
     helper_method :current_presenter, :current_model_definition, :current_evaluator,
                   :resource_path, :resources_path, :new_resource_path, :edit_resource_path,
-                  :single_action_path, :select_options_path,
+                  :reorder_resource_path, :single_action_path, :select_options_path,
                   :toggle_direction, :current_sort_field, :current_sort_direction,
                   :current_view_group, :sibling_views,
                   :impersonating?, :impersonated_role, :available_roles_for_impersonation,
-                  :breadcrumbs
+                  :breadcrumbs, :compute_list_version_from_records
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
     rescue_from LcpRuby::MetadataError, with: :metadata_error
@@ -200,6 +200,10 @@ module LcpRuby
       lcp_ruby.single_action_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record, action_name: action_name)
     end
 
+    def reorder_resource_path(record)
+      lcp_ruby.reorder_resource_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record)
+    end
+
     def select_options_path
       lcp_ruby.select_options_path(lcp_slug: current_presenter.slug)
     end
@@ -266,7 +270,24 @@ module LcpRuby
     end
 
     def default_sort_config
-      current_presenter&.index_config&.dig("default_sort")
+      config = current_presenter&.index_config&.dig("default_sort")
+      return config if config
+
+      # Auto-default sort by position field when presenter is reorderable
+      if current_presenter&.reorderable? && current_model_definition&.positioned?
+        { "field" => current_model_definition.positioning_field, "direction" => "asc" }
+      end
+    end
+
+    def compute_list_version_from_records(_records)
+      return nil unless current_model_definition&.positioned?
+
+      pos_field = current_model_definition.positioning_field
+      # Use the model class directly instead of the records scope to avoid
+      # inheriting search JOINs/WHERE clauses that can cause ambiguous column
+      # errors (e.g., when both parent and child tables have a "title" column).
+      ids_in_order = @model_class.order(pos_field => :asc).pluck(:id)
+      Digest::SHA256.hexdigest(ids_in_order.join(","))
     end
 
     # -- Shared search, sort, and defaults --
@@ -312,7 +333,7 @@ module LcpRuby
     end
 
     def apply_sort(scope)
-      sort_config = current_presenter.index_config["default_sort"]
+      sort_config = default_sort_config
       return scope unless sort_config || params[:sort]
 
       field = params[:sort] || sort_config&.dig("field")

@@ -846,6 +846,54 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
     end
   end
 
+  describe "positioning" do
+    it "produces positioning config with defaults" do
+      builder = described_class.new(:stage)
+      builder.instance_eval do
+        field :title, :string
+        field :position, :integer
+        positioning
+      end
+      hash = builder.to_hash
+
+      expect(hash["positioning"]).to eq({ "field" => "position" })
+    end
+
+    it "produces positioning config with custom field" do
+      builder = described_class.new(:stage)
+      builder.instance_eval do
+        field :title, :string
+        field :sort_order, :integer
+        positioning field: :sort_order
+      end
+      hash = builder.to_hash
+
+      expect(hash["positioning"]).to eq({ "field" => "sort_order" })
+    end
+
+    it "produces positioning config with scope" do
+      builder = described_class.new(:stage)
+      builder.instance_eval do
+        field :title, :string
+        field :position, :integer
+        positioning field: :position, scope: :pipeline_id
+      end
+      hash = builder.to_hash
+
+      expect(hash["positioning"]).to eq({ "field" => "position", "scope" => ["pipeline_id"] })
+    end
+
+    it "omits positioning when not set" do
+      builder = described_class.new(:simple)
+      builder.instance_eval do
+        field :title, :string
+      end
+      hash = builder.to_hash
+
+      expect(hash).not_to have_key("positioning")
+    end
+  end
+
   describe "full model parity with YAML" do
     let(:fixtures_path) { File.expand_path("../../../fixtures/metadata", __dir__) }
     let(:yaml_hash) { YAML.safe_load_file(File.join(fixtures_path, "models/project.yml"))["model"] }

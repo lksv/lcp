@@ -43,7 +43,6 @@ model:
     - name: position
       type: integer
       label: "Position"
-      default: 0
 
     - name: attachment
       type: attachment
@@ -58,6 +57,10 @@ model:
       foreign_key: todo_list_id
       required: true
       inverse_of: todo_items
+
+  positioning:
+    field: position
+    scope: todo_list_id
 
   options:
     timestamps: true

@@ -1,0 +1,23 @@
+model:
+  name: stage
+  fields:
+    - name: name
+      type: string
+      validations:
+        - type: presence
+    - name: position
+      type: integer
+    - name: pipeline_id
+      type: integer
+  associations:
+    - type: belongs_to
+      name: pipeline
+      target_model: pipeline
+      foreign_key: pipeline_id
+      required: false
+  positioning:
+    field: position
+    scope: pipeline_id
+  options:
+    timestamps: false
+    label_method: name

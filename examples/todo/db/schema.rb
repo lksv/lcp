@@ -44,7 +44,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_103416) do
     t.boolean "completed"
     t.date "start_date"
     t.date "due_date"
-    t.integer "position", default: 0
+    t.integer "position", null: false
     t.bigint "todo_list_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
