@@ -1,7 +1,9 @@
 # Design: Soft Delete (Discard)
 
-**Status:** Proposed
+**Status:** Proposed — pending revision
 **Date:** 2026-02-22
+
+> **Note:** This document should be revised after [Model Options Infrastructure](model_options_infrastructure.md) is implemented. That document defines shared infrastructure (Builder pipeline ordering, `update_columns` bypass contract for auditing integration, `boolean_or_hash_option` helper) that this design should reference instead of defining inline. Key sections affected: Builder pipeline order (§4), ModelDefinition accessors (§1), ConfigurationValidator (§11), and `discard!`/`undiscard!` methods which must include explicit `AuditWriter.log` calls when the model has auditing enabled. See also [Multiselect and Batch Actions](multiselect_and_batch_actions.md) for bulk discard/restore support.
 
 ## Problem
 

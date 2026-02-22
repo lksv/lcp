@@ -1,7 +1,9 @@
 # Design: Auditing (Change History)
 
-**Status:** Proposed
+**Status:** Proposed — pending revision
 **Date:** 2026-02-22
+
+> **Note:** This document should be revised after [Model Options Infrastructure](model_options_infrastructure.md) is implemented. That document defines shared infrastructure (Builder pipeline ordering, `update_columns` bypass contract, `boolean_or_hash_option` helper, `create_log_table` helper, `UserSnapshot`) that this design should reference instead of defining inline. Key sections affected: Builder pipeline order (§7), ModelDefinition accessors (§2), ConfigurationValidator (§12), SchemaManager table creation (§3), and user snapshot logic (§5). See also [Multiselect and Batch Actions](multiselect_and_batch_actions.md) for bulk operation audit implications.
 
 ## Problem
 
