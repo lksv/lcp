@@ -14,7 +14,8 @@ define_presenter :features_table, inherits: :features_card do
         model_features: "green", presenter: "orange", form: "cyan",
         permissions: "red", permission_source: "orange", role_source: "teal",
         extensibility: "pink", navigation: "gray", attachments: "yellow",
-        authentication: "indigo", custom_fields: "cyan", virtual_fields: "emerald"
+        authentication: "indigo", custom_fields: "cyan", virtual_fields: "emerald",
+        positioning: "lime"
       }
     }, sortable: true
     column :description, renderer: :truncate, options: { max: 80 }

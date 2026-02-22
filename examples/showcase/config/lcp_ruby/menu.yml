@@ -13,6 +13,8 @@ menu:
         - view_group: roles
         - view_group: showcase_extensibility
         - view_group: showcase_virtual_fields
+        - separator: true
+        - view_group: showcase_positioning
 
     - label: "Blog"
       icon: file-text
@@ -29,5 +31,11 @@ menu:
         - view_group: departments
         - view_group: employees
         - view_group: projects
+
+    - label: "Pipelines"
+      icon: git-branch
+      children:
+        - view_group: pipelines
+        - view_group: pipeline_stages
 
     - view_group: features

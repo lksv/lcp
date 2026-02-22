@@ -819,7 +819,55 @@ VirtualModel = LcpRuby.registry.model_for("showcase_virtual_field")
 ].each { |attrs| VirtualModel.create!(attrs) }
 puts "  Created #{VirtualModel.count} showcase_virtual_field records"
 
-# Phase 11: Feature Catalog
+# Phase 11: Positioning
+PriorityModel = LcpRuby.registry.model_for("showcase_positioning")
+
+[
+  { name: "Design database schema", description: "Create ERD and define table structures", status: "done", priority: "high" },
+  { name: "Implement authentication", description: "Add JWT-based auth flow", status: "done", priority: "critical" },
+  { name: "Build REST API endpoints", description: "Create CRUD endpoints for all resources", status: "in_progress", priority: "high" },
+  { name: "Write integration tests", description: "End-to-end API testing", status: "in_progress", priority: "medium" },
+  { name: "Set up CI/CD pipeline", description: "GitHub Actions for automated deploy", status: "todo", priority: "medium" },
+  { name: "Add monitoring & alerts", description: "Datadog integration for error tracking", status: "todo", priority: "low" },
+  { name: "Performance optimization", description: "Query optimization and caching", status: "todo", priority: "medium" },
+  { name: "Write user documentation", description: "API docs and user guide", status: "todo", priority: "low" }
+].each { |attrs| PriorityModel.create!(attrs) }
+puts "  Created #{PriorityModel.count} showcase_positioning records"
+
+PipelineModel = LcpRuby.registry.model_for("pipeline")
+StageModel = LcpRuby.registry.model_for("pipeline_stage")
+
+sales = PipelineModel.create!(name: "Sales Pipeline", description: "Standard B2B sales process")
+hiring = PipelineModel.create!(name: "Hiring Pipeline", description: "Recruitment workflow")
+support = PipelineModel.create!(name: "Support Pipeline", description: "Customer support ticket flow")
+
+[
+  { name: "Lead", color: "#3498db" },
+  { name: "Qualified", color: "#2ecc71" },
+  { name: "Proposal", color: "#f39c12" },
+  { name: "Negotiation", color: "#e67e22" },
+  { name: "Closed Won", color: "#27ae60" },
+  { name: "Closed Lost", color: "#e74c3c" }
+].each { |attrs| StageModel.create!(attrs.merge(pipeline: sales)) }
+
+[
+  { name: "Application", color: "#9b59b6" },
+  { name: "Phone Screen", color: "#3498db" },
+  { name: "Technical Interview", color: "#2ecc71" },
+  { name: "Final Interview", color: "#f39c12" },
+  { name: "Offer", color: "#27ae60" }
+].each { |attrs| StageModel.create!(attrs.merge(pipeline: hiring)) }
+
+[
+  { name: "New", color: "#e74c3c" },
+  { name: "In Progress", color: "#f39c12" },
+  { name: "Waiting on Customer", color: "#95a5a6" },
+  { name: "Resolved", color: "#27ae60" }
+].each { |attrs| StageModel.create!(attrs.merge(pipeline: support)) }
+
+puts "  Created #{PipelineModel.count} pipelines with #{StageModel.count} stages"
+
+# Phase 12: Feature Catalog
 FeatureModel = LcpRuby.registry.model_for("feature")
 
 features = [
@@ -1940,6 +1988,71 @@ features = [
     demo_path: "/showcase/showcase-virtual-fields",
     demo_hint: "Look at the **Priority Label** column in the index — it shows \"High\", \"Low\", etc. based on the integer priority value.",
     status: "beta"
+  },
+
+  # === Positioning ===
+  {
+    name: "Basic Positioning",
+    category: "positioning",
+    description: "Declare `positioning` on a model to enable automatic sequential position assignment. New records are appended at the end. Deleting a record closes the gap (remaining records shift down).\n\nRequires a `position` field of type `integer`.",
+    config_example: "```ruby\ndefine_model :priority do\n  field :name, :string\n  field :position, :integer\n\n  positioning  # uses default 'position' field\nend\n```\n\n```yaml\n# Equivalent YAML\npositioning: true\n```",
+    demo_path: "/showcase/showcase-positioning",
+    demo_hint: "Create a new item — it appears at the bottom with the next position number. Delete a middle item and watch the remaining positions close the gap.",
+    status: "stable"
+  },
+  {
+    name: "Scoped Positioning",
+    category: "positioning",
+    description: "Position records within a parent group using `scope`. Each scope maintains independent position sequences.\n\nExample: pipeline stages are ordered independently per pipeline. Moving a stage to a different pipeline appends it at the end of the new pipeline.",
+    config_example: "```ruby\ndefine_model :pipeline_stage do\n  field :name, :string\n  field :position, :integer\n  belongs_to :pipeline, model: :pipeline\n\n  positioning scope: :pipeline_id\nend\n```\n\n```yaml\n# Equivalent YAML\npositioning:\n  scope: pipeline_id\n```",
+    demo_path: "/showcase/pipeline-stages",
+    demo_hint: "Look at the position column — Sales stages are 1–6, Hiring stages are 1–5, Support stages are 1–4. Each pipeline has independent ordering.",
+    status: "stable"
+  },
+  {
+    name: "Reorderable Index",
+    category: "positioning",
+    description: "Add `reorderable: true` to a presenter's index block to enable drag-and-drop reordering. Drag handles appear as the first column.\n\nThe index automatically sorts by position. The position column is optional — drag-and-drop works regardless of whether the position number is visible.",
+    config_example: "```ruby\ndefine_presenter :priorities do\n  model :priority\n\n  index do\n    reorderable true  # enables drag-and-drop\n    column :name, link_to: :show\n    column :position  # optional — shows position number\n  end\nend\n```\n\n```yaml\n# Equivalent YAML\nindex:\n  reorderable: true\n```",
+    demo_path: "/showcase/showcase-positioning",
+    demo_hint: "Drag a row by the handle on the left side to reorder it. The position numbers update automatically after the drop.",
+    status: "stable"
+  },
+  {
+    name: "Position Auto-Management",
+    category: "positioning",
+    description: "The `positioning` gem handles all position bookkeeping automatically:\n\n- **Create:** New records are appended at the end (position = max + 1)\n- **Destroy:** Gap is closed (records after the deleted one shift down)\n- **Scope change:** Record is removed from old scope (gap closed) and appended at end of new scope\n- **Reorder:** Setting position to a new value shifts other records atomically\n\nNo manual position management is needed.",
+    config_example: "```ruby\n# All automatic — just add positioning to the model\ndefine_model :task do\n  field :position, :integer\n  positioning\nend\n\n# Create records — positions auto-assigned\nTask.create!(name: \"First\")   # position: 1\nTask.create!(name: \"Second\")  # position: 2\nTask.create!(name: \"Third\")   # position: 3\n\n# Delete second — gap closes\nTask.find_by(name: \"Second\").destroy!\n# First: 1, Third: 2  (shifted down)\n```",
+    demo_path: "/showcase/showcase-positioning",
+    demo_hint: "Create 3 items, note positions 1–3. Delete the middle item — the last item shifts from position 3 to position 2.",
+    status: "stable"
+  },
+  {
+    name: "Permission-Controlled Reordering",
+    category: "positioning",
+    description: "Drag-and-drop reordering respects two permission levels:\n\n1. **CRUD level:** User must have `update` permission on the model\n2. **Field level:** The `position` field must be in the user's `writable` fields list\n\nThis allows roles that can edit records but cannot reorder them. Drag handles are only rendered when both checks pass.",
+    config_example: "```yaml\nroles:\n  manager:\n    crud: [index, show, create, update, destroy]\n    fields:\n      writable: [name, description, position]  # can reorder\n\n  editor:\n    crud: [index, show, update]\n    fields:\n      writable: [name, description]  # can edit but NOT reorder\n\n  viewer:\n    crud: [index, show]\n    # no update permission — no drag handles\n```",
+    demo_path: "/showcase/showcase-positioning",
+    demo_hint: "Log in as admin — drag handles are visible. Switch to a viewer role — drag handles disappear.",
+    status: "stable"
+  },
+  {
+    name: "Concurrent Edit Detection",
+    category: "positioning",
+    description: "When two users view the same list, the system detects conflicts via a `list_version` hash (SHA-256 of record IDs in position order).\n\n- Each reorder request includes the stored `list_version`\n- Server recomputes and compares — if mismatch, returns `409 Conflict`\n- Frontend reloads the page with a flash message\n- On success, the response includes the updated `list_version` for the next reorder",
+    config_example: "```ruby\n# Server response on success (200):\n{ position: 3, list_version: \"a1b2c3...\" }\n\n# Server response on conflict (409):\n{ error: \"list_version_mismatch\", list_version: \"d4e5f6...\" }\n```",
+    demo_path: "/showcase/showcase-positioning",
+    demo_hint: "Open the same list in two browser tabs. Reorder in tab 1, then try to reorder in tab 2 — it will reload with a conflict message.",
+    status: "stable"
+  },
+  {
+    name: "Positioning DSL",
+    category: "positioning",
+    description: "The Ruby DSL supports `positioning` with optional `field` and `scope` parameters. The presenter DSL supports `reorderable` in the index block.\n\nBoth DSL and YAML are equivalent — use whichever fits your workflow.",
+    config_example: "```ruby\n# Model DSL\ndefine_model :stage do\n  field :position, :integer\n  positioning                                    # basic\n  positioning field: :sort_order                  # custom field\n  positioning scope: :pipeline_id                 # scoped\n  positioning scope: [:pipeline_id, :category]    # multi-scope\nend\n\n# Presenter DSL\ndefine_presenter :stages do\n  index do\n    reorderable true\n  end\nend\n```",
+    demo_path: "/showcase/showcase-positioning",
+    demo_hint: "Both the priority list and pipeline stages use the DSL form. Check the model source files for examples.",
+    status: "stable"
   }
 ]
 

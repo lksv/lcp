@@ -7,6 +7,7 @@ PATH
       json_schemer (~> 2.0)
       kaminari (~> 1.2)
       ostruct (>= 0.6)
+      positioning (~> 0.4)
       pundit (~> 2.3)
       rails (>= 7.1, < 9.0)
       ransack (~> 4.0)
@@ -186,6 +187,9 @@ GEM
       racc (~> 1.4)
     orm_adapter (0.5.0)
     ostruct (0.6.3)
+    positioning (0.4.7)
+      activerecord (>= 6.1)
+      activesupport (>= 6.1)
     pp (0.6.3)
       prettyprint
     prettyprint (0.2.0)

@@ -1,0 +1,7 @@
+view_group:
+  model: pipeline_stage
+  primary: pipeline_stages
+  views:
+    - presenter: pipeline_stages
+      label: "Pipeline Stages"
+      icon: git-branch

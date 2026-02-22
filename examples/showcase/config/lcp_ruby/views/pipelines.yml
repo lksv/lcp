@@ -1,0 +1,7 @@
+view_group:
+  model: pipeline
+  primary: pipelines
+  views:
+    - presenter: pipelines
+      label: "Pipelines"
+      icon: layers

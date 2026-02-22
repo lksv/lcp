@@ -18,7 +18,8 @@ define_presenter :features_card do
         model_features: "green", presenter: "orange", form: "cyan",
         permissions: "red", permission_source: "orange", role_source: "teal", extensibility: "pink",
         navigation: "gray", attachments: "yellow", authentication: "indigo",
-        custom_fields: "cyan", virtual_fields: "emerald"
+        custom_fields: "cyan", virtual_fields: "emerald",
+        positioning: "lime"
       }
     }, sortable: true
     column :status, renderer: :badge, options: {
@@ -38,7 +39,8 @@ define_presenter :features_card do
           model_features: "green", presenter: "orange", form: "cyan",
           permissions: "red", permission_source: "orange", role_source: "teal", extensibility: "pink",
           navigation: "gray", attachments: "yellow", authentication: "indigo",
-          custom_fields: "cyan", virtual_fields: "emerald"
+          custom_fields: "cyan", virtual_fields: "emerald",
+          positioning: "lime"
         }
       }
       field :status, renderer: :badge, options: {
@@ -97,6 +99,7 @@ define_presenter :features_card do
     filter :authentication, label: "Authentication", scope: :by_category_authentication
     filter :custom_fields, label: "Custom Fields", scope: :by_category_custom_fields
     filter :virtual_fields, label: "Virtual Fields", scope: :by_category_virtual_fields
+    filter :positioning, label: "Positioning", scope: :by_category_positioning
   end
 
   action :create, type: :built_in, on: :collection, label: "New Feature", icon: "plus"
