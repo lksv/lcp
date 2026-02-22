@@ -1,5 +1,7 @@
 # Unified Condition Operators — Design Document
 
+> **Status: Implemented.** `ConditionError` added, `ConditionEvaluator` made strict (raises on unknown operator/missing field/nil), `matches_condition?` removed, `can_for_record?` alias bug fixed, operator-type validation added to `ConfigurationValidator`, custom fields skip added for condition validation.
+
 ## Overview
 
 The platform has two independent implementations for evaluating field-value
