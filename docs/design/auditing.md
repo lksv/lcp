@@ -30,7 +30,7 @@ In classical Rails, this is solved by gems like `paper_trail` or `audited`. The 
 ## Non-Goals
 
 - Record rollback / undo functionality (view-only history)
-- Automatic purge of old audit records (scheduled jobs are out of scope)
+- Automatic purge of old audit records — see [Data Retention Policy](data_retention.md)
 - Diffing binary attachment content (only metadata is tracked: filename, content_type, byte_size)
 - Real-time audit streaming to external systems (host API override covers this)
 - Workflow transition audit (the workflow design document defines its own `workflow_audit_logs` table — this feature covers general data change auditing, not state machine transitions)

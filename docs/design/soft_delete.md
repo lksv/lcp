@@ -30,7 +30,7 @@ In classical Rails, this is solved by gems like `discard`, `paranoia`, or `acts_
 
 ## Non-Goals
 
-- Automatic purge of old discarded records (scheduled jobs are out of scope)
+- Automatic purge of old discarded records — see [Data Retention Policy](data_retention.md)
 - Overriding ActiveRecord's `destroy!` / `destroy` on the model class (too surprising, breaks AR conventions)
 - `default_scope` filtering (causes well-documented problems with `unscoped`, associations, and debugging)
 
