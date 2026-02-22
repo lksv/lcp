@@ -1,6 +1,10 @@
 module LcpRuby
   module Presenter
     class ActionSet
+      # Action names (including aliases) whose record rules should hide the button.
+      # "edit" maps to "update" via alias; "show" is intentionally excluded.
+      RECORD_RULE_ACTION_NAMES = %w[edit update destroy].freeze
+
       attr_reader :presenter_definition, :permission_evaluator
 
       def initialize(presenter_definition, permission_evaluator)
@@ -18,6 +22,7 @@ module LcpRuby
         return actions unless record
 
         actions
+          .select { |a| action_permitted_for_record?(a, record) }
           .select { |a| action_visible_for_record?(a, record) }
           .map { |a| a.merge("_disabled" => action_disabled_for_record?(a, record)) }
       end
@@ -60,6 +65,13 @@ module LcpRuby
         end
 
         action.merge("confirm" => resolved)
+      end
+
+      def action_permitted_for_record?(action, record)
+        return true unless action["type"] == "built_in"
+        return true unless RECORD_RULE_ACTION_NAMES.include?(action["name"].to_s)
+
+        permission_evaluator.can_for_record?(action["name"], record)
       end
 
       def action_visible_for_record?(action, record)

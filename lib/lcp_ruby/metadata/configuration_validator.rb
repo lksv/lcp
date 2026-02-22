@@ -33,6 +33,10 @@ module LcpRuby
       VALID_CONDITION_OPERATORS = %w[eq not_eq neq in not_in gt gte lt lte present blank matches not_matches].freeze
       BUILT_IN_ACTION_NAMES = %w[show edit destroy create update].freeze
       VALID_SORT_DIRECTIONS = %w[asc desc].freeze
+      NUMERIC_OPERATORS = %w[gt gte lt lte].freeze
+      REGEX_OPERATORS   = %w[matches not_matches].freeze
+      NUMERIC_TYPES     = %w[integer float decimal date datetime].freeze
+      TEXT_TYPES         = %w[string text].freeze
 
       attr_reader :loader
 
@@ -99,6 +103,13 @@ module LcpRuby
         return [] unless definition
 
         definition.fields.map(&:name)
+      end
+
+      def model_field_definition(model_name, field_name)
+        definition = loader.model_definitions[model_name]
+        return nil unless definition
+
+        definition.field(field_name.to_s)
       end
 
       def model_scope_names(model_name)
@@ -623,9 +634,13 @@ module LcpRuby
         field_name = condition["field"]
         operator = condition["operator"]
 
+        model_def = loader.model_definitions[presenter.model]
+        has_custom_fields = model_def&.custom_fields_enabled?
+
         if field_name
           valid_fields = model_field_names(presenter.model)
-          unless valid_fields.include?(field_name.to_s)
+          # Skip unknown field error for models with custom fields (field may be a custom field name)
+          unless valid_fields.include?(field_name.to_s) || has_custom_fields
             @errors << "Presenter '#{presenter.name}', #{context}: " \
                        "references unknown field '#{field_name}'"
           end
@@ -643,6 +658,37 @@ module LcpRuby
             @errors << "Presenter '#{presenter.name}', #{context}: " \
                        "invalid regex pattern '#{condition['value']}': #{e.message}"
           end
+        end
+
+        # Operator-type compatibility validation
+        validate_operator_type_compatibility(
+          "Presenter '#{presenter.name}'", context, operator, presenter.model, field_name
+        )
+      end
+
+      def validate_operator_type_compatibility(source, context, operator, model_name, field_name)
+        return unless operator && field_name
+
+        field_def = model_field_definition(model_name, field_name)
+        return unless field_def # Unknown field — already reported or skipped
+
+        if field_def.type_definition
+          resolved_type = field_def.type_definition.base_type
+          return unless resolved_type.present? # Custom type without base_type — can't validate
+        else
+          resolved_type = field_def.type
+        end
+
+        if NUMERIC_OPERATORS.include?(operator.to_s) && !NUMERIC_TYPES.include?(resolved_type)
+          @errors << "#{source}, #{context}: " \
+                     "operator '#{operator}' is not compatible with field '#{field_name}' " \
+                     "(type '#{resolved_type}'). Numeric operators require: #{NUMERIC_TYPES.join(', ')}"
+        end
+
+        if REGEX_OPERATORS.include?(operator.to_s) && !TEXT_TYPES.include?(resolved_type)
+          @errors << "#{source}, #{context}: " \
+                     "operator '#{operator}' is not compatible with field '#{field_name}' " \
+                     "(type '#{resolved_type}'). Regex operators require: #{TEXT_TYPES.join(', ')}"
         end
       end
 
@@ -742,6 +788,8 @@ module LcpRuby
 
       def validate_permission_record_rules(perm)
         valid_fields = model_field_names(perm.model)
+        model_def = loader.model_definitions[perm.model]
+        has_custom_fields = model_def&.custom_fields_enabled?
 
         perm.record_rules.each do |rule|
           rule = rule.transform_keys(&:to_s) if rule.is_a?(Hash)
@@ -754,7 +802,7 @@ module LcpRuby
           field_name = condition["field"]
           operator = condition["operator"]
 
-          if field_name && valid_fields.any? && !valid_fields.include?(field_name.to_s)
+          if field_name && valid_fields.any? && !valid_fields.include?(field_name.to_s) && !has_custom_fields
             @errors << "Permission '#{perm.model}', record rule '#{rule['name']}': " \
                        "condition references unknown field '#{field_name}'"
           end
@@ -763,6 +811,12 @@ module LcpRuby
             @errors << "Permission '#{perm.model}', record rule '#{rule['name']}': " \
                        "condition uses unknown operator '#{operator}'"
           end
+
+          # Operator-type compatibility validation
+          validate_operator_type_compatibility(
+            "Permission '#{perm.model}'", "record rule '#{rule['name']}', condition",
+            operator, perm.model, field_name
+          )
 
           # Validate deny_crud values
           effect = rule["effect"]

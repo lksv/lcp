@@ -141,6 +141,7 @@ module LcpRuby
   class MetadataError < Error; end
   class SchemaError < Error; end
   class ServiceError < Error; end
+  class ConditionError < Error; end
 
   class << self
     def configuration

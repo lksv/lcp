@@ -2,14 +2,16 @@ module LcpRuby
   class ConditionEvaluator
     class << self
       def evaluate(record, condition)
-        return true unless condition
+        raise ArgumentError, "condition must be a Hash, got #{condition.class}" unless condition.is_a?(Hash)
 
-        condition = condition.transform_keys(&:to_s) if condition.is_a?(Hash)
+        condition = condition.transform_keys(&:to_s)
         field = condition["field"]
         operator = condition["operator"]&.to_s
         value = condition["value"]
 
-        return true unless field && record.respond_to?(field)
+        raise ConditionError, "condition is missing required 'field' key" unless field
+        raise ConditionError, "condition is missing required 'operator' key" if operator.blank?
+        raise ConditionError, "record does not respond to field '#{field}'" unless record.respond_to?(field)
 
         actual = record.send(field)
 
@@ -39,7 +41,7 @@ module LcpRuby
         when "not_matches"
           value.is_a?(String) && !actual.to_s.match?(safe_regexp(value))
         else
-          actual.to_s == value.to_s
+          raise ConditionError, "unknown condition operator '#{operator}'"
         end
       end
 
@@ -70,24 +72,21 @@ module LcpRuby
 
       # Evaluates a service condition by looking up the service and calling it
       def evaluate_service(record, condition)
-        return true unless condition
+        raise ArgumentError, "condition must be a Hash, got #{condition.class}" unless condition.is_a?(Hash)
 
-        normalized = condition.transform_keys(&:to_s) if condition.is_a?(Hash)
+        normalized = condition.transform_keys(&:to_s)
         service_key = normalized["service"]
-        return true unless service_key
+        raise ConditionError, "condition is missing required 'service' key" unless service_key
 
         service = ConditionServiceRegistry.lookup(service_key)
-        unless service
-          Rails.logger.warn("[LcpRuby] Condition service '#{service_key}' not registered, defaulting to true")
-          return true
-        end
+        raise ConditionError, "condition service '#{service_key}' is not registered" unless service
 
         !!service.call(record)
       end
 
       # Unified entry point: routes to evaluate or evaluate_service based on type
       def evaluate_any(record, condition)
-        return true unless condition
+        raise ArgumentError, "condition must be a Hash, got #{condition.class}" unless condition.is_a?(Hash)
 
         case condition_type(condition)
         when :field_value
@@ -95,7 +94,7 @@ module LcpRuby
         when :service
           evaluate_service(record, condition)
         else
-          true
+          raise ConditionError, "condition must contain a 'field' or 'service' key"
         end
       end
     end

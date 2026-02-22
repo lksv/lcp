@@ -8,6 +8,7 @@ RSpec.describe LcpRuby::Presenter::ActionSet do
     evaluator = double("PermissionEvaluator")
     allow(evaluator).to receive(:can?).and_return(true)
     allow(evaluator).to receive(:can_execute_action?).and_return(true)
+    allow(evaluator).to receive(:can_for_record?).and_return(true)
     allow(evaluator).to receive(:roles).and_return([ "admin" ])
     evaluator
   end
@@ -174,6 +175,99 @@ RSpec.describe LcpRuby::Presenter::ActionSet do
       zero_record = OpenStruct.new(value: 0)
       actions = action_set.single_actions(zero_record)
       expect(actions.first["_disabled"]).to be true
+    end
+  end
+
+  describe "#single_actions with record_rules (action_permitted_for_record?)" do
+    it "hides built-in edit action when can_for_record? returns false" do
+      allow(permission_evaluator).to receive(:can_for_record?).with("edit", record).and_return(false)
+
+      presenter = build_presenter({
+        "single" => [
+          { "name" => "edit", "type" => "built_in" }
+        ]
+      })
+      action_set = described_class.new(presenter, permission_evaluator)
+
+      actions = action_set.single_actions(record)
+      expect(actions).to be_empty
+    end
+
+    it "hides built-in destroy action when can_for_record? returns false" do
+      allow(permission_evaluator).to receive(:can_for_record?).with("destroy", record).and_return(false)
+
+      presenter = build_presenter({
+        "single" => [
+          { "name" => "destroy", "type" => "built_in" }
+        ]
+      })
+      action_set = described_class.new(presenter, permission_evaluator)
+
+      actions = action_set.single_actions(record)
+      expect(actions).to be_empty
+    end
+
+    it "does not hide built-in show action even when record rule denies it" do
+      # show resolves to "show", which is not in RECORD_RULE_ACTIONS
+      presenter = build_presenter({
+        "single" => [
+          { "name" => "show", "type" => "built_in" }
+        ]
+      })
+      action_set = described_class.new(presenter, permission_evaluator)
+
+      # can_for_record? should not be called for show
+      actions = action_set.single_actions(record)
+      expect(actions.length).to eq(1)
+      expect(actions.first["name"]).to eq("show")
+    end
+
+    it "does not affect custom actions" do
+      presenter = build_presenter({
+        "single" => [
+          { "name" => "archive", "type" => "custom" }
+        ]
+      })
+      action_set = described_class.new(presenter, permission_evaluator)
+
+      # can_for_record? should not be called for custom actions
+      actions = action_set.single_actions(record)
+      expect(actions.length).to eq(1)
+      expect(actions.first["name"]).to eq("archive")
+    end
+
+    it "applies both record_rules and visible_when (AND semantics)" do
+      allow(permission_evaluator).to receive(:can_for_record?).with("edit", record).and_return(true)
+
+      presenter = build_presenter({
+        "single" => [
+          { "name" => "edit", "type" => "built_in",
+            "visible_when" => { "field" => "status", "operator" => "eq", "value" => "inactive" } }
+        ]
+      })
+      action_set = described_class.new(presenter, permission_evaluator)
+
+      # Record rules pass but visible_when fails
+      actions = action_set.single_actions(record)
+      expect(actions).to be_empty
+    end
+
+    it "filters only denied actions in a mixed list" do
+      allow(permission_evaluator).to receive(:can_for_record?).with("edit", record).and_return(false)
+      allow(permission_evaluator).to receive(:can_for_record?).with("destroy", record).and_return(true)
+
+      presenter = build_presenter({
+        "single" => [
+          { "name" => "edit", "type" => "built_in" },
+          { "name" => "destroy", "type" => "built_in" },
+          { "name" => "show", "type" => "built_in" }
+        ]
+      })
+      action_set = described_class.new(presenter, permission_evaluator)
+
+      actions = action_set.single_actions(record)
+      action_names = actions.map { |a| a["name"] }
+      expect(action_names).to eq(%w[destroy show])
     end
   end
 

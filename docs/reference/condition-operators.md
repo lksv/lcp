@@ -103,9 +103,29 @@ These operators ignore the `value` field.
 { field: notes, operator: blank }
 ```
 
-## Default Behavior
+## Strict Evaluation
 
-When `operator` is omitted or unrecognized, the evaluator falls back to `eq` (string equality via `to_s`).
+The evaluator enforces strict validation at runtime:
+
+- **Unknown operator** — raises `LcpRuby::ConditionError`. There is no fallback to `eq`.
+- **Missing field** — raises `LcpRuby::ConditionError` if the record does not respond to the specified field.
+- **Missing `field` key** — raises `LcpRuby::ConditionError` (for field-value conditions).
+- **Nil condition** — raises `ArgumentError`. Callers must guard against nil before invoking the evaluator.
+
+All operators and field names are validated at boot time by `ConfigurationValidator`. Runtime errors indicate a bug (bypassed validation, DB-sourced definition with typo) and fail loudly rather than producing wrong results.
+
+## Operator-Type Compatibility
+
+The `ConfigurationValidator` checks operator-type compatibility at boot time:
+
+| Operator group | Compatible field types |
+|---------------|-----------------------|
+| `eq`, `not_eq`/`neq`, `in`, `not_in` | all types |
+| `gt`, `gte`, `lt`, `lte` | `integer`, `float`, `decimal`, `date`, `datetime` |
+| `present`, `blank` | all types |
+| `matches`, `not_matches` | `string`, `text` (including custom types with string/text base) |
+
+For custom types (e.g., `email` with base type `string`), the validator resolves the base type before checking compatibility.
 
 ## Where Conditions Are Used
 

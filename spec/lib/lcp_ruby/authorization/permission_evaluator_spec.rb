@@ -117,6 +117,76 @@ RSpec.describe LcpRuby::Authorization::PermissionEvaluator do
       expect(evaluator.can_for_record?(:update, active_record)).to be true
     end
 
+    context "action alias resolution" do
+      it "denies 'edit' on archived records for manager via alias resolution" do
+        evaluator = described_class.new(perm_def, manager_user, "project")
+        archived_record = double("Record", status: "archived")
+
+        # "edit" maps to "update", which is in deny_crud
+        expect(evaluator.can_for_record?("edit", archived_record)).to be false
+      end
+
+      it "allows 'edit' on archived records for admin via except_roles" do
+        evaluator = described_class.new(perm_def, admin_user, "project")
+        archived_record = double("Record", status: "archived")
+
+        expect(evaluator.can_for_record?("edit", archived_record)).to be true
+      end
+    end
+
+    context "uses ConditionEvaluator with all operators" do
+      it "supports gte operator in record_rules" do
+        perm_with_gte = LcpRuby::Metadata::PermissionDefinition.new(
+          model: "project",
+          roles: {
+            "admin" => { "crud" => %w[index show create update destroy], "fields" => { "readable" => "all", "writable" => "all" } },
+            "manager" => { "crud" => %w[index show create update], "fields" => { "readable" => "all", "writable" => "all" } }
+          },
+          default_role: "manager",
+          record_rules: [
+            {
+              "name" => "high_budget_readonly",
+              "condition" => { "field" => "budget", "operator" => "gte", "value" => 10_000 },
+              "effect" => { "deny_crud" => %w[update], "except_roles" => %w[admin] }
+            }
+          ]
+        )
+
+        evaluator = described_class.new(perm_with_gte, manager_user, "project")
+        high_budget_record = double("Record", budget: 15_000)
+        low_budget_record = double("Record", budget: 5_000)
+
+        expect(evaluator.can_for_record?(:update, high_budget_record)).to be false
+        expect(evaluator.can_for_record?(:update, low_budget_record)).to be true
+      end
+    end
+
+    context "malformed record rule condition" do
+      it "raises ConditionError when condition is nil" do
+        perm_with_nil_condition = LcpRuby::Metadata::PermissionDefinition.new(
+          model: "project",
+          roles: {
+            "manager" => { "crud" => %w[index show create update], "fields" => { "readable" => "all", "writable" => "all" } }
+          },
+          default_role: "manager",
+          record_rules: [
+            {
+              "name" => "broken_rule",
+              "condition" => nil,
+              "effect" => { "deny_crud" => %w[update] }
+            }
+          ]
+        )
+
+        evaluator = described_class.new(perm_with_nil_condition, manager_user, "project")
+        record = double("Record", status: "active")
+
+        expect {
+          evaluator.can_for_record?(:update, record)
+        }.to raise_error(LcpRuby::ConditionError, /record rule 'broken_rule' has invalid condition/)
+      end
+    end
+
     context "with multiple roles" do
       it "allows update on archived records when one role is in except_roles" do
         admin_manager = double("User", lcp_role: [ "manager", "admin" ], id: 10)

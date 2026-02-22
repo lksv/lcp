@@ -1473,6 +1473,221 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
   end
 
+  # --- Operator-type compatibility validations ---
+
+  context "operator-type compatibility" do
+    let(:metadata_path) { "" }
+
+    it "reports error for gt operator on string field" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                      visible_when: { field: title, operator: gt, value: "100" }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/operator 'gt' is not compatible with field 'title'.*type 'string'/)
+      )
+    end
+
+    it "reports error for matches operator on integer field" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+              - { name: priority, type: integer }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                      visible_when: { field: priority, operator: matches, value: '^\\d+$' }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/operator 'matches' is not compatible with field 'priority'.*type 'integer'/)
+      )
+    end
+
+    it "accepts gt on decimal field" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+              - { name: budget, type: decimal }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                      visible_when: { field: budget, operator: gt, value: 1000 }
+        YAML
+      )
+
+      result = v.validate
+      compat_errors = result.errors.select { |e| e.include?("not compatible") }
+      expect(compat_errors).to be_empty
+    end
+
+    it "accepts matches on custom type with string base" do
+      LcpRuby::Types::TypeRegistry.register("email",
+        LcpRuby::Types::TypeDefinition.new(name: "email", base_type: "string"))
+
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: contact
+            fields:
+              - { name: name, type: string }
+              - { name: email, type: email }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: contact
+            model: contact
+            slug: contacts
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: name
+                      visible_when: { field: email, operator: matches, value: "^[^@]+@" }
+        YAML
+      )
+
+      result = v.validate
+      compat_errors = result.errors.select { |e| e.include?("not compatible") }
+      expect(compat_errors).to be_empty
+    ensure
+      LcpRuby::Types::TypeRegistry.clear!
+    end
+
+    it "accepts eq on any field type" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+              - { name: priority, type: integer }
+              - { name: active, type: boolean }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                      visible_when: { field: priority, operator: eq, value: "1" }
+                    - field: priority
+                      visible_when: { field: active, operator: eq, value: "true" }
+        YAML
+      )
+
+      result = v.validate
+      compat_errors = result.errors.select { |e| e.include?("not compatible") }
+      expect(compat_errors).to be_empty
+    end
+
+    it "reports error for gt on string field in record_rules" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        permissions: [ <<~YAML ]
+          permissions:
+            model: project
+            roles:
+              admin:
+                crud: [index, show, create, update]
+                fields: { readable: all, writable: all }
+            default_role: admin
+            record_rules:
+              - name: test_rule
+                condition: { field: title, operator: gt, value: "abc" }
+                effect:
+                  deny_crud: [update]
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/operator 'gt' is not compatible with field 'title'.*type 'string'/)
+      )
+    end
+
+    it "skips unknown field in condition on custom_fields enabled model" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+            options:
+              custom_fields: true
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: project
+            model: project
+            slug: projects
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                      visible_when: { field: cf_custom_status, operator: eq, value: "active" }
+        YAML
+      )
+
+      result = v.validate
+      # Should not report unknown field error for cf_custom_status
+      field_errors = result.errors.select { |e| e.include?("references unknown field 'cf_custom_status'") }
+      expect(field_errors).to be_empty
+    end
+  end
+
   # --- Display template validations ---
 
   context "display template references unknown field" do

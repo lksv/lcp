@@ -27,15 +27,22 @@ module LcpRuby
       def can_for_record?(action, record)
         return false unless can?(action)
 
+        resolved = ACTION_ALIASES[action.to_s] || action.to_s
+
         # Check record-level rules
         permission_definition.record_rules.each do |rule|
           rule = rule.transform_keys(&:to_s) if rule.is_a?(Hash)
-          next unless matches_condition?(record, rule["condition"])
+          condition = rule["condition"]
+          unless condition.is_a?(Hash)
+            raise ConditionError,
+              "record rule '#{rule['name']}' has invalid condition: expected Hash, got #{condition.class}"
+          end
+          next unless ConditionEvaluator.evaluate(record, condition)
 
           denied = (rule.dig("effect", "deny_crud") || []).map(&:to_s)
           except_roles = (rule.dig("effect", "except_roles") || []).map(&:to_s)
 
-          if denied.include?(action.to_s) && (roles & except_roles).empty?
+          if denied.include?(resolved) && (roles & except_roles).empty?
             return false
           end
         end
@@ -203,27 +210,6 @@ module LcpRuby
           end
         end
         field_names
-      end
-
-      def matches_condition?(record, condition)
-        return true unless condition.is_a?(Hash)
-
-        condition = condition.transform_keys(&:to_s)
-        field = condition["field"]
-        operator = condition["operator"]&.to_s
-        value = condition["value"]
-
-        return false unless field && record.respond_to?(field)
-
-        actual = record.send(field)
-
-        case operator
-        when "eq" then actual.to_s == value.to_s
-        when "not_eq", "neq" then actual.to_s != value.to_s
-        when "in" then Array(value).map(&:to_s).include?(actual.to_s)
-        when "not_in" then !Array(value).map(&:to_s).include?(actual.to_s)
-        else actual.to_s == value.to_s
-        end
       end
     end
   end

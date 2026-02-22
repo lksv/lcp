@@ -1539,13 +1539,19 @@ actions:
 
 ### Action Visibility
 
-The `visible_when` attribute uses a [condition object](condition-operators.md) to conditionally show/hide the action based on record field values:
+Action buttons are filtered through three checks (in order):
+
+1. **Record rules** — built-in `edit`/`destroy` actions are automatically hidden when [record_rules](permissions.md#record-rules) deny the corresponding CRUD operation for that record. No `visible_when` configuration needed. The `show` action is not affected.
+2. **`visible_when`** — a [condition object](condition-operators.md) evaluated per-record via `ConditionEvaluator`. When omitted, the action is always visible.
+3. **`disable_when`** — same syntax, controls disabled state (see below).
+
+All three checks apply with AND semantics. Record rules and `visible_when` can be used independently or together.
 
 ```yaml
 visible_when: { field: stage, operator: not_in, value: [closed_won, closed_lost] }
 ```
 
-The condition is evaluated per-record via `ConditionEvaluator`. When omitted, the action is always visible (subject to permission checks).
+When `visible_when` is omitted and no record_rules apply, the action is always visible (subject to role-level permission checks).
 
 ### Action Disabling
 

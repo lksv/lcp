@@ -2,6 +2,7 @@ module LcpRuby
   module ConditionHelper
     # Evaluates a condition (field-value or service) against a record
     def condition_met?(record, condition)
+      return true unless condition
       ConditionEvaluator.evaluate_any(record, condition)
     end
 

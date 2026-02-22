@@ -84,15 +84,17 @@ Builds dynamic ActiveRecord models from metadata definitions.
 
 Permission enforcement via Pundit integration.
 
-- **PermissionEvaluator** — resolves user role via configurable `role_method`; provides `can?(action)` with action aliases (edit->update, new->create); `readable_fields`, `writable_fields` for field-level access; `can_execute_action?`, `can_access_presenter?`, `apply_scope` for row-level filtering; record-level rules evaluation via ConditionEvaluator; optional role validation via `Roles::Registry` when `role_source == :model`
+- **PermissionEvaluator** — resolves user role via configurable `role_method`; provides `can?(action)` with action aliases (edit->update, new->create); `readable_fields`, `writable_fields` for field-level access; `can_execute_action?`, `can_access_presenter?`, `apply_scope` for row-level filtering; `can_for_record?` evaluates record-level rules via `ConditionEvaluator.evaluate` with alias resolution; optional role validation via `Roles::Registry` when `role_source == :model`
 - **PolicyFactory** — generates Pundit policy classes dynamically with `index?`, `show?`, `create?`, `update?`, `destroy?`, `new?`, `edit?` + `permitted_attributes` + `Scope` inner class
 - **ScopeBuilder** — row-level filtering with scope types: `field_match`, `association`, `where`, `custom`
 
 ### ConditionEvaluator (`lib/lcp_ruby/condition_evaluator.rb`)
 
-Evaluates field conditions for record rules and action visibility.
+Unified condition evaluation for record rules, action visibility, and conditional rendering. All condition callers (PermissionEvaluator, ActionSet, views) delegate to this single implementation.
 
-Operators: `eq`, `not_eq`/`neq`, `in`, `not_in`, `gt`, `gte`, `lt`, `lte`, `present`, `blank`
+- **`evaluate(record, condition)`** — field-value conditions with 12 operators: `eq`, `not_eq`/`neq`, `in`, `not_in`, `gt`, `gte`, `lt`, `lte`, `present`, `blank`, `matches`, `not_matches`. Raises `ConditionError` on unknown operator or missing field.
+- **`evaluate_service(record, condition)`** — service conditions via `ConditionServiceRegistry`. Raises `ConditionError` if service is not registered.
+- **`evaluate_any(record, condition)`** — unified entry point that routes to `evaluate` or `evaluate_service` based on condition type. Raises `ArgumentError` on nil/non-Hash input.
 
 ### Presenter (`lib/lcp_ruby/presenter/`)
 
@@ -101,7 +103,7 @@ UI layer that determines what to display and how.
 - **Resolver** — `find_by_name`, `find_by_slug`, `presenters_for_model`, `routable_presenters`
 - **LayoutBuilder** — builds `form_sections` and `show_sections`; enriches FK fields with synthetic FieldDefinition + AssociationDefinition via foreign_key metadata matching
 - **ColumnSet** — permission-filtered `visible_table_columns`, `visible_form_fields`, `visible_show_fields`; `fk_association_map` returns FK-to-association mapping filtered by visible columns (used by index view to render associated object labels instead of raw FK integers)
-- **ActionSet** — permission-filtered `collection_actions`, `single_actions` (with visibility conditions via ConditionEvaluator), `batch_actions`
+- **ActionSet** — permission-filtered `collection_actions`, `single_actions` (with record_rules via `can_for_record?`, visibility conditions via ConditionEvaluator, and disable conditions), `batch_actions`
 - **IncludesResolver** — auto-detects and resolves association eager loading from presenter metadata. Sub-components: `AssociationDependency` (value object), `DependencyCollector` (gathers deps from presenter/sort/search/manual config), `StrategyResolver` (maps deps to includes/eager_load/joins), `LoadingStrategy` (applies to AR scope)
 
 ### Events (`lib/lcp_ruby/events/`)
@@ -246,6 +248,8 @@ Plain ERB templates (no ViewComponents despite gemspec dependency).
 - `LcpRuby::Error < StandardError` — base error
 - `LcpRuby::MetadataError < Error` — YAML parsing/validation errors
 - `LcpRuby::SchemaError < Error` — database schema errors
+- `LcpRuby::ServiceError < Error` — service registry/execution errors
+- `LcpRuby::ConditionError < Error` — runtime condition evaluation errors (unknown operator, missing field, unregistered service)
 
 ## Dependencies (gemspec)
 

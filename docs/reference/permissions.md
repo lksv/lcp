@@ -354,10 +354,16 @@ record_rules:
 
 **Evaluation order:**
 1. The role's `crud` list is checked first (`can?`)
-2. Then each record rule's condition is evaluated against the specific record (`can_for_record?`)
+2. Then each record rule's condition is evaluated against the specific record (`can_for_record?`) using [all 12 condition operators](condition-operators.md)
 3. If the condition matches and the action is in `deny_crud` and the role is not in `except_roles`, the action is denied
 
+Action aliases are resolved before checking `deny_crud`: `edit` maps to `update` and `new` maps to `create`. A rule with `deny_crud: [update]` also denies `edit`.
+
 This enables patterns like "closed deals are read-only for everyone except admins."
+
+**Action button visibility:** Record rules automatically hide action buttons on index pages. When `can_for_record?` denies `update` or `destroy` for a record, the corresponding `edit`/`destroy` buttons are hidden for that row — no need to duplicate the condition in the presenter's `visible_when`. The `show` action is not affected by record rules (if a record is visible in the list, its show link remains clickable).
+
+Both record rules and `visible_when` apply simultaneously (AND semantics). Use `visible_when` for additional UI-only conditions beyond what record rules cover.
 
 ## Complete Example
 

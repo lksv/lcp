@@ -6,6 +6,10 @@ RSpec.describe LcpRuby::ConditionHelper do
   let(:record) { OpenStruct.new(status: "active", amount: 500) }
 
   describe "#condition_met?" do
+    it "returns true when condition is nil" do
+      expect(helper.condition_met?(record, nil)).to be true
+    end
+
     it "returns true for met field-value condition" do
       condition = { "field" => "status", "operator" => "eq", "value" => "active" }
       expect(helper.condition_met?(record, condition)).to be true

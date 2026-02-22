@@ -45,6 +45,22 @@ sections:
 
 ## Action Conditions
 
+### Record Rules (Automatic)
+
+Built-in `edit` and `destroy` actions are automatically hidden on the index page when [record_rules](../reference/permissions.md#record-rules) deny the corresponding CRUD operation. No `visible_when` needed in the presenter:
+
+```yaml
+# permissions/deal.yml — this is all you need
+record_rules:
+  - name: closed_deals_readonly
+    condition: { field: stage, operator: in, value: [closed_won, closed_lost] }
+    effect:
+      deny_crud: [update, destroy]
+      except_roles: [admin]
+```
+
+On the index page, sales reps will not see edit/destroy buttons on closed deals. Admins (excepted from the rule) still see them.
+
 ### `disable_when` on Actions
 
 Actions support `disable_when` to prevent execution based on field values.

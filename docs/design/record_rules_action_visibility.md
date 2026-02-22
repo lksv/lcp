@@ -1,5 +1,7 @@
 # Record Rules → Action Visibility — Design Document
 
+> **Status: Implemented.** `action_permitted_for_record?` added to `ActionSet`, integrated into `single_actions` pipeline. Only built-in `update`/`destroy` actions are filtered; `show` is excluded. Alias resolution fixed in `can_for_record?`.
+
 ## Overview
 
 When a permission definition includes `record_rules` that deny CRUD

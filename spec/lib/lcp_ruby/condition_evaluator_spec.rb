@@ -15,8 +15,30 @@ RSpec.describe LcpRuby::ConditionEvaluator do
   end
 
   describe ".evaluate" do
-    it "returns true when condition is nil" do
-      expect(described_class.evaluate(record, nil)).to be true
+    it "raises ArgumentError when condition is nil" do
+      expect { described_class.evaluate(record, nil) }.to raise_error(ArgumentError, /must be a Hash/)
+    end
+
+    it "raises ArgumentError when condition is not a Hash" do
+      expect { described_class.evaluate(record, "string") }.to raise_error(ArgumentError, /must be a Hash/)
+    end
+
+    it "raises ConditionError when field key is missing" do
+      expect {
+        described_class.evaluate(record, { "operator" => "eq", "value" => "x" })
+      }.to raise_error(LcpRuby::ConditionError, /missing required 'field' key/)
+    end
+
+    it "raises ConditionError when record does not respond to field" do
+      expect {
+        described_class.evaluate(record, { "field" => "nonexistent", "operator" => "eq", "value" => "x" })
+      }.to raise_error(LcpRuby::ConditionError, /does not respond to field 'nonexistent'/)
+    end
+
+    it "raises ConditionError when operator key is missing" do
+      expect {
+        described_class.evaluate(record, { "field" => "status", "value" => "active" })
+      }.to raise_error(LcpRuby::ConditionError, /missing required 'operator' key/)
     end
 
     it "evaluates eq operator" do
@@ -99,8 +121,10 @@ RSpec.describe LcpRuby::ConditionEvaluator do
       expect(described_class.evaluate(record, { field: "status", operator: "eq", value: "active" })).to be true
     end
 
-    it "falls back to eq for unknown operator" do
-      expect(described_class.evaluate(record, { "field" => "status", "operator" => "unknown", "value" => "active" })).to be true
+    it "raises ConditionError for unknown operator" do
+      expect {
+        described_class.evaluate(record, { "field" => "status", "operator" => "unknown", "value" => "active" })
+      }.to raise_error(LcpRuby::ConditionError, /unknown condition operator 'unknown'/)
     end
   end
 
@@ -161,12 +185,20 @@ RSpec.describe LcpRuby::ConditionEvaluator do
       LcpRuby::ConditionServiceRegistry.clear!
     end
 
-    it "returns true when condition is nil" do
-      expect(described_class.evaluate_service(record, nil)).to be true
+    it "raises ArgumentError when condition is nil" do
+      expect { described_class.evaluate_service(record, nil) }.to raise_error(ArgumentError, /must be a Hash/)
     end
 
-    it "returns true when service is not registered" do
-      expect(described_class.evaluate_service(record, { "service" => "nonexistent" })).to be true
+    it "raises ConditionError when service is not registered" do
+      expect {
+        described_class.evaluate_service(record, { "service" => "nonexistent" })
+      }.to raise_error(LcpRuby::ConditionError, /not registered/)
+    end
+
+    it "raises ConditionError when service key is missing" do
+      expect {
+        described_class.evaluate_service(record, { "other" => "value" })
+      }.to raise_error(LcpRuby::ConditionError, /missing required 'service' key/)
     end
 
     it "evaluates registered service" do
@@ -189,8 +221,8 @@ RSpec.describe LcpRuby::ConditionEvaluator do
       LcpRuby::ConditionServiceRegistry.clear!
     end
 
-    it "returns true for nil condition" do
-      expect(described_class.evaluate_any(record, nil)).to be true
+    it "raises ArgumentError for nil condition" do
+      expect { described_class.evaluate_any(record, nil) }.to raise_error(ArgumentError, /must be a Hash/)
     end
 
     it "routes field-value conditions to evaluate" do
@@ -204,8 +236,10 @@ RSpec.describe LcpRuby::ConditionEvaluator do
       expect(described_class.evaluate_any(record, { "service" => "amount_check" })).to be true
     end
 
-    it "returns true for unknown condition type" do
-      expect(described_class.evaluate_any(record, { "other" => "value" })).to be true
+    it "raises ConditionError for unknown condition type" do
+      expect {
+        described_class.evaluate_any(record, { "other" => "value" })
+      }.to raise_error(LcpRuby::ConditionError, /must contain a 'field' or 'service' key/)
     end
   end
 end
