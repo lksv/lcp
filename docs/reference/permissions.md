@@ -145,6 +145,24 @@ fields:
 
 > **Custom Fields:** For models with `custom_fields: true`, the virtual field name `custom_data` controls access to all custom fields. Include `custom_data` in the `readable`/`writable` list to grant access, or use `all` which includes it automatically. See [Custom Fields Reference](custom-fields.md#permissions) for details.
 
+> **Positioning:** For models with [`positioning`](models.md#positioning), the position field (e.g., `position`) must be included in the `writable` list for the user to reorder records via drag-and-drop. Reordering requires **both** `update` in `crud` **and** the position field in `writable`. This allows roles that can edit record data but cannot change ordering:
+>
+> ```yaml
+> roles:
+>   manager:
+>     crud: [index, show, create, update, destroy]
+>     fields:
+>       writable: [name, description, position]    # can reorder
+>   editor:
+>     crud: [index, show, update]
+>     fields:
+>       writable: [name, description]              # can edit but NOT reorder
+>   viewer:
+>     crud: [index, show]
+>     fields:
+>       readable: all                              # no drag handles (no update permission)
+> ```
+
 ### `actions`
 
 | | |

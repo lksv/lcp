@@ -35,6 +35,7 @@ bundle exec rails s -p 3000
 | Dynamic defaults | `start_date` defaults to `current_date`, `due_date` defaults to `one_week_from_now` service | [Defaults](reference/models.md#default) |
 | Conditional validations | `due_date` required only when `completed` is false | [When](reference/models.md#conditional-validations-when) |
 | Cross-field validations | `due_date` must be on or after `start_date` | [Comparison](reference/models.md#comparison) |
+| Record positioning | Todo items with drag-and-drop reordering scoped by list | [Positioning](design/record_positioning.md) |
 | Service auto-discover | Custom default service in `app/lcp_services/defaults/` | [Extensibility](guides/extensibility.md#auto-discovery-setup) |
 
 ## CRM App (`examples/crm/`)

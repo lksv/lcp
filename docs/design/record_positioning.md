@@ -350,10 +350,12 @@ The `data-list-version` attribute contains a SHA-256 hash of record IDs in posit
 Helper in `ApplicationController`:
 
 ```ruby
-def compute_list_version_from_records(records)
+def compute_list_version_from_records(_records)
   return nil unless current_model_definition.positioned?
   pos_field = current_model_definition.positioning_field
-  ids_in_order = records.reorder(pos_field => :asc).pluck(:id)
+  # Use @model_class directly instead of the records scope to avoid
+  # inheriting search JOINs/WHERE clauses that can cause ambiguous column errors.
+  ids_in_order = @model_class.order(pos_field => :asc).pluck(:id)
   Digest::SHA256.hexdigest(ids_in_order.join(","))
 end
 helper_method :compute_list_version_from_records

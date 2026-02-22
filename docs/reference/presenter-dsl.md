@@ -155,6 +155,20 @@ Default sort column and direction (`:asc` or `:desc`).
 default_sort :created_at, :desc
 ```
 
+#### `reorderable(value)`
+
+Enables drag-and-drop reordering of records in the index table. The model must have a [`positioning`](models.md#positioning) configuration.
+
+```ruby
+index do
+  reorderable true
+  column :name, link_to: :show
+  column :position, sortable: true
+end
+```
+
+When `reorderable true` is set and no explicit `default_sort` is given, the engine auto-applies `default_sort <position_field>, :asc`. See [Presenters Reference — reorderable](presenters.md#reorderable) for full details.
+
 #### `per_page(value)`
 
 Number of records per page. Default: 25.
@@ -817,6 +831,7 @@ end
 | `index do ... end` | `index: { ... }` |
 | `includes :company` | `index: { includes: [company] }` |
 | `eager_load :company` | `index: { eager_load: [company] }` |
+| `reorderable true` | `index: { reorderable: true }` |
 | `column :title, sortable: true` | `table_columns: [{ field: title, sortable: true }]` |
 | `row_click :show` | `index: { row_click: show }` |
 | `empty_message "No records."` | `index: { empty_message: "No records." }` |

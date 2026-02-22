@@ -224,6 +224,41 @@ index do
 end
 ```
 
+### Reorderable Index (Record Positioning)
+
+For models with [`positioning`](../reference/models.md#positioning), you can enable drag-and-drop reordering:
+
+**YAML:**
+
+```yaml
+index:
+  reorderable: true
+  table_columns:
+    - { field: name, link_to: show }
+    - { field: position, sortable: true }
+```
+
+**DSL:**
+
+```ruby
+index do
+  reorderable true
+  column :name, link_to: :show
+  column :position, sortable: true
+end
+```
+
+When `reorderable: true`:
+- Drag handles appear as the first column
+- Records are sorted by position by default (no need for explicit `default_sort`)
+- The frontend sends `PATCH /:slug/:id/reorder` requests with relative positioning (`{ after: id }` or `{ before: id }`)
+- Handles are automatically disabled when a search query is active or when sorting by a non-position column
+- Reordering requires `update` CRUD permission and the position field in writable fields
+
+The position column is optional in `table_columns` — drag-and-drop works regardless. Include it when users want to see the numeric order.
+
+See [Record Positioning](../design/record_positioning.md) for the full design, including scoped positioning, concurrent edit detection, and permission patterns.
+
 ---
 
 ## Show Configuration

@@ -70,7 +70,8 @@ Business type system that bundles storage type, transforms, validations, and UI 
 
 Builds dynamic ActiveRecord models from metadata definitions.
 
-- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace, applies enums, validations, transforms, associations, scopes, callbacks, label method, and registers the model in the Registry
+- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace, applies enums, validations, transforms, associations, scopes, callbacks, positioning, label method, and registers the model in the Registry
+- **PositioningApplicator** — applies the `positioning` gem's `positioned` macro with column and scope configuration; enables automatic position management (insert at end, gap closing on destroy, atomic reorder)
 - **SchemaManager** — auto-creates/updates DB tables when `auto_migrate: true` is set in configuration; merges type-level column_options before field-level (field wins)
 - **ValidationApplicator** — applies AR validations from metadata (standard + custom); after explicit field validations, applies type-default validations (skips if field already has a validation of the same type)
 - **TransformApplicator** — for fields with transforms, assembles transform chain from `Services::Registry` and applies `model_class.normalizes :field, with: -> { chain }`

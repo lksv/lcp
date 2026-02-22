@@ -113,6 +113,29 @@ Enables runtime user-defined custom fields on this model. See [Custom Fields Ref
 custom_fields true
 ```
 
+### `positioning`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | keyword arguments or no arguments |
+
+Enables automatic record positioning via the [`positioning`](https://github.com/brendon/positioning) gem. See [Models Reference — positioning](models.md#positioning) for semantics.
+
+```ruby
+# Minimal — uses "position" field, no scope
+positioning
+
+# With custom field
+positioning field: :position
+
+# With scope
+positioning scope: :pipeline_id
+
+# With field and multi-column scope
+positioning field: :sort_order, scope: [:pipeline_id, :category]
+```
+
 ## Fields
 
 ```ruby
@@ -649,6 +672,8 @@ The DSL produces the exact same hash structure as parsed YAML. Every DSL constru
 | `on_field_change :e, field: :f` | `events: [{ name: e, type: field_change, field: f }]` |
 | `display_template :default, template: "{name}"` | `display_templates: { default: { template: "{name}" } }` |
 | `display_template :card, renderer: "X"` | `display_templates: { card: { renderer: X } }` |
+| `positioning` | `positioning: true` |
+| `positioning scope: :pipeline_id` | `positioning: { scope: pipeline_id }` |
 | `timestamps true` | `options: { timestamps: true }` |
 
 For the full YAML attribute reference, see [Models Reference](models.md).

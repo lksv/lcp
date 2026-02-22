@@ -18,6 +18,7 @@ model:
   scopes: []
   events: []
   display_templates: {}
+  positioning: true | { field: position, scope: parent_id }
   options: {}
 ```
 
@@ -65,6 +66,45 @@ model:
   name: todo_item
   table_name: legacy_todo_items
 ```
+
+### `positioning`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | boolean or hash |
+
+Enables automatic record positioning via the [`positioning`](https://github.com/brendon/positioning) gem. When present, records get automatic sequential position assignment on create, gap closing on destroy, and atomic reorder support.
+
+**Minimal form** — uses `position` field with no scope:
+
+```yaml
+positioning: true
+```
+
+**Hash form** — custom field and/or scoped positioning:
+
+```yaml
+positioning:
+  field: position          # optional, default: "position"
+  scope: pipeline_id       # optional, string or array of strings
+```
+
+**Multi-column scope:**
+
+```yaml
+positioning:
+  scope: [pipeline_id, category]
+```
+
+When `positioning` is set:
+- The `positioned` gem macro is applied to the dynamic model
+- The position column gets a `NOT NULL` constraint
+- A unique index on `[scope_columns..., position_column]` is added (except on SQLite)
+- The `positioning.field` must reference a declared field of type `integer`
+- Each `positioning.scope` entry must be a declared field or a belongs_to FK
+
+See [Record Positioning](../design/record_positioning.md) for the full design.
 
 ## Fields
 

@@ -102,6 +102,7 @@ index:
   row_click: show
   empty_message: "No records found."
   actions_position: dropdown
+  reorderable: false
   table_columns: []
 ```
 
@@ -237,6 +238,36 @@ Manually specify associations to eager load via LEFT JOIN. Use when associations
 index:
   eager_load: [company]
 ```
+
+### `reorderable`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `false` |
+| **Type** | boolean |
+
+Enables drag-and-drop reordering of records in the index table. Requires the model to have a [`positioning`](models.md#positioning) configuration.
+
+When `reorderable: true`:
+
+- Drag handles are rendered as the first column in each table row
+- `default_sort` is automatically set to `{ field: <position_field>, direction: asc }` unless explicitly overridden
+- A `PATCH /:slug/:id/reorder` endpoint is available for position updates
+- The table includes `data-reorder-url` and `data-list-version` attributes for the frontend
+- Drag handles are disabled when a search query is active or when sorting by a non-position column
+
+Reordering requires the user to have `update` CRUD permission and write access to the position field. See [Permissions — Positioning](#positioning-and-permissions) for details.
+
+```yaml
+index:
+  reorderable: true
+  table_columns:
+    - { field: name, link_to: show }
+    - { field: position, sortable: true }
+```
+
+See [Record Positioning](../design/record_positioning.md) for the full design.
 
 ### `table_columns`
 
