@@ -880,7 +880,7 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
       end
       hash = builder.to_hash
 
-      expect(hash["positioning"]).to eq({ "field" => "position", "scope" => ["pipeline_id"] })
+      expect(hash["positioning"]).to eq({ "field" => "position", "scope" => [ "pipeline_id" ] })
     end
 
     it "omits positioning when not set" do

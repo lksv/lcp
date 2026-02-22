@@ -1103,7 +1103,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     let(:metadata_path) { "" }
 
     it "errors when accessor service column references non-existent field" do
-      LcpRuby::Services::Registry.register("accessors", "json_field", ->(_r, _f) {})
+      LcpRuby::Services::Registry.register("accessors", "json_field", ->(_r, _f) { })
 
       v = with_metadata(
         models: [ <<~YAML ]
@@ -1130,7 +1130,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
 
     it "warns when virtual field has transforms" do
-      LcpRuby::Services::Registry.register("accessors", "json_field", ->(_r, _f) {})
+      LcpRuby::Services::Registry.register("accessors", "json_field", ->(_r, _f) { })
 
       v = with_metadata(
         models: [ <<~YAML ]
@@ -1159,7 +1159,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
 
     it "passes for valid virtual field configuration" do
-      LcpRuby::Services::Registry.register("accessors", "json_field", ->(_r, _f) {})
+      LcpRuby::Services::Registry.register("accessors", "json_field", ->(_r, _f) { })
 
       v = with_metadata(
         models: [ <<~YAML ]
@@ -2118,7 +2118,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error when positioning field is missing" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: stage
             fields:
@@ -2137,7 +2137,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error when positioning field is not integer" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: stage
             fields:
@@ -2157,7 +2157,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error when positioning field is virtual" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: stage
             fields:
@@ -2184,7 +2184,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error when scope field does not exist" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: stage
             fields:
@@ -2205,7 +2205,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "passes validation with correct positioning config" do
       v = with_metadata(
-        models: [<<~YAML]
+        models: [ <<~YAML ]
           model:
             name: stage
             fields:
@@ -2226,13 +2226,13 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "reports error when reorderable is true but model has no positioning" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: stage
             fields:
               - { name: title, type: string }
         YAML
-        presenters: [<<~YAML]
+        presenters: [ <<~YAML ]
           presenter:
             name: stages
             model: stage
@@ -2254,7 +2254,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
     it "adds warning when positioning field appears in form" do
       v = with_metadata(
-        models: [<<~YAML],
+        models: [ <<~YAML ],
           model:
             name: stage
             fields:
@@ -2262,7 +2262,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               - { name: position, type: integer }
             positioning: true
         YAML
-        presenters: [<<~YAML]
+        presenters: [ <<~YAML ]
           presenter:
             name: stages
             model: stage

@@ -19,7 +19,7 @@ LcpRuby.configure do |config|
   config.on_model_ready("showcase_virtual_field") do |klass|
     # full_location: concatenates city + country
     klass.define_method(:full_location) do
-      parts = [city, country].compact_blank
+      parts = [ city, country ].compact_blank
       parts.any? ? parts.join(", ") : nil
     end
     klass.define_method(:full_location=) { |_value| } # read-only, no-op setter

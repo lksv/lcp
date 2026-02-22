@@ -90,7 +90,6 @@ define_presenter :showcase_virtual_fields do
       field :city, hint: "Stored in properties JSON"
       field :country, hint: "Stored in properties JSON"
     end
-
   end
 
   search do
