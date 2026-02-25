@@ -758,19 +758,24 @@ rails generate lcp_ruby:groups
    Prague office*. Currently scope is defined in permissions YAML per role,
    not per group-role mapping. Adding scope to the mapping would allow the
    same role with different scopes per group — powerful but complex.
+   Answer: No. It is not necessary.
 
 2. **Group hierarchy (nested groups)?** AD supports nested groups.
    Recommended approach: flatten at sync time. The membership table stores
    the effective (flattened) memberships. Avoids recursive resolution at
    authorization time.
+   Answer: flatten at sync time.
 
 3. **Temporal group memberships?** `valid_from` / `valid_until` on
    memberships for time-limited access. Useful for project-based groups,
    contractor access. Adds query complexity to membership resolution.
+   Answer: yes, but it is sufficient to check it once per session or cache it
+   during the session (not necessary to check it during each permissision check)
 
 4. **Group-based presenter visibility?** Currently presenters are filtered
    by role. Should groups directly control presenter access, or is
    group → role → presenter sufficient?
+   Answer: group → role → presenter is sufficient for now.
 
 ---
 
