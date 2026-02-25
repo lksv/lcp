@@ -16,27 +16,58 @@
     <% if section["description"].present? %>
       <p class="lcp-section-description"><%= section["description"] %></p>
     <% end %>
-    <div class="lcp-nested-container">
-      <%= form.fields_for section["association"].to_sym do |nf| %>
-        <%= render "lcp_ruby/resources/nested_fields", form: nf, section: section %>
-      <% end %>
-    </div>
 
-    <% if section["allow_add"] != false %>
-      <%# Hidden template row for JS cloning %>
-      <% assoc_reflection = @record.class.reflect_on_association(section["association"].to_sym) %>
-      <% if assoc_reflection %>
+    <% if section["json_field"] %>
+      <%# JSON field source: items from a JSON column %>
+      <% json_field_name = section["json_field"] %>
+      <% target_model_def = section["target_model_definition"] %>
+      <% items = @record.respond_to?(json_field_name) ? (@record.send(json_field_name) || []) : [] %>
+      <% items = items.is_a?(Array) ? items : [] %>
+      <div class="lcp-nested-container">
+        <% items.each_with_index do |item, idx| %>
+          <% item_obj = LcpRuby::JsonItemWrapper.new(item.is_a?(Hash) ? item : {}, target_model_def) %>
+          <% fields_prefix = "record[#{json_field_name}][#{idx}]" %>
+          <%= render "lcp_ruby/resources/json_nested_fields",
+                     prefix: fields_prefix, item: item_obj, section: section, index: idx %>
+        <% end %>
+      </div>
+
+      <% if section["allow_add"] != false %>
         <div data-lcp-nested-template style="display:none">
-          <%= form.fields_for section["association"].to_sym, assoc_reflection.klass.new, child_index: "NEW_RECORD" do |template_f| %>
-            <%= render "lcp_ruby/resources/nested_fields", form: template_f, section: section %>
-          <% end %>
+          <% empty_item = LcpRuby::JsonItemWrapper.new({}, target_model_def) %>
+          <%= render "lcp_ruby/resources/json_nested_fields",
+                     prefix: "record[#{json_field_name}][NEW_RECORD]",
+                     item: empty_item, section: section, index: "NEW_RECORD" %>
         </div>
         <button type="button" class="btn lcp-nested-add"><%= section["add_label"] || "Add" %></button>
       <% end %>
-    <% end %>
 
-    <% if section["allow_add"] == false && section["allow_remove"] == false && @record.send(section["association"]).empty? %>
-      <p class="lcp-empty-nested"><%= section["empty_message"] || "No records." %></p>
+      <% if section["allow_add"] == false && section["allow_remove"] == false && items.empty? %>
+        <p class="lcp-empty-nested"><%= section["empty_message"] || "No items." %></p>
+      <% end %>
+    <% else %>
+      <%# Association source: has_many nested attributes %>
+      <div class="lcp-nested-container">
+        <%= form.fields_for section["association"].to_sym do |nf| %>
+          <%= render "lcp_ruby/resources/nested_fields", form: nf, section: section %>
+        <% end %>
+      </div>
+
+      <% if section["allow_add"] != false %>
+        <% assoc_reflection = @record.class.reflect_on_association(section["association"].to_sym) %>
+        <% if assoc_reflection %>
+          <div data-lcp-nested-template style="display:none">
+            <%= form.fields_for section["association"].to_sym, assoc_reflection.klass.new, child_index: "NEW_RECORD" do |template_f| %>
+              <%= render "lcp_ruby/resources/nested_fields", form: template_f, section: section %>
+            <% end %>
+          </div>
+          <button type="button" class="btn lcp-nested-add"><%= section["add_label"] || "Add" %></button>
+        <% end %>
+      <% end %>
+
+      <% if section["allow_add"] == false && section["allow_remove"] == false && @record.send(section["association"]).empty? %>
+        <p class="lcp-empty-nested"><%= section["empty_message"] || "No records." %></p>
+      <% end %>
     <% end %>
   </fieldset>
 <% else %>

@@ -1,0 +1,29 @@
+<% sortable_field = section["sortable_field"] %>
+<div class="lcp-nested-row" data-lcp-condition-scope>
+  <% if sortable_field %>
+    <span class="lcp-drag-handle">&#9776;</span>
+  <% end %>
+
+  <%
+    json_input_renderer = ->(field_config, field_def, field_name) {
+      input_name = "#{prefix}[#{field_name}]"
+      value = item.respond_to?(field_name) ? item.send(field_name) : nil
+      resolved_input = field_config["input_type"] || field_def.type_definition&.input_type || field_def.type
+      render_json_field_input(input_name, value, resolved_input, field_config, field_def)
+    }
+  %>
+  <%= render "lcp_ruby/resources/nested_row_content",
+             section: section, record_or_item: item,
+             sortable_field: sortable_field, input_renderer: json_input_renderer %>
+
+  <% if sortable_field %>
+    <input type="hidden" name="<%= prefix %>[<%= sortable_field %>]"
+           value="<%= item.respond_to?(sortable_field) ? item.send(sortable_field) : index %>"
+           class="lcp-position-field">
+  <% end %>
+
+  <% if section["allow_remove"] != false %>
+    <input type="hidden" name="<%= prefix %>[_destroy]" value="0" class="lcp-destroy-flag">
+    <button type="button" class="btn btn-danger lcp-nested-remove">Remove</button>
+  <% end %>
+</div>

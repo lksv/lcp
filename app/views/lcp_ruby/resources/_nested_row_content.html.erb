@@ -1,0 +1,63 @@
+<%# Shared sub-section and flat-field rendering for nested rows.
+    Locals:
+      section          - the nested_fields section hash
+      record_or_item   - form.object (association) or JsonItemWrapper (json_field)
+      sortable_field   - position field name to hide (nil for json_field rows)
+      input_renderer   - lambda(field_config, field_def, field_name) -> HTML string
+%>
+<% if section["sub_sections"] %>
+  <%# Sub-section mode: render grouped fieldsets within the row %>
+  <% section["sub_sections"].each do |sub_section| %>
+    <%
+      ss_visible = sub_section["visible_when"].is_a?(Hash) ? condition_met?(record_or_item, sub_section["visible_when"]) : true
+      ss_disabled = sub_section["disable_when"].is_a?(Hash) ? condition_met?(record_or_item, sub_section["disable_when"]) : false
+      ss_cond_attrs = conditional_data(sub_section)
+      ss_style = []
+      ss_style << "display: none" unless ss_visible
+      ss_collapsible = sub_section["collapsible"]
+      ss_collapsed = sub_section["collapsed"]
+    %>
+    <fieldset class="lcp-nested-sub-section <%= 'lcp-collapsible' if ss_collapsible %> <%= 'lcp-collapsed' if ss_collapsible && ss_collapsed %> <%= 'lcp-conditionally-disabled' if ss_disabled %>"
+              <% if ss_cond_attrs.any? %>data-lcp-conditional="section"<% end %>
+              <%= tag.attributes(ss_cond_attrs) %>
+              <% if ss_style.any? %>style="<%= ss_style.join('; ') %>"<% end %>>
+      <% if sub_section["title"].present? %>
+        <legend>
+          <% if ss_collapsible %>
+            <button type="button" class="lcp-collapse-toggle"><%= sub_section["title"] %> <span class="lcp-collapse-icon"></span></button>
+          <% else %>
+            <%= sub_section["title"] %>
+          <% end %>
+        </legend>
+      <% end %>
+      <div class="lcp-collapsible-content" style="<%= 'display: none' if ss_collapsible && ss_collapsed %>">
+        <% ss_fields = (sub_section["fields"] || []).reject { |f| sortable_field && f["field"] == sortable_field } %>
+        <div class="lcp-nested-fields" style="display: grid; grid-template-columns: repeat(<%= sub_section['columns'] || ss_fields.size %>, 1fr); gap: 0.5rem;">
+          <% ss_fields.each do |field_config| %>
+            <% field_def = field_config["field_definition"] %>
+            <% next unless field_def %>
+            <% field_name = field_config["field"] %>
+            <% input_html = input_renderer.call(field_config, field_def, field_name) %>
+            <%= render "lcp_ruby/resources/nested_field_cell",
+                       field_config: field_config, field_def: field_def, field_name: field_name,
+                       record_or_item: record_or_item, input_html: input_html, sortable_field: sortable_field %>
+          <% end %>
+        </div>
+      </div>
+    </fieldset>
+  <% end %>
+<% else %>
+  <%# Flat fields mode %>
+  <% visible_fields = (section["fields"] || []).reject { |f| sortable_field && f["field"] == sortable_field } %>
+  <div class="lcp-nested-fields" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || visible_fields.size %>, 1fr); gap: 0.5rem;">
+    <% visible_fields.each do |field_config| %>
+      <% field_def = field_config["field_definition"] %>
+      <% next unless field_def %>
+      <% field_name = field_config["field"] %>
+      <% input_html = input_renderer.call(field_config, field_def, field_name) %>
+      <%= render "lcp_ruby/resources/nested_field_cell",
+                 field_config: field_config, field_def: field_def, field_name: field_name,
+                 record_or_item: record_or_item, input_html: input_html, sortable_field: sortable_field %>
+    <% end %>
+  </div>
+<% end %>

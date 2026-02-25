@@ -20,6 +20,12 @@ document.addEventListener('click', function(e) {
   clone.innerHTML = clone.innerHTML.replace(/NEW_RECORD/g, ts);
   clone.style.display = '';
   container.appendChild(clone);
+
+  /* Trigger change event to evaluate conditional rendering on the new row */
+  var firstInput = clone.querySelector('input, select, textarea');
+  if (firstInput) {
+    firstInput.dispatchEvent(new Event('change', { bubbles: true }));
+  }
 });
 
 /* Nested forms: Remove row */

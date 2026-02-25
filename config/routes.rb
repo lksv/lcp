@@ -20,6 +20,8 @@ LcpRuby::Engine.routes.draw do
     # Custom fields management (must precede /:id to avoid matching "custom-fields" as id)
     scope "custom-fields", as: :custom_fields do
       get    "/",          to: "custom_fields#index"
+      get    "/manage",    to: "custom_fields#manage",       as: :manage
+      patch  "/manage",    to: "custom_fields#bulk_update",  as: :bulk_update
       get    "/new",       to: "custom_fields#new",     as: :new
       post   "/",          to: "custom_fields#create"
       get    "/:id",       to: "custom_fields#show",    as: :show

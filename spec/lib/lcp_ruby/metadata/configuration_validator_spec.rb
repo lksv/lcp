@@ -2499,6 +2499,939 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       expect(result.warnings).to include(match(/positioning field 'position' appears in a form section/))
     end
   end
+
+  # --- Nested field reference validations (association-based nested_fields) ---
+
+  context "nested field references" do
+    let(:metadata_path) { "" }
+
+    let(:parent_model) do
+      <<~YAML
+        model:
+          name: invoice
+          fields:
+            - { name: number, type: string }
+          associations:
+            - type: has_many
+              name: line_items
+              target_model: line_item
+              foreign_key: invoice_id
+              dependent: destroy
+              nested_attributes:
+                allow_destroy: true
+      YAML
+    end
+
+    let(:child_model) do
+      <<~YAML
+        model:
+          name: line_item
+          fields:
+            - { name: description, type: string }
+            - { name: quantity, type: integer }
+            - { name: unit_price, type: decimal }
+          associations:
+            - type: belongs_to
+              name: invoice
+              target_model: invoice
+              foreign_key: invoice_id
+      YAML
+    end
+
+    it "accepts valid field references on the target model" do
+      v = with_metadata(
+        models: [ parent_model, child_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: invoice
+            model: invoice
+            slug: invoices
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: description }
+                    - { field: quantity }
+                    - { field: unit_price }
+        YAML
+      )
+
+      result = v.validate
+      field_errors = result.errors.select { |e| e.include?("does not exist on target model") }
+      expect(field_errors).to be_empty
+    end
+
+    it "accepts FK field references on the target model" do
+      v = with_metadata(
+        models: [ parent_model, child_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: invoice
+            model: invoice
+            slug: invoices
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: description }
+                    - { field: invoice_id }
+        YAML
+      )
+
+      result = v.validate
+      field_errors = result.errors.select { |e| e.include?("does not exist on target model") }
+      expect(field_errors).to be_empty
+    end
+
+    it "reports error for unknown field on the target model" do
+      v = with_metadata(
+        models: [ parent_model, child_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: invoice
+            model: invoice
+            slug: invoices
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: description }
+                    - { field: nonexistent_field }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/field 'nonexistent_field' does not exist on target model 'line_item'/)
+      )
+    end
+
+    it "reports errors for multiple unknown fields" do
+      v = with_metadata(
+        models: [ parent_model, child_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: invoice
+            model: invoice
+            slug: invoices
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: bad_one }
+                    - { field: bad_two }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/field 'bad_one' does not exist on target model 'line_item'/),
+        a_string_matching(/field 'bad_two' does not exist on target model 'line_item'/)
+      )
+    end
+
+    it "validates field references in sub_sections" do
+      v = with_metadata(
+        models: [ parent_model, child_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: invoice
+            model: invoice
+            slug: invoices
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  sub_sections:
+                    - title: "Basics"
+                      fields:
+                        - { field: description }
+                        - { field: typo_field }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/field 'typo_field' does not exist on target model 'line_item'/)
+      )
+    end
+  end
+
+  # --- Nested field condition validations ---
+
+  context "nested field conditions" do
+    let(:metadata_path) { "" }
+
+    let(:order_model) do
+      <<~YAML
+        model:
+          name: order
+          fields:
+            - { name: title, type: string }
+          associations:
+            - type: has_many
+              name: line_items
+              target_model: line_item
+              foreign_key: order_id
+              dependent: destroy
+              nested_attributes:
+                allow_destroy: true
+      YAML
+    end
+
+    let(:line_item_model) do
+      <<~YAML
+        model:
+          name: line_item
+          fields:
+            - { name: item_type, type: string }
+            - { name: discount_percent, type: decimal }
+            - { name: notes, type: text }
+          associations:
+            - type: belongs_to
+              name: order
+              target_model: order
+              foreign_key: order_id
+      YAML
+    end
+
+    it "accepts valid nested field conditions referencing target model fields" do
+      v = with_metadata(
+        models: [ order_model, line_item_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: item_type }
+                    - field: discount_percent
+                      visible_when: { field: item_type, operator: eq, value: discount }
+        YAML
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("nested field") }
+      expect(condition_errors).to be_empty
+    end
+
+    it "reports error for nested field condition referencing unknown target model field" do
+      v = with_metadata(
+        models: [ order_model, line_item_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: item_type }
+                    - field: discount_percent
+                      visible_when: { field: nonexistent_field, operator: eq, value: foo }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/nested field 'discount_percent', visible_when.*references unknown field 'nonexistent_field'/)
+      )
+    end
+
+    it "reports error for nested field condition with unknown operator" do
+      v = with_metadata(
+        models: [ order_model, line_item_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: item_type }
+                    - field: discount_percent
+                      visible_when: { field: item_type, operator: bad_op, value: foo }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/nested field 'discount_percent', visible_when.*uses unknown operator 'bad_op'/)
+      )
+    end
+
+    it "validates disable_when conditions on nested fields" do
+      v = with_metadata(
+        models: [ order_model, line_item_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: item_type }
+                    - field: notes
+                      disable_when: { field: no_such_field, operator: eq, value: yes }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/nested field 'notes', disable_when.*references unknown field 'no_such_field'/)
+      )
+    end
+
+    it "validates operator-type compatibility for nested field conditions" do
+      v = with_metadata(
+        models: [ order_model, line_item_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: item_type }
+                    - field: notes
+                      visible_when: { field: item_type, operator: gt, value: 5 }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/operator 'gt' is not compatible with field 'item_type'/)
+      )
+    end
+
+    it "skips condition validation for service conditions in nested fields" do
+      v = with_metadata(
+        models: [ order_model, line_item_model ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Line Items"
+                  type: nested_fields
+                  association: line_items
+                  fields:
+                    - { field: item_type }
+                    - field: notes
+                      visible_when: { service: some_service }
+        YAML
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("nested field 'notes'") }
+      expect(condition_errors).to be_empty
+    end
+  end
+
+  # --- JSON field section validations ---
+
+  context "json_field sections" do
+    let(:metadata_path) { "" }
+
+    it "accepts valid json_field section" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: recipe
+            fields:
+              - { name: title, type: string }
+              - { name: steps, type: json }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  fields:
+                    - { field: instruction, type: string }
+        YAML
+      )
+
+      result = v.validate
+      json_errors = result.errors.select { |e| e.include?("json_field") }
+      expect(json_errors).to be_empty
+    end
+
+    it "reports error when json_field does not exist on model" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: recipe
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: nonexistent
+                  fields:
+                    - { field: instruction }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/json_field 'nonexistent' does not exist on model 'recipe'/)
+      )
+    end
+
+    it "reports error when json_field is not type json" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: recipe
+            fields:
+              - { name: title, type: string }
+              - { name: steps, type: string }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  fields:
+                    - { field: instruction }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/json_field 'steps' must be type 'json'/)
+      )
+    end
+
+    it "reports error when both association and json_field are present" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: recipe
+            fields:
+              - { name: title, type: string }
+              - { name: steps, type: json }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  association: some_assoc
+                  fields:
+                    - { field: instruction }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/cannot have both 'association' and 'json_field'/)
+      )
+    end
+
+    it "validates target_model field references" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: recipe
+              fields:
+                - { name: title, type: string }
+                - { name: steps, type: json }
+          YAML
+          <<~YAML
+            model:
+              name: step_definition
+              table_name: _virtual
+              fields:
+                - { name: instruction, type: string }
+                - { name: duration_minutes, type: integer }
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  target_model: step_definition
+                  fields:
+                    - { field: instruction }
+                    - { field: nonexistent_field }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/field 'nonexistent_field' does not exist on target_model 'step_definition'/)
+      )
+    end
+
+    it "reports error when target_model does not exist" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: recipe
+            fields:
+              - { name: title, type: string }
+              - { name: steps, type: json }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  target_model: nonexistent_model
+                  fields:
+                    - { field: instruction }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/target_model 'nonexistent_model' does not exist/)
+      )
+    end
+  end
+
+  # --- Virtual model validations ---
+
+  context "virtual models" do
+    let(:metadata_path) { "" }
+
+    it "warns when virtual model has associations" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: item_def
+              table_name: _virtual
+              fields:
+                - { name: name, type: string }
+              associations:
+                - { name: category, type: belongs_to, target_model: category }
+          YAML
+          <<~YAML
+            model:
+              name: category
+              fields:
+                - { name: name, type: string }
+              associations:
+                - { name: item_defs, type: has_many, target_model: item_def }
+          YAML
+        ]
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/virtual model.*has associations.*will be ignored/)
+      )
+    end
+
+    it "warns when virtual model has scopes" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item_def
+            table_name: _virtual
+            fields:
+              - { name: name, type: string }
+              - { name: active, type: boolean }
+            scopes:
+              - { name: active, where: { active: true } }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/virtual model.*has scopes.*will be ignored/)
+      )
+    end
+
+    it "does not warn for clean virtual model" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item_def
+            table_name: _virtual
+            fields:
+              - { name: name, type: string }
+              - { name: quantity, type: integer }
+        YAML
+      )
+
+      result = v.validate
+      virtual_warnings = result.warnings.select { |w| w.include?("virtual") }
+      expect(virtual_warnings).to be_empty
+    end
+  end
+
+  # --- Sub-section validations ---
+
+  context "sub-sections" do
+    let(:metadata_path) { "" }
+
+    it "validates sub-section field references against target_model" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: contact
+              fields:
+                - { name: name, type: string }
+                - { name: addresses, type: json }
+          YAML
+          <<~YAML
+            model:
+              name: address_def
+              table_name: _virtual
+              fields:
+                - { name: street, type: string }
+                - { name: city, type: string }
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: contact
+            model: contact
+            slug: contacts
+            form:
+              sections:
+                - title: "Addresses"
+                  type: nested_fields
+                  json_field: addresses
+                  target_model: address_def
+                  sub_sections:
+                    - title: "Location"
+                      fields:
+                        - { field: street }
+                        - { field: nonexistent }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/field 'nonexistent' does not exist on target_model 'address_def'/)
+      )
+    end
+
+    it "reports error when both fields and sub_sections present" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: contact
+              fields:
+                - { name: name, type: string }
+                - { name: addresses, type: json }
+          YAML
+          <<~YAML
+            model:
+              name: address_def
+              table_name: _virtual
+              fields:
+                - { name: street, type: string }
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: contact
+            model: contact
+            slug: contacts
+            form:
+              sections:
+                - title: "Addresses"
+                  type: nested_fields
+                  json_field: addresses
+                  target_model: address_def
+                  fields:
+                    - { field: street }
+                  sub_sections:
+                    - title: "Location"
+                      fields:
+                        - { field: street }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/cannot have both 'fields' and 'sub_sections'/)
+      )
+    end
+  end
+
+  # --- JSON field condition validations ---
+
+  context "json_field conditions" do
+    let(:metadata_path) { "" }
+
+    it "validates json_field condition references against target_model fields" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: recipe
+              fields:
+                - { name: title, type: string }
+                - { name: steps, type: json }
+          YAML
+          <<~YAML
+            model:
+              name: step_def
+              table_name: _virtual
+              fields:
+                - { name: instruction, type: string }
+                - { name: duration_minutes, type: integer }
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  target_model: step_def
+                  fields:
+                    - { field: instruction }
+                    - field: duration_minutes
+                      visible_when: { field: nonexistent_field, operator: eq, value: foo }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/nested field 'duration_minutes', visible_when.*references unknown field 'nonexistent_field'/)
+      )
+    end
+
+    it "validates json_field condition operator" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: recipe
+              fields:
+                - { name: title, type: string }
+                - { name: steps, type: json }
+          YAML
+          <<~YAML
+            model:
+              name: step_def
+              table_name: _virtual
+              fields:
+                - { name: instruction, type: string }
+                - { name: duration_minutes, type: integer }
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  target_model: step_def
+                  fields:
+                    - { field: instruction }
+                    - field: duration_minutes
+                      visible_when: { field: instruction, operator: bad_op, value: foo }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/nested field 'duration_minutes', visible_when.*uses unknown operator 'bad_op'/)
+      )
+    end
+
+    it "accepts valid json_field conditions" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: recipe
+              fields:
+                - { name: title, type: string }
+                - { name: steps, type: json }
+          YAML
+          <<~YAML
+            model:
+              name: step_def
+              table_name: _virtual
+              fields:
+                - { name: instruction, type: string }
+                - { name: duration_minutes, type: integer }
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  target_model: step_def
+                  fields:
+                    - { field: instruction }
+                    - field: duration_minutes
+                      visible_when: { field: instruction, operator: present }
+        YAML
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("nested field") }
+      expect(condition_errors).to be_empty
+    end
+
+    it "skips condition validation for json_field without target_model" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: recipe
+            fields:
+              - { name: title, type: string }
+              - { name: steps, type: json }
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  fields:
+                    - field: instruction
+                      type: string
+                      visible_when: { field: anything, operator: eq, value: foo }
+        YAML
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("nested field") }
+      expect(condition_errors).to be_empty
+    end
+
+    it "validates conditions in json_field sub_sections" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: recipe
+              fields:
+                - { name: title, type: string }
+                - { name: steps, type: json }
+          YAML
+          <<~YAML
+            model:
+              name: step_def
+              table_name: _virtual
+              fields:
+                - { name: instruction, type: string }
+                - { name: notes, type: text }
+          YAML
+        ],
+        presenters: [ <<~YAML ]
+          presenter:
+            name: recipe
+            model: recipe
+            slug: recipes
+            form:
+              sections:
+                - title: "Steps"
+                  type: nested_fields
+                  json_field: steps
+                  target_model: step_def
+                  sub_sections:
+                    - title: "Basic"
+                      fields:
+                        - { field: instruction }
+                        - field: notes
+                          disable_when: { field: bad_field, operator: eq, value: x }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/nested field 'notes', disable_when.*references unknown field 'bad_field'/)
+      )
+    end
+  end
 end
 
 RSpec.describe LcpRuby::Metadata::ConfigurationValidator::ValidationResult do

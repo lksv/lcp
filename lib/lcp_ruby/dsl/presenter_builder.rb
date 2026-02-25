@@ -273,6 +273,61 @@ module LcpRuby
       end
     end
 
+    # Builder for nested_fields blocks that supports both flat fields and sub-sections.
+    # Using both `field` and `section` in the same block is not allowed.
+    class NestedSectionBuilder
+      def initialize
+        @fields = []
+        @sub_sections = []
+      end
+
+      def field(name, **options)
+        if @sub_sections.any?
+          raise ArgumentError, "Cannot mix field and section calls in nested_fields — use one or the other"
+        end
+
+        field_hash = { "field" => name.to_s }
+        options.each do |k, v|
+          field_hash[k.to_s] = v.is_a?(Symbol) ? v.to_s : HashUtils.stringify_deep(v)
+        end
+        @fields << field_hash
+      end
+
+      def section(title, columns: nil, collapsible: false, collapsed: false,
+                  visible_when: nil, disable_when: nil, &block)
+        if @fields.any?
+          raise ArgumentError, "Cannot mix field and section calls in nested_fields — use one or the other"
+        end
+
+        ss = { "title" => title }
+        ss["columns"] = columns if columns
+        ss["collapsible"] = collapsible if collapsible
+        ss["collapsed"] = collapsed if collapsed
+        ss["visible_when"] = HashUtils.stringify_deep(visible_when) if visible_when
+        ss["disable_when"] = HashUtils.stringify_deep(disable_when) if disable_when
+
+        if block
+          builder = SectionBuilder.new
+          builder.instance_eval(&block)
+          ss["fields"] = builder.to_fields
+        end
+
+        @sub_sections << ss
+      end
+
+      def has_sub_sections?
+        @sub_sections.any?
+      end
+
+      def to_fields
+        @fields
+      end
+
+      def to_sub_sections
+        @sub_sections
+      end
+    end
+
     class ShowBuilder
       def initialize
         @layout = []
@@ -377,16 +432,26 @@ module LcpRuby
         @sections << section_hash
       end
 
-      def nested_fields(title, association:, description: nil, allow_add: true, allow_remove: true,
+      def nested_fields(title, association: nil, json_field: nil, target_model: nil,
+                        description: nil, allow_add: true, allow_remove: true,
                         min: nil, max: nil, add_label: nil, empty_message: nil,
                         sortable: false, columns: nil, visible_when: nil, disable_when: nil, &block)
+        if association && json_field
+          raise ArgumentError, "nested_fields cannot have both association: and json_field:"
+        end
+        unless association || json_field
+          raise ArgumentError, "nested_fields requires either association: or json_field:"
+        end
+
         section_hash = {
           "title" => title,
           "type" => "nested_fields",
-          "association" => association.to_s,
           "allow_add" => allow_add,
           "allow_remove" => allow_remove
         }
+        section_hash["association"] = association.to_s if association
+        section_hash["json_field"] = json_field.to_s if json_field
+        section_hash["target_model"] = target_model.to_s if target_model
         section_hash["description"] = description if description
         section_hash["columns"] = columns if columns
         section_hash["min"] = min if min
@@ -397,9 +462,13 @@ module LcpRuby
         section_hash["visible_when"] = stringify_deep(visible_when) if visible_when
         section_hash["disable_when"] = stringify_deep(disable_when) if disable_when
         if block
-          builder = SectionBuilder.new
+          builder = NestedSectionBuilder.new
           builder.instance_eval(&block)
-          section_hash["fields"] = builder.to_fields
+          if builder.has_sub_sections?
+            section_hash["sub_sections"] = builder.to_sub_sections
+          else
+            section_hash["fields"] = builder.to_fields
+          end
         end
         @sections << section_hash
       end

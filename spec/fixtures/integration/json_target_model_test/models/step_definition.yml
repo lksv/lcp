@@ -1,0 +1,13 @@
+model:
+  name: step_definition
+  table_name: _virtual
+
+  fields:
+    - name: instruction
+      type: string
+      validations:
+        - type: presence
+    - name: duration_minutes
+      type: integer
+    - name: optional
+      type: boolean

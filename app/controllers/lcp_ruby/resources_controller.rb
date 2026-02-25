@@ -48,6 +48,7 @@ module LcpRuby
       @record = @model_class.new(permitted_params)
       authorize @record
 
+      process_json_field_params(@record)
       validate_association_values!(@record)
 
       if @record.errors.none? && @record.save
@@ -70,6 +71,7 @@ module LcpRuby
       @record.assign_attributes(permitted_params)
       purge_removed_attachments!(@record)
 
+      process_json_field_params(@record)
       validate_association_values!(@record)
 
       if @record.errors.none? && @record.save
@@ -413,6 +415,12 @@ module LcpRuby
         end
       end
 
+      # Exclude json_field columns from flat permits (handled by process_json_field_params)
+      json_field_names = (current_presenter.form_config["sections"] || [])
+        .select { |s| s["type"] == "nested_fields" && s["json_field"] }
+        .map { |s| s["json_field"].to_sym }
+      flat_fields -= json_field_names
+
       # Separate attachment fields from flat fields (they need special permitting)
       attachment_fields = current_model_definition.fields.select(&:attachment?)
       attachment_names = attachment_fields.map { |f| f.name.to_sym }
@@ -547,6 +555,20 @@ module LcpRuby
       sections.each do |section|
         next unless section["type"] == "nested_fields"
 
+        if section["json_field"]
+          # Pre-populate empty JSON items for min requirement
+          json_field_name = section["json_field"]
+          min = (section["min"] || 0).to_i
+          next unless min > 0
+
+          current_items = record.respond_to?(json_field_name) ? (record.send(json_field_name) || []) : []
+          if current_items.size < min
+            empty_items = (min - current_items.size).times.map { {} }
+            record.send("#{json_field_name}=", current_items + empty_items)
+          end
+          next
+        end
+
         assoc_name = section["association"]
         min = (section["min"] || 0).to_i
         next unless min > 0
@@ -561,6 +583,78 @@ module LcpRuby
             end
           end
         end
+      end
+    end
+
+    # Process json_field sections: parse hash-of-hashes params into array of hashes.
+    # For model-backed sections (target_model), wraps items in JsonItemWrapper
+    # for type coercion and validation.
+    def process_json_field_params(record)
+      layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+      sections = layout_builder.form_sections
+
+      sections.each do |section|
+        next unless section["type"] == "nested_fields" && section["json_field"]
+
+        json_field_name = section["json_field"]
+        raw = params.dig(:record, json_field_name)
+        next unless raw.is_a?(ActionController::Parameters) || raw.is_a?(Hash)
+
+        # Collect allowed field names from the section (including sub_sections)
+        allowed_keys = (section["fields"] || []).map { |f| f["field"] }.compact
+        (section["sub_sections"] || []).each do |ss|
+          allowed_keys += (ss["fields"] || []).map { |f| f["field"] }.compact
+        end
+        allowed_keys.uniq!
+        target_model_def = section["target_model_definition"]
+
+        items = []
+        raw.each_value.with_index do |item_params, idx|
+          item_params = ActionController::Parameters.new(item_params) unless item_params.is_a?(ActionController::Parameters)
+          item_params = item_params.permit(*allowed_keys, :_destroy)
+          next if item_params[:_destroy].to_s.in?(%w[1 true])
+
+          item = {}
+          allowed_keys.each do |key|
+            item[key] = item_params[key] if item_params.key?(key)
+          end
+          # Skip rows where every permitted value is blank (empty template rows).
+          # Note: boolean "0" is not blank in Ruby, so unchecked checkboxes survive.
+          next if item.values.all?(&:blank?)
+
+          if target_model_def
+            # Wrap in JsonItemWrapper for type coercion and validation
+            wrapper = JsonItemWrapper.new(item, target_model_def)
+            wrapper.validate_with_model_rules!
+
+            if wrapper.errors.any?
+              wrapper.errors.each do |error|
+                record.errors.add(
+                  :base,
+                  "#{json_field_name} item #{idx + 1}: #{error.attribute} #{error.message}"
+                )
+              end
+            end
+
+            items << wrapper.to_hash
+          else
+            items << item
+          end
+        end
+
+        # Enforce min/max item limits
+        min = section["min"]&.to_i
+        if min && min > 0 && items.size < min
+          record.errors.add(:base, "#{json_field_name}: too few items (minimum is #{min})")
+        end
+
+        max = section["max"]&.to_i
+        if max && max > 0 && items.size > max
+          record.errors.add(:base, "#{json_field_name}: too many items (maximum is #{max})")
+          items = items.first(max)
+        end
+
+        record.send("#{json_field_name}=", items)
       end
     end
 

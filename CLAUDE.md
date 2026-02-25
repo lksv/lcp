@@ -124,6 +124,7 @@ YAML metadata (config/lcp_ruby/)
                                 ↓
               ModelFactory::Builder.build → LcpRuby::Dynamic::<Name>
               (creates AR class + DB table + validations + transforms + associations + scopes)
+              (virtual models with table_name: _virtual are skipped — metadata only, no AR class)
                                 ↓
               LcpRuby.registry.register(name, model_class)
                                 ↓
@@ -149,7 +150,7 @@ YAML metadata (config/lcp_ruby/)
 | `Metadata` | `lib/lcp_ruby/metadata/` | Parses YAML into definition objects (ModelDefinition, PresenterDefinition, etc.) |
 | `Types` | `lib/lcp_ruby/types/` | TypeRegistry, TypeDefinition, ServiceRegistry, built-in types (email, phone, url, color), transforms (strip, downcase, normalize_url, normalize_phone) |
 | `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator, PositioningApplicator |
-| `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections), ColumnSet (visible columns), ActionSet (visible actions with record_rules integration via action_permitted_for_record?), IncludesResolver (auto-detects and applies eager loading from presenter metadata), FieldValueResolver (dot-path, template, FK, and simple field resolution with permission checks) |
+| `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections + normalize_json_field_section for json_field: sources + sub-section enrichment), ColumnSet (visible columns), ActionSet (visible actions with record_rules integration via action_permitted_for_record?), IncludesResolver (auto-detects and applies eager loading from presenter metadata), FieldValueResolver (dot-path, template, FK, and simple field resolution with permission checks) |
 | `CustomFields` | `lib/lcp_ruby/custom_fields/` | Registry (per-model definition cache), Applicator (dynamic accessors + validations + defaults + stale cleanup), ContractValidator (boot-time model contract checks), Query (DB-portable JSON queries with field name validation), DefinitionChangeHandler (cache invalidation), Setup (shared boot logic with contract validation), Utils (env-aware JSON/numeric parsing) |
 | `Roles` | `lib/lcp_ruby/roles/` | Registry (thread-safe role name cache), ContractValidator (boot-time model contract checks), ChangeHandler (after_commit cache invalidation), Setup (boot orchestration). Only active when `role_source == :model` |
 | `Permissions` | `lib/lcp_ruby/permissions/` | Registry (per-model PermissionDefinition cache), ContractValidator (boot-time model contract checks), ChangeHandler (after_commit cache invalidation + PolicyFactory clear), DefinitionValidator (JSON validation on save), SourceResolver (DB → YAML priority chain), Setup (boot orchestration). Only active when `permission_source == :model` |
@@ -160,6 +161,7 @@ YAML metadata (config/lcp_ruby/)
 | `Conditions` | `lib/lcp_ruby/condition_evaluator.rb`, `lib/lcp_ruby/condition_service_registry.rb` | ConditionEvaluator (strict: 12 operators, raises ConditionError on unknown operator/missing field), ConditionServiceRegistry. All condition callers (PermissionEvaluator, ActionSet, views) delegate to ConditionEvaluator. Host apps define condition services in `app/condition_services/` |
 | `Attachments` | `lib/lcp_ruby/model_factory/attachment_applicator.rb` | Applies Active Storage macros (has_one_attached/has_many_attached), validations (size, content_type, max_files), and variant config to dynamic models |
 | `Positioning` | `lib/lcp_ruby/model_factory/positioning_applicator.rb` | Applies `positioning` gem macro to positioned models; SchemaManager creates unique indices on scope + position columns (except SQLite) |
+| `JsonItemWrapper` | `lib/lcp_ruby/json_item_wrapper.rb` | ActiveModel wrapper for JSON hash items; dynamic getter/setter per field from ModelDefinition; type coercion (integer, float, boolean); `validate_with_model_rules!` (presence, length, numericality, format); `to_hash` for persistence. Used by `json_field:` + `target_model:` nested sections |
 
 ### Controller Stack
 
@@ -190,8 +192,9 @@ Engine mounts at a configurable path (default `/`). All resources use a slug-bas
 /:lcp_slug/new                 → resources#new
 /:lcp_slug/:id                 → resources#show
 /:lcp_slug/:id/edit            → resources#edit
-/:lcp_slug/custom-fields       → custom_fields#index
-/:lcp_slug/custom-fields/:id   → custom_fields#show
+/:lcp_slug/custom-fields         → custom_fields#index
+/:lcp_slug/custom-fields/manage  → custom_fields#manage (bulk editor)
+/:lcp_slug/custom-fields/:id     → custom_fields#show
 ```
 
 The slug comes from the presenter YAML (e.g., `slug: deals` → `/deals`).

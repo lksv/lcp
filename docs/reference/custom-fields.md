@@ -391,21 +391,26 @@ See also [Permission Source](permission-source.md) for DB-backed permission mana
 Custom field definitions are managed via nested routes under the parent model's slug:
 
 ```
-GET    /:lcp_slug/custom-fields          # Index (scoped to target_model)
-GET    /:lcp_slug/custom-fields/new      # New form (target_model set from URL)
-POST   /:lcp_slug/custom-fields          # Create (target_model set from URL)
-GET    /:lcp_slug/custom-fields/:id      # Show
-GET    /:lcp_slug/custom-fields/:id/edit # Edit form
-PATCH  /:lcp_slug/custom-fields/:id      # Update
-DELETE /:lcp_slug/custom-fields/:id      # Destroy
+GET    /:lcp_slug/custom-fields              # Index (scoped to target_model)
+GET    /:lcp_slug/custom-fields/new          # New form (target_model set from URL)
+POST   /:lcp_slug/custom-fields              # Create (target_model set from URL)
+GET    /:lcp_slug/custom-fields/:id          # Show
+GET    /:lcp_slug/custom-fields/:id/edit     # Edit form
+PATCH  /:lcp_slug/custom-fields/:id          # Update
+DELETE /:lcp_slug/custom-fields/:id          # Destroy
+GET    /:lcp_slug/custom-fields/manage       # Manage all (bulk editor)
+PATCH  /:lcp_slug/custom-fields/manage       # Bulk update
 ```
 
 For example, if your model presenter has slug `projects`, the management UI is available at `/projects/custom-fields`. The `target_model` is resolved from the parent URL context. Record lookups are scoped to prevent cross-model access.
 
 The `CustomFieldsController` uses the generated `custom_fields` presenter definition that provides:
-- **Index**: table with field_name, custom_type, label, section, position, active, required columns
+- **Index**: table with field_name, custom_type, label, section, position, active, required columns. A "Manage All" button links to the bulk editor when the user has update permission.
 - **Form**: grouped sections for general info, text constraints, numeric constraints, enum values, and display options
 - **Show**: all field definition attributes in organized sections
+- **Manage**: bulk editor rendering all definitions in one form, with add/remove/reorder. The page is fully **presenter-driven** — it reads `form` sections from the `custom_fields` presenter and renders each row using `LayoutBuilder.form_sections`. Section-level `visible_when` conditions (e.g., "Text Constraints" only visible when type is string/text) are evaluated per row via [row-scoped conditional rendering](../guides/conditional-rendering.md#row-scoped-conditions-in-nested-fields).
+
+To customize the manage page layout, modify the `custom_fields` presenter. Adding or removing fields from the presenter's `form` sections automatically updates the manage UI — no template changes required.
 
 Authorization is controlled by the `permissions/custom_field_definition.yml` file, separate from the parent model's permissions.
 

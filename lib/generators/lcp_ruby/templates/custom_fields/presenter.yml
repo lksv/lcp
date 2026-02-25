@@ -67,6 +67,7 @@ presenter:
           - { field: description, col_span: 2 }
       - title: "Text Constraints"
         columns: 2
+        visible_when: { field: custom_type, operator: in, value: "string,text" }
         fields:
           - { field: min_length }
           - { field: max_length }
@@ -74,11 +75,14 @@ presenter:
           - { field: placeholder }
       - title: "Numeric Constraints"
         columns: 2
+        visible_when: { field: custom_type, operator: in, value: "integer,float,decimal" }
         fields:
           - { field: min_value }
           - { field: max_value }
-          - { field: precision }
+          - field: precision
+            visible_when: { field: custom_type, operator: eq, value: decimal }
       - title: "Enum Values"
+        visible_when: { field: custom_type, operator: eq, value: enum }
         fields:
           - { field: enum_values }
       - title: "Display Options"

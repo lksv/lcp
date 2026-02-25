@@ -8,6 +8,8 @@ module LcpRuby
       end
 
       def ensure_table!
+        return if model_definition.table_name == "_virtual"
+
         table = model_definition.table_name
 
         if ActiveRecord::Base.connection.table_exists?(table)

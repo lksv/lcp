@@ -130,11 +130,36 @@ module LcpRuby
 
       def validate_models
         loader.model_definitions.each_value do |model|
-          validate_model_fields(model)
-          validate_model_scopes(model)
-          validate_model_events(model)
-          validate_display_templates(model)
-          validate_positioning(model)
+          if model.table_name == "_virtual"
+            validate_virtual_model(model)
+          else
+            validate_model_fields(model)
+            validate_model_scopes(model)
+            validate_model_events(model)
+            validate_display_templates(model)
+            validate_positioning(model)
+          end
+        end
+      end
+
+      def validate_virtual_model(model)
+        # Virtual models only serve as metadata definitions for json_field target_model.
+        # Warn about features that don't apply to virtual models.
+        validate_model_fields(model)
+
+        if model.associations.any?
+          @warnings << "Model '#{model.name}': virtual model (table_name: _virtual) " \
+                       "has associations which will be ignored"
+        end
+
+        if model.scopes.any?
+          @warnings << "Model '#{model.name}': virtual model (table_name: _virtual) " \
+                       "has scopes which will be ignored"
+        end
+
+        if model.positioned?
+          @warnings << "Model '#{model.name}': virtual model (table_name: _virtual) " \
+                       "has positioning which will be ignored"
         end
       end
 
@@ -482,8 +507,14 @@ module LcpRuby
 
           # Validate association reference for nested_fields and association_list sections
           if %w[nested_fields association_list].include?(section_type)
-            validate_section_association(presenter, section, config_name)
-            next # Fields belong to the associated model — skip field-level validation
+            if section["json_field"]
+              validate_section_json_field(presenter, section, config_name)
+              validate_json_field_conditions(presenter, section, config_name) if section_type == "nested_fields"
+            else
+              validate_section_association(presenter, section, config_name)
+              validate_nested_field_conditions(presenter, section, config_name) if section_type == "nested_fields"
+            end
+            next # Fields belong to the associated/target model — skip field-level validation
           end
 
           fields = section["fields"] || []
@@ -512,15 +543,230 @@ module LcpRuby
         end
       end
 
+      # Validate json_field sections: ensure the field exists and is type json
+      def validate_section_json_field(presenter, section, config_name)
+        json_field_name = section["json_field"]
+        section_label = section["title"] || "(unnamed)"
+
+        model_def = loader.model_definitions[presenter.model]
+        return unless model_def
+
+        field_def = model_def.field(json_field_name)
+        unless field_def
+          @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}': " \
+                     "json_field '#{json_field_name}' does not exist on model '#{presenter.model}'"
+          return
+        end
+
+        unless field_def.type == "json"
+          @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}': " \
+                     "json_field '#{json_field_name}' must be type 'json', got '#{field_def.type}'"
+        end
+
+        # Validate mutual exclusivity with association
+        if section["association"]
+          @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}': " \
+                     "nested_fields cannot have both 'association' and 'json_field'"
+        end
+
+        # Validate mutual exclusivity of fields and sub_sections
+        if section["fields"] && section["sub_sections"]
+          @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}': " \
+                     "nested_fields cannot have both 'fields' and 'sub_sections'"
+        end
+
+        # If target_model is specified, validate field references against it
+        target_model_name = section["target_model"]
+        if target_model_name
+          target_def = loader.model_definitions[target_model_name]
+          unless target_def
+            @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}': " \
+                       "target_model '#{target_model_name}' does not exist"
+            return
+          end
+
+          target_field_names = target_def.fields.map(&:name)
+
+          # Validate fields (flat mode)
+          all_fields = section["fields"] || []
+
+          # Validate sub_sections fields
+          (section["sub_sections"] || []).each do |ss|
+            all_fields += (ss["fields"] || [])
+          end
+
+          all_fields.each do |f|
+            f = f.transform_keys(&:to_s) if f.is_a?(Hash)
+            next unless f.is_a?(Hash) && f["field"]
+
+            unless target_field_names.include?(f["field"].to_s)
+              @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}': " \
+                         "field '#{f['field']}' does not exist on target_model '#{target_model_name}'"
+            end
+          end
+        end
+      end
+
       def validate_section_association(presenter, section, config_name)
         assoc_name = section["association"]
         return unless assoc_name
 
         assoc_names = model_association_names(presenter.model)
+        section_label = section["title"] || section["section"] || "(unnamed)"
+
         unless assoc_names.include?(assoc_name.to_s)
-          section_label = section["title"] || section["section"] || "(unnamed)"
           @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}': " \
                      "#{section['type']} references unknown association '#{assoc_name}' on model '#{presenter.model}'"
+          return
+        end
+
+        # Validate that field references exist on the target model (or match an FK)
+        validate_nested_field_references(presenter, section, config_name)
+      end
+
+      # Validate that fields referenced in a nested_fields (association) section
+      # exist on the target model — either as declared fields or as association FK columns.
+      def validate_nested_field_references(presenter, section, config_name)
+        assoc_name = section["association"]
+        return unless assoc_name
+
+        model_def = loader.model_definitions[presenter.model]
+        return unless model_def
+
+        assoc = model_def.associations.find { |a| a.name == assoc_name }
+        return unless assoc&.target_model
+
+        target_def = loader.model_definitions[assoc.target_model]
+        return unless target_def
+
+        target_field_names = target_def.fields.map(&:name)
+        target_fk_names = target_def.associations.map(&:foreign_key).compact.map(&:to_s)
+        valid_names = target_field_names + target_fk_names
+        section_label = section["title"] || "(unnamed)"
+
+        all_fields = section["fields"] || []
+        (section["sub_sections"] || []).each do |ss|
+          all_fields += (ss["fields"] || [])
+        end
+
+        all_fields.each do |f|
+          f = f.transform_keys(&:to_s) if f.is_a?(Hash)
+          next unless f.is_a?(Hash) && f["field"]
+
+          unless valid_names.include?(f["field"].to_s)
+            @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}': " \
+                       "field '#{f['field']}' does not exist on target model '#{assoc.target_model}'"
+          end
+        end
+      end
+
+      # Validate field-level conditions in nested_fields sections against the target model
+      def validate_nested_field_conditions(presenter, section, config_name)
+        assoc_name = section["association"]
+        return unless assoc_name
+
+        # Resolve the target model through the association
+        model_def = loader.model_definitions[presenter.model]
+        return unless model_def
+
+        assoc = model_def.associations.find { |a| a.name == assoc_name }
+        return unless assoc&.target_model
+
+        target_def = loader.model_definitions[assoc.target_model]
+        return unless target_def
+
+        target_field_names = target_def.fields.map(&:name)
+        section_label = section["title"] || "(unnamed)"
+
+        (section["fields"] || []).each do |f|
+          f = f.transform_keys(&:to_s) if f.is_a?(Hash)
+          next unless f.is_a?(Hash)
+
+          field_name = f["field"]
+
+          %w[visible_when disable_when].each do |cond_key|
+            condition = f[cond_key]
+            next unless condition.is_a?(Hash)
+
+            condition = condition.transform_keys(&:to_s)
+            next if condition.key?("service")
+
+            cond_field = condition["field"]
+            operator = condition["operator"]
+
+            if cond_field && !target_field_names.include?(cond_field.to_s)
+              @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}', " \
+                         "nested field '#{field_name}', #{cond_key}: " \
+                         "references unknown field '#{cond_field}' on target model '#{assoc.target_model}'"
+            end
+
+            if operator && !VALID_CONDITION_OPERATORS.include?(operator.to_s)
+              @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}', " \
+                         "nested field '#{field_name}', #{cond_key}: " \
+                         "uses unknown operator '#{operator}'"
+            end
+
+            # Operator-type compatibility validation
+            validate_operator_type_compatibility(
+              "Presenter '#{presenter.name}'",
+              "#{config_name} section '#{section_label}', nested field '#{field_name}', #{cond_key}",
+              operator, assoc.target_model, cond_field
+            )
+          end
+        end
+      end
+
+      # Validate field-level conditions in json_field nested_fields sections.
+      # When target_model is specified, validates condition field references against it.
+      def validate_json_field_conditions(presenter, section, config_name)
+        target_model_name = section["target_model"]
+        return unless target_model_name
+
+        target_def = loader.model_definitions[target_model_name]
+        return unless target_def
+
+        target_field_names = target_def.fields.map(&:name)
+        section_label = section["title"] || "(unnamed)"
+
+        all_fields = section["fields"] || []
+        (section["sub_sections"] || []).each do |ss|
+          all_fields += (ss["fields"] || [])
+        end
+
+        all_fields.each do |f|
+          f = f.transform_keys(&:to_s) if f.is_a?(Hash)
+          next unless f.is_a?(Hash)
+
+          field_name = f["field"]
+
+          %w[visible_when disable_when].each do |cond_key|
+            condition = f[cond_key]
+            next unless condition.is_a?(Hash)
+
+            condition = condition.transform_keys(&:to_s)
+            next if condition.key?("service")
+
+            cond_field = condition["field"]
+            operator = condition["operator"]
+
+            if cond_field && !target_field_names.include?(cond_field.to_s)
+              @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}', " \
+                         "nested field '#{field_name}', #{cond_key}: " \
+                         "references unknown field '#{cond_field}' on target model '#{target_model_name}'"
+            end
+
+            if operator && !VALID_CONDITION_OPERATORS.include?(operator.to_s)
+              @errors << "Presenter '#{presenter.name}', #{config_name} section '#{section_label}', " \
+                         "nested field '#{field_name}', #{cond_key}: " \
+                         "uses unknown operator '#{operator}'"
+            end
+
+            validate_operator_type_compatibility(
+              "Presenter '#{presenter.name}'",
+              "#{config_name} section '#{section_label}', nested field '#{field_name}', #{cond_key}",
+              operator, target_model_name, cond_field
+            )
+          end
         end
       end
 

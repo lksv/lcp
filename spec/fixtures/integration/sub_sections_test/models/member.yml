@@ -1,0 +1,11 @@
+model:
+  name: member
+  label: Member
+
+  fields:
+    - name: name
+      type: string
+      validations:
+        - type: presence
+    - name: addresses
+      type: json

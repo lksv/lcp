@@ -1,0 +1,19 @@
+model:
+  name: recipe
+  label: "Recipe"
+  label_plural: "Recipes"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      validations:
+        - type: presence
+
+    - name: steps
+      type: json
+      label: "Steps"
+
+  options:
+    timestamps: true
+    label_method: title

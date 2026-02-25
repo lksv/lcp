@@ -67,6 +67,37 @@ model:
   table_name: legacy_todo_items
 ```
 
+#### Virtual Models
+
+Set `table_name: _virtual` to create a metadata-only model — no database table and no ActiveRecord class are created. Virtual models exist purely for field metadata (types, labels, validations, transforms, defaults) and are used as item definitions for JSON field nested editing.
+
+```yaml
+model:
+  name: address
+  table_name: _virtual
+  fields:
+    - name: street
+      type: string
+      validations: [{ type: presence }]
+    - name: city
+      type: string
+      validations: [{ type: presence }]
+    - name: zip
+      type: string
+    - name: country
+      type: string
+      default: "CZ"
+```
+
+Virtual models:
+- Are loaded by `Metadata::Loader` and available via `LcpRuby.loader.model_definitions`
+- Are **not** registered in `LcpRuby.registry` (no AR class to register)
+- Are **not** built by `ModelFactory::Builder` — `SchemaManager.ensure_table!` skips them
+- Should not have associations or scopes (these produce warnings in `ConfigurationValidator`)
+- Are referenced from presenter `nested_fields` sections via `target_model:` — see [JSON Field with Target Model](presenters.md#json-field-source-model-backed)
+
+When a `json_field:` + `target_model:` nested section is rendered, each hash item from the JSON array is wrapped in a `JsonItemWrapper` that uses the virtual model's field definitions for type coercion, getter/setter access, and per-item validation.
+
 ### `positioning`
 
 | | |

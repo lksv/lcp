@@ -417,42 +417,90 @@ form do
 end
 ```
 
-#### `nested_fields(title, association:, **options, &block)`
+#### `nested_fields(title, association: nil, json_field: nil, target_model: nil, **options, &block)`
 
-Adds a nested form section for creating and editing associated records inline within the parent form. The target association must have `nested_attributes` configured in the model definition.
+Adds a nested form section for editing a list of structured items inline. Items can come from three data sources:
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `association:` | symbol | The `has_many` or `has_one` association name (required) |
-| `allow_add:` | boolean | Show an "Add" button for creating new nested records (default: `true`) |
-| `allow_remove:` | boolean | Show a "Remove" button on each nested record (default: `true`) |
-| `min:` | integer | Minimum number of nested records |
-| `max:` | integer | Maximum number of nested records |
+| `association:` | symbol | has_many association name (mutually exclusive with `json_field:`) |
+| `json_field:` | symbol | JSON column name for storing items as array of hashes (mutually exclusive with `association:`) |
+| `target_model:` | symbol | Virtual model name defining item structure and validations (only with `json_field:`) |
+| `allow_add:` | boolean | Show an "Add" button (default: `true`) |
+| `allow_remove:` | boolean | Show a "Remove" button on each row (default: `true`) |
+| `min:` | integer | Minimum number of items |
+| `max:` | integer | Maximum number of items |
 | `add_label:` | string | Custom label for the "Add" button |
-| `empty_message:` | string | Message shown when there are no nested records |
-| `columns:` | integer | Number of layout columns for each nested record row |
+| `empty_message:` | string | Message shown when there are no items |
+| `columns:` | integer | Number of layout columns for each row |
 | `sortable:` | boolean or string | Enable drag-and-drop reordering. `true` uses `position` field, or pass a string for a custom field name |
 | `visible_when:` | hash | Condition hash for nested section visibility |
 | `disable_when:` | hash | Condition hash for nested section disabling |
 
-Inside the `nested_fields` block, use `field` calls to define which fields of the associated model to display.
+Exactly one of `association:` or `json_field:` is required.
+
+**Association source (has_many):**
 
 ```ruby
-form do
-  section "List Details" do
-    field :name
-  end
-
-  nested_fields "Items", association: :todo_items,
-    allow_add: true, allow_remove: true,
-    max: 50, add_label: "Add Item",
-    empty_message: "No items yet.", columns: 2 do
-      field :title, placeholder: "Item title..."
-      field :completed, input_type: :checkbox
-      field :due_date, input_type: :date_picker
-  end
+nested_fields "Items", association: :todo_items,
+  allow_add: true, allow_remove: true,
+  max: 50, add_label: "Add Item", columns: 2 do
+    field :title, placeholder: "Item title..."
+    field :completed, input_type: :checkbox
+    field :due_date, input_type: :date_picker
 end
 ```
+
+**JSON field source (inline definitions):**
+
+When using `json_field:` without `target_model:`, declare field types and labels inline:
+
+```ruby
+nested_fields "Workflow Steps", json_field: :steps,
+  sortable: true, allow_add: true, allow_remove: true, columns: 2 do
+    field :name, type: :string, label: "Step Name"
+    field :action_type, type: :string, input_type: :select,
+      input_options: { values: %w[review approve notify] }
+    field :timeout_days, type: :integer, label: "Timeout (days)",
+      visible_when: { field: :action_type, operator: :eq, value: "review" }
+end
+```
+
+**JSON field source (model-backed):**
+
+When `target_model:` is specified, field metadata (type, label, validations) comes from a virtual model:
+
+```ruby
+nested_fields "Addresses", json_field: :addresses, target_model: :address,
+  allow_add: true, allow_remove: true, columns: 2 do
+    field :street
+    field :city
+    field :zip
+    field :country
+end
+```
+
+**Sub-sections in nested rows:**
+
+Use `section` blocks (instead of `field` calls) to group fields within each row. You cannot mix `field` and `section` in the same block:
+
+```ruby
+nested_fields "Addresses", json_field: :addresses, target_model: :address,
+  allow_add: true, allow_remove: true do
+    section "Location", columns: 2 do
+      field :street
+      field :city
+      field :zip
+      field :country
+    end
+    section "Additional", collapsible: true, collapsed: true do
+      field :notes
+      field :is_primary, input_type: :boolean
+    end
+end
+```
+
+Sub-sections support `columns:`, `collapsible:`, `collapsed:`, `visible_when:`, and `disable_when:`.
 
 **With sortable (drag-and-drop reordering):**
 
@@ -843,6 +891,8 @@ end
 | `form do layout :tabs end` | `form: { layout: tabs }` |
 | `form do section "Details", collapsible: true do ... end end` | `form: { sections: [{ title: "Details", collapsible: true, ... }] }` |
 | `nested_fields "Items", association: :items do ... end` | `form: { sections: [{ type: nested_fields, title: "Items", association: items, ... }] }` |
+| `nested_fields "Steps", json_field: :steps do ... end` | `form: { sections: [{ type: nested_fields, title: "Steps", json_field: steps, ... }] }` |
+| `nested_fields "Addr", json_field: :addresses, target_model: :address do ... end` | `form: { sections: [{ type: nested_fields, title: "Addr", json_field: addresses, target_model: address, ... }] }` |
 | `divider label: "Address"` | `fields: [{ type: divider, label: "Address" }]` |
 | `field :x, col_span: 2, hint: "Help"` | `fields: [{ field: x, col_span: 2, hint: "Help" }]` |
 | `field :x, visible_when: { field: :status, operator: :eq, value: "active" }` | `fields: [{ field: x, visible_when: { field: status, operator: eq, value: active } }]` |

@@ -1,0 +1,51 @@
+presenter:
+  name: member
+  model: member
+  label: "Members"
+  slug: members
+
+  index:
+    table_columns:
+      - { field: name, link_to: show }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: name }
+
+  form:
+    sections:
+      - title: "Member Details"
+        fields:
+          - { field: name }
+      - title: "Addresses"
+        type: nested_fields
+        json_field: addresses
+        target_model: address_def
+        allow_add: true
+        allow_remove: true
+        add_label: "Add Address"
+        sub_sections:
+          - title: "Location"
+            columns: 2
+            fields:
+              - { field: street }
+              - { field: city }
+              - { field: zip }
+              - { field: country }
+          - title: "Additional"
+            columns: 1
+            collapsible: true
+            collapsed: true
+            fields:
+              - { field: notes }
+              - { field: is_primary, input_type: boolean }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

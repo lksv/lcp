@@ -1391,4 +1391,95 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
       end
     end
   end
+
+  describe "#render_json_field_input" do
+    let(:field_def) { nil }
+
+    it "renders text field by default" do
+      result = render_json_field_input("record[name]", "Alice", "string", {}, field_def)
+      expect(result).to include("text")
+      expect(result).to include("Alice")
+    end
+
+    it "renders boolean with hidden + checkbox" do
+      result = render_json_field_input("record[active]", true, "boolean", {}, field_def)
+      expect(result).to include('type="hidden"')
+      expect(result).to include('type="checkbox"')
+    end
+
+    it "renders number field for integer type" do
+      result = render_json_field_input("record[qty]", 5, "integer", {}, field_def)
+      expect(result).to include('type="number"')
+    end
+
+    it "renders select from YAML options array" do
+      config = { "options" => %w[red green blue] }
+      result = render_json_field_input("record[color]", "green", "select", config, field_def)
+      expect(result).to include("<select")
+      expect(result).to include("red")
+      expect(result).to include("green")
+      expect(result).to include("blue")
+    end
+
+    it "renders select from DSL input_options.values" do
+      config = { "input_options" => { "values" => %w[review approve notify] } }
+      result = render_json_field_input("record[action]", "approve", "select", config, field_def)
+      expect(result).to include("<select")
+      expect(result).to include("review")
+      expect(result).to include("approve")
+      expect(result).to include("notify")
+    end
+
+    it "falls back to text field when select has no options" do
+      config = {}
+      result = render_json_field_input("record[action]", "test", "select", config, field_def)
+      expect(result).to include('type="text"')
+    end
+
+    it "renders enum field as select" do
+      enum_def = double("field_def", enum?: true, enum_value_names: %w[draft published])
+      result = render_json_field_input("record[status]", "draft", "string", {}, enum_def)
+      expect(result).to include("<select")
+      expect(result).to include("draft")
+      expect(result).to include("published")
+    end
+
+    it "uses field_options override when provided" do
+      config = {}
+      result = render_json_field_input(
+        "definitions[0][custom_type]", "string", "string", config, field_def,
+        field_options: { "custom_type" => %w[string integer boolean] },
+        field_name: "custom_type"
+      )
+      expect(result).to include("<select")
+      expect(result).to include("string")
+      expect(result).to include("integer")
+      expect(result).to include("boolean")
+    end
+  end
+
+  describe "#render_manage_input" do
+    it "delegates to render_json_field_input" do
+      record = double("record", respond_to?: true, send: "current_value")
+      allow(record).to receive(:respond_to?).with("name").and_return(true)
+      allow(record).to receive(:send).with("name").and_return("current_value")
+
+      result = render_manage_input("definitions[0]", "name", "string", {}, nil, record, nil)
+      expect(result).to include('type="text"')
+      expect(result).to include("current_value")
+    end
+
+    it "passes field_options through to render_json_field_input" do
+      record = double("record")
+      allow(record).to receive(:respond_to?).with("custom_type").and_return(true)
+      allow(record).to receive(:send).with("custom_type").and_return("string")
+
+      field_options = { "custom_type" => %w[string text boolean] }
+      result = render_manage_input("definitions[0]", "custom_type", "string", {}, nil, record, field_options)
+      expect(result).to include("<select")
+      expect(result).to include("string")
+      expect(result).to include("text")
+      expect(result).to include("boolean")
+    end
+  end
 end

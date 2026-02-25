@@ -112,13 +112,83 @@ Service conditions:
 - Are re-evaluated via AJAX when form fields change (300ms debounce)
 - Return a boolean: `true` means the condition is met, `false` means it is not
 
+## Row-Scoped Conditions in Nested Fields
+
+Conditions on fields inside `nested_fields` rows (both `association:` and `json_field:` sources) are evaluated against the **current row's data only**, not the parent record or other rows. This enables per-item conditional logic.
+
+### Example
+
+```yaml
+form:
+  sections:
+    - title: "Line Items"
+      type: nested_fields
+      association: line_items
+      columns: 4
+      fields:
+        - { field: item_type, input_type: select }
+        - { field: description }
+        - field: discount_percent
+          input_type: number
+          visible_when: { field: item_type, operator: eq, value: discount }
+          hint: "Enter discount percentage"
+        - field: notes
+          visible_when: { field: item_type, operator: in, value: "service,discount" }
+```
+
+```ruby
+nested_fields "Line Items", association: :line_items, columns: 4 do
+  field :item_type, input_type: :select
+  field :description
+  field :discount_percent, input_type: :number,
+    visible_when: { field: :item_type, operator: :eq, value: "discount" },
+    hint: "Enter discount percentage"
+  field :notes,
+    visible_when: { field: :item_type, operator: :in, value: "service,discount" }
+end
+```
+
+In this example, `discount_percent` only appears when the row's `item_type` is `"discount"`. Changing `item_type` in one row has no effect on other rows.
+
+### How It Works
+
+Each nested row renders with a `data-lcp-condition-scope` attribute. When evaluating conditions, the JavaScript looks for the closest `[data-lcp-condition-scope]` container and restricts field lookups to that container. If no scope container is found (standard forms), the entire `<form>` is searched — so this is fully backward-compatible.
+
+After adding a new row (via the "Add" button), a synthetic `change` event is dispatched on the first input to trigger initial condition evaluation for the new row.
+
+### Sub-section conditions
+
+Sub-sections within nested rows also support `visible_when` and `disable_when`, evaluated against the row's data:
+
+```yaml
+sub_sections:
+  - title: "Discount Details"
+    visible_when: { field: item_type, operator: eq, value: discount }
+    fields:
+      - { field: discount_percent }
+      - { field: discount_reason }
+```
+
+### Supported features in nested rows
+
+Fields inside nested rows support the same rendering features as standard form fields:
+
+| Feature | Standard form | Nested row |
+|---------|--------------|------------|
+| `visible_when` | Yes | Yes |
+| `disable_when` | Yes | Yes |
+| `col_span` | Yes | Yes |
+| `hint` | Yes | Yes |
+| `prefix`/`suffix` | Yes | Yes |
+| `readonly` | Yes | Yes |
+
 ## Client-Side Behavior
 
 Field-value conditions are evaluated client-side with vanilla JavaScript:
 
 - Conditions re-evaluate on every `change` and `input` event
 - No page reload needed -- updates are instant
-- Uses standard DOM queries (`[name$="[field_name]"]`) to read current values
+- Uses standard DOM queries (`[name$="[field_name]"]`) to read current values, scoped to `[data-lcp-condition-scope]` when inside nested rows
 - Handles checkboxes (Rails hidden+checkbox pattern), radio buttons, and selects
 
 ## Ruby DSL

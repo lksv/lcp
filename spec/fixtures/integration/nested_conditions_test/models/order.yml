@@ -1,0 +1,26 @@
+model:
+  name: order
+  label: "Order"
+  label_plural: "Orders"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      validations:
+        - type: presence
+
+  associations:
+    - type: has_many
+      name: line_items
+      target_model: line_item
+      foreign_key: order_id
+      dependent: destroy
+      inverse_of: order
+      nested_attributes:
+        allow_destroy: true
+        reject_if: all_blank
+
+  options:
+    timestamps: true
+    label_method: title

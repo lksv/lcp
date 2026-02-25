@@ -66,6 +66,9 @@ require "lcp_ruby/model_factory/attachment_applicator"
 require "lcp_ruby/model_factory/positioning_applicator"
 require "lcp_ruby/model_factory/builder"
 
+# JSON Item Wrapper (for model-backed JSON field items)
+require "lcp_ruby/json_item_wrapper"
+
 # Custom Fields
 require "lcp_ruby/custom_fields"
 require "lcp_ruby/custom_fields/registry"

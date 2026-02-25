@@ -1,0 +1,43 @@
+<div class="lcp-resources-manage">
+  <div class="lcp-header">
+    <h1><%= t("lcp_ruby.manage.manage_custom_fields") %></h1>
+    <div class="lcp-toolbar">
+      <%= link_to t("lcp_ruby.manage.back_to_list"), resources_path, class: "btn" %>
+    </div>
+  </div>
+
+  <% if flash[:alert] %>
+    <div class="lcp-alert lcp-alert-danger"><%= flash[:alert] %></div>
+  <% end %>
+
+  <%= form_with url: lcp_ruby.custom_fields_bulk_update_path(lcp_slug: params[:lcp_slug]), method: :patch, local: true, class: "lcp-manage-form",
+                data: { lcp_label_details: t("lcp_ruby.manage.details"), lcp_label_collapse: t("lcp_ruby.manage.collapse") } do |f| %>
+    <% form_sections = @layout_builder.form_sections %>
+    <div class="lcp-manage-container lcp-nested-container" data-sortable="true">
+      <% @definitions.each_with_index do |defn, index| %>
+        <%= render "lcp_ruby/custom_fields/manage_row",
+                   defn: defn, index: index,
+                   form_sections: form_sections,
+                   field_options: @manage_field_options %>
+      <% end %>
+    </div>
+
+    <%# Template for adding new rows — inputs disabled server-side so they don't submit %>
+    <div data-lcp-manage-template style="display:none">
+      <%= render "lcp_ruby/custom_fields/manage_row",
+                 defn: @cfd_model_class.new(active: true, show_in_form: true, show_in_show: true, custom_type: "string", position: @definitions.size),
+                 index: "NEW_RECORD",
+                 form_sections: form_sections,
+                 field_options: @manage_field_options,
+                 disabled: true %>
+    </div>
+
+    <div class="lcp-manage-actions">
+      <button type="button" class="btn lcp-manage-add"><%= t("lcp_ruby.manage.add_field") %></button>
+      <div class="lcp-manage-submit">
+        <%= link_to t("lcp_ruby.manage.cancel"), resources_path, class: "btn" %>
+        <%= f.submit t("lcp_ruby.manage.save_all"), class: "btn btn-primary" %>
+      </div>
+    </div>
+  <% end %>
+</div>

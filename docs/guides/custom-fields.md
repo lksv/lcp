@@ -114,6 +114,56 @@ After starting the application, navigate to `/projects/custom-fields` (the neste
 
 The `target_model` is automatically set from the parent URL context (e.g., `/projects/custom-fields` sets it to `project`).
 
+### Manage Page (Bulk Editing)
+
+For editing all custom field definitions at once, use the **Manage All** page at `/:lcp_slug/custom-fields/manage`. This page renders all definitions in a bulk form with add/remove/reorder support.
+
+The manage page UI is fully **presenter-driven** — it reads the `custom_fields` presenter definition to determine which fields, sections, and conditions to render. There is no hardcoded field HTML. To customize what appears on the manage page, modify the `custom_fields` presenter:
+
+```ruby
+# config/lcp_ruby/presenters/custom_fields.rb
+define_presenter :custom_fields do
+  model :custom_field_definition
+  # ...
+
+  form do
+    section "General", columns: 3 do
+      field :field_name, readonly: true
+      field :custom_type
+      field :label
+      field :section
+      field :position
+      field :active
+    end
+
+    # This section only appears when custom_type is string or text
+    section "Text Constraints", columns: 2,
+      visible_when: { field: :custom_type, operator: :in, value: "string,text" } do
+        field :min_length
+        field :max_length
+        field :default_value
+        field :placeholder
+    end
+
+    # This section only appears when custom_type is a numeric type
+    section "Numeric Constraints", columns: 2,
+      visible_when: { field: :custom_type, operator: :in, value: "integer,float,decimal" } do
+        field :min_value
+        field :max_value
+        field :precision,
+          visible_when: { field: :custom_type, operator: :eq, value: "decimal" }
+    end
+
+    section "Enum Values",
+      visible_when: { field: :custom_type, operator: :eq, value: "enum" } do
+        field :enum_values
+    end
+  end
+end
+```
+
+The manage page uses [row-scoped conditional rendering](conditional-rendering.md#row-scoped-conditions-in-nested-fields) — each row evaluates `visible_when` conditions independently against its own data. Changing `custom_type` in one row only affects that row's visible sections.
+
 ### Step 6: Use the custom fields
 
 Navigate to `/projects/new`. A new "Contact Info" section appears at the bottom of the form with the "Website URL" field. Fill it in, save, and the value persists.

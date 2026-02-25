@@ -70,7 +70,74 @@ module LcpRuby
       end
     end
 
+    # Render a form input for JSON field items using raw name attributes (no form builder).
+    # Also used by render_manage_input for the manage page.
+    # Resolves select options from: field_options override > enum definition >
+    # input_options.values > options array > field_config["options"].
+    def render_json_field_input(name, value, input_type, field_config, field_def, field_options: nil, field_name: nil)
+      # Controller-provided select list override (used by manage page)
+      if field_options.is_a?(Hash) && field_name && field_options[field_name].is_a?(Array)
+        opts = field_options[field_name].map { |v| [ v.humanize, v ] }
+        return select_tag(name, options_for_select([ [ "", "" ] ] + opts, value.to_s))
+      end
+
+      # Enum fields
+      if field_def&.enum?
+        options = field_def.enum_value_names.map { |v| [ v.humanize, v ] }
+        options_html = options_for_select([ [ "", "" ] ] + options, value.to_s)
+        return select_tag(name, options_html)
+      end
+
+      case input_type.to_s
+      when "boolean"
+        hidden = hidden_field_tag(name, "0")
+        checkbox = check_box_tag(name, "1", value == true || value == "1" || value == 1 || value == "true")
+        hidden + checkbox
+      when "number", "integer", "float", "decimal"
+        number_field_tag(name, value, step: "any", placeholder: field_config["placeholder"])
+      when "text", "textarea"
+        text_area_tag(name, value, placeholder: field_config["placeholder"])
+      when "date", "date_picker"
+        date_field_tag(name, value)
+      when "datetime"
+        datetime_field_tag(name, value)
+      when "select"
+        select_values = resolve_raw_select_options(field_config)
+        if select_values
+          opts = select_values.map { |o| [ o.to_s.humanize, o ] }
+          select_tag(name, options_for_select([ [ "", "" ] ] + opts, value.to_s))
+        else
+          text_field_tag(name, value, placeholder: field_config["placeholder"])
+        end
+      else
+        text_field_tag(name, value, placeholder: field_config["placeholder"])
+      end
+    end
+
+    # Render a form input for the manage page, using raw name prefix instead of a form builder.
+    # Delegates to render_json_field_input after resolving name/value and field_options override.
+    def render_manage_input(prefix, field_name, input_type, field_config, field_def, record, field_options)
+      name = "#{prefix}[#{field_name}]"
+      value = record.respond_to?(field_name) ? record.send(field_name) : nil
+
+      render_json_field_input(name, value, input_type, field_config, field_def,
+                              field_options: field_options, field_name: field_name)
+    end
+
     private
+
+    # Resolve select option values from field_config.
+    # Supports both YAML format (options: [a, b]) and DSL format (input_options: { values: [a, b] }).
+    def resolve_raw_select_options(field_config)
+      # Direct options array (YAML: options: [a, b, c])
+      return field_config["options"] if field_config["options"].is_a?(Array)
+
+      # DSL-style input_options with values key (input_options: { values: [a, b, c] })
+      io = field_config["input_options"]
+      return io["values"] if io.is_a?(Hash) && io["values"].is_a?(Array)
+
+      nil
+    end
 
     def render_file_upload_input(form, field_name, field_config, field_def)
       input_options = field_config["input_options"] || {}

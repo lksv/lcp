@@ -415,4 +415,314 @@ RSpec.describe "Custom Fields Integration", type: :request do
       expect(created.read_custom_field("category")).to eq("general")
     end
   end
+
+  describe "Manage page" do
+    describe "GET /projects/custom-fields/manage" do
+      it "returns 200" do
+        get "/projects/custom-fields/manage"
+        expect(response).to have_http_status(:ok)
+      end
+
+      it "renders manage form" do
+        get "/projects/custom-fields/manage"
+        expect(response.body).to include("Manage Custom Fields")
+        expect(response.body).to include(I18n.t("lcp_ruby.manage.save_all"))
+        expect(response.body).to include(I18n.t("lcp_ruby.manage.add_field"))
+      end
+
+      it "renders existing definitions" do
+        cfd_model.create!(
+          target_model: "project", field_name: "website",
+          custom_type: "string", label: "Website", position: 0
+        )
+
+        get "/projects/custom-fields/manage"
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include("website")
+      end
+
+      it "renders section-level visible_when conditions" do
+        get "/projects/custom-fields/manage"
+        expect(response.body).to include("data-lcp-visible-field")
+      end
+
+      it "renders data-lcp-condition-scope on manage rows" do
+        cfd_model.create!(
+          target_model: "project", field_name: "test_field",
+          custom_type: "string", label: "Test", position: 0
+        )
+
+        get "/projects/custom-fields/manage"
+        expect(response.body).to include("data-lcp-condition-scope")
+      end
+    end
+
+    describe "PATCH /projects/custom-fields/manage (bulk_update)" do
+      it "creates new definitions" do
+        expect {
+          patch "/projects/custom-fields/manage", params: {
+            definitions: {
+              "0" => { field_name: "new_field", custom_type: "string", label: "New Field", position: 0 }
+            }
+          }
+        }.to change { cfd_model.where(target_model: "project").count }.by(1)
+
+        expect(response).to have_http_status(:redirect)
+      end
+
+      it "updates existing definitions" do
+        defn = cfd_model.create!(
+          target_model: "project", field_name: "existing",
+          custom_type: "string", label: "Old Label", position: 0
+        )
+
+        patch "/projects/custom-fields/manage", params: {
+          definitions: {
+            "0" => { id: defn.id, field_name: "existing", custom_type: "string", label: "New Label", position: 0 }
+          }
+        }
+
+        expect(response).to have_http_status(:redirect)
+        expect(defn.reload.label).to eq("New Label")
+      end
+
+      it "prevents target_model tampering" do
+        defn = cfd_model.create!(
+          target_model: "project", field_name: "tamper_test",
+          custom_type: "string", label: "Tamper", position: 0
+        )
+
+        patch "/projects/custom-fields/manage", params: {
+          definitions: {
+            "0" => { id: defn.id, field_name: "tamper_test", custom_type: "string", label: "Updated", position: 0 }
+          }
+        }
+
+        expect(defn.reload.target_model).to eq("project")
+      end
+
+      it "handles validation errors" do
+        patch "/projects/custom-fields/manage", params: {
+          definitions: {
+            "0" => { field_name: "", custom_type: "string", label: "", position: 0 }
+          }
+        }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+      end
+
+      it "preserves user input on validation error" do
+        existing = cfd_model.create!(
+          target_model: "project", field_name: "existing_field",
+          custom_type: "string", label: "Original Label", position: 0
+        )
+
+        patch "/projects/custom-fields/manage", params: {
+          definitions: {
+            "0" => { id: existing.id, field_name: "existing_field", custom_type: "string", label: "Edited Label", position: 0 },
+            "1" => { field_name: "", custom_type: "string", label: "", position: 1 }
+          }
+        }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        # The edited label should be preserved in the re-rendered form, not reverted to DB state
+        expect(response.body).to include("Edited Label")
+        # The original DB record should NOT have been changed (transaction rolled back)
+        expect(existing.reload.label).to eq("Original Label")
+      end
+
+      it "normalizes positions server-side" do
+        defn1 = cfd_model.create!(
+          target_model: "project", field_name: "field_a",
+          custom_type: "string", label: "A", position: 5
+        )
+        defn2 = cfd_model.create!(
+          target_model: "project", field_name: "field_b",
+          custom_type: "string", label: "B", position: 10
+        )
+
+        patch "/projects/custom-fields/manage", params: {
+          definitions: {
+            "0" => { id: defn2.id, field_name: "field_b", custom_type: "string", label: "B", position: 10 },
+            "1" => { id: defn1.id, field_name: "field_a", custom_type: "string", label: "A", position: 5 }
+          }
+        }
+
+        expect(response).to have_http_status(:redirect)
+        # Positions should be normalized to 0,1,2... based on param order
+        expect(defn2.reload.position).to eq(0)
+        expect(defn1.reload.position).to eq(1)
+      end
+
+      it "updates position values" do
+        defn1 = cfd_model.create!(
+          target_model: "project", field_name: "field_a",
+          custom_type: "string", label: "A", position: 0
+        )
+        defn2 = cfd_model.create!(
+          target_model: "project", field_name: "field_b",
+          custom_type: "string", label: "B", position: 1
+        )
+
+        patch "/projects/custom-fields/manage", params: {
+          definitions: {
+            "0" => { id: defn2.id, field_name: "field_b", custom_type: "string", label: "B", position: 0 },
+            "1" => { id: defn1.id, field_name: "field_a", custom_type: "string", label: "A", position: 1 }
+          }
+        }
+
+        expect(response).to have_http_status(:redirect)
+        expect(defn1.reload.position).to eq(1)
+        expect(defn2.reload.position).to eq(0)
+      end
+    end
+
+    describe "removal of records marked _remove" do
+      it "destroys existing records marked for removal" do
+        defn = cfd_model.create!(
+          target_model: "project", field_name: "to_remove",
+          custom_type: "string", label: "Remove Me", position: 0
+        )
+
+        expect {
+          patch "/projects/custom-fields/manage", params: {
+            definitions: {
+              "0" => { id: defn.id, field_name: "to_remove", custom_type: "string", label: "Remove Me", position: 0, _remove: "1" }
+            }
+          }
+        }.to change { cfd_model.where(target_model: "project").count }.by(-1)
+
+        expect(response).to have_http_status(:redirect)
+        expect(cfd_model.find_by(id: defn.id)).to be_nil
+      end
+
+      it "destroys removed records and keeps non-removed ones" do
+        keep = cfd_model.create!(
+          target_model: "project", field_name: "keeper",
+          custom_type: "string", label: "Keep", position: 0
+        )
+        remove = cfd_model.create!(
+          target_model: "project", field_name: "goner",
+          custom_type: "string", label: "Gone", position: 1
+        )
+
+        expect {
+          patch "/projects/custom-fields/manage", params: {
+            definitions: {
+              "0" => { id: keep.id, field_name: "keeper", custom_type: "string", label: "Keep", position: 0 },
+              "1" => { id: remove.id, field_name: "goner", custom_type: "string", label: "Gone", position: 1, _remove: "1" }
+            }
+          }
+        }.to change { cfd_model.where(target_model: "project").count }.by(-1)
+
+        expect(response).to have_http_status(:redirect)
+        expect(cfd_model.find_by(id: keep.id)).to be_present
+        expect(cfd_model.find_by(id: remove.id)).to be_nil
+      end
+
+      it "ignores _remove on new records (just skips them)" do
+        expect {
+          patch "/projects/custom-fields/manage", params: {
+            definitions: {
+              "0" => { field_name: "phantom", custom_type: "string", label: "Phantom", position: 0, _remove: "1" }
+            }
+          }
+        }.not_to change { cfd_model.where(target_model: "project").count }
+
+        expect(response).to have_http_status(:redirect)
+      end
+
+      it "rolls back removal when other records have validation errors" do
+        to_remove = cfd_model.create!(
+          target_model: "project", field_name: "will_survive",
+          custom_type: "string", label: "Survive", position: 0
+        )
+
+        patch "/projects/custom-fields/manage", params: {
+          definitions: {
+            "0" => { id: to_remove.id, field_name: "will_survive", custom_type: "string", label: "Survive", position: 0, _remove: "1" },
+            "1" => { field_name: "", custom_type: "string", label: "", position: 1 }
+          }
+        }
+
+        expect(response).to have_http_status(:unprocessable_entity)
+        expect(cfd_model.find_by(id: to_remove.id)).to be_present
+      end
+    end
+
+    describe "template row filtering" do
+      it "ignores NEW_RECORD template key in bulk_update" do
+        defn = cfd_model.create!(
+          target_model: "project", field_name: "kept",
+          custom_type: "string", label: "Kept", position: 0
+        )
+
+        expect {
+          patch "/projects/custom-fields/manage", params: {
+            definitions: {
+              "0" => { id: defn.id, field_name: "kept", custom_type: "string", label: "Kept", position: 0 },
+              "NEW_RECORD" => { field_name: "", custom_type: "string", label: "", position: 1 }
+            }
+          }
+        }.not_to change { cfd_model.count }
+
+        expect(response).to have_http_status(:redirect)
+      end
+    end
+
+    describe "drag & drop support" do
+      it "renders sortable container with data-sortable attribute" do
+        get "/projects/custom-fields/manage"
+        expect(response.body).to include('data-sortable="true"')
+      end
+
+      it "renders rows with lcp-nested-row class for drag & drop" do
+        cfd_model.create!(
+          target_model: "project", field_name: "draggable",
+          custom_type: "string", label: "Draggable", position: 0
+        )
+
+        get "/projects/custom-fields/manage"
+        expect(response.body).to include("lcp-manage-row lcp-nested-row")
+      end
+
+      it "renders drag handle on each row" do
+        cfd_model.create!(
+          target_model: "project", field_name: "handle_test",
+          custom_type: "string", label: "Handle Test", position: 0
+        )
+
+        get "/projects/custom-fields/manage"
+        expect(response.body).to include("lcp-drag-handle")
+      end
+    end
+
+    describe "template inputs disabled" do
+      it "renders template container with disabled fieldset" do
+        get "/projects/custom-fields/manage"
+        expect(response.body).to include("data-lcp-manage-template")
+        expect(response.body).to include("<fieldset disabled")
+      end
+    end
+
+    describe "Manage All link on index" do
+      it "shows Manage All button on custom fields index" do
+        get "/projects/custom-fields"
+        expect(response).to have_http_status(:ok)
+        expect(response.body).to include(I18n.t("lcp_ruby.manage.manage_all"))
+      end
+    end
+
+    describe "Viewer access denied" do
+      it "denies manage page access for viewer role" do
+        stub_current_user(role: "viewer")
+
+        get "/projects/custom-fields/manage"
+
+        expect(response).to have_http_status(:redirect)
+        follow_redirect!
+        expect(response.body).to include("not authorized")
+      end
+    end
+  end
 end

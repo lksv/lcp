@@ -1,0 +1,40 @@
+presenter:
+  name: recipe
+  model: recipe
+  label: "Recipes"
+  slug: recipes
+
+  index:
+    table_columns:
+      - { field: title, link_to: show }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+
+  form:
+    sections:
+      - title: "Recipe Details"
+        fields:
+          - { field: title }
+      - title: "Steps"
+        type: nested_fields
+        json_field: steps
+        allow_add: true
+        allow_remove: true
+        add_label: "Add Step"
+        columns: 3
+        fields:
+          - { field: instruction, type: string, label: "Instruction" }
+          - { field: duration_minutes, type: integer, label: "Duration (min)", input_type: number }
+          - { field: optional, type: boolean, label: "Optional", input_type: boolean }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

@@ -13,7 +13,11 @@ module LcpRuby
         sections = config["sections"] || []
         result = sections.map do |s|
           if s["type"] == "nested_fields"
-            normalize_nested_section(s)
+            if s["json_field"]
+              normalize_json_field_section(s)
+            else
+              normalize_nested_section(s)
+            end
           else
             normalize_section(s)
           end
@@ -163,6 +167,61 @@ module LcpRuby
         section.merge("fields" => fields)
       end
 
+      def normalize_json_field_section(section)
+        json_field_name = section["json_field"]
+        target_model_name = section["target_model"]
+
+        # If target_model is specified, resolve field definitions from that model
+        if target_model_name
+          target_def = LcpRuby.loader.model_definitions[target_model_name]
+          unless target_def
+            message = "[LcpRuby] Presenter '#{presenter_definition.name}': " \
+                      "target_model '#{target_model_name}' not found for json_field '#{json_field_name}'"
+            Rails.logger.warn(message)
+            raise LcpRuby::MetadataError, message if Rails.env.local?
+          end
+          if target_def
+            result = section.merge(
+              "target_model_definition" => target_def,
+              "json_field_definition" => model_definition.field(json_field_name)
+            )
+
+            if section["sub_sections"]
+              result["sub_sections"] = enrich_sub_sections(section["sub_sections"], target_def: target_def)
+            else
+              fields = enrich_fields_from_target(section["fields"] || [], target_def)
+              result["fields"] = fields
+            end
+
+            return result
+          end
+        end
+
+        # Inline mode: create synthetic FieldDefinitions from type/label in the section fields
+        result = section.merge(
+          "json_field_definition" => model_definition.field(json_field_name)
+        )
+
+        if section["sub_sections"]
+          result["sub_sections"] = enrich_sub_sections(section["sub_sections"], target_def: nil)
+        else
+          fields = (section["fields"] || []).map do |f|
+            field_type = f["type"] || "string"
+            field_label = f["label"] || f["field"].to_s.humanize
+            f.merge(
+              "field_definition" => Metadata::FieldDefinition.new(
+                name: f["field"],
+                type: field_type,
+                label: field_label
+              )
+            )
+          end
+          result["fields"] = fields
+        end
+
+        result
+      end
+
       def normalize_nested_section(section)
         assoc_name = section["association"]
         assoc = model_definition.associations.find { |a| a.name == assoc_name }
@@ -171,37 +230,92 @@ module LcpRuby
         target_def = LcpRuby.loader.model_definition(assoc.target_model)
         return section unless target_def
 
-        fields = (section["fields"] || []).map do |f|
-          field_def = target_def.field(f["field"])
-          if field_def
-            f.merge("field_definition" => field_def)
-          else
-            # Try association FK field on target model
-            target_assoc = target_def.associations.find { |a| a.foreign_key == f["field"].to_s }
-            if target_assoc
-              f.merge(
-                "field_definition" => Metadata::FieldDefinition.new(
-                  name: f["field"],
-                  type: "integer",
-                  label: target_assoc.name.to_s.humanize
-                ),
-                "association" => target_assoc
-              )
-            end
-          end
-        end.compact
-
         result = section.merge(
-          "fields" => fields,
           "association_definition" => assoc,
           "target_model_definition" => target_def
         )
+
+        if section["sub_sections"]
+          result["sub_sections"] = enrich_sub_sections(section["sub_sections"], target_def: target_def)
+        else
+          fields = (section["fields"] || []).filter_map do |f|
+            field_def = target_def.field(f["field"])
+            if field_def
+              f.merge("field_definition" => field_def)
+            else
+              # Try association FK field on target model
+              target_assoc = target_def.associations.find { |a| a.foreign_key == f["field"].to_s }
+              if target_assoc
+                f.merge(
+                  "field_definition" => Metadata::FieldDefinition.new(
+                    name: f["field"],
+                    type: "integer",
+                    label: target_assoc.name.to_s.humanize
+                  ),
+                  "association" => target_assoc
+                )
+              else
+                report_unresolved_field(f["field"], target_def.name)
+                nil
+              end
+            end
+          end
+          result["fields"] = fields
+        end
 
         if section["sortable"]
           result["sortable_field"] = section["sortable"].is_a?(String) ? section["sortable"] : "position"
         end
 
         result
+      end
+
+      # Enrich sub-sections with FieldDefinitions resolved from the target model
+      # or created as synthetic inline definitions.
+      def enrich_sub_sections(sub_sections, target_def:)
+        sub_sections.map do |ss|
+          fields = if target_def
+            enrich_fields_from_target(ss["fields"] || [], target_def)
+          else
+            (ss["fields"] || []).map do |f|
+              field_type = f["type"] || "string"
+              field_label = f["label"] || f["field"].to_s.humanize
+              f.merge(
+                "field_definition" => Metadata::FieldDefinition.new(
+                  name: f["field"],
+                  type: field_type,
+                  label: field_label
+                )
+              )
+            end
+          end
+
+          ss.merge("fields" => fields)
+        end
+      end
+
+      # Report an unresolved field reference during layout enrichment.
+      # Always logs a warning; raises in local (dev/test) environments to catch
+      # configuration errors early.
+      def report_unresolved_field(field_name, target_model_name)
+        message = "[LcpRuby] Presenter '#{presenter_definition.name}': " \
+                  "field '#{field_name}' not found on model '#{target_model_name}'"
+        Rails.logger.warn(message)
+        raise LcpRuby::MetadataError, message if Rails.env.local?
+      end
+
+      # Enrich a list of field configs with FieldDefinitions from a target model.
+      # Logs a warning (and raises in local environments) for unresolvable fields.
+      def enrich_fields_from_target(fields, target_def)
+        fields.filter_map do |f|
+          field_def = target_def.field(f["field"])
+          if field_def
+            f.merge("field_definition" => field_def)
+          else
+            report_unresolved_field(f["field"], target_def.name)
+            nil
+          end
+        end
       end
     end
   end

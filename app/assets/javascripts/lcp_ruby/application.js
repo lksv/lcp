@@ -16,6 +16,7 @@
 //= require lcp_ruby/index_sortable
 //= require lcp_ruby/input_enhancements
 //= require lcp_ruby/conditional_rendering
+//= require lcp_ruby/custom_fields_manage
 //= require lcp_ruby/inline_create
 //= require lcp_ruby/cascading_selects
 //= require lcp_ruby/tom_select_init

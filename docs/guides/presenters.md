@@ -727,17 +727,17 @@ end
 
 ## Nested Fields
 
-Use nested fields to manage `has_many` associations inline within the parent form. Users can add, remove, and reorder child records without leaving the page.
+Use nested fields to manage a list of structured items inline within the parent form. Users can add, remove, and reorder items without leaving the page. There are three data sources:
+
+### Association Source (has_many)
+
+Edits child records from a `has_many` association:
 
 **YAML:**
 
 ```yaml
 form:
   sections:
-    - title: "Order Details"
-      fields:
-        - { field: customer_id, input_type: association_select }
-        - { field: order_date, input_type: date }
     - title: "Line Items"
       type: nested_fields
       association: line_items
@@ -746,7 +746,7 @@ form:
       add_label: "Add Line Item"
       min: 1
       max: 20
-      empty_message: "No line items yet. Click 'Add Line Item' to begin."
+      columns: 3
       fields:
         - { field: product_id, input_type: association_select }
         - { field: quantity, input_type: number }
@@ -757,15 +757,9 @@ form:
 
 ```ruby
 form do
-  section "Order Details" do
-    field :customer_id, input_type: :association_select
-    field :order_date, input_type: :date
-  end
-
   nested_fields "Line Items", association: :line_items,
     allow_add: true, allow_remove: true,
-    add_label: "Add Line Item", min: 1, max: 20,
-    empty_message: "No line items yet. Click 'Add Line Item' to begin." do
+    add_label: "Add Line Item", min: 1, max: 20, columns: 3 do
       field :product_id, input_type: :association_select
       field :quantity, input_type: :number
       field :unit_price, input_type: :number, prefix: "$"
@@ -773,14 +767,197 @@ form do
 end
 ```
 
+### JSON Field Source (Inline)
+
+Stores items as a JSON array of hashes in a single column. Field types and labels are declared directly in the presenter — no model needed:
+
+**YAML:**
+
+```yaml
+form:
+  sections:
+    - title: "Workflow Steps"
+      type: nested_fields
+      json_field: steps
+      allow_add: true
+      allow_remove: true
+      columns: 2
+      fields:
+        - { field: name, type: string, label: "Step Name" }
+        - field: action_type
+          type: string
+          input_type: select
+          options: [review, approve, notify]
+        - field: timeout_days
+          type: integer
+          label: "Timeout (days)"
+          visible_when: { field: action_type, operator: eq, value: review }
+```
+
+**Ruby DSL:**
+
+```ruby
+form do
+  nested_fields "Workflow Steps", json_field: :steps,
+    allow_add: true, allow_remove: true, columns: 2 do
+      field :name, type: :string, label: "Step Name"
+      field :action_type, type: :string, input_type: :select,
+        input_options: { values: %w[review approve notify] }
+      field :timeout_days, type: :integer, label: "Timeout (days)",
+        visible_when: { field: :action_type, operator: :eq, value: "review" }
+  end
+end
+```
+
+The parent model must have a `json` type field. Inline mode is best for simple structures where creating a model definition is overkill.
+
+### JSON Field Source (Model-Backed)
+
+For complex structures with validations, transforms, or custom types. Define a virtual model for the item structure:
+
+```yaml
+# config/lcp_ruby/models/address.yml
+model:
+  name: address
+  table_name: _virtual    # no DB table — metadata only
+  fields:
+    - name: street
+      type: string
+      validations: [{ type: presence }]
+    - name: city
+      type: string
+      validations: [{ type: presence }]
+    - name: zip
+      type: string
+```
+
+Then reference it with `target_model:`:
+
+**YAML:**
+
+```yaml
+form:
+  sections:
+    - title: "Addresses"
+      type: nested_fields
+      json_field: addresses
+      target_model: address
+      allow_add: true
+      allow_remove: true
+      columns: 2
+      fields:
+        - { field: street }
+        - { field: city }
+        - { field: zip }
+```
+
+**Ruby DSL:**
+
+```ruby
+form do
+  nested_fields "Addresses", json_field: :addresses, target_model: :address,
+    allow_add: true, allow_remove: true, columns: 2 do
+      field :street
+      field :city
+      field :zip
+  end
+end
+```
+
+Field metadata (type, label, validations) comes from the virtual model. Items are validated per-row on save. See [Virtual Models](../reference/models.md#virtual-models).
+
+### Conditional Fields in Nested Rows
+
+Fields inside nested rows support `visible_when` and `disable_when`, evaluated against the **current row's data**:
+
+**YAML:**
+
+```yaml
+- title: "Line Items"
+  type: nested_fields
+  association: line_items
+  columns: 4
+  fields:
+    - { field: item_type, input_type: select }
+    - { field: description }
+    - field: discount_percent
+      input_type: number
+      visible_when: { field: item_type, operator: eq, value: discount }
+      hint: "Enter discount percentage"
+    - field: notes
+      visible_when: { field: item_type, operator: in, value: "service,discount" }
+```
+
+**Ruby DSL:**
+
+```ruby
+nested_fields "Line Items", association: :line_items, columns: 4 do
+  field :item_type, input_type: :select
+  field :description
+  field :discount_percent, input_type: :number,
+    visible_when: { field: :item_type, operator: :eq, value: "discount" },
+    hint: "Enter discount percentage"
+  field :notes,
+    visible_when: { field: :item_type, operator: :in, value: "service,discount" }
+end
+```
+
+Each row evaluates conditions independently — changing `item_type` in one row does not affect other rows. See [Row-Scoped Conditions](conditional-rendering.md#row-scoped-conditions-in-nested-fields).
+
+### Sub-Sections in Nested Rows
+
+For complex items with many fields, use `section` blocks (in DSL) or `sub_sections` (in YAML) to group fields:
+
+**YAML:**
+
+```yaml
+- title: "Addresses"
+  type: nested_fields
+  json_field: addresses
+  target_model: address
+  sub_sections:
+    - title: "Location"
+      columns: 2
+      fields:
+        - { field: street }
+        - { field: city }
+    - title: "Additional"
+      collapsible: true
+      collapsed: true
+      fields:
+        - { field: notes }
+```
+
+**Ruby DSL:**
+
+```ruby
+nested_fields "Addresses", json_field: :addresses, target_model: :address do
+  section "Location", columns: 2 do
+    field :street
+    field :city
+  end
+  section "Additional", collapsible: true, collapsed: true do
+    field :notes
+  end
+end
+```
+
+You cannot mix `field` and `section` calls in the same `nested_fields` block — use one or the other.
+
+### Nested Fields Options
+
 | Option | Default | Description |
 |--------|---------|-------------|
-| `allow_add` | `true` | Show a button to add new child records |
+| `association` | - | has_many association name (mutually exclusive with `json_field`) |
+| `json_field` | - | JSON column name (mutually exclusive with `association`) |
+| `target_model` | - | Virtual model for item structure (only with `json_field`) |
+| `allow_add` | `true` | Show a button to add new items |
 | `allow_remove` | `true` | Show a remove button on each row |
 | `add_label` | `"Add"` | Label for the add button |
-| `min` | - | Minimum number of child records |
-| `max` | - | Maximum number of child records |
-| `empty_message` | - | Message when there are no child records |
+| `min` | - | Minimum number of items |
+| `max` | - | Maximum number of items |
+| `columns` | - | Grid columns for each row's field layout |
+| `empty_message` | - | Message when there are no items |
 | `sortable` | `false` | Enable drag-and-drop reordering |
 
 ### Sortable Nested Forms
@@ -810,7 +987,7 @@ nested_fields "Checklist Items", association: :checklist_items,
 end
 ```
 
-The child model should have an integer `position` field, and the parent association should specify `order: { position: asc }`. For a custom position field name, pass a string instead of `true`: `sortable: "sort_order"`.
+The child model should have an integer `position` field, and the parent association should specify `order: { position: asc }`. For a custom position field name, pass a string instead of `true`: `sortable: "sort_order"`. For JSON field items, array order is the position — no position key needed.
 
 ---
 

@@ -1,0 +1,21 @@
+model:
+  name: address_def
+  table_name: _virtual
+
+  fields:
+    - name: street
+      type: string
+      validations:
+        - type: presence
+    - name: city
+      type: string
+      validations:
+        - type: presence
+    - name: zip
+      type: string
+    - name: country
+      type: string
+    - name: notes
+      type: text
+    - name: is_primary
+      type: boolean

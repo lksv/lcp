@@ -1,0 +1,11 @@
+model:
+  name: recipe
+  label: Recipe
+
+  fields:
+    - name: title
+      type: string
+      validations:
+        - type: presence
+    - name: steps
+      type: json

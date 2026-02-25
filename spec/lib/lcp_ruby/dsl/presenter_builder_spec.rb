@@ -786,6 +786,146 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(section).not_to have_key("add_label")
     end
 
+    it "supports nested_fields with json_field" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :recipe
+        form do
+          nested_fields "Steps", json_field: :steps, columns: 2 do
+            field :instruction, type: :string, label: "Instruction"
+            field :duration, type: :integer, label: "Duration"
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section["type"]).to eq("nested_fields")
+      expect(section["json_field"]).to eq("steps")
+      expect(section).not_to have_key("association")
+      expect(section["columns"]).to eq(2)
+      expect(section["fields"].length).to eq(2)
+      expect(section["fields"][0]["field"]).to eq("instruction")
+      expect(section["fields"][0]["type"]).to eq("string")
+    end
+
+    it "supports nested_fields with json_field and target_model" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :order
+        form do
+          nested_fields "Addresses", json_field: :addresses, target_model: :address do
+            field :street
+            field :city
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section["json_field"]).to eq("addresses")
+      expect(section["target_model"]).to eq("address")
+    end
+
+    it "raises error when both association and json_field given" do
+      builder = described_class.new(:test)
+      expect {
+        builder.instance_eval do
+          model :order
+          form do
+            nested_fields "Items", association: :items, json_field: :data do
+              field :name
+            end
+          end
+        end
+      }.to raise_error(ArgumentError, /cannot have both/)
+    end
+
+    it "raises error when neither association nor json_field given" do
+      builder = described_class.new(:test)
+      expect {
+        builder.instance_eval do
+          model :order
+          form do
+            nested_fields "Items" do
+              field :name
+            end
+          end
+        end
+      }.to raise_error(ArgumentError, /requires either/)
+    end
+
+    it "supports nested_fields with sub-sections" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :contact
+        form do
+          nested_fields "Addresses", json_field: :addresses, target_model: :address_def do
+            section "Location", columns: 2 do
+              field :street
+              field :city
+            end
+            section "Details", collapsible: true, collapsed: true do
+              field :notes
+            end
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      section = hash["form"]["sections"][0]
+      expect(section["type"]).to eq("nested_fields")
+      expect(section).not_to have_key("fields")
+      expect(section["sub_sections"]).to be_an(Array)
+      expect(section["sub_sections"].size).to eq(2)
+
+      location = section["sub_sections"][0]
+      expect(location["title"]).to eq("Location")
+      expect(location["columns"]).to eq(2)
+      expect(location["fields"].size).to eq(2)
+      expect(location["fields"][0]["field"]).to eq("street")
+
+      details = section["sub_sections"][1]
+      expect(details["title"]).to eq("Details")
+      expect(details["collapsible"]).to eq(true)
+      expect(details["collapsed"]).to eq(true)
+      expect(details["fields"].size).to eq(1)
+    end
+
+    it "raises error when mixing field and section in nested_fields" do
+      builder = described_class.new(:test)
+      expect {
+        builder.instance_eval do
+          model :contact
+          form do
+            nested_fields "Addresses", json_field: :addresses do
+              field :street
+              section "Details" do
+                field :notes
+              end
+            end
+          end
+        end
+      }.to raise_error(ArgumentError, /Cannot mix field and section/)
+    end
+
+    it "raises error when mixing section and field in nested_fields" do
+      builder = described_class.new(:test)
+      expect {
+        builder.instance_eval do
+          model :contact
+          form do
+            nested_fields "Addresses", json_field: :addresses do
+              section "Location" do
+                field :street
+              end
+              field :notes
+            end
+          end
+        end
+      }.to raise_error(ArgumentError, /Cannot mix field and section/)
+    end
+
     it "supports divider pseudo-field" do
       builder = described_class.new(:test)
       builder.instance_eval do

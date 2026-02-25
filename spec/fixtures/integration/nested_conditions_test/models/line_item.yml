@@ -1,0 +1,47 @@
+model:
+  name: line_item
+  label: "Line Item"
+  label_plural: "Line Items"
+
+  fields:
+    - name: item_type
+      type: enum
+      label: "Type"
+      enum_values:
+        - { value: product, label: "Product" }
+        - { value: service, label: "Service" }
+        - { value: discount, label: "Discount" }
+      default: product
+
+    - name: description
+      type: string
+      label: "Description"
+
+    - name: quantity
+      type: integer
+      label: "Quantity"
+      default: 1
+
+    - name: unit_price
+      type: decimal
+      label: "Unit Price"
+
+    - name: discount_percent
+      type: decimal
+      label: "Discount %"
+
+    - name: notes
+      type: text
+      label: "Notes"
+
+  associations:
+    - type: belongs_to
+      name: order
+      target_model: order
+      foreign_key: order_id
+      required: true
+      inverse_of: line_items
+
+  options:
+    timestamps: true
+    label_method: description

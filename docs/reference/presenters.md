@@ -1379,15 +1379,21 @@ Info pseudo-fields work in both `form` and `show` sections.
 
 #### Nested Fields
 
-Use `type: nested_fields` to manage associated records inline within the parent form. This is useful for `has_many` relationships where you want to create, edit, and delete child records without leaving the form.
+Use `type: nested_fields` to manage a list of structured items inline within the parent form. Items can come from three different data sources, all rendered through the same pipeline:
+
+| Source | Config Key | Data Origin | Persistence |
+|--------|-----------|-------------|-------------|
+| Association | `association:` | has_many child records | `accepts_nested_attributes_for` |
+| JSON field (inline) | `json_field:` | JSON column value | JSON array in single column |
+| JSON field (model-backed) | `json_field:` + `target_model:` | JSON column value | JSON array, virtual model field defs |
+
+##### Association Source
+
+The most common mode — edits `has_many` child records inline:
 
 ```yaml
 form:
   sections:
-    - title: "Order Details"
-      fields:
-        - { field: customer_id, input_type: association_select }
-        - { field: order_date, input_type: date }
     - title: "Line Items"
       type: nested_fields
       association: line_items
@@ -1396,27 +1402,163 @@ form:
       add_label: "Add Line Item"
       min: 1
       max: 20
-      empty_message: "No line items yet. Click 'Add Line Item' to begin."
+      columns: 3
       fields:
         - { field: product_id, input_type: association_select }
         - { field: quantity, input_type: number }
         - { field: unit_price, input_type: number, prefix: "$" }
 ```
 
+##### JSON Field Source (Inline)
+
+Stores items as a JSON array of hashes in a single column. Field types and labels are declared directly in the presenter — no separate model needed:
+
+```yaml
+form:
+  sections:
+    - title: "Workflow Steps"
+      type: nested_fields
+      json_field: steps
+      sortable: true
+      allow_add: true
+      allow_remove: true
+      columns: 2
+      fields:
+        - { field: name, type: string, label: "Step Name" }
+        - field: action_type
+          type: string
+          input_type: select
+          options: [review, approve, notify]
+        - field: timeout_days
+          type: integer
+          label: "Timeout (days)"
+          visible_when: { field: action_type, operator: eq, value: review }
+```
+
+The parent model must have a `json` type field (e.g., `steps: json`). Each item is stored as a hash in the array. Inline mode is best for simple, ad-hoc structures where creating a full model definition is unnecessary.
+
+##### JSON Field Source (Model-Backed)
+
+For complex, reusable structures that need validations, transforms, or custom types. The item structure is defined as a virtual model (`table_name: _virtual`):
+
+```yaml
+# config/lcp_ruby/models/address.yml
+model:
+  name: address
+  table_name: _virtual
+  fields:
+    - name: street
+      type: string
+      validations: [{ type: presence }]
+    - name: city
+      type: string
+      validations: [{ type: presence }]
+    - name: zip
+      type: string
+    - name: country
+      type: string
+      default: "CZ"
+```
+
+The presenter references the virtual model via `target_model:`:
+
+```yaml
+# Presenter section
+- title: "Addresses"
+  type: nested_fields
+  json_field: addresses
+  target_model: address
+  allow_add: true
+  allow_remove: true
+  columns: 2
+  fields:
+    - { field: street }
+    - { field: city }
+    - { field: zip }
+    - { field: country }
+```
+
+Field definitions (type, label, validations) come from the target model. Each item is wrapped in a `JsonItemWrapper` for form rendering and validated against the model's rules on save. See [Virtual Models](models.md#virtual-models) for details.
+
+##### Sub-Sections in Nested Rows
+
+For complex items with many fields, use `sub_sections` instead of `fields` to group fields within each row:
+
+```yaml
+- title: "Addresses"
+  type: nested_fields
+  json_field: addresses
+  target_model: address
+  allow_add: true
+  allow_remove: true
+  sub_sections:
+    - title: "Location"
+      columns: 2
+      fields:
+        - { field: street }
+        - { field: city }
+        - { field: zip }
+        - { field: country }
+    - title: "Additional"
+      columns: 1
+      collapsible: true
+      collapsed: true
+      fields:
+        - { field: notes }
+        - { field: is_primary, input_type: boolean }
+```
+
+Each sub-section renders as a `<fieldset>` inside the row. Sub-sections support `collapsible`/`collapsed`, `visible_when`, `disable_when`, and their own `columns` grid. You cannot mix `fields` and `sub_sections` in the same section — use one or the other.
+
+##### Field-Level Conditions in Nested Rows
+
+Fields inside nested rows support `visible_when` and `disable_when` conditions, evaluated against the **current row's data** (not the parent record). This works for both association and JSON field sources:
+
+```yaml
+fields:
+  - { field: item_type, input_type: select }
+  - field: discount_percent
+    input_type: number
+    visible_when: { field: item_type, operator: eq, value: discount }
+    hint: "Enter discount percentage"
+    col_span: 2
+  - field: notes
+    visible_when: { field: item_type, operator: in, value: "service,discount" }
+    prefix: "Note:"
+```
+
+Each row gets a `data-lcp-condition-scope` attribute that scopes the JavaScript field lookup to the current row container. This prevents cross-row interference when multiple rows have fields with the same name. See [Row-Scoped Conditions](../guides/conditional-rendering.md#row-scoped-conditions-in-nested-fields) for details.
+
 ##### Nested Fields Section Attributes
 
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `type` | string | - | Must be `"nested_fields"` |
-| `association` | string | - | Name of the `has_many` association on the parent model |
-| `allow_add` | boolean | `true` | Show a button to add new child records |
-| `allow_remove` | boolean | `true` | Show a remove button on each child record row |
+| `association` | string | - | Name of the `has_many` association (mutually exclusive with `json_field`) |
+| `json_field` | string | - | JSON column name to store items as array of hashes (mutually exclusive with `association`) |
+| `target_model` | string | - | Virtual model name defining item structure and validations (only with `json_field`) |
+| `allow_add` | boolean | `true` | Show a button to add new items |
+| `allow_remove` | boolean | `true` | Show a remove button on each row |
 | `add_label` | string | `"Add"` | Label for the add button |
-| `min` | integer | - | Minimum number of child records required |
-| `max` | integer | - | Maximum number of child records allowed |
-| `empty_message` | string | - | Message displayed when there are no child records |
-| `fields` | array | - | Field definitions for each child record row (same format as form fields) |
-| `sortable` | boolean or string | `false` | Enable drag-and-drop reordering. Set to `true` to use a `position` field, or a string to specify a custom position field name |
+| `min` | integer | - | Minimum number of items required |
+| `max` | integer | - | Maximum number of items allowed |
+| `empty_message` | string | - | Message displayed when there are no items |
+| `columns` | integer | - | Number of grid columns for each row's field layout |
+| `fields` | array | - | Field definitions for each row (mutually exclusive with `sub_sections`) |
+| `sub_sections` | array | - | Sub-section definitions for grouping fields within rows (mutually exclusive with `fields`) |
+| `sortable` | boolean or string | `false` | Enable drag-and-drop reordering. `true` uses `position` field, or a string for a custom field name |
+
+##### Sub-Section Attributes
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `title` | string | - | Sub-section heading (renders as `<legend>`) |
+| `columns` | integer | - | Number of grid columns for this sub-section's fields |
+| `collapsible` | boolean | `false` | Whether the sub-section can be collapsed/expanded |
+| `collapsed` | boolean | `false` | Whether the sub-section starts collapsed (requires `collapsible: true`) |
+| `visible_when` | hash | - | Condition for sub-section visibility (evaluated against the current row) |
+| `disable_when` | hash | - | Condition for sub-section disabling |
+| `fields` | array | - | Field definitions for this sub-section |
 
 ##### Sortable Nested Forms
 
@@ -1434,7 +1576,7 @@ form:
         - { field: quantity, input_type: number }
 ```
 
-The child model should have an integer position field, and the parent association should specify `order: { position: asc }` to load children in the correct order.
+The child model should have an integer position field, and the parent association should specify `order: { position: asc }` to load children in the correct order. For JSON field items, array order is the position — no position key needed.
 
 **Custom position field name:**
 

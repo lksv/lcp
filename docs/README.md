@@ -57,6 +57,7 @@ Implemented:
 - [External Field Accessors](design/fields_accessors.md) — Virtual fields with `source: external` and `source: { service: }` accessor delegation
 - [Unified Condition Operators](design/unified_condition_operators.md) — Strict condition evaluation, shared 12-operator set across all contexts
 - [Record Rules Action Visibility](design/record_rules_action_visibility.md) — Automatic hiding of edit/destroy buttons based on record_rules
+- [Inline Collection Editor](design/inline_collection_editor.md) — Unified editing for nested associations, JSON arrays, and bulk records: row-scoped conditions, JSON field source, virtual models, sub-sections, presenter-driven manage page
 
 Proposed:
 

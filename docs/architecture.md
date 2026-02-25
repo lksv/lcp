@@ -15,6 +15,7 @@ YAML metadata (config/lcp_ruby/)
                                 ↓
               ModelFactory::Builder.build → LcpRuby::Dynamic::<Name>
               (creates AR class + DB table + validations + transforms + associations + scopes)
+              (virtual models with table_name: _virtual are skipped — metadata only, no AR class)
                                 ↓
               LcpRuby.registry.register(name, model_class)
                                 ↓
@@ -70,9 +71,9 @@ Business type system that bundles storage type, transforms, validations, and UI 
 
 Builds dynamic ActiveRecord models from metadata definitions.
 
-- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace, applies enums, validations, transforms, associations, scopes, callbacks, positioning, label method, and registers the model in the Registry
+- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace, applies enums, validations, transforms, associations, scopes, callbacks, positioning, label method, and registers the model in the Registry. Virtual models (`table_name: _virtual`) are skipped entirely — no AR class or DB table
 - **PositioningApplicator** — applies the `positioning` gem's `positioned` macro with column and scope configuration; enables automatic position management (insert at end, gap closing on destroy, atomic reorder)
-- **SchemaManager** — auto-creates/updates DB tables when `auto_migrate: true` is set in configuration; merges type-level column_options before field-level (field wins)
+- **SchemaManager** — auto-creates/updates DB tables when `auto_migrate: true` is set in configuration; merges type-level column_options before field-level (field wins); skips virtual models
 - **ValidationApplicator** — applies AR validations from metadata (standard + custom); after explicit field validations, applies type-default validations (skips if field already has a validation of the same type)
 - **TransformApplicator** — for fields with transforms, assembles transform chain from `Services::Registry` and applies `model_class.normalizes :field, with: -> { chain }`
 - **AssociationApplicator** — sets up belongs_to, has_many, has_one with options (foreign_key, class_name, dependent, required)
@@ -101,7 +102,7 @@ Unified condition evaluation for record rules, action visibility, and conditiona
 UI layer that determines what to display and how.
 
 - **Resolver** — `find_by_name`, `find_by_slug`, `presenters_for_model`, `routable_presenters`
-- **LayoutBuilder** — builds `form_sections` and `show_sections`; enriches FK fields with synthetic FieldDefinition + AssociationDefinition via foreign_key metadata matching
+- **LayoutBuilder** — builds `form_sections` and `show_sections`; enriches FK fields with synthetic FieldDefinition + AssociationDefinition via foreign_key metadata matching; `normalize_json_field_section` handles `json_field:` sections (inline field defs or model-backed via `target_model:`); enriches sub-sections for complex nested row layouts
 - **ColumnSet** — permission-filtered `visible_table_columns`, `visible_form_fields`, `visible_show_fields`; `fk_association_map` returns FK-to-association mapping filtered by visible columns (used by index view to render associated object labels instead of raw FK integers)
 - **ActionSet** — permission-filtered `collection_actions`, `single_actions` (with record_rules via `can_for_record?`, visibility conditions via ConditionEvaluator, and disable conditions), `batch_actions`
 - **IncludesResolver** — auto-detects and resolves association eager loading from presenter metadata. Sub-components: `AssociationDependency` (value object), `DependencyCollector` (gathers deps from presenter/sort/search/manual config), `StrategyResolver` (maps deps to includes/eager_load/joins), `LoadingStrategy` (applies to AR scope)
@@ -152,6 +153,26 @@ Runtime user-defined fields stored in a JSONB/JSON `custom_data` column.
 - **Setup** — shared boot logic used by both `Engine.load_metadata!` and test helper; orchestrates registry, handlers, accessors, and scopes
 - **Utils** — `safe_parse_json` and `safe_to_decimal` with environment-aware error handling (raise in dev/test, log in production)
 
+### JsonItemWrapper (`lib/lcp_ruby/json_item_wrapper.rb`)
+
+ActiveModel wrapper for plain hash items stored in JSON arrays. Used when `nested_fields` sections have `json_field:` + `target_model:`.
+
+- Wraps a single hash item with dynamic getter/setter methods from the virtual model's `FieldDefinition` objects
+- Type coercion on read: integer, float, decimal, boolean (strings like `"42"` → `42`, `"1"` → `true`)
+- `validate_with_model_rules!` — runs presence, length, numericality, inclusion, format validations from the model definition; adds errors to `ActiveModel::Errors`
+- `to_hash` — returns the underlying data hash for JSON persistence
+- `method_missing` fallback for arbitrary hash keys (used without a model definition in inline mode)
+
+**Data flow:**
+```
+JSON column value (Array<Hash>)
+  → ResourcesController.process_json_field_params
+    → each hash wrapped in JsonItemWrapper.new(hash, model_definition)
+    → validate_with_model_rules! per item
+    → if valid: item.to_hash → cleaned array → assigned to JSON column
+    → if invalid: errors collected → render form with errors
+```
+
 ### Routing (`lib/lcp_ruby/routing/`)
 
 - **PresenterRoutes** — exists but is unused; only static engine routes defined in `config/routes.rb` are active
@@ -172,7 +193,8 @@ Runtime user-defined fields stored in a JSONB/JSON `custom_data` column.
 - CRUD: `index`, `show`, `new`, `create`, `edit`, `update`, `destroy`
 - Index pipeline: `policy_scope` -> `apply_search` -> `apply_sort` -> paginate (Kaminari)
 - Search: predefined_filters (scope-based) + text search (LIKE on searchable_fields)
-- `permitted_params`: writable fields + FK fields from belongs_to associations + custom field names (when `custom_data` is writable)
+- `permitted_params`: writable fields + FK fields from belongs_to associations + custom field names (when `custom_data` is writable); excludes JSON columns handled by `process_json_field_params`
+- `process_json_field_params`: processes `json_field:` sections from presenter — parses hash-of-hashes params into array, filters `_remove` flagged items, strips blank items, whitelists allowed field keys, validates model-backed items via `JsonItemWrapper`, assigns cleaned array to JSON column
 
 ### ActionsController (`app/controllers/lcp_ruby/actions_controller.rb`)
 

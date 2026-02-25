@@ -1,0 +1,82 @@
+<% prefix = "definitions[#{index}]" %>
+<% is_disabled = local_assigns.fetch(:disabled, false) %>
+<%# lcp-nested-row is required for shared drag-drop support in nested_forms.js %>
+<div class="lcp-manage-row lcp-nested-row" data-lcp-condition-scope>
+  <fieldset <%= "disabled" if is_disabled %> style="border: none; padding: 0; margin: 0;">
+  <div class="lcp-manage-summary">
+    <span class="lcp-drag-handle">&#9776;</span>
+    <div class="lcp-manage-summary-fields">
+      <%# Render summary fields: first section from presenter (pre-computed and passed as local) %>
+      <% sections = form_sections %>
+      <% summary_section = sections.first %>
+      <% if summary_section %>
+        <% (summary_section["fields"] || []).first(4).each do |field_config| %>
+          <% field_name = field_config["field"] %>
+          <% next unless field_name %>
+          <% field_def = field_config["field_definition"] %>
+          <% next unless field_def %>
+
+          <% resolved_input = field_config["input_type"] || field_def.type %>
+          <div class="lcp-manage-field lcp-manage-field-summary">
+            <label><%= field_def.label %></label>
+            <%= render_manage_input(prefix, field_name, resolved_input, field_config, field_def, defn, field_options) %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+    <button type="button" class="btn btn-sm lcp-manage-expand"><%= t("lcp_ruby.manage.details") %></button>
+    <button type="button" class="btn btn-sm btn-danger lcp-manage-remove-btn"><%= t("lcp_ruby.manage.remove") %></button>
+  </div>
+
+  <div class="lcp-manage-detail" style="display: none;">
+    <%# Render remaining sections with their conditions %>
+    <% sections.drop(1).each do |section| %>
+      <%
+        section_visible = section["visible_when"].is_a?(Hash) ? condition_met?(defn, section["visible_when"]) : true
+        section_cond_attrs = conditional_data(section)
+        section_style_parts = []
+        section_style_parts << "display: none" unless section_visible
+      %>
+      <fieldset class="lcp-form-section"
+                <% if section_cond_attrs.any? %>data-lcp-conditional="section"<% end %>
+                <%= tag.attributes(section_cond_attrs) %>
+                <% if section_style_parts.any? %>style="<%= section_style_parts.join('; ') %>"<% end %>>
+        <legend><%= section["title"] %></legend>
+        <div class="lcp-form-fields lcp-grid"
+             style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;">
+          <% (section["fields"] || []).each do |field_config| %>
+            <% field_name = field_config["field"] %>
+            <% next unless field_name %>
+            <% field_def = field_config["field_definition"] %>
+            <% next unless field_def %>
+
+            <%
+              field_visible = field_config["visible_when"].is_a?(Hash) ? condition_met?(defn, field_config["visible_when"]) : true
+              field_cond_attrs = conditional_data(field_config)
+              field_style_parts = []
+              field_style_parts << "display: none" unless field_visible
+              field_style_parts << "grid-column: span #{field_config['col_span']}" if field_config["col_span"]
+            %>
+
+            <div class="lcp-form-field"
+                 <% if field_cond_attrs.any? %>data-lcp-conditional="field" data-lcp-field-name="<%= field_name %>"<% end %>
+                 <%= tag.attributes(field_cond_attrs) %>
+                 <% if field_style_parts.any? %>style="<%= field_style_parts.join('; ') %>"<% end %>>
+              <label><%= field_def.label %></label>
+              <% resolved_input = field_config["input_type"] || field_def.type %>
+              <%= render_manage_input(prefix, field_name, resolved_input, field_config, field_def, defn, field_options) %>
+            </div>
+          <% end %>
+        </div>
+      </fieldset>
+    <% end %>
+  </div>
+
+  <%# Hidden fields for ID and remove flag %>
+  <% if defn.respond_to?(:id) && defn.id.present? %>
+    <input type="hidden" name="<%= prefix %>[id]" value="<%= defn.id %>">
+  <% end %>
+  <input type="hidden" name="<%= prefix %>[_remove]" value="0" class="lcp-manage-remove-flag">
+  <input type="hidden" name="<%= prefix %>[position]" value="<%= defn.respond_to?(:position) ? defn.position : index %>" class="lcp-position-field">
+  </fieldset>
+</div>

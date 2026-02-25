@@ -38,12 +38,15 @@
   function applyConditions(form) {
     var elements = form.querySelectorAll('[data-lcp-conditional]');
     elements.forEach(function(el) {
+      /* Determine condition scope: row-level for nested fields, form-level otherwise */
+      var scope = el.closest('[data-lcp-condition-scope]') || form;
+
       /* visible_when */
       var visField = el.getAttribute('data-lcp-visible-field');
       if (visField) {
         var visOp = el.getAttribute('data-lcp-visible-operator') || 'eq';
         var visVal = el.getAttribute('data-lcp-visible-value');
-        var fieldValue = getFieldValue(form, visField);
+        var fieldValue = getFieldValue(scope, visField);
         var visible = evaluateCondition(fieldValue, visOp, visVal);
         el.style.display = visible ? '' : 'none';
 
@@ -65,7 +68,7 @@
       if (disField) {
         var disOp = el.getAttribute('data-lcp-disable-operator') || 'eq';
         var disVal = el.getAttribute('data-lcp-disable-value');
-        var disFieldValue = getFieldValue(form, disField);
+        var disFieldValue = getFieldValue(scope, disField);
         var disabled = evaluateCondition(disFieldValue, disOp, disVal);
         if (disabled) {
           el.classList.add('lcp-conditionally-disabled');

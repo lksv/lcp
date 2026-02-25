@@ -56,7 +56,7 @@
             if (dependsOn) {
               var parentForm = selectEl.closest('form');
               if (parentForm) {
-                var parentValue = getFieldValue(parentForm, dependsOn);
+                var parentValue = getFieldValue(parentForm, dependsOn); /* form-level scope */
                 if (parentValue) {
                   url += '&depends_on[' + encodeURIComponent(dependsOn) + ']=' + encodeURIComponent(parentValue);
                 }

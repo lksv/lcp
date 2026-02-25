@@ -6,6 +6,9 @@
     <% end %>
     <div class="lcp-toolbar">
       <%= render "lcp_ruby/resources/view_switcher" %>
+      <% if defined?(@manage_path) && @manage_path %>
+        <%= link_to t("lcp_ruby.manage.manage_all"), @manage_path, class: "btn" %>
+      <% end %>
       <% @action_set.collection_actions.each do |action| %>
 
         <% if action["type"] == "built_in" && action["name"] == "create" %>

@@ -66,20 +66,23 @@ define_presenter :custom_fields do
       field :description, col_span: 2
     end
 
-    section "Text Constraints", columns: 2 do
+    section "Text Constraints", columns: 2,
+            visible_when: { field: :custom_type, operator: :in, value: "string,text" } do
       field :min_length
       field :max_length
       field :default_value
       field :placeholder
     end
 
-    section "Numeric Constraints", columns: 2 do
+    section "Numeric Constraints", columns: 2,
+            visible_when: { field: :custom_type, operator: :in, value: "integer,float,decimal" } do
       field :min_value
       field :max_value
-      field :precision
+      field :precision, visible_when: { field: :custom_type, operator: :eq, value: "decimal" }
     end
 
-    section "Enum Values" do
+    section "Enum Values",
+            visible_when: { field: :custom_type, operator: :eq, value: "enum" } do
       field :enum_values
     end
 

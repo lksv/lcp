@@ -15,6 +15,16 @@ en:
     tree_select:
       expand: "Expand"
       collapse: "Collapse"
+    manage:
+      details: "Details"
+      collapse: "Collapse"
+      add_field: "Add Field"
+      save_all: "Save All"
+      back_to_list: "Back to List"
+      manage_all: "Manage All"
+      manage_custom_fields: "Manage Custom Fields"
+      cancel: "Cancel"
+      remove: "Remove"
     breadcrumbs:
       home: "Home"
       edit: "Edit"

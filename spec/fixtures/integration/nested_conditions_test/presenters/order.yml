@@ -1,0 +1,49 @@
+presenter:
+  name: order
+  model: order
+  label: "Orders"
+  slug: orders
+
+  index:
+    table_columns:
+      - { field: title, link_to: show }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+
+  form:
+    sections:
+      - title: "Order Details"
+        fields:
+          - { field: title }
+      - title: "Line Items"
+        type: nested_fields
+        association: line_items
+        allow_add: true
+        allow_remove: true
+        columns: 4
+        fields:
+          - { field: item_type, input_type: select }
+          - { field: description }
+          - { field: quantity, input_type: number }
+          - { field: unit_price, input_type: number }
+          - field: discount_percent
+            input_type: number
+            visible_when: { field: item_type, operator: eq, value: discount }
+            hint: "Enter discount percentage"
+            col_span: 2
+          - field: notes
+            input_type: text
+            visible_when: { field: item_type, operator: in, value: "service,discount" }
+            prefix: "Note:"
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

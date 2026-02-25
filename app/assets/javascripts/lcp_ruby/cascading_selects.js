@@ -22,7 +22,7 @@
     if (!parentInputs.length) return;
 
     function handleParentChange() {
-      var parentValue = getFieldValue(form, parentFieldName);
+      var parentValue = getFieldValue(form, parentFieldName); /* form-level scope */
       var fieldName = dep.name.replace(/^record\[/, '').replace(/\]$/, '');
 
       // When parent is blank, just clear the dependent — no fetch needed
