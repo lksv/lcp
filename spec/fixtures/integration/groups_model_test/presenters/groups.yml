@@ -1,0 +1,40 @@
+presenter:
+  name: groups
+  model: group
+  label: "Groups"
+  slug: groups
+  icon: users
+
+  index:
+    default_view: table
+    per_page: 25
+    table_columns:
+      - { field: name, sortable: true }
+      - { field: label }
+      - { field: active, renderer: boolean }
+
+  show:
+    layout:
+      - section: "Group Details"
+        fields:
+          - { field: name }
+          - { field: label }
+          - { field: description }
+          - { field: active }
+
+  form:
+    sections:
+      - title: "Group Details"
+        fields:
+          - { field: name }
+          - { field: label }
+          - { field: description, input_type: text }
+          - { field: active, input_type: boolean }
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Group", icon: plus }
+    single:
+      - { name: show, type: built_in, icon: eye }
+      - { name: edit, type: built_in, icon: pencil }
+      - { name: destroy, type: built_in, icon: trash, confirm: true }

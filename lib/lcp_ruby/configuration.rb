@@ -16,9 +16,14 @@ module LcpRuby
                   :auth_after_login_path,
                   :auth_after_logout_path
 
-    attr_reader :menu_mode, :authentication, :role_source, :permission_source, :model_extensions
+    attr_reader :menu_mode, :authentication, :role_source, :permission_source,
+                :group_source, :role_resolution_strategy, :model_extensions
     attr_accessor :role_model, :role_model_fields,
-                  :permission_model, :permission_model_fields
+                  :permission_model, :permission_model_fields,
+                  :group_method, :group_model, :group_model_fields,
+                  :group_membership_model, :group_membership_fields,
+                  :group_role_mapping_model, :group_role_mapping_fields,
+                  :group_adapter
 
     def menu_mode=(value)
       @menu_mode = value&.to_sym
@@ -48,6 +53,22 @@ module LcpRuby
       @permission_source = value
     end
 
+    def group_source=(value)
+      value = value&.to_sym
+      unless %i[none yaml model host].include?(value)
+        raise ArgumentError, "group_source must be :none, :yaml, :model, or :host (got #{value.inspect})"
+      end
+      @group_source = value
+    end
+
+    def role_resolution_strategy=(value)
+      value = value&.to_sym
+      unless %i[merged groups_only direct_only].include?(value)
+        raise ArgumentError, "role_resolution_strategy must be :merged, :groups_only, or :direct_only (got #{value.inspect})"
+      end
+      @role_resolution_strategy = value
+    end
+
     def initialize
       @metadata_path = Rails.root.join("config", "lcp_ruby") if defined?(Rails)
       @role_method = :lcp_role
@@ -73,6 +94,18 @@ module LcpRuby
       @permission_source = :yaml
       @permission_model = "permission_config"
       @permission_model_fields = { target_model: "target_model", definition: "definition", active: "active" }
+
+      # Group source defaults
+      @group_source = :none
+      @group_method = :lcp_groups
+      @group_model = "group"
+      @group_model_fields = { name: "name", active: "active" }
+      @group_membership_model = "group_membership"
+      @group_membership_fields = { group: "group_id", user: "user_id" }
+      @group_role_mapping_model = nil
+      @group_role_mapping_fields = { group: "group_id", role: "role_name" }
+      @group_adapter = nil
+      @role_resolution_strategy = :merged
 
       # Authentication defaults
       @authentication = :external

@@ -767,6 +767,68 @@ PermConfigModel = LcpRuby.registry.model_for("permission_config")
 ].each { |attrs| PermConfigModel.create!(attrs) }
 puts "  Created #{PermConfigModel.count} permission config records"
 
+# Phase 8c: Groups
+GroupModel = LcpRuby.registry.model_for("group")
+MembershipModel = LcpRuby.registry.model_for("group_membership")
+RoleMappingModel = LcpRuby.registry.model_for("group_role_mapping")
+
+engineering = GroupModel.create!(
+  name: "engineering", label: "Engineering Team",
+  description: "Software engineers and technical staff responsible for product development.",
+  source: "manual", active: true
+)
+design = GroupModel.create!(
+  name: "design", label: "Design Team",
+  description: "UX/UI designers and product design professionals.",
+  source: "manual", active: true
+)
+management = GroupModel.create!(
+  name: "management", label: "Management",
+  description: "Department heads and project managers with administrative access.",
+  source: "manual", active: true
+)
+contractors = GroupModel.create!(
+  name: "contractors", label: "External Contractors",
+  description: "External contractors with limited read-only access.",
+  external_id: "CN=Contractors,OU=External,DC=corp,DC=com",
+  source: "api", active: true
+)
+legacy_team = GroupModel.create!(
+  name: "legacy_team", label: "Legacy Team (Inactive)",
+  description: "Former team that has been dissolved. Kept for audit purposes.",
+  external_id: "CN=LegacyTeam,OU=Archived,DC=corp,DC=com",
+  source: "ldap", active: false
+)
+
+# Memberships — link employee user IDs to groups
+[
+  { group: engineering, user_id: 1, source: "manual" },
+  { group: engineering, user_id: 2, source: "manual" },
+  { group: engineering, user_id: 3, source: "ldap" },
+  { group: design, user_id: 4, source: "manual" },
+  { group: design, user_id: 5, source: "manual" },
+  { group: design, user_id: 2, source: "manual" },
+  { group: management, user_id: 6, source: "manual" },
+  { group: management, user_id: 7, source: "manual" },
+  { group: contractors, user_id: 8, source: "api" },
+  { group: contractors, user_id: 9, source: "api" },
+  { group: contractors, user_id: 10, source: "api" },
+  { group: legacy_team, user_id: 11, source: "ldap" },
+  { group: legacy_team, user_id: 12, source: "ldap" },
+  { group: engineering, user_id: 6, source: "manual" }
+].each { |attrs| MembershipModel.create!(attrs) }
+
+# Role mappings — map groups to authorization roles
+[
+  { group: engineering, role_name: "editor" },
+  { group: engineering, role_name: "viewer" },
+  { group: design, role_name: "editor" },
+  { group: management, role_name: "admin" },
+  { group: contractors, role_name: "viewer" }
+].each { |attrs| RoleMappingModel.create!(attrs) }
+
+puts "  Created #{GroupModel.count} groups, #{MembershipModel.count} memberships, #{RoleMappingModel.count} role mappings"
+
 # Phase 9: Extensibility (was Phase 8)
 ExtModel = LcpRuby.registry.model_for("showcase_extensibility")
 
@@ -1588,6 +1650,134 @@ features = [
     config_example: "```bash\n# Generate permission source files (DSL format)\nrails generate lcp_ruby:permission_source\n\n# Generate in YAML format\nrails generate lcp_ruby:permission_source --format=yaml\n\n# Creates:\n#   config/lcp_ruby/models/permission_config.rb (or .yml)\n#   config/lcp_ruby/presenters/permission_configs.rb (or .yml)\n#   config/lcp_ruby/permissions/permission_config.yml\n#   config/lcp_ruby/views/permission_configs.rb (or .yml)\n# Updates:\n#   config/initializers/lcp_ruby.rb → adds permission_source = :model\n```",
     demo_path: "/showcase/permission-configs",
     demo_hint: "The showcase permission_config model was created manually (using Ruby DSL), but the generator produces equivalent files.",
+    status: "stable"
+  },
+
+  # === Groups ===
+  {
+    name: "Groups Overview",
+    category: "groups",
+    description: "Organizational groups map users to authorization roles via memberships and role mappings. Groups follow the **Configuration Source Principle** — three input sources:\n\n| Source | Config | Description |\n|--------|--------|-------------|\n| YAML | `groups.yml` | Static groups defined in code |\n| DB Model | `group_source: :model` | Runtime-managed via generated UI |\n| Host Adapter | `group_source: :host` | Enterprise integration (LDAP/AD) |\n\nComplexity levels: membership-only (simple), with role mapping (standard), with host adapter (enterprise).",
+    config_example: "```ruby\n# config/initializers/lcp_ruby.rb\nLcpRuby.configure do |config|\n  config.group_source = :model          # :none, :yaml, :model, :host\n  config.group_role_mapping_model = \"group_role_mapping\"\n  config.role_resolution_strategy = :merged  # :merged, :groups_only, :direct_only\nend\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "Browse the **Groups** section to see 5 groups with different sources (manual, ldap, api). Use the Active/Inactive filters.",
+    status: "stable"
+  },
+  {
+    name: "YAML Groups (Static)",
+    category: "groups",
+    description: "Define groups statically in `config/lcp_ruby/groups.yml`. Groups are loaded at boot and available through the Groups Registry.\n\nIdeal for fixed organizational structures that don't change at runtime.",
+    config_example: "```yaml\n# config/lcp_ruby/groups.yml\ngroups:\n  - name: engineering\n    label: \"Engineering Team\"\n    roles: [editor, viewer]\n  - name: management\n    label: \"Management\"\n    roles: [admin]\n```\n\n```ruby\n# config/initializers/lcp_ruby.rb\nconfig.group_source = :yaml\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "The showcase uses DB-backed groups (`group_source: :model`), but YAML groups follow the same structure as static definitions.",
+    status: "stable"
+  },
+  {
+    name: "DB-Backed Groups (Model)",
+    category: "groups",
+    description: "Store groups as database records for runtime management. Requires 3 models:\n\n| Model | Purpose |\n|-------|---------|\n| `group` | Group definitions (name, label, active) |\n| `group_membership` | User-to-group links |\n| `group_role_mapping` | Group-to-role mappings (optional) |\n\nUse the generator to scaffold all files, then customize as needed.",
+    config_example: "```ruby\n# Generate all group files\nrails generate lcp_ruby:groups\n\n# Creates:\n#   models/group.yml, group_membership.yml, group_role_mapping.yml\n#   presenters/groups.yml\n#   permissions/group.yml\n#   views/groups.yml\n# Updates:\n#   config/initializers/lcp_ruby.rb\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "The showcase demonstrates full DB-backed groups with 5 groups, 14 memberships, and 5 role mappings — all managed through the UI.",
+    status: "stable"
+  },
+  {
+    name: "Group Memberships",
+    category: "groups",
+    description: "Group memberships link users to groups. Each membership records `user_id`, `group_id`, and `source` (how the membership was created).\n\nA user can belong to multiple groups. Source tracking supports audit trails — `manual` (admin-assigned), `ldap` (directory sync), `api` (programmatic).",
+    config_example: "```ruby\ndefine_model :group_membership do\n  field :user_id, :integer, null: false do\n    validates :presence\n  end\n  field :source, :enum, values: %w[manual ldap api], default: \"manual\"\n  belongs_to :group, model: :group, required: true\n  timestamps true\nend\n```",
+    demo_path: "/showcase/group-memberships",
+    demo_hint: "Browse memberships — notice users belonging to multiple groups and different source types (manual, ldap, api).",
+    status: "stable"
+  },
+  {
+    name: "Group Role Mappings",
+    category: "groups",
+    description: "Role mappings connect groups to authorization roles. When a user belongs to a group, they automatically inherit all roles mapped to that group.\n\nA group can map to multiple roles (e.g., engineering → editor + viewer). Role mapping is optional — groups can exist without it for membership-only use cases.",
+    config_example: "```ruby\ndefine_model :group_role_mapping do\n  field :role_name, :string, limit: 50, null: false do\n    validates :presence\n  end\n  belongs_to :group, model: :group, required: true\n  timestamps true\nend\n```\n\n```ruby\n# Enable role mapping in config\nconfig.group_role_mapping_model = \"group_role_mapping\"\n```",
+    demo_path: "/showcase/group-role-mappings",
+    demo_hint: "See how engineering maps to editor+viewer, management maps to admin, and contractors map to viewer only.",
+    status: "stable"
+  },
+  {
+    name: "Role Resolution: Merged",
+    category: "groups",
+    description: "The default strategy (`role_resolution_strategy: :merged`) combines direct user roles with group-inherited roles. The union of all roles is used for authorization.\n\nExample: User has direct role `viewer` + group role `editor` → evaluated as `[viewer, editor]`. The most permissive role wins for each CRUD check.",
+    config_example: "```ruby\nconfig.role_resolution_strategy = :merged\n\n# User with direct role \"viewer\" in group \"engineering\" (mapped to \"editor\")\n# Resolved roles: [\"viewer\", \"editor\"]\n# Authorization uses the union — gets editor's create + viewer's read access\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "The showcase uses `:merged` strategy. Users inherit roles from groups in addition to their direct role assignments.",
+    status: "stable"
+  },
+  {
+    name: "Role Resolution: Groups Only",
+    category: "groups",
+    description: "With `role_resolution_strategy: :groups_only`, direct role assignments on the user are ignored. Only group-inherited roles are used for authorization.\n\nUseful when you want groups to be the single source of truth for role management.",
+    config_example: "```ruby\nconfig.role_resolution_strategy = :groups_only\n\n# User has direct role \"admin\" in group \"contractors\" (mapped to \"viewer\")\n# Resolved roles: [\"viewer\"]  — direct \"admin\" is ignored\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "Try changing the strategy in the initializer to `:groups_only` and restarting — direct roles will be ignored.",
+    status: "stable"
+  },
+  {
+    name: "Role Resolution: Direct Only",
+    category: "groups",
+    description: "With `role_resolution_strategy: :direct_only`, group memberships are informational only. Roles come exclusively from the user's direct `lcp_role` attribute.\n\nGroups still work for organizational purposes (querying, reporting) but don't affect authorization.",
+    config_example: "```ruby\nconfig.role_resolution_strategy = :direct_only\n\n# User has direct role \"viewer\" in group \"management\" (mapped to \"admin\")\n# Resolved roles: [\"viewer\"]  — group roles are ignored\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "With `:direct_only`, groups are visible in the UI but don't contribute roles to authorization.",
+    status: "stable"
+  },
+  {
+    name: "Host Adapter (AD/LDAP)",
+    category: "groups",
+    description: "For enterprise environments, use `group_source: :host` and provide an adapter that implements the `Groups::Contract` interface.\n\nThe adapter delegates group lookup to your existing directory service (Active Directory, LDAP, Okta, etc.). The platform never stores group data — it queries on demand.",
+    config_example: "```ruby\n# config/initializers/lcp_ruby.rb\nconfig.group_source = :host\nconfig.group_adapter = MyLdapGroupAdapter.new\n\n# Adapter must implement:\nclass MyLdapGroupAdapter\n  def all_group_names\n    # Return all known group name strings\n    [\"engineering\", \"management\"]\n  end\n\n  def groups_for_user(user)\n    # Query LDAP and return group names\n    [\"engineering\", \"management\"]\n  end\n\n  def roles_for_group(group_name)\n    # Map group to authorization roles\n    { \"engineering\" => [\"editor\"], \"management\" => [\"admin\"] }[group_name] || []\n  end\nend\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "The showcase uses DB-backed groups, but the host adapter interface is identical — swap the source without changing authorization logic.",
+    status: "stable"
+  },
+  {
+    name: "Groups Generator",
+    category: "groups",
+    description: "A Rails generator scaffolds the complete DB-backed groups setup: 3 models, 1 presenter, 1 permission file, 1 view group, and initializer config.\n\nRun once to bootstrap, then customize the generated files (convert to DSL, add extra presenters, etc.).",
+    config_example: "```bash\nrails generate lcp_ruby:groups\n\n# Creates 6 files:\n#   config/lcp_ruby/models/group.yml\n#   config/lcp_ruby/models/group_membership.yml\n#   config/lcp_ruby/models/group_role_mapping.yml\n#   config/lcp_ruby/presenters/groups.yml\n#   config/lcp_ruby/permissions/group.yml\n#   config/lcp_ruby/views/groups.yml\n# Updates:\n#   config/initializers/lcp_ruby.rb → adds group_source + group_role_mapping_model\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "The showcase groups were generated then customized: YAML models converted to DSL, extra presenters added for memberships and role mappings.",
+    status: "stable"
+  },
+  {
+    name: "Group Cache Invalidation",
+    category: "groups",
+    description: "Group registry data is cached in a thread-safe singleton. When group, membership, or role mapping records are saved or destroyed, `after_commit` callbacks automatically invalidate the cache.\n\nThis ensures authorization decisions always reflect the latest group state without requiring a restart.",
+    config_example: "```ruby\n# Automatic — handled by ChangeHandler\n# When a group/membership/mapping is saved or destroyed:\n#   1. Groups::Registry cache is cleared\n#   2. PolicyFactory cache is cleared (policies capture group state)\n#   3. Next authorization check re-queries from DB\n\n# Manual refresh (rarely needed)\nLcpRuby::Groups::Registry.reload!\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "Edit a group or add a membership — changes take effect immediately without restarting the server.",
+    status: "stable"
+  },
+  {
+    name: "Groups Registry API",
+    category: "groups",
+    description: "Access group data programmatically through the `Groups::Registry` singleton. It delegates to the configured loader (YAML, Model, or Host) and caches results.\n\nUseful for building custom logic on top of the group system.",
+    config_example: "```ruby\n# Query the registry\nLcpRuby::Groups::Registry.all_group_names\n# => [\"design\", \"engineering\", \"management\"]\n\nLcpRuby::Groups::Registry.groups_for_user(user)\n# => [\"engineering\", \"design\"]\n\nLcpRuby::Groups::Registry.roles_for_user(user)\n# => [\"editor\", \"viewer\"]\n\nLcpRuby::Groups::Registry.available?\n# => true (when group_source != :none)\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "The registry powers the authorization integration — PermissionEvaluator calls `roles_for_user` during role resolution.",
+    status: "stable"
+  },
+  {
+    name: "Groups with Impersonation",
+    category: "groups",
+    description: "When impersonating a user (\"View as Role X\"), group-inherited roles are suppressed. The impersonated user only has the explicitly selected role(s).\n\nThis prevents group memberships from leaking additional permissions during permission testing.",
+    config_example: "```ruby\n# Normal user: direct role \"viewer\" + group role \"editor\"\n# Resolved roles: [\"viewer\", \"editor\"]\n\n# Impersonating as \"viewer\":\n# Resolved roles: [\"viewer\"]  — group roles suppressed\n# This lets admins test exactly what a viewer-only user sees\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "Use the impersonation feature (admin only) to switch to viewer role — group-inherited roles are suppressed during impersonation.",
+    status: "stable"
+  },
+  {
+    name: "Group Source Configuration",
+    category: "groups",
+    description: "Four source types following the Configuration Source Principle:\n\n| Source | Config | Use Case |\n|--------|--------|----------|\n| `:none` | (default) | Groups disabled |\n| `:yaml` | `groups.yml` | Static groups in code |\n| `:model` | DB tables | Runtime management via UI |\n| `:host` | Adapter class | Enterprise directory integration |\n\nAll sources expose the same Registry API — switching sources is a config change, not a code rewrite.",
+    config_example: "```ruby\n# Disable groups (default)\nconfig.group_source = :none\n\n# Static YAML groups\nconfig.group_source = :yaml\n\n# DB-backed groups with full UI\nconfig.group_source = :model\nconfig.group_role_mapping_model = \"group_role_mapping\"\n\n# Enterprise adapter\nconfig.group_source = :host\nconfig.group_adapter = MyLdapAdapter.new\n```",
+    demo_path: "/showcase/groups",
+    demo_hint: "The showcase uses `:model` source. Check the initializer to see the configuration — swap to `:yaml` or `:host` to test other sources.",
     status: "stable"
   },
 

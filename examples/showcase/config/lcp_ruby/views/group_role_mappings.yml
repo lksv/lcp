@@ -1,0 +1,7 @@
+view_group:
+  model: group_role_mapping
+  primary: group_role_mappings
+  views:
+    - presenter: group_role_mappings
+      label: "Group Role Mappings"
+      icon: shield-check

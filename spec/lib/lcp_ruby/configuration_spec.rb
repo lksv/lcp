@@ -71,6 +71,64 @@ RSpec.describe LcpRuby::Configuration do
     end
   end
 
+  describe "#group_source=" do
+    it "accepts valid values" do
+      %i[none yaml model host].each do |value|
+        config.group_source = value
+        expect(config.group_source).to eq(value)
+      end
+    end
+
+    it "coerces strings to symbols" do
+      config.group_source = "yaml"
+      expect(config.group_source).to eq(:yaml)
+    end
+
+    it "raises ArgumentError for invalid values" do
+      expect {
+        config.group_source = :invalid
+      }.to raise_error(ArgumentError, /group_source must be/)
+    end
+  end
+
+  describe "#role_resolution_strategy=" do
+    it "accepts valid values" do
+      %i[merged groups_only direct_only].each do |value|
+        config.role_resolution_strategy = value
+        expect(config.role_resolution_strategy).to eq(value)
+      end
+    end
+
+    it "coerces strings to symbols" do
+      config.role_resolution_strategy = "groups_only"
+      expect(config.role_resolution_strategy).to eq(:groups_only)
+    end
+
+    it "raises ArgumentError for invalid values" do
+      expect {
+        config.role_resolution_strategy = :invalid
+      }.to raise_error(ArgumentError, /role_resolution_strategy must be/)
+    end
+  end
+
+  describe "group defaults" do
+    it "defaults group_source to :none" do
+      expect(config.group_source).to eq(:none)
+    end
+
+    it "defaults group_method to :lcp_groups" do
+      expect(config.group_method).to eq(:lcp_groups)
+    end
+
+    it "defaults group_role_mapping_model to nil" do
+      expect(config.group_role_mapping_model).to be_nil
+    end
+
+    it "defaults role_resolution_strategy to :merged" do
+      expect(config.role_resolution_strategy).to eq(:merged)
+    end
+  end
+
   describe ".json_column_type" do
     it "returns :json for SQLite adapter" do
       expect(LcpRuby.json_column_type).to eq(:json)

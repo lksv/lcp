@@ -43,9 +43,30 @@ RSpec.describe LcpRuby::ImpersonatedUser do
     end
   end
 
+  describe "group method suppression" do
+    it "returns empty array for group_method" do
+      expect(impersonated.lcp_groups).to eq([])
+    end
+
+    it "returns empty array for custom group_method" do
+      LcpRuby.configuration.group_method = :custom_groups
+      expect(impersonated.custom_groups).to eq([])
+    ensure
+      LcpRuby.configuration.group_method = :lcp_groups
+    end
+
+    it "responds to group_method" do
+      expect(impersonated.respond_to?(:lcp_groups)).to be true
+    end
+  end
+
   describe "#respond_to_missing?" do
     it "responds to the configured role_method" do
       expect(impersonated.respond_to?(:lcp_role)).to be true
+    end
+
+    it "responds to the configured group_method" do
+      expect(impersonated.respond_to?(:lcp_groups)).to be true
     end
 
     it "responds to methods on the real user" do

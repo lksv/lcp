@@ -1,0 +1,7 @@
+view_group:
+  model: group_membership
+  primary: group_memberships
+  views:
+    - presenter: group_memberships
+      label: "Group Memberships"
+      icon: user-plus

@@ -1,0 +1,56 @@
+presenter:
+  name: groups
+  model: group
+  label: "Groups"
+  slug: groups
+  icon: users-cog
+
+  index:
+    default_view: table
+    default_sort: { field: name, direction: asc }
+    per_page: 25
+    row_click: show
+    empty_message: "No groups defined yet."
+    table_columns:
+      - { field: name, width: "20%", link_to: show, sortable: true }
+      - { field: label, width: "25%", sortable: true }
+      - { field: description, width: "30%" }
+      - { field: source, width: "10%" }
+      - { field: active, width: "10%", renderer: boolean }
+
+  show:
+    layout:
+      - section: "Group Details"
+        columns: 2
+        fields:
+          - { field: name }
+          - { field: label }
+          - { field: description, col_span: 2 }
+          - { field: external_id }
+          - { field: source }
+          - { field: active }
+
+  form:
+    sections:
+      - title: "Group Details"
+        columns: 2
+        fields:
+          - { field: name, placeholder: "e.g. sales_team, it_admins", autofocus: true, hint: "Lowercase identifier for group membership" }
+          - { field: label, placeholder: "e.g. Sales Team" }
+          - { field: description, input_type: textarea, col_span: 2 }
+          - { field: external_id, placeholder: "e.g. CN=Sales,OU=Groups,DC=corp" }
+          - { field: source }
+          - { field: active, input_type: boolean }
+
+  search:
+    enabled: true
+    searchable_fields: [name, label]
+    placeholder: "Search groups..."
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Group", icon: plus }
+    single:
+      - { name: show, type: built_in, icon: eye }
+      - { name: edit, type: built_in, icon: pencil }
+      - { name: destroy, type: built_in, icon: trash, confirm: true, style: danger }

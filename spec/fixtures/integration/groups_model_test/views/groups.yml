@@ -1,0 +1,9 @@
+view_group:
+  model: group
+  primary: groups
+  navigation:
+    menu: main
+    position: 80
+  views:
+    - presenter: groups
+      label: "Groups"

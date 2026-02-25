@@ -8,6 +8,11 @@ LcpRuby.configure do |config|
   # DB-backed permission management
   config.permission_source = :model
 
+  # DB-backed group management
+  config.group_source = :model
+  config.group_role_mapping_model = "group_role_mapping"
+  config.role_resolution_strategy = :merged
+
   # Built-in authentication (Devise-based)
   config.authentication = :built_in
   config.auth_allow_registration = true

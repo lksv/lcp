@@ -2464,6 +2464,240 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
   end
 
+  # --- Group model validations ---
+
+  context "group_source :model with valid group models" do
+    let(:metadata_path) { "" }
+
+    it "passes validation with correct group, membership, and role mapping models" do
+      LcpRuby.configuration.group_source = :model
+      LcpRuby.configuration.group_role_mapping_model = "group_role_mapping"
+
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: group
+              fields:
+                - { name: name, type: string, validations: [{ type: uniqueness }] }
+                - { name: active, type: boolean }
+          YAML
+          <<~YAML,
+            model:
+              name: group_membership
+              fields:
+                - { name: user_id, type: integer }
+              associations:
+                - { name: group, type: belongs_to, target_model: group }
+          YAML
+          <<~YAML
+            model:
+              name: group_role_mapping
+              fields:
+                - { name: role_name, type: string }
+              associations:
+                - { name: group, type: belongs_to, target_model: group }
+          YAML
+        ]
+      )
+
+      result = v.validate
+      group_errors = result.errors.select { |e| e.include?("group") }
+      expect(group_errors).to be_empty
+    ensure
+      LcpRuby.configuration.group_source = :none
+      LcpRuby.configuration.group_role_mapping_model = nil
+    end
+  end
+
+  context "group_source :model with missing group model" do
+    let(:metadata_path) { "" }
+
+    it "reports error when group model is not defined" do
+      LcpRuby.configuration.group_source = :model
+
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: something_else
+            fields:
+              - { name: title, type: string }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(match(/group model 'group' is not defined/))
+    ensure
+      LcpRuby.configuration.group_source = :none
+    end
+  end
+
+  context "group_source :model with invalid group contract" do
+    let(:metadata_path) { "" }
+
+    it "reports contract errors for group model" do
+      LcpRuby.configuration.group_source = :model
+
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: group
+              fields:
+                - { name: label, type: string }
+          YAML
+          <<~YAML
+            model:
+              name: group_membership
+              fields:
+                - { name: user_id, type: integer }
+              associations:
+                - { name: group, type: belongs_to, target_model: group }
+          YAML
+        ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(match(/must have a 'name' field/))
+    ensure
+      LcpRuby.configuration.group_source = :none
+    end
+  end
+
+  context "group_source :model with missing membership model" do
+    let(:metadata_path) { "" }
+
+    it "reports error when membership model is not defined" do
+      LcpRuby.configuration.group_source = :model
+
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: group
+            fields:
+              - { name: name, type: string, validations: [{ type: uniqueness }] }
+              - { name: active, type: boolean }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(match(/group membership model 'group_membership' is not defined/))
+    ensure
+      LcpRuby.configuration.group_source = :none
+    end
+  end
+
+  context "group_source :model with missing role mapping model" do
+    let(:metadata_path) { "" }
+
+    it "reports error when configured role mapping model is not defined" do
+      LcpRuby.configuration.group_source = :model
+      LcpRuby.configuration.group_role_mapping_model = "group_role_mapping"
+
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: group
+              fields:
+                - { name: name, type: string, validations: [{ type: uniqueness }] }
+                - { name: active, type: boolean }
+          YAML
+          <<~YAML
+            model:
+              name: group_membership
+              fields:
+                - { name: user_id, type: integer }
+              associations:
+                - { name: group, type: belongs_to, target_model: group }
+          YAML
+        ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(match(/group role mapping model 'group_role_mapping' is not defined/))
+    ensure
+      LcpRuby.configuration.group_source = :none
+      LcpRuby.configuration.group_role_mapping_model = nil
+    end
+  end
+
+  context "group_source :model with both group and membership models missing" do
+    let(:metadata_path) { "" }
+
+    it "reports errors for all missing models (no early return)" do
+      LcpRuby.configuration.group_source = :model
+      LcpRuby.configuration.group_role_mapping_model = "group_role_mapping"
+
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: something_else
+            fields:
+              - { name: title, type: string }
+        YAML
+      )
+
+      result = v.validate
+      group_errors = result.errors.select { |e| e.include?("group") }
+
+      # Should report errors for BOTH group and membership models, not just the first
+      expect(group_errors).to include(match(/group model 'group' is not defined/))
+      expect(group_errors).to include(match(/group membership model 'group_membership' is not defined/))
+      expect(group_errors).to include(match(/group role mapping model 'group_role_mapping' is not defined/))
+    ensure
+      LcpRuby.configuration.group_source = :none
+      LcpRuby.configuration.group_role_mapping_model = nil
+    end
+  end
+
+  context "group_source :model with contract errors and missing membership" do
+    let(:metadata_path) { "" }
+
+    it "reports both contract errors and missing model errors" do
+      LcpRuby.configuration.group_source = :model
+
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: group
+            fields:
+              - { name: label, type: string }
+        YAML
+      )
+
+      result = v.validate
+      group_errors = result.errors.select { |e| e.include?("group") || e.include?("Group") }
+
+      # Should report contract error for group model AND missing membership model
+      expect(group_errors).to include(match(/must have a 'name' field/))
+      expect(group_errors).to include(match(/group membership model 'group_membership' is not defined/))
+    ensure
+      LcpRuby.configuration.group_source = :none
+    end
+  end
+
+  context "group_source :none skips group validation" do
+    let(:metadata_path) { "" }
+
+    it "does not validate group models when group_source is :none" do
+      LcpRuby.configuration.group_source = :none
+
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+      )
+
+      result = v.validate
+      group_errors = result.errors.select { |e| e.include?("group") }
+      expect(group_errors).to be_empty
+    end
+  end
+
   context "positioning field in form section" do
     let(:metadata_path) { "" }
 

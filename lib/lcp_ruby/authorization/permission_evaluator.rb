@@ -140,26 +140,47 @@ module LcpRuby
       def resolve_roles(user)
         return [ permission_definition.default_role ] unless user
 
-        role_method = LcpRuby.configuration.role_method
-        if user.respond_to?(role_method)
-          raw = user.send(role_method)
-          role_names = Array(raw).map(&:to_s)
+        strategy = LcpRuby.configuration.role_resolution_strategy
+        direct = resolve_direct_roles(user)
+        group_derived = resolve_group_roles(user)
 
-          # When role_source is :model and registry is available, filter to valid DB roles
-          if LcpRuby.configuration.role_source == :model && Roles::Registry.available?
-            invalid = role_names.reject { |r| Roles::Registry.valid_role?(r) }
-            if invalid.any? && defined?(Rails) && Rails.respond_to?(:logger)
-              Rails.logger.warn("[LcpRuby::Roles] User ##{user.id} has unknown roles: #{invalid.join(', ')}")
-            end
-            role_names = role_names.select { |r| Roles::Registry.valid_role?(r) }
-          end
-
-          # Filter to roles that have configs; fall back to default if none match
-          matching = role_names.select { |r| permission_definition.roles.key?(r) }
-          matching.empty? ? [ permission_definition.default_role ] : matching
+        combined = case strategy
+        when :merged      then (direct + group_derived).uniq
+        when :groups_only then group_derived
+        when :direct_only then direct
         else
-          [ permission_definition.default_role ]
+          if defined?(Rails) && Rails.respond_to?(:logger)
+            Rails.logger.warn("[LcpRuby] Unknown role_resolution_strategy: #{strategy.inspect}, falling back to :merged")
+          end
+          (direct + group_derived).uniq
         end
+
+        # When role_source is :model and registry is available, filter to valid DB roles
+        if LcpRuby.configuration.role_source == :model && Roles::Registry.available?
+          invalid = combined.reject { |r| Roles::Registry.valid_role?(r) }
+          if invalid.any? && defined?(Rails) && Rails.respond_to?(:logger)
+            user_id = user.respond_to?(:id) ? user.id : "unknown"
+            Rails.logger.warn("[LcpRuby::Roles] User ##{user_id} has unknown roles: #{invalid.join(', ')}")
+          end
+          combined = combined.select { |r| Roles::Registry.valid_role?(r) }
+        end
+
+        # Filter to roles that have configs; fall back to default if none match
+        matching = combined.select { |r| permission_definition.roles.key?(r) }
+        matching.empty? ? [ permission_definition.default_role ] : matching
+      end
+
+      def resolve_direct_roles(user)
+        role_method = LcpRuby.configuration.role_method
+        return [] unless user.respond_to?(role_method)
+
+        Array(user.send(role_method)).map(&:to_s)
+      end
+
+      def resolve_group_roles(user)
+        return [] unless Groups::Registry.available?
+
+        Groups::Registry.roles_for_user(user)
       end
 
       # Returns all field names for this model, including belongs_to FK fields.

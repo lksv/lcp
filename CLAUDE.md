@@ -30,7 +30,7 @@ This principle applies to all existing concepts and **must be followed for every
 | Custom Fields | generator (DSL/YAML) | DB definitions | contract validator |
 | Types | YAML | — | — |
 | Menu | YAML | — | — |
-| Groups | — | — | — |
+| Groups | YAML (`groups.yml`) | DB definitions (`group_source: :model`) | host adapter (`group_source: :host`) |
 | Workflows | — | — | — |
 
 ## Documentation
@@ -45,6 +45,7 @@ This principle applies to all existing concepts and **must be followed for every
 - [Custom Fields Reference](docs/reference/custom-fields.md) — Runtime user-defined fields: definitions, types, permissions, querying
 - [Role Source Reference](docs/reference/role-source.md) — DB-backed role model: contract, registry, cache invalidation, generator
 - [Permission Source Reference](docs/reference/permission-source.md) — DB-backed permissions: JSON definitions, registry, cache invalidation, generator
+- [Groups Reference](docs/reference/groups.md) — Organizational groups: YAML, DB, host adapter, role mapping
 - [Permissions Reference](docs/reference/permissions.md) — Complete permission YAML reference
 - [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
 - [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
@@ -65,6 +66,7 @@ This principle applies to all existing concepts and **must be followed for every
 - [Custom Fields Guide](docs/guides/custom-fields.md) — Runtime user-defined fields: enabling, defining, sections, permissions
 - [Role Source Guide](docs/guides/role-source.md) — DB-backed role management: setup, validation, cache, testing
 - [Permission Source Guide](docs/guides/permission-source.md) — DB-backed permission management: runtime editing, JSON definitions
+- [Groups Guide](docs/guides/groups.md) — Organizational groups: YAML, DB, host adapter, testing
 - [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views
@@ -133,6 +135,8 @@ YAML metadata (config/lcp_ruby/)
                                 ↓
               Permissions::Setup.apply!(loader) → contract validation, registry, change handler, definition validator (if permission_source == :model)
                                 ↓
+              Groups::Setup.apply!(loader) → YAML/DB/host loader, registry, change handler (if group_source != :none)
+                                ↓
               ConditionServiceRegistry.discover! → condition services from app/condition_services/
               Services::Registry.discover! → data providers from app/lcp_services/data_providers/
               Display::RendererRegistry.register_built_ins! → 26 built-in renderers + badge renderers
@@ -153,6 +157,7 @@ YAML metadata (config/lcp_ruby/)
 | `CustomFields` | `lib/lcp_ruby/custom_fields/` | Registry (per-model definition cache), Applicator (dynamic accessors + validations + defaults + stale cleanup), ContractValidator (boot-time model contract checks), Query (DB-portable JSON queries with field name validation), DefinitionChangeHandler (cache invalidation), Setup (shared boot logic with contract validation), Utils (env-aware JSON/numeric parsing) |
 | `Roles` | `lib/lcp_ruby/roles/` | Registry (thread-safe role name cache), ContractValidator (boot-time model contract checks), ChangeHandler (after_commit cache invalidation), Setup (boot orchestration). Only active when `role_source == :model` |
 | `Permissions` | `lib/lcp_ruby/permissions/` | Registry (per-model PermissionDefinition cache), ContractValidator (boot-time model contract checks), ChangeHandler (after_commit cache invalidation + PolicyFactory clear), DefinitionValidator (JSON validation on save), SourceResolver (DB → YAML priority chain), Setup (boot orchestration). Only active when `permission_source == :model` |
+| `Groups` | `lib/lcp_ruby/groups/` | Contract (interface), Registry (thread-safe, delegates to loader), YamlLoader (static groups from YAML), ModelLoader (DB queries), HostLoader (adapter delegation), ContractValidator (group/membership/mapping models), ChangeHandler (after_commit cache invalidation), Setup (boot orchestration by group_source). Integrates with PermissionEvaluator via role_resolution_strategy |
 | `Display` | `lib/lcp_ruby/display/` | BaseRenderer (base class), 26 built-in renderer classes in `renderers/`, badge renderers (CountBadge, TextBadge, IconBadge), RendererRegistry (registers built-ins + auto-discovers host renderers from `app/renderers/`) |
 | `Authorization` | `lib/lcp_ruby/authorization/` | PolicyFactory (dynamic Pundit policies), PermissionEvaluator (can?, can_for_record? with alias resolution, readable_fields, writable_fields, with optional role validation via Roles::Registry), ScopeBuilder |
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |

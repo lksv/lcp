@@ -1,0 +1,21 @@
+model:
+  name: group_membership
+  label: "Group Membership"
+  label_plural: "Group Memberships"
+
+  fields:
+    - name: user_id
+      type: integer
+      label: "User ID"
+      validations:
+        - type: presence
+        - type: uniqueness
+          fields: [group_id, user_id]
+
+  associations:
+    - name: group
+      type: belongs_to
+      target_model: group
+
+  options:
+    timestamps: true

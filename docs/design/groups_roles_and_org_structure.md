@@ -279,7 +279,7 @@ model:
       required: true
     - name: source
       type: enum
-      values: { local: "Local", synced: "Synced from directory" }
+      values: { local: "Local", external: "External (synced from directory)" }
       default: local
   associations:
     - name: group
@@ -431,8 +431,13 @@ LcpRuby.configure do |config|
 
   # Options:
   #   :merged        — direct_roles ∪ group_derived_roles (recommended)
-  #   :groups_only   — only group-derived roles (strict corporate policy)
+  #   :groups_only   — only group-derived roles as the source (ignores direct assignments)
   #   :direct_only   — only direct roles, ignore groups (current behavior)
+  #
+  # Note: all strategies share the same fallback — if no matching roles are found
+  # after filtering, the user gets default_role (typically "viewer"). This is
+  # intentionally fail-open. For true fail-closed behavior, set default_role to
+  # a role with crud: [] (no permissions).
 end
 ```
 
@@ -456,7 +461,10 @@ def resolve_roles(user)
   # existing: validate against DB registry if role_source == :model
   combined = validate_against_registry(combined)
 
-  # existing: filter to roles with permission configs, fallback to default
+  # existing: filter to roles with permission configs, fallback to default.
+  # This fallback applies to ALL strategies — including :groups_only.
+  # If this fail-open behavior is undesirable, configure default_role
+  # with crud: [] to deny all access.
   matching = combined.select { |r| permission_definition.roles.key?(r) }
   matching.empty? ? [permission_definition.default_role] : matching
 end
@@ -506,7 +514,18 @@ model:
 ```
 
 When `direct_role_assignment_model` is configured, `resolve_direct_roles`
-queries this table instead of (or in addition to) `user.lcp_role`.
+behaviour depends on a separate config option (to be defined at implementation
+time):
+
+- **`:replace`** — queries only the assignment table, ignoring `user.lcp_role`.
+  Use when the host user model should not carry role data at all.
+- **`:merge`** — unions roles from both the assignment table and
+  `user.lcp_role`. Use when the assignment table supplements roles already
+  present on the user model (e.g., temporary overrides alongside HR-managed
+  base roles).
+
+The default will be `:replace` to avoid ambiguity — one canonical source of
+direct roles. This config will be finalised when the feature is implemented.
 
 ### 3.5 Organizational Units
 
@@ -686,9 +705,13 @@ resolution. This is useful when:
 - The host app uses groups for non-authorization purposes (notifications,
   assignment queues, dashboards)
 
-In this mode, `resolve_group_roles` returns an empty array and effective roles
-come solely from direct assignments. Groups still fire membership events and
-support custom fields if they are LCP models. Upgrading from level 2 to level 3
+In this mode, `resolve_group_roles` always returns an empty array (because
+there is no role mapping model to query), so effective roles come solely from
+direct assignments regardless of `role_resolution_strategy`. This is not
+because the strategy is forced to `:direct_only` — the strategy setting is
+still orthogonal — but because group-derived roles are structurally empty
+without a mapping table. Groups still fire membership events and support
+custom fields if they are LCP models. Upgrading from level 2 to level 3
 requires only adding the `group_role_mapping` model and configuring it — no
 changes to existing groups or memberships.
 
@@ -769,7 +792,7 @@ end
 `BulkSync` is a platform service (to be implemented) that:
 1. Creates/updates groups matching by `external_id`
 2. Creates/removes memberships
-3. Marks stale memberships as `source: :synced` + removed (not deleting
+3. Marks stale memberships as `source: :external` + removed (not deleting
    locally-added memberships with `source: :local`)
 4. Fires events for each change
 5. Clears the Registry cache once at the end
