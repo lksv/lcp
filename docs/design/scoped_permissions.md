@@ -1,5 +1,8 @@
 # Scoped Permission Definitions — Design Document
 
+**Status:** Proposed
+**Date:** 2026-02-22
+
 ## Overview
 
 Currently, each LCP Ruby model has **one** permission definition (looked up by

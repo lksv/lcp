@@ -1,5 +1,8 @@
 # Workflow & Approval Process — Design Document
 
+**Status:** Proposed
+**Date:** 2026-02-22
+
 ## Overview
 
 This document describes the design for adding workflow (state machine) and approval

@@ -594,6 +594,7 @@ field :assigned_to_id, input_type: :association_select, default: "current_user_i
 | Value | Description |
 |-------|-------------|
 | `current_date` | Today's date |
+| `current_datetime` | Current date and time |
 | `current_user_id` | The current user's ID |
 
 ### Dividers

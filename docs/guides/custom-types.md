@@ -127,7 +127,7 @@ define_type :slug do
 end
 ```
 
-**Model using the type** (`config/lcp_ruby/types/article.rb`):
+**Model using the type** (`config/lcp_ruby/models/article.rb`):
 
 ```ruby
 define_model :article do
@@ -182,7 +182,7 @@ end
 | Accepts `#RRGGBBAA` alpha | No | Yes |
 | Column limit | 7 | 9 |
 
-**Model using the type** (`config/lcp_ruby/types/theme.rb`):
+**Model using the type** (`config/lcp_ruby/models/theme.rb`):
 
 ```ruby
 define_model :theme do

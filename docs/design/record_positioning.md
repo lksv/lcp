@@ -1,6 +1,6 @@
 # Design: Record Positioning
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2026-02-21
 
 ## Problem

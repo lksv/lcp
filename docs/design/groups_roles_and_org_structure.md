@@ -1,5 +1,8 @@
 # Groups, Roles & Organizational Structure — Design Document
 
+**Status:** Proposed
+**Date:** 2026-02-22
+
 ## Overview
 
 This document describes how LCP Ruby should represent **organizational structure**,

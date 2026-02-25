@@ -33,7 +33,7 @@ show do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** The value is rendered in a larger, bold font weight, visually distinguishing it from regular fields.
 
@@ -61,7 +61,7 @@ index do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -97,7 +97,7 @@ show do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** Value is displayed in a monospace font with a subtle background, similar to inline `<code>` styling.
 
@@ -127,7 +127,7 @@ show do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** HTML is rendered directly, supporting headings, lists, bold/italic, links, and other standard HTML elements. Content is sanitized before display.
 
@@ -185,7 +185,7 @@ show do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -227,7 +227,7 @@ index do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -279,7 +279,7 @@ show do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -317,7 +317,7 @@ show do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -351,7 +351,7 @@ index do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -383,7 +383,7 @@ index do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** `1048576` renders as `1.0 MB`. `2048` renders as `2.0 KB`. Automatically selects the appropriate unit (Bytes, KB, MB, GB).
 
@@ -412,7 +412,7 @@ index do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -460,7 +460,7 @@ show do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -495,7 +495,7 @@ index do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -541,7 +541,7 @@ show do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -572,7 +572,7 @@ index do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** Renders as natural language relative to the current time: `"3 days ago"`, `"2 hours ago"`, `"just now"`, `"in 5 minutes"`. The exact date may be available in a tooltip on hover.
 
@@ -613,7 +613,7 @@ show do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** The email address is displayed as a clickable link. Clicking opens the user's default email client with the address pre-filled.
 
@@ -643,7 +643,7 @@ show do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** The phone number is displayed as a clickable link. Clicking initiates a phone call on supported devices or opens a dialer application.
 
@@ -682,7 +682,7 @@ show do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** The URL is displayed as a clickable link with `target="_blank"` and `rel="noopener noreferrer"`. An external link icon may be shown alongside the text.
 
@@ -717,7 +717,7 @@ show do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -773,7 +773,7 @@ show do
 end
 ```
 
-\*\*Options:\*\*
+**Options:**
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
@@ -818,7 +818,7 @@ show do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** A small filled square showing the actual color, followed by the hex value text (e.g., `[##] #3B82F6`). Works with any valid CSS color string stored in the field.
 
@@ -848,7 +848,7 @@ show do
 end
 ```
 
-\*\*Options:\*\* none
+**Options:** none
 
 **Appearance:** Plain text output. If the value responds to `to_label`, that method is called; otherwise `to_s` is used.
 

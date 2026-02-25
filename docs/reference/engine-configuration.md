@@ -16,6 +16,51 @@ end
 
 ## Options
 
+### `authentication`
+
+| | |
+|---|---|
+| **Type** | `Symbol` |
+| **Default** | `:external` |
+| **Allowed values** | `:none`, `:built_in`, `:external` |
+
+Controls how user authentication is handled.
+
+| Value | Behavior |
+|-------|----------|
+| `:external` | The host application handles authentication (default). LCP Ruby expects `current_user` to be set by the host. |
+| `:built_in` | LCP Ruby provides Devise-based authentication with login, registration, and session management. |
+| `:none` | No authentication. All users are anonymous. Useful for public-facing or development setups. |
+
+```ruby
+LcpRuby.configure do |config|
+  config.authentication = :built_in
+end
+```
+
+When `authentication` is `:built_in`, additional authentication options are available:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `auth_allow_registration` | `Boolean` | `false` | Allow new user self-registration |
+| `auth_password_min_length` | `Integer` | `8` | Minimum password length |
+| `auth_session_timeout` | `Duration` | `nil` | Session timeout (e.g., `30.minutes`). `nil` means no timeout. |
+| `auth_lock_after_attempts` | `Integer` | `0` | Lock account after N failed login attempts. `0` disables locking. |
+| `auth_lock_duration` | `Duration` | `30.minutes` | How long accounts remain locked |
+| `auth_mailer_sender` | `String` | `"noreply@example.com"` | From address for authentication emails |
+| `auth_after_login_path` | `String` | `"/"` | Redirect path after successful login |
+| `auth_after_logout_path` | `String` | `nil` | Redirect path after logout. `nil` uses the default. |
+
+```ruby
+LcpRuby.configure do |config|
+  config.authentication = :built_in
+  config.auth_allow_registration = true
+  config.auth_session_timeout = 30.minutes
+  config.auth_lock_after_attempts = 5
+  config.auth_after_login_path = "/dashboard"
+end
+```
+
 ### `metadata_path`
 
 | | |
@@ -288,5 +333,39 @@ end
 ```
 
 See the [Extensibility Guide](../guides/extensibility.md) for detailed examples of each service category.
+
+## Dedicated Registries
+
+In addition to `Services::Registry`, LCP Ruby has four dedicated registries with their own auto-discovery. These use separate directory paths and namespaces:
+
+```
+app/
+  actions/                # Custom actions
+    deal/
+      close_won.rb        # LcpRuby::HostActions::Deal::CloseWon
+  event_handlers/         # Event handlers
+    deal/
+      on_stage_change.rb  # LcpRuby::HostEventHandlers::Deal::OnStageChange
+  condition_services/     # Condition services for visible_when/disable_when
+    credit_check.rb       # LcpRuby::HostConditionServices::CreditCheck
+  renderers/              # Custom display renderers
+    conditional_badge.rb  # LcpRuby::HostRenderers::ConditionalBadge
+```
+
+Each registry requires its own `discover!` call in the initializer:
+
+```ruby
+Rails.application.config.after_initialize do
+  app_path = Rails.root.join("app").to_s
+
+  LcpRuby::Actions::ActionRegistry.discover!(app_path)
+  LcpRuby::Events::HandlerRegistry.discover!(app_path)
+  LcpRuby::ConditionServiceRegistry.discover!(app_path)
+  LcpRuby::Display::RendererRegistry.discover!(app_path)
+  LcpRuby::Services::Registry.discover!(app_path)
+end
+```
+
+> **Note:** The `conditions` category under `Services::Registry` (`app/lcp_services/conditions/`) and the dedicated `ConditionServiceRegistry` (`app/condition_services/`) are separate registries. Both can serve condition services for `visible_when: { service: }`. See the [Extensibility Guide](../guides/extensibility.md) for details on choosing between them.
 
 Source: `lib/lcp_ruby/configuration.rb`, `lib/lcp_ruby/services/registry.rb`

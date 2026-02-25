@@ -294,7 +294,7 @@ permissions:
 
 The `custom_data` catch-all and individual field names are backward compatible — `custom_data` still works as before, but you can now selectively grant access to specific custom fields.
 
-> **Note:** The `readable_by_roles` and `writable_by_roles` attributes on individual field definitions provide field-level role filtering independent of the permission system.
+> **Note:** The `readable_by_roles` and `writable_by_roles` attributes on individual field definitions are reserved for future use. Per-field role-based access control is currently managed through the permission system's `field_overrides`.
 
 ## Management UI
 

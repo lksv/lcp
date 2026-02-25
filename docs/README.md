@@ -51,7 +51,24 @@ Complete attribute reference for every YAML configuration file:
 
 ## Design Documents
 
+Implemented:
+
 - [Record Positioning](design/record_positioning.md) — Drag-and-drop reordering of top-level records with the `positioning` gem
+- [External Field Accessors](design/fields_accessors.md) — Virtual fields with `source: external` and `source: { service: }` accessor delegation
+- [Unified Condition Operators](design/unified_condition_operators.md) — Strict condition evaluation, shared 12-operator set across all contexts
+- [Record Rules Action Visibility](design/record_rules_action_visibility.md) — Automatic hiding of edit/destroy buttons based on record_rules
+
+Proposed:
+
+- [Model Options Infrastructure](design/model_options_infrastructure.md) — Shared patterns for model-level feature flags (soft_delete, auditing)
+- [Auditing](design/auditing.md) — Native change tracking and audit trail
+- [Soft Delete](design/soft_delete.md) — Discard/restore support with `discarded_at` timestamp
+- [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments
+- [Array Field Type](design/array_field_type.md) — Native array fields with typed items and array-specific operators
+- [Multiselect and Batch Actions](design/multiselect_and_batch_actions.md) — Checkbox selection and bulk operations on index pages
+- [Scoped Permissions](design/scoped_permissions.md) — Context-dependent permission definitions for polymorphic sub-resources
+- [Groups, Roles & Org Structure](design/groups_roles_and_org_structure.md) — Enterprise organizational units, groups, and group-to-role mapping
+- [Workflow & Approvals](design/workflow_and_approvals.md) — Metadata-driven state machines and approval processes
 
 ## Internals
 
