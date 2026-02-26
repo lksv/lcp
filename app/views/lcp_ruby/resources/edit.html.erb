@@ -1,4 +1,9 @@
 <div class="lcp-resource-edit">
-  <h1>Edit <%= current_model_definition.label %></h1>
+  <div class="lcp-header">
+    <h1>Edit <%= current_model_definition.label %></h1>
+    <div class="lcp-toolbar">
+      <%= render "lcp_ruby/resources/view_switcher", context: :form %>
+    </div>
+  </div>
   <%= render "form" %>
 </div>

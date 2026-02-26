@@ -5,7 +5,7 @@
       <p class="lcp-view-description"><%= current_presenter.index_config["description"] %></p>
     <% end %>
     <div class="lcp-toolbar">
-      <%= render "lcp_ruby/resources/view_switcher" %>
+      <%= render "lcp_ruby/resources/view_switcher", context: :index %>
       <% if defined?(@manage_path) && @manage_path %>
         <%= link_to t("lcp_ruby.manage.manage_all"), @manage_path, class: "btn" %>
       <% end %>

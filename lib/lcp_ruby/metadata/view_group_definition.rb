@@ -1,6 +1,8 @@
 module LcpRuby
   module Metadata
     class ViewGroupDefinition
+      VALID_SWITCHER_CONTEXTS = %w[index show form].freeze
+
       attr_reader :name, :model, :primary_presenter, :navigation_config, :views, :breadcrumb_config, :public, :raw_hash
       alias_method :public?, :public
 
@@ -14,6 +16,8 @@ module LcpRuby
         @breadcrumb_config = parse_breadcrumb(attrs[:breadcrumb_config])
         @public = attrs[:public] == true
         @raw_hash = attrs[:raw_hash]
+        @switcher = parse_switcher(attrs[:switcher_config])
+        @presenter_diff_cache = {}
 
         validate!
       end
@@ -39,8 +43,23 @@ module LcpRuby
           views: views,
           breadcrumb_config: data["breadcrumb"],
           public: data["public"],
+          switcher_config: data["switcher"],
           raw_hash: data
         )
+      end
+
+      def switcher_config
+        @switcher
+      end
+
+      def show_switcher?(context)
+        return false if views.length < 2
+        return false if @switcher == false
+
+        case @switcher
+        when Array then @switcher.include?(context.to_s)
+        else presenters_differ_on?(context.to_s)
+        end
       end
 
       def breadcrumb_enabled?
@@ -65,7 +84,7 @@ module LcpRuby
       end
 
       def has_switcher?
-        views.length > 1
+        views.length > 1 && @switcher != false
       end
 
       # Returns false when navigation is explicitly disabled (navigation: false).
@@ -75,6 +94,56 @@ module LcpRuby
       end
 
       private
+
+      def parse_switcher(value)
+        case value
+        when nil, "auto" then :auto
+        when false then false
+        when Array
+          normalized = value.map(&:to_s)
+          invalid = normalized - VALID_SWITCHER_CONTEXTS
+          if invalid.any?
+            raise MetadataError,
+              "View group '#{@name}': invalid switcher contexts: #{invalid.join(', ')}. " \
+              "Valid contexts are: #{VALID_SWITCHER_CONTEXTS.join(', ')}"
+          end
+          normalized
+        else
+          raise MetadataError,
+            "View group '#{@name}': switcher must be false, 'auto', or an array of contexts"
+        end
+      end
+
+      def presenters_differ_on?(context)
+        unless VALID_SWITCHER_CONTEXTS.include?(context)
+          raise ArgumentError,
+            "Unknown switcher context '#{context}'. Valid contexts: #{VALID_SWITCHER_CONTEXTS.join(', ')}"
+        end
+
+        @presenter_diff_cache.fetch(context) do
+          config_method = case context
+                          when "index" then :index_config
+                          when "show"  then :show_config
+                          when "form"  then :form_config
+                          end
+
+          defs = presenter_definitions
+          result = if defs.length < 2
+            false
+          else
+            configs = defs.map(&config_method)
+            !configs.all? { |c| c == configs.first }
+          end
+
+          @presenter_diff_cache[context] = result
+        end
+      end
+
+      def presenter_definitions
+        presenter_names.filter_map do |name|
+          LcpRuby.loader.presenter_definitions[name]
+        end
+      end
 
       def parse_breadcrumb(value)
         case value

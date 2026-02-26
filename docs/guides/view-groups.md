@@ -52,7 +52,24 @@ view_group:
 
 The `primary` presenter determines which entry appears in the navigation menu. Users land on the primary presenter's page and can switch to other views using the view switcher tabs.
 
-**Step 3.** The view switcher renders automatically. No template changes needed -- the `_view_switcher` partial appears on index and show pages when the current view group has more than one view.
+**Step 3.** The view switcher renders automatically. No template changes needed -- the `_view_switcher` partial appears on index, show, and form pages where the presenters actually differ.
+
+By default, the switcher uses **auto-detection**: it compares the `index_config`, `show_config`, and `form_config` of all presenters in the group. If all presenters have identical configuration for a given page type, the switcher is hidden on that page. For example, if two presenters share the same index layout but differ on show, the switcher only appears on the show page.
+
+You can override auto-detection with an explicit `switcher` key:
+
+```yaml
+# Only show switcher on show pages
+switcher: [show]
+
+# Show switcher on all page types
+switcher: [index, show, form]
+
+# Disable switcher entirely
+switcher: false
+```
+
+See the [View Groups Reference](../reference/view-groups.md#switcher) for all options.
 
 ## Navigation Menu Integration
 

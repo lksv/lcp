@@ -1140,6 +1140,7 @@ module LcpRuby
           end
 
           validate_breadcrumb_relation(vg)
+          validate_switcher_config(vg)
 
           next unless vg.navigable?
 
@@ -1151,6 +1152,19 @@ module LcpRuby
             end
             positions[pos] = vg.name
           end
+        end
+      end
+
+      def validate_switcher_config(vg)
+        config = vg.switcher_config
+        return if config == :auto || config == false
+
+        return unless config.is_a?(Array)
+
+        invalid = config - ViewGroupDefinition::VALID_SWITCHER_CONTEXTS
+        if invalid.any?
+          @errors << "View group '#{vg.name}': invalid switcher contexts: #{invalid.join(', ')}. " \
+                     "Valid contexts are: #{ViewGroupDefinition::VALID_SWITCHER_CONTEXTS.join(', ')}"
         end
       end
 

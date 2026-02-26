@@ -135,6 +135,58 @@ breadcrumb:
 breadcrumb: false
 ```
 
+### `switcher`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `auto` (auto-detect from presenter configs) |
+| **Type** | `false`, `"auto"`, or array of strings |
+
+Controls where the view switcher appears when a view group has multiple views. By default, the switcher uses auto-detection — it compares presenter configurations and only shows the switcher on pages where the presenters actually differ.
+
+| Value | Behavior |
+|-------|----------|
+| *(omitted)* or `auto` | Auto-detect: compare presenter configs, show switcher only where they differ |
+| `[index]` | Switcher only on index page |
+| `[show]` | Switcher only on show page |
+| `[form]` | Switcher only on edit/new pages |
+| `[index, show]` | Switcher on index and show pages |
+| `[index, show, form]` | Switcher on all pages (forces display, skips auto-detection) |
+| `false` | No switcher anywhere, even with multiple views |
+
+**Auto-detection** compares `index_config`, `show_config`, and `form_config` across all presenters in the group. If all presenters have identical configuration for a given page type, the switcher is hidden on that page. This means presenters that differ only on `show` will not display a pointless switcher on `index`.
+
+```yaml
+# Auto-detection (default — no switcher key needed)
+view_group:
+  model: recipe
+  primary: recipes
+  views:
+    - presenter: recipes
+      label: "Structured"
+    - presenter: recipes_raw
+      label: "Raw JSON"
+
+# Explicit: only show switcher on show pages
+view_group:
+  model: recipe
+  primary: recipes
+  switcher: [show]
+  views:
+    - presenter: recipes
+    - presenter: recipes_raw
+
+# Disable switcher entirely
+view_group:
+  model: recipe
+  primary: recipes
+  switcher: false
+  views:
+    - presenter: recipes
+    - presenter: recipes_raw
+```
+
 ### `views`
 
 | | |
@@ -209,6 +261,7 @@ Creates a view group definition. The block supports these methods:
 | `primary` | `value` | Sets the primary presenter name |
 | `navigation` | `menu:`, `position:` | Sets navigation config. `position` is optional |
 | `breadcrumb` | `false` or `relation:` | Sets breadcrumb config. Use `breadcrumb false` to disable, `breadcrumb relation: :company` to set parent relation |
+| `switcher` | `false`, `:auto`, or context symbols | Sets switcher config. Use `switcher false` to disable, `switcher :auto` for auto-detection, `switcher :index, :show` for explicit contexts |
 | `view` | `presenter_name`, `label:`, `icon:` | Adds a view entry. `label` and `icon` are optional |
 
 ## API

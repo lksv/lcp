@@ -81,6 +81,62 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
 
       expect(group.navigation_config).to eq({})
     end
+
+    it "parses switcher: false" do
+      group = described_class.from_hash(
+        "name" => "tasks_group",
+        "model" => "task",
+        "primary" => "tasks_table",
+        "switcher" => false,
+        "views" => [
+          { "presenter" => "tasks_table" },
+          { "presenter" => "tasks_board" }
+        ]
+      )
+
+      expect(group.switcher_config).to eq(false)
+    end
+
+    it "parses switcher: [show]" do
+      group = described_class.from_hash(
+        "name" => "tasks_group",
+        "model" => "task",
+        "primary" => "tasks_table",
+        "switcher" => [ "show" ],
+        "views" => [
+          { "presenter" => "tasks_table" },
+          { "presenter" => "tasks_board" }
+        ]
+      )
+
+      expect(group.switcher_config).to eq([ "show" ])
+    end
+
+    it "parses switcher: [form]" do
+      group = described_class.from_hash(
+        "name" => "tasks_group",
+        "model" => "task",
+        "primary" => "tasks_table",
+        "switcher" => [ "form" ],
+        "views" => [
+          { "presenter" => "tasks_table" },
+          { "presenter" => "tasks_board" }
+        ]
+      )
+
+      expect(group.switcher_config).to eq([ "form" ])
+    end
+
+    it "defaults switcher to :auto when key is absent" do
+      group = described_class.from_hash(
+        "name" => "tasks_group",
+        "model" => "task",
+        "primary" => "tasks_table",
+        "views" => [ { "presenter" => "tasks_table" } ]
+      )
+
+      expect(group.switcher_config).to eq(:auto)
+    end
   end
 
   describe "#presenter_names" do
@@ -140,6 +196,183 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
       ))
 
       expect(group.has_switcher?).to be false
+    end
+
+    it "returns false when switcher is false even with multiple views" do
+      group = described_class.new(valid_attrs(switcher_config: false))
+
+      expect(group.has_switcher?).to be false
+    end
+  end
+
+  describe "#show_switcher?" do
+    context "with switcher: false" do
+      it "returns false for all contexts" do
+        group = described_class.new(valid_attrs(switcher_config: false))
+
+        expect(group.show_switcher?(:index)).to be false
+        expect(group.show_switcher?(:show)).to be false
+        expect(group.show_switcher?(:form)).to be false
+      end
+    end
+
+    context "with single view" do
+      it "returns false regardless of config" do
+        group = described_class.new(valid_attrs(
+          views: [ { "presenter" => "tasks_table" } ]
+        ))
+
+        expect(group.show_switcher?(:index)).to be false
+        expect(group.show_switcher?(:show)).to be false
+        expect(group.show_switcher?(:form)).to be false
+      end
+    end
+
+    context "with explicit [show]" do
+      it "returns true only for show, false for index and form" do
+        group = described_class.new(valid_attrs(switcher_config: [ "show" ]))
+
+        expect(group.show_switcher?(:index)).to be false
+        expect(group.show_switcher?(:show)).to be true
+        expect(group.show_switcher?(:form)).to be false
+      end
+    end
+
+    context "with explicit [index, show, form]" do
+      it "returns true for all three" do
+        group = described_class.new(valid_attrs(switcher_config: %w[index show form]))
+
+        expect(group.show_switcher?(:index)).to be true
+        expect(group.show_switcher?(:show)).to be true
+        expect(group.show_switcher?(:form)).to be true
+      end
+    end
+
+    context "with auto-detection" do
+      let(:presenter_a) do
+        instance_double(
+          LcpRuby::Metadata::PresenterDefinition,
+          index_config: { "table_columns" => [ { "field" => "name" } ] },
+          show_config: { "layout" => [ { "section" => "Details" } ] },
+          form_config: { "sections" => [ { "title" => "Info" } ] }
+        )
+      end
+
+      let(:presenter_b_different_index) do
+        instance_double(
+          LcpRuby::Metadata::PresenterDefinition,
+          index_config: { "table_columns" => [ { "field" => "name" }, { "field" => "status" } ] },
+          show_config: { "layout" => [ { "section" => "Details" } ] },
+          form_config: { "sections" => [ { "title" => "Info" } ] }
+        )
+      end
+
+      let(:presenter_b_different_form) do
+        instance_double(
+          LcpRuby::Metadata::PresenterDefinition,
+          index_config: { "table_columns" => [ { "field" => "name" } ] },
+          show_config: { "layout" => [ { "section" => "Details" } ] },
+          form_config: { "sections" => [ { "title" => "Extended Info", "columns" => 2 } ] }
+        )
+      end
+
+      let(:presenter_b_all_same) do
+        instance_double(
+          LcpRuby::Metadata::PresenterDefinition,
+          index_config: { "table_columns" => [ { "field" => "name" } ] },
+          show_config: { "layout" => [ { "section" => "Details" } ] },
+          form_config: { "sections" => [ { "title" => "Info" } ] }
+        )
+      end
+
+      before do
+        loader = instance_double("LcpRuby::Metadata::Loader")
+        allow(LcpRuby).to receive(:loader).and_return(loader)
+      end
+
+      it "returns true for index when index configs differ, false for show and form" do
+        allow(LcpRuby.loader).to receive(:presenter_definitions).and_return(
+          "tasks_table" => presenter_a,
+          "tasks_board" => presenter_b_different_index
+        )
+
+        group = described_class.new(valid_attrs)
+
+        expect(group.show_switcher?(:index)).to be true
+        expect(group.show_switcher?(:show)).to be false
+        expect(group.show_switcher?(:form)).to be false
+      end
+
+      it "returns true for form when form configs differ" do
+        allow(LcpRuby.loader).to receive(:presenter_definitions).and_return(
+          "tasks_table" => presenter_a,
+          "tasks_board" => presenter_b_different_form
+        )
+
+        group = described_class.new(valid_attrs)
+
+        expect(group.show_switcher?(:form)).to be true
+        expect(group.show_switcher?(:index)).to be false
+        expect(group.show_switcher?(:show)).to be false
+      end
+
+      it "returns false for all contexts when all configs are identical" do
+        allow(LcpRuby.loader).to receive(:presenter_definitions).and_return(
+          "tasks_table" => presenter_a,
+          "tasks_board" => presenter_b_all_same
+        )
+
+        group = described_class.new(valid_attrs)
+
+        expect(group.show_switcher?(:index)).to be false
+        expect(group.show_switcher?(:show)).to be false
+        expect(group.show_switcher?(:form)).to be false
+      end
+
+      it "raises ArgumentError for unknown context" do
+        allow(LcpRuby.loader).to receive(:presenter_definitions).and_return(
+          "tasks_table" => presenter_a,
+          "tasks_board" => presenter_b_all_same
+        )
+
+        group = described_class.new(valid_attrs)
+
+        expect { group.show_switcher?(:edit) }.to raise_error(
+          ArgumentError, /Unknown switcher context 'edit'/
+        )
+      end
+    end
+  end
+
+  describe "switcher validation" do
+    it "accepts nil (defaults to auto)" do
+      group = described_class.new(valid_attrs(switcher_config: nil))
+
+      expect(group.switcher_config).to eq(:auto)
+    end
+
+    it "accepts 'auto' string" do
+      group = described_class.new(valid_attrs(switcher_config: "auto"))
+
+      expect(group.switcher_config).to eq(:auto)
+    end
+
+    it "rejects invalid string values" do
+      expect {
+        described_class.new(valid_attrs(switcher_config: "always"))
+      }.to raise_error(LcpRuby::MetadataError, /switcher must be false, 'auto', or an array/)
+    end
+
+    it "rejects invalid context names in array" do
+      expect {
+        described_class.new(valid_attrs(switcher_config: [ "edit" ]))
+      }.to raise_error(LcpRuby::MetadataError, /invalid switcher contexts: edit/)
+    end
+
+    it "accepts valid contexts in array" do
+      group = described_class.new(valid_attrs(switcher_config: %w[index show form]))
+
+      expect(group.switcher_config).to eq(%w[index show form])
     end
   end
 

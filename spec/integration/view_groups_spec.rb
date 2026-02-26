@@ -52,11 +52,32 @@ RSpec.describe "View Groups Integration", type: :request do
   end
 
   describe "view switcher on show page" do
-    it "does not render on show page" do
+    it "renders on show page for grouped presenters with multiple views" do
       company = company_model.create!(name: "Test Corp", industry: "technology")
       deal = deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
 
       get "/deals/#{deal.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-view-switcher")
+      expect(response.body).to include("Detailed")
+      expect(response.body).to include("Pipeline")
+    end
+
+    it "links to the same record in sibling views" do
+      company = company_model.create!(name: "Test Corp", industry: "technology")
+      deal = deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
+
+      get "/deals/#{deal.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("/pipeline/#{deal.id}")
+    end
+
+    it "does not render on show page for single-presenter groups" do
+      company = company_model.create!(name: "Test Corp", industry: "technology")
+
+      get "/companies/#{company.id}"
 
       expect(response).to have_http_status(:ok)
       expect(response.body).not_to include('<div class="lcp-view-switcher">')
@@ -212,6 +233,88 @@ RSpec.describe "View Groups Integration", type: :request do
       expect(companies_vg.views.length).to eq(1)
       expect(companies_vg.presenter_names).to contain_exactly("company")
       expect(companies_vg.has_switcher?).to be false
+    end
+  end
+
+  describe "context-aware switcher" do
+    it "deals view group defaults to auto switcher_config" do
+      deals_vg = LcpRuby.loader.view_group_definitions["deals"]
+
+      expect(deals_vg.switcher_config).to eq(:auto)
+    end
+
+    it "auto-detects switcher on index for deals (different index configs)" do
+      deals_vg = LcpRuby.loader.view_group_definitions["deals"]
+
+      expect(deals_vg.show_switcher?(:index)).to be true
+    end
+
+    it "auto-detects switcher on show for deals (different show configs)" do
+      deals_vg = LcpRuby.loader.view_group_definitions["deals"]
+
+      expect(deals_vg.show_switcher?(:show)).to be true
+    end
+
+    it "auto-detects switcher on form for deals (different form configs)" do
+      deals_vg = LcpRuby.loader.view_group_definitions["deals"]
+
+      # deal has form config with sections, deal_pipeline has empty form config
+      expect(deals_vg.show_switcher?(:form)).to be true
+    end
+
+    it "renders switcher on deals index page" do
+      get "/deals"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-view-switcher")
+    end
+
+    it "renders switcher on deals show page" do
+      company = company_model.create!(name: "Test Corp", industry: "technology")
+      deal = deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
+
+      get "/deals/#{deal.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-view-switcher")
+    end
+
+    it "renders switcher on deals new page (form context)" do
+      get "/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-view-switcher")
+      expect(response.body).to include("Detailed")
+      expect(response.body).to include("Pipeline")
+    end
+
+    it "renders switcher on deals edit page (form context)" do
+      company = company_model.create!(name: "Test Corp", industry: "technology")
+      deal = deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
+
+      get "/deals/#{deal.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-view-switcher")
+      expect(response.body).to include("Detailed")
+      expect(response.body).to include("Pipeline")
+    end
+
+    it "form switcher links to new_resource_path on new page" do
+      get "/deals/new"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("/pipeline/new")
+    end
+
+    it "form switcher links to edit_resource_path on edit page" do
+      company = company_model.create!(name: "Test Corp", industry: "technology")
+      deal = deal_model.create!(title: "Big Deal", stage: "lead", company_id: company.id)
+
+      get "/deals/#{deal.id}/edit"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("/pipeline/#{deal.id}/edit")
     end
   end
 end

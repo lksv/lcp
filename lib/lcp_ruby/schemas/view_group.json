@@ -11,6 +11,19 @@
     "public": { "type": "boolean" },
     "navigation": { "$ref": "#/$defs/navigation_config" },
     "breadcrumb": { "$ref": "#/$defs/breadcrumb_config" },
+    "switcher": {
+      "description": "Where to show the view switcher. Omit or 'auto' for auto-detection, array of contexts, or false to disable.",
+      "oneOf": [
+        { "type": "boolean", "const": false },
+        { "type": "string", "const": "auto" },
+        {
+          "type": "array",
+          "items": { "type": "string", "enum": ["index", "show", "form"] },
+          "minItems": 1,
+          "uniqueItems": true
+        }
+      ]
+    },
     "views": {
       "type": "array",
       "items": { "$ref": "#/$defs/view" },

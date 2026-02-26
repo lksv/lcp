@@ -7,6 +7,7 @@ module LcpRuby
         @primary_value = nil
         @navigation_hash = nil
         @breadcrumb_value = nil
+        @switcher_value = nil
         @views = []
       end
 
@@ -39,6 +40,18 @@ module LcpRuby
         end
       end
 
+      def switcher(*args)
+        if args.length == 1 && args.first == false
+          @switcher_value = false
+        elsif args.length == 1 && args.first == :auto
+          @switcher_value = "auto"
+        elsif args.length == 1 && args.first.is_a?(Array)
+          @switcher_value = args.first.map(&:to_s)
+        else
+          @switcher_value = args.map(&:to_s)
+        end
+      end
+
       def view(presenter_name, label: nil, icon: nil)
         view_hash = { "presenter" => presenter_name.to_s }
         view_hash["label"] = label if label
@@ -57,6 +70,7 @@ module LcpRuby
         vg["primary"] = @primary_value if @primary_value
         vg["navigation"] = @navigation_hash unless @navigation_hash.nil?
         vg["breadcrumb"] = @breadcrumb_value unless @breadcrumb_value.nil?
+        vg["switcher"] = @switcher_value unless @switcher_value.nil?
         vg["views"] = @views unless @views.empty?
         hash
       end

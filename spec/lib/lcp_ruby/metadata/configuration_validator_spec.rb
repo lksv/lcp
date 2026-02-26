@@ -1005,6 +1005,137 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
   end
 
+  context "view group with valid switcher config" do
+    let(:metadata_path) { "" }
+
+    it "passes validation with switcher: [show]" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [
+          <<~YAML,
+            presenter:
+              name: project
+              model: project
+              slug: projects
+          YAML
+          <<~YAML
+            presenter:
+              name: project_public
+              model: project
+              slug: public-projects
+          YAML
+        ],
+        view_groups: [ <<~YAML ]
+          view_group:
+            name: projects
+            model: project
+            primary: project
+            switcher:
+              - show
+            views:
+              - presenter: project
+              - presenter: project_public
+        YAML
+      )
+
+      result = v.validate
+      vg_errors = result.errors.select { |e| e.include?("View group") || e.include?("switcher") }
+      expect(vg_errors).to be_empty
+    end
+
+    it "reports error for invalid switcher contexts" do
+      # Build a ViewGroupDefinition with a valid array, then stub switcher_config
+      # to return an invalid value to exercise the validator's own check.
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [
+          <<~YAML,
+            presenter:
+              name: project
+              model: project
+              slug: projects
+          YAML
+          <<~YAML
+            presenter:
+              name: project_public
+              model: project
+              slug: public-projects
+          YAML
+        ],
+        view_groups: [ <<~YAML ]
+          view_group:
+            name: projects
+            model: project
+            primary: project
+            switcher:
+              - show
+            views:
+              - presenter: project
+              - presenter: project_public
+        YAML
+      )
+
+      # Stub the switcher_config to return an invalid context that parse_switcher would normally reject
+      vg = v.send(:loader).view_group_definitions["projects"]
+      allow(vg).to receive(:switcher_config).and_return(%w[edit])
+
+      result = v.validate
+      switcher_errors = result.errors.select { |e| e.include?("switcher") }
+      expect(switcher_errors).to include(
+        a_string_matching(/invalid switcher contexts: edit/)
+      )
+    end
+
+    it "passes validation with switcher: false" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [
+          <<~YAML,
+            presenter:
+              name: project
+              model: project
+              slug: projects
+          YAML
+          <<~YAML
+            presenter:
+              name: project_public
+              model: project
+              slug: public-projects
+          YAML
+        ],
+        view_groups: [ <<~YAML ]
+          view_group:
+            name: projects
+            model: project
+            primary: project
+            switcher: false
+            views:
+              - presenter: project
+              - presenter: project_public
+        YAML
+      )
+
+      result = v.validate
+      vg_errors = result.errors.select { |e| e.include?("View group") || e.include?("switcher") }
+      expect(vg_errors).to be_empty
+    end
+  end
+
   # --- Polymorphic _type in presenter/permission fields ---
 
   context "polymorphic _type field in presenter" do

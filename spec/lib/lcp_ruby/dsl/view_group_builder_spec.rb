@@ -145,6 +145,65 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
     end
   end
 
+  describe "switcher DSL" do
+    it "serializes switcher false" do
+      builder = described_class.new(:my_group)
+      builder.instance_eval do
+        switcher false
+      end
+      hash = builder.to_hash
+
+      expect(hash["view_group"]["switcher"]).to eq(false)
+    end
+
+    it "serializes switcher :auto" do
+      builder = described_class.new(:my_group)
+      builder.instance_eval do
+        switcher :auto
+      end
+      hash = builder.to_hash
+
+      expect(hash["view_group"]["switcher"]).to eq("auto")
+    end
+
+    it "serializes multiple symbol arguments as array" do
+      builder = described_class.new(:my_group)
+      builder.instance_eval do
+        switcher :index, :show
+      end
+      hash = builder.to_hash
+
+      expect(hash["view_group"]["switcher"]).to eq(%w[index show])
+    end
+
+    it "serializes a single symbol argument as array" do
+      builder = described_class.new(:my_group)
+      builder.instance_eval do
+        switcher :show
+      end
+      hash = builder.to_hash
+
+      expect(hash["view_group"]["switcher"]).to eq(["show"])
+    end
+
+    it "serializes array argument" do
+      builder = described_class.new(:my_group)
+      builder.instance_eval do
+        switcher [:index, :show, :form]
+      end
+      hash = builder.to_hash
+
+      expect(hash["view_group"]["switcher"]).to eq(%w[index show form])
+    end
+
+    it "omits switcher when not set" do
+      builder = described_class.new(:my_group)
+      hash = builder.to_hash
+
+      expect(hash["view_group"]).not_to have_key("switcher")
+    end
+  end
+
   describe "full round-trip: DSL -> to_hash -> ViewGroupDefinition" do
     it "produces a valid ViewGroupDefinition from builder hash" do
       builder = described_class.new(:crm_contacts)
@@ -206,6 +265,40 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
       expect(kanban_view["presenter"]).to eq("deals_kanban")
       expect(kanban_view["label"]).to eq("Kanban")
       expect(kanban_view["icon"]).to eq("columns")
+    end
+
+    it "round-trips switcher false" do
+      builder = described_class.new(:my_group)
+      builder.instance_eval do
+        model :task
+        primary :tasks_table
+        switcher false
+        view :tasks_table, label: "Table"
+        view :tasks_board, label: "Board"
+      end
+
+      definition = LcpRuby::Metadata::ViewGroupDefinition.from_hash(builder.to_hash)
+
+      expect(definition.switcher_config).to eq(false)
+      expect(definition.has_switcher?).to be false
+    end
+
+    it "round-trips switcher :show" do
+      builder = described_class.new(:my_group)
+      builder.instance_eval do
+        model :task
+        primary :tasks_table
+        switcher :show
+        view :tasks_table, label: "Table"
+        view :tasks_board, label: "Board"
+      end
+
+      definition = LcpRuby::Metadata::ViewGroupDefinition.from_hash(builder.to_hash)
+
+      expect(definition.switcher_config).to eq(["show"])
+      expect(definition.has_switcher?).to be true
+      expect(definition.show_switcher?(:show)).to be true
+      expect(definition.show_switcher?(:index)).to be false
     end
   end
 end
