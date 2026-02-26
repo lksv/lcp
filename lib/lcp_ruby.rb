@@ -16,6 +16,7 @@ require "lcp_ruby/metadata/display_template_definition"
 require "lcp_ruby/metadata/model_definition"
 require "lcp_ruby/metadata/presenter_definition"
 require "lcp_ruby/metadata/permission_definition"
+require "lcp_ruby/metadata/group_definition"
 require "lcp_ruby/metadata/view_group_definition"
 require "lcp_ruby/metadata/menu_item"
 require "lcp_ruby/metadata/menu_definition"
@@ -92,6 +93,16 @@ require "lcp_ruby/permissions/change_handler"
 require "lcp_ruby/permissions/definition_validator"
 require "lcp_ruby/permissions/source_resolver"
 require "lcp_ruby/permissions/setup"
+
+# Groups
+require "lcp_ruby/groups/contract"
+require "lcp_ruby/groups/registry"
+require "lcp_ruby/groups/yaml_loader"
+require "lcp_ruby/groups/model_loader"
+require "lcp_ruby/groups/host_loader"
+require "lcp_ruby/groups/contract_validator"
+require "lcp_ruby/groups/change_handler"
+require "lcp_ruby/groups/setup"
 
 # Authorization
 require "lcp_ruby/authorization/scope_builder"
@@ -230,6 +241,7 @@ module LcpRuby
       CustomFields::Registry.clear!
       Roles::Registry.clear!
       Permissions::Registry.clear!
+      Groups::Registry.clear!
 
       # Remove dynamic constants to avoid "already initialized" warnings
       Dynamic.constants.each do |const|

@@ -1,0 +1,12 @@
+groups:
+  - name: editors_group
+    label: "Editors Group"
+    description: "Team members who can edit projects"
+    roles:
+      - editor
+
+  - name: admins_group
+    label: "Admins Group"
+    description: "Administrators"
+    roles:
+      - admin

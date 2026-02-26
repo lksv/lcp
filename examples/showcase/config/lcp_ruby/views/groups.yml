@@ -1,0 +1,7 @@
+view_group:
+  model: group
+  primary: groups
+  views:
+    - presenter: groups
+      label: "Groups"
+      icon: users-cog

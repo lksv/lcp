@@ -1,0 +1,35 @@
+presenter:
+  name: project
+  model: project
+  label: "Projects"
+  slug: projects
+  icon: folder
+
+  index:
+    default_view: table
+    per_page: 25
+    table_columns:
+      - { field: title, sortable: true }
+      - { field: status }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+          - { field: status }
+
+  form:
+    sections:
+      - title: "Details"
+        fields:
+          - { field: title }
+          - { field: status }
+
+  actions:
+    collection:
+      - { name: create, type: built_in, label: "New Project", icon: plus }
+    single:
+      - { name: show, type: built_in, icon: eye }
+      - { name: edit, type: built_in, icon: pencil }
+      - { name: destroy, type: built_in, icon: trash, confirm: true }

@@ -64,6 +64,7 @@ module LcpRuby
         validate_custom_fields
         validate_role_model
         validate_permission_source_model
+        validate_group_models
 
         ValidationResult.new(errors: @errors.dup, warnings: @warnings.dup)
       end
@@ -1285,6 +1286,46 @@ module LcpRuby
         result = Permissions::ContractValidator.validate(model_def)
         result.errors.each { |e| @errors << e }
         result.warnings.each { |w| @warnings << w }
+      end
+
+      # --- Group model validations ---
+
+      def validate_group_models
+        return unless LcpRuby.configuration.group_source == :model
+
+        config = LcpRuby.configuration
+
+        # Validate group model
+        if model_names.include?(config.group_model)
+          group_def = loader.model_definitions[config.group_model]
+          result = Groups::ContractValidator.validate_group(group_def)
+          result.errors.each { |e| @errors << e }
+          result.warnings.each { |w| @warnings << w }
+        else
+          @errors << "group_source is :model but group model '#{config.group_model}' is not defined"
+        end
+
+        # Validate membership model
+        if model_names.include?(config.group_membership_model)
+          membership_def = loader.model_definitions[config.group_membership_model]
+          result = Groups::ContractValidator.validate_membership(membership_def)
+          result.errors.each { |e| @errors << e }
+          result.warnings.each { |w| @warnings << w }
+        else
+          @errors << "group_source is :model but group membership model '#{config.group_membership_model}' is not defined"
+        end
+
+        # Validate role mapping model (optional)
+        if config.group_role_mapping_model
+          if model_names.include?(config.group_role_mapping_model)
+            mapping_def = loader.model_definitions[config.group_role_mapping_model]
+            result = Groups::ContractValidator.validate_role_mapping(mapping_def)
+            result.errors.each { |e| @errors << e }
+            result.warnings.each { |w| @warnings << w }
+          else
+            @errors << "group_source is :model but group role mapping model '#{config.group_role_mapping_model}' is not defined"
+          end
+        end
       end
 
       # --- Custom fields validations ---

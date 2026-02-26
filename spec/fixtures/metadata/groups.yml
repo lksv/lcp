@@ -1,0 +1,13 @@
+groups:
+  - name: sales_team
+    label: "Sales Team"
+    description: "Sales department staff"
+    roles:
+      - sales_rep
+      - viewer
+
+  - name: it_admins
+    label: "IT Administrators"
+    description: "IT department with full access"
+    roles:
+      - admin

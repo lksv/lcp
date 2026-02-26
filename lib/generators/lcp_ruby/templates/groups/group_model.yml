@@ -1,0 +1,58 @@
+model:
+  name: group
+  label: "Group"
+  label_plural: "Groups"
+
+  fields:
+    - name: name
+      type: string
+      label: "Name"
+      limit: 50
+      null: false
+      transforms: [strip]
+      validations:
+        - type: presence
+        - type: uniqueness
+        - type: format
+          options:
+            with: "\\A[a-z][a-z0-9_]*\\z"
+            message: "must start with a lowercase letter and contain only lowercase letters, digits, and underscores"
+
+    - name: label
+      type: string
+      label: "Label"
+      limit: 100
+
+    - name: description
+      type: text
+      label: "Description"
+
+    - name: external_id
+      type: string
+      label: "External ID"
+      limit: 255
+
+    - name: source
+      type: enum
+      label: "Source"
+      enum_values: [manual, ldap, api]
+      default: manual
+
+    - name: active
+      type: boolean
+      label: "Active"
+      default: true
+
+  associations:
+    - name: group_memberships
+      type: has_many
+      target_model: group_membership
+      dependent: destroy
+    - name: group_role_mappings
+      type: has_many
+      target_model: group_role_mapping
+      dependent: destroy
+
+  options:
+    timestamps: true
+    label_method: label

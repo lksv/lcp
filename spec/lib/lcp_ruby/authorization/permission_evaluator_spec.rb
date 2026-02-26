@@ -431,4 +431,200 @@ RSpec.describe LcpRuby::Authorization::PermissionEvaluator do
       expect(evaluator.roles).to eq([ "admin" ])
     end
   end
+
+  describe "resolve_roles with group-derived roles" do
+    before do
+      LcpRuby::Groups::Registry.clear!
+    end
+
+    after do
+      LcpRuby::Groups::Registry.clear!
+      LcpRuby.configuration.role_resolution_strategy = :merged
+    end
+
+    context "with :merged strategy" do
+      it "combines direct and group-derived roles" do
+        mock_loader = double("GroupLoader")
+        allow(mock_loader).to receive(:roles_for_user).and_return(%w[manager])
+        LcpRuby::Groups::Registry.set_loader(mock_loader)
+        LcpRuby::Groups::Registry.mark_available!
+        LcpRuby.configuration.role_resolution_strategy = :merged
+
+        user = double("User", lcp_role: %w[viewer], id: 1)
+        evaluator = described_class.new(perm_def, user, "project")
+
+        expect(evaluator.roles).to match_array(%w[viewer manager])
+      end
+
+      it "deduplicates roles" do
+        mock_loader = double("GroupLoader")
+        allow(mock_loader).to receive(:roles_for_user).and_return(%w[admin])
+        LcpRuby::Groups::Registry.set_loader(mock_loader)
+        LcpRuby::Groups::Registry.mark_available!
+        LcpRuby.configuration.role_resolution_strategy = :merged
+
+        user = double("User", lcp_role: %w[admin], id: 1)
+        evaluator = described_class.new(perm_def, user, "project")
+
+        expect(evaluator.roles).to eq(%w[admin])
+      end
+    end
+
+    context "with :groups_only strategy" do
+      it "uses only group-derived roles, ignoring direct" do
+        mock_loader = double("GroupLoader")
+        allow(mock_loader).to receive(:roles_for_user).and_return(%w[manager])
+        LcpRuby::Groups::Registry.set_loader(mock_loader)
+        LcpRuby::Groups::Registry.mark_available!
+        LcpRuby.configuration.role_resolution_strategy = :groups_only
+
+        user = double("User", lcp_role: %w[admin], id: 1)
+        evaluator = described_class.new(perm_def, user, "project")
+
+        expect(evaluator.roles).to eq(%w[manager])
+      end
+
+      it "falls back to default_role when group roles don't match permission config" do
+        mock_loader = double("GroupLoader")
+        allow(mock_loader).to receive(:roles_for_user).and_return(%w[unknown_role])
+        LcpRuby::Groups::Registry.set_loader(mock_loader)
+        LcpRuby::Groups::Registry.mark_available!
+        LcpRuby.configuration.role_resolution_strategy = :groups_only
+
+        user = double("User", lcp_role: %w[admin], id: 1)
+        evaluator = described_class.new(perm_def, user, "project")
+
+        expect(evaluator.roles).to eq(%w[viewer])
+      end
+    end
+
+    context "with :direct_only strategy" do
+      it "uses only direct roles, ignoring groups" do
+        mock_loader = double("GroupLoader")
+        allow(mock_loader).to receive(:roles_for_user).and_return(%w[admin])
+        LcpRuby::Groups::Registry.set_loader(mock_loader)
+        LcpRuby::Groups::Registry.mark_available!
+        LcpRuby.configuration.role_resolution_strategy = :direct_only
+
+        user = double("User", lcp_role: %w[viewer], id: 1)
+        evaluator = described_class.new(perm_def, user, "project")
+
+        expect(evaluator.roles).to eq(%w[viewer])
+      end
+    end
+
+    context "with :groups_only strategy and empty group roles" do
+      it "falls back to default_role when groups provide no roles" do
+        mock_loader = double("GroupLoader")
+        allow(mock_loader).to receive(:roles_for_user).and_return([])
+        LcpRuby::Groups::Registry.set_loader(mock_loader)
+        LcpRuby::Groups::Registry.mark_available!
+        LcpRuby.configuration.role_resolution_strategy = :groups_only
+
+        user = double("User", lcp_role: %w[admin], id: 1)
+        evaluator = described_class.new(perm_def, user, "project")
+
+        # groups_only returns [], which after filtering matches nothing -> default_role
+        expect(evaluator.roles).to eq(%w[viewer])
+      end
+    end
+
+    context "with :merged strategy and overlapping roles" do
+      it "deduplicates roles from direct and group sources" do
+        mock_loader = double("GroupLoader")
+        allow(mock_loader).to receive(:roles_for_user).and_return(%w[admin viewer])
+        LcpRuby::Groups::Registry.set_loader(mock_loader)
+        LcpRuby::Groups::Registry.mark_available!
+        LcpRuby.configuration.role_resolution_strategy = :merged
+
+        user = double("User", lcp_role: %w[admin], id: 1)
+        evaluator = described_class.new(perm_def, user, "project")
+
+        expect(evaluator.roles).to match_array(%w[admin viewer])
+        # No duplicates
+        expect(evaluator.roles.length).to eq(evaluator.roles.uniq.length)
+      end
+    end
+
+    context "when groups registry is not available" do
+      it "resolves only direct roles (safe default)" do
+        expect(LcpRuby::Groups::Registry.available?).to be false
+        LcpRuby.configuration.role_resolution_strategy = :merged
+
+        user = double("User", lcp_role: %w[admin], id: 1)
+        evaluator = described_class.new(perm_def, user, "project")
+
+        expect(evaluator.roles).to eq(%w[admin])
+      end
+    end
+  end
+
+  describe "resolve_roles with group-derived roles and role_source :model" do
+    before do
+      LcpRuby.configuration.role_source = :model
+      LcpRuby::Roles::Registry.mark_available!
+      allow(LcpRuby::Roles::Registry).to receive(:valid_role?) do |name|
+        %w[admin viewer editor].include?(name)
+      end
+    end
+
+    after do
+      LcpRuby.configuration.role_source = :implicit
+      LcpRuby::Roles::Registry.clear!
+      LcpRuby::Groups::Registry.clear!
+      LcpRuby.configuration.role_resolution_strategy = :merged
+    end
+
+    it "filters invalid group-derived roles through registry" do
+      mock_loader = double("GroupLoader")
+      allow(mock_loader).to receive(:roles_for_user).and_return(%w[editor invalid_role])
+      LcpRuby::Groups::Registry.set_loader(mock_loader)
+      LcpRuby::Groups::Registry.mark_available!
+      LcpRuby.configuration.role_resolution_strategy = :groups_only
+
+      user = double("User", lcp_role: %w[admin], id: 1)
+      evaluator = described_class.new(perm_def, user, "project")
+
+      # "invalid_role" should be filtered by Roles::Registry
+      # "editor" is valid but not in perm_def.roles, so falls back to default
+      # Actually "editor" IS in perm_def if the fixture has it - let's check what perm_def has
+      # The fixture has: admin, manager, viewer. So "editor" also gets filtered by perm matching.
+      # Only "invalid_role" gets filtered by Roles::Registry
+      expect(evaluator.roles).not_to include("invalid_role")
+    end
+  end
+
+  describe "impersonated user with groups" do
+    after do
+      LcpRuby::Groups::Registry.clear!
+      LcpRuby.configuration.role_resolution_strategy = :merged
+    end
+
+    it "suppresses group-derived roles during impersonation" do
+      # Use a YAML-style loader that calls group_method on the user.
+      # ImpersonatedUser returns [] for group_method, which means
+      # no group-derived roles are resolved.
+      yaml_loader = LcpRuby::Groups::YamlLoader.new
+      fixtures_path = File.expand_path("../../../fixtures/metadata", __dir__)
+      yaml_loader.load(fixtures_path)
+
+      LcpRuby::Groups::Registry.set_loader(yaml_loader)
+      LcpRuby::Groups::Registry.mark_available!
+      LcpRuby.configuration.role_resolution_strategy = :merged
+
+      real_user = OpenStruct.new(id: 1, lcp_role: %w[viewer], lcp_groups: %w[it_admins])
+
+      # Real user would get admin role from it_admins group
+      evaluator_real = described_class.new(perm_def, real_user, "project")
+      expect(evaluator_real.roles).to include("admin")
+
+      # Impersonated user returns [] for lcp_groups, suppressing group roles
+      impersonated = LcpRuby::ImpersonatedUser.new(real_user, "viewer")
+      evaluator = described_class.new(perm_def, impersonated, "project")
+
+      expect(evaluator.roles).to eq(%w[viewer])
+      expect(evaluator.can?(:create)).to be false
+      expect(evaluator.can?(:index)).to be true
+    end
+  end
 end

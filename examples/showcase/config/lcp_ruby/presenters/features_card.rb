@@ -16,7 +16,8 @@ define_presenter :features_card do
       color_map: {
         field_types: "blue", display_types: "purple", input_types: "teal",
         model_features: "green", presenter: "orange", form: "cyan",
-        permissions: "red", permission_source: "orange", role_source: "teal", extensibility: "pink",
+        permissions: "red", permission_source: "orange", role_source: "teal",
+        groups: "violet", extensibility: "pink",
         navigation: "gray", attachments: "yellow", authentication: "indigo",
         custom_fields: "cyan", virtual_fields: "emerald",
         positioning: "lime"
@@ -37,7 +38,8 @@ define_presenter :features_card do
         color_map: {
           field_types: "blue", display_types: "purple", input_types: "teal",
           model_features: "green", presenter: "orange", form: "cyan",
-          permissions: "red", permission_source: "orange", role_source: "teal", extensibility: "pink",
+          permissions: "red", permission_source: "orange", role_source: "teal",
+          groups: "violet", extensibility: "pink",
           navigation: "gray", attachments: "yellow", authentication: "indigo",
           custom_fields: "cyan", virtual_fields: "emerald",
           positioning: "lime"
@@ -93,6 +95,7 @@ define_presenter :features_card do
     filter :permissions, label: "Permissions", scope: :by_category_permissions
     filter :permission_source, label: "Perm Source", scope: :by_category_permission_source
     filter :role_source, label: "Roles", scope: :by_category_role_source
+    filter :groups, label: "Groups", scope: :by_category_groups
     filter :extensibility, label: "Extensibility", scope: :by_category_extensibility
     filter :navigation, label: "Navigation", scope: :by_category_navigation
     filter :attachments, label: "Attachments", scope: :by_category_attachments

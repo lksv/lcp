@@ -167,6 +167,34 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "group_memberships", force: :cascade do |t|
+    t.integer "user_id", null: false
+    t.string "source", default: "manual"
+    t.bigint "group_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["group_id"], name: "index_group_memberships_on_group_id"
+  end
+
+  create_table "group_role_mappings", force: :cascade do |t|
+    t.string "role_name", limit: 50, null: false
+    t.bigint "group_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["group_id"], name: "index_group_role_mappings_on_group_id"
+  end
+
+  create_table "groups", force: :cascade do |t|
+    t.string "name", limit: 50, null: false
+    t.string "label", limit: 100
+    t.text "description"
+    t.string "external_id", limit: 255
+    t.string "source", default: "manual"
+    t.boolean "active", default: true
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
+
   create_table "lcp_ruby_users", force: :cascade do |t|
     t.string "name", null: false
     t.json "lcp_role", default: [ "viewer" ]

@@ -32,6 +32,10 @@ menu:
         - view_group: departments
         - view_group: employees
         - view_group: projects
+        - separator: true
+        - view_group: groups
+        - view_group: group_memberships
+        - view_group: group_role_mappings
 
     - label: "Pipelines"
       icon: git-branch
