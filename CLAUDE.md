@@ -67,6 +67,7 @@ This principle applies to all existing concepts and **must be followed for every
 - [Role Source Guide](docs/guides/role-source.md) — DB-backed role management: setup, validation, cache, testing
 - [Permission Source Guide](docs/guides/permission-source.md) — DB-backed permission management: runtime editing, JSON definitions
 - [Groups Guide](docs/guides/groups.md) — Organizational groups: YAML, DB, host adapter, testing
+- [Hierarchical Authorization](docs/guides/hierarchical-authorization.md) — Multi-level parent-child access control (factory → production line → machine → sensor reading)
 - [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views

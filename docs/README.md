@@ -48,6 +48,7 @@ Complete attribute reference for every YAML configuration file:
 - [Role Source](guides/role-source.md) — DB-backed role management: setup, validation, cache, testing
 - [Permission Source](guides/permission-source.md) — DB-backed permission management: runtime editing, JSON definitions, testing
 - [Groups](guides/groups.md) — Organizational groups: YAML, DB, host adapter, testing
+- [Hierarchical Authorization](guides/hierarchical-authorization.md) — Multi-level parent-child access control (factory → production line → machine → sensor reading)
 - [Impersonation](guides/impersonation.md) — "View as Role X" for testing permissions
 - [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate`, `lcp_ruby:erd`, `lcp_ruby:permissions`, and `lcp_ruby:create_admin` rake tasks
 
