@@ -1,8 +1,5 @@
 # Groups, Roles & Organizational Structure — Design Document
 
-**Status:** Proposed
-**Date:** 2026-02-22
-
 ## Overview
 
 This document describes how LCP Ruby should represent **organizational structure**,
@@ -233,9 +230,6 @@ LcpRuby.configure do |config|
     user: "user_id"       # FK to host user model
   }
 
-  # Optional — omit for membership-only groups (no role derivation from groups).
-  # When nil, groups serve as organizational memberships only (for scoping,
-  # filtering, notifications) without affecting role resolution.
   config.group_role_mapping_model = "group_role_mapping"
   config.group_role_mapping_fields = {
     group: "group_id",    # FK to group model
@@ -282,7 +276,7 @@ model:
       required: true
     - name: source
       type: enum
-      values: { local: "Local", external: "External (synced from directory)" }
+      values: { local: "Local", synced: "Synced from directory" }
       default: local
   associations:
     - name: group
@@ -312,11 +306,11 @@ model:
 
 **Contract for DB models:**
 
-| Model | Required fields | Validations | Required? |
-|---|---|---|---|
-| Group | `name` (string, unique) | `active` (boolean) if present | Yes |
-| GroupMembership | `group_id` (integer), `user_id` (integer) | uniqueness on [group_id, user_id] | Yes |
-| GroupRoleMapping | `group_id` (integer), `role_name` (string) | uniqueness on [group_id, role_name] | No — omit for membership-only groups |
+| Model | Required fields | Validations |
+|---|---|---|
+| Group | `name` (string, unique) | `active` (boolean) if present |
+| GroupMembership | `group_id` (integer), `user_id` (integer) | uniqueness on [group_id, user_id] |
+| GroupRoleMapping | `group_id` (integer), `role_name` (string) | uniqueness on [group_id, role_name] |
 
 #### 3.2.3 Host Application Contract API
 
@@ -434,13 +428,8 @@ LcpRuby.configure do |config|
 
   # Options:
   #   :merged        — direct_roles ∪ group_derived_roles (recommended)
-  #   :groups_only   — only group-derived roles as the source (ignores direct assignments)
+  #   :groups_only   — only group-derived roles (strict corporate policy)
   #   :direct_only   — only direct roles, ignore groups (current behavior)
-  #
-  # Note: all strategies share the same fallback — if no matching roles are found
-  # after filtering, the user gets default_role (typically "viewer"). This is
-  # intentionally fail-open. For true fail-closed behavior, set default_role to
-  # a role with crud: [] (no permissions).
 end
 ```
 
@@ -464,10 +453,7 @@ def resolve_roles(user)
   # existing: validate against DB registry if role_source == :model
   combined = validate_against_registry(combined)
 
-  # existing: filter to roles with permission configs, fallback to default.
-  # This fallback applies to ALL strategies — including :groups_only.
-  # If this fail-open behavior is undesirable, configure default_role
-  # with crud: [] to deny all access.
+  # existing: filter to roles with permission configs, fallback to default
   matching = combined.select { |r| permission_definition.roles.key?(r) }
   matching.empty? ? [permission_definition.default_role] : matching
 end
@@ -517,18 +503,7 @@ model:
 ```
 
 When `direct_role_assignment_model` is configured, `resolve_direct_roles`
-behaviour depends on a separate config option (to be defined at implementation
-time):
-
-- **`:replace`** — queries only the assignment table, ignoring `user.lcp_role`.
-  Use when the host user model should not carry role data at all.
-- **`:merge`** — unions roles from both the assignment table and
-  `user.lcp_role`. Use when the assignment table supplements roles already
-  present on the user model (e.g., temporary overrides alongside HR-managed
-  base roles).
-
-The default will be `:replace` to avoid ambiguity — one canonical source of
-direct roles. This config will be finalised when the feature is implemented.
+queries this table instead of (or in addition to) `user.lcp_role`.
 
 ### 3.5 Organizational Units
 
@@ -645,14 +620,13 @@ LcpRuby.configure do |config|
 
   # === New: Group config ===
   config.group_source = :none                  # :none | :yaml | :model | :host
-                                               # :none preserves current behavior — no groups
 
   # When group_source == :model
   config.group_model = "group"
   config.group_model_fields = { name: "name", active: "active" }
   config.group_membership_model = "group_membership"
   config.group_membership_fields = { group: "group_id", user: "user_id" }
-  config.group_role_mapping_model = "group_role_mapping"  # optional — nil for membership-only groups
+  config.group_role_mapping_model = "group_role_mapping"
   config.group_role_mapping_fields = { group: "group_id", role: "role_name" }
 
   # When group_source == :host
@@ -669,72 +643,21 @@ end
 
 ---
 
-## 6. Complexity Levels
+## 6. Interaction with Existing Systems
 
-The design supports progressive complexity — from zero configuration (current
-behavior) to full enterprise integration. Each level builds on the previous one
-without requiring changes to permission YAML, scope definitions, or other
-existing platform concepts.
-
-| Level | Configuration | What changes | Use case |
-|---|---|---|---|
-| **0 — No groups** | `group_source: :none` (default) | Nothing. Current behavior preserved. | Simple apps, prototypes |
-| **1 — Static groups** | `group_source: :yaml` | Groups + role mappings defined in YAML. No DB tables. | Small deployments, testing |
-| **2 — Membership-only groups** | `group_source: :model`, no `group_role_mapping_model` | Groups + memberships in DB. No role derivation — groups used for organizational filtering/scoping only. | Organizational structure, record filtering |
-| **3 — Full DB groups** | `group_source: :model` with all 3 models | Groups, memberships, and role mappings in DB with management UI. | Self-service group administration |
-| **4 — Enterprise integration** | `group_source: :host` | Host adapter provides groups from AD/LDAP/SCIM. | Corporate IAM integration |
-
-### Key Properties Across All Levels
-
-- **Permission YAML is unchanged at all levels.** Groups are transparent to
-  the permission layer. A configurator working with permissions never needs to
-  know whether groups exist.
-- **OU models are independent of group source.** Organizational units are
-  regular user-defined models at every level — they do not require groups.
-- **Role resolution strategy is orthogonal.** `role_resolution_strategy` can be
-  set independently of `group_source` — even at level 3, setting
-  `:direct_only` disables group-derived roles while keeping groups for
-  organizational purposes.
-
-### Level 2: Membership-Only Groups
-
-When `group_source == :model` and `group_role_mapping_model` is not configured
-(`nil`), groups exist as organizational memberships without affecting role
-resolution. This is useful when:
-
-- Groups represent teams, projects, or organizational units for record filtering
-- Scope rules reference group membership (e.g., `accessible_group_ids` method
-  on the user model)
-- The host app uses groups for non-authorization purposes (notifications,
-  assignment queues, dashboards)
-
-In this mode, `resolve_group_roles` always returns an empty array (because
-there is no role mapping model to query), so effective roles come solely from
-direct assignments regardless of `role_resolution_strategy`. This is not
-because the strategy is forced to `:direct_only` — the strategy setting is
-still orthogonal — but because group-derived roles are structurally empty
-without a mapping table. Groups still fire membership events and support
-custom fields if they are LCP models. Upgrading from level 2 to level 3
-requires only adding the `group_role_mapping` model and configuring it — no
-changes to existing groups or memberships.
-
----
-
-## 7. Interaction with Existing Systems
-
-### 7.1 Permission Evaluation (no changes to permission YAML)
+### 6.1 Permission Evaluation (no changes to permission YAML)
 
 Permission YAML stays the same. Role names in permission files are matched
 against effective roles regardless of how they were resolved (direct, group,
 or both). This is the key benefit — groups are transparent to the
 permission layer.
 
-### 7.2 Scope Resolution (no changes)
+### 6.2 Scope Resolution (no changes)
 
 ScopeBuilder already supports `field_match`, `association`, `where`, and
 `custom`. OU-based scoping uses these existing mechanisms. No changes needed.
 
-### 7.3 Impersonation
+### 6.3 Impersonation
 
 The existing impersonation system (`ImpersonatedUser`) overrides roles.
 With groups, impersonation should override the *effective* roles (after
@@ -742,7 +665,7 @@ group resolution), not the group memberships. The current design already
 works because impersonation replaces the role list that feeds into
 `PermissionEvaluator`.
 
-### 7.4 Events
+### 6.4 Events
 
 Group membership changes should fire events through the existing
 `Events::Dispatcher`:
@@ -756,7 +679,7 @@ Group membership changes should fire events through the existing
 
 These allow host apps to react (audit log, notification, cache invalidation).
 
-### 7.5 Custom Fields on Groups
+### 6.5 Custom Fields on Groups
 
 If `group_source == :model`, groups are regular LCP models — they
 automatically support custom fields, presenters, and permissions like any
@@ -764,7 +687,7 @@ other model.
 
 ---
 
-## 8. External Sync Contract
+## 7. External Sync Contract
 
 Even without implementing LDAP/SCIM now, the design must not prevent it.
 The sync contract is a host-side interface:
@@ -795,7 +718,7 @@ end
 `BulkSync` is a platform service (to be implemented) that:
 1. Creates/updates groups matching by `external_id`
 2. Creates/removes memberships
-3. Marks stale memberships as `source: :external` + removed (not deleting
+3. Marks stale memberships as `source: :synced` + removed (not deleting
    locally-added memberships with `source: :local`)
 4. Fires events for each change
 5. Clears the Registry cache once at the end
@@ -805,7 +728,7 @@ This is out of scope for initial implementation but the data model
 
 ---
 
-## 9. Generator
+## 8. Generator
 
 Similar to `rails generate lcp_ruby:role_model`, a generator creates the
 full group infrastructure:
@@ -825,35 +748,30 @@ rails generate lcp_ruby:groups
 
 ---
 
-## 10. Open Questions
+## 9. Open Questions
 
 1. **Should group-role mappings support scope override?** E.g., group
    `GRP_Sales_Prague` maps to role `sales_rep` *with scope limited to
    Prague office*. Currently scope is defined in permissions YAML per role,
    not per group-role mapping. Adding scope to the mapping would allow the
    same role with different scopes per group — powerful but complex.
-   Answer: No. It is not necessary.
 
 2. **Group hierarchy (nested groups)?** AD supports nested groups.
    Recommended approach: flatten at sync time. The membership table stores
    the effective (flattened) memberships. Avoids recursive resolution at
    authorization time.
-   Answer: flatten at sync time.
 
 3. **Temporal group memberships?** `valid_from` / `valid_until` on
    memberships for time-limited access. Useful for project-based groups,
    contractor access. Adds query complexity to membership resolution.
-   Answer: yes, but it is sufficient to check it once per session or cache it
-   during the session (not necessary to check it during each permissision check)
 
 4. **Group-based presenter visibility?** Currently presenters are filtered
    by role. Should groups directly control presenter access, or is
    group → role → presenter sufficient?
-   Answer: group → role → presenter is sufficient for now.
 
 ---
 
-## 11. Implementation Priority
+## 10. Implementation Priority
 
 | Priority | Item | Depends on |
 |---|---|---|
