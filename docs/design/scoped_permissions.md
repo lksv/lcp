@@ -235,6 +235,12 @@ config/lcp_ruby/permissions/
   contact__custom_field_definition.yml      # contact-scoped
 ```
 
+**Note:** This is a human convention, not an enforced constraint. The Loader
+reads all `.yml` files from the permissions directory and indexes them by the
+`model:` value inside the YAML, not by the filename. A file named
+`foo.yml` with `model: project.custom_field_definition` works identically.
+The double-underscore convention exists for discoverability and consistency.
+
 The `model:` field inside the YAML uses the dot-notation:
 
 ```yaml
@@ -336,7 +342,28 @@ to let the platform's default fallback chain handle it.
 
 ### 3.5 Resolver Changes
 
-`Permissions::SourceResolver` gains a context-aware lookup:
+`Permissions::SourceResolver` gains a context-aware lookup.
+
+**Fallback chain for `:model` source** (DB has priority over YAML within the
+same specificity level; `_default` is always last resort):
+
+```
+DB("project.custom_field_definition")   → most specific, highest priority
+DB("custom_field_definition")           → unscoped DB override
+YAML("project.custom_field_definition") → scoped static definition
+YAML("custom_field_definition")         → unscoped static fallback
+DB("_default")                          → catch-all DB
+YAML("_default")                        → catch-all static
+```
+
+For `:yaml` source, the chain skips DB steps. For `:host` source, each
+candidate key is passed to the adapter in order (the adapter may be called
+multiple times per request — implementers should optimize accordingly, e.g.,
+batch lookup or internal caching).
+
+**Important:** `yaml_permission_definition` must return an **exact match only**
+(no implicit `_default` fallback). The `_default` step is handled explicitly by
+the resolver as the final fallback — see §3.6.
 
 ```ruby
 module LcpRuby
@@ -349,14 +376,17 @@ module LcpRuby
       def self.for(model_name, loader, context: nil)
         candidates = build_candidates(model_name, context)
 
-        candidates.each do |key|
-          result = resolve_single(key, loader)
-          return result if result
+        case LcpRuby.configuration.permission_source
+        when :host
+          resolve_from_host(candidates) ||
+            raise(MetadataError, "No permission definition found for '#{model_name}'")
+        when :model
+          resolve_from_model(candidates, loader) ||
+            raise(MetadataError, "No permission definition found for '#{model_name}'")
+        else # :yaml
+          resolve_from_yaml(candidates, loader) ||
+            raise(MetadataError, "No permission definition found for '#{model_name}'")
         end
-
-        # Final fallback: _default
-        resolve_single("_default", loader) ||
-          raise(MetadataError, "No permission definition found for '#{model_name}'")
       end
 
       private
@@ -375,17 +405,49 @@ module LcpRuby
         candidates
       end
 
-      def self.resolve_single(key, loader)
-        case LcpRuby.configuration.permission_source
-        when :host
-          adapter = LcpRuby.configuration.permission_adapter
-          adapter&.permission_for(key)
-        when :model
-          return Registry.for_model(key) if Registry.available?
-          loader.yaml_permission_definition(key)
-        else # :yaml
-          loader.yaml_permission_definition(key)
+      # :model source — DB takes priority over YAML at each specificity level,
+      # _default is always last.
+      def self.resolve_from_model(candidates, loader)
+        if Registry.available?
+          candidates.each do |key|
+            result = Registry.for_model(key)
+            return result if result
+          end
         end
+
+        candidates.each do |key|
+          result = loader.yaml_permission_definition(key)
+          return result if result
+        end
+
+        # _default as final fallback
+        (Registry.available? && Registry.for_model("_default")) ||
+          loader.yaml_permission_definition("_default")
+      end
+
+      # :yaml source — YAML only, _default as final fallback.
+      def self.resolve_from_yaml(candidates, loader)
+        candidates.each do |key|
+          result = loader.yaml_permission_definition(key)
+          return result if result
+        end
+
+        loader.yaml_permission_definition("_default")
+      end
+
+      # :host source — adapter receives each candidate key in order.
+      # The adapter may be called multiple times; implementers should
+      # optimize accordingly (batch lookup, internal caching, etc.).
+      def self.resolve_from_host(candidates)
+        adapter = LcpRuby.configuration.permission_adapter
+        return nil unless adapter
+
+        candidates.each do |key|
+          result = adapter.permission_for(key)
+          return result if result
+        end
+
+        adapter.permission_for("_default")
       end
     end
   end
@@ -394,19 +456,33 @@ end
 
 ### 3.6 Loader Changes
 
-`Metadata::Loader` must index permission definitions by their full `model:`
-key (which now may contain dots):
+Two changes are required:
+
+**1. Public `permission_definition` must accept `context:`** — this is the
+entry point called by controllers. It delegates context to the resolver:
+
+```ruby
+# lib/lcp_ruby/metadata/loader.rb
+def permission_definition(model_name, context: nil)
+  Permissions::SourceResolver.for(model_name.to_s, self, context: context)
+end
+```
+
+**2. `yaml_permission_definition` must return exact matches only** — the
+implicit `_default` fallback is removed. The resolver handles `_default`
+explicitly as the final step of the fallback chain (see §3.5):
 
 ```ruby
 # lib/lcp_ruby/metadata/loader.rb
 def yaml_permission_definition(key)
-  @permission_definitions[key.to_s] || @permission_definitions["_default"]
+  @permission_definitions[key.to_s]
 end
 ```
 
-No change needed — `@permission_definitions` is already a hash keyed by the
-`model:` value from YAML. A YAML file with `model: project.custom_field_definition`
-will be indexed under that key automatically.
+No changes needed to YAML loading or indexing — `@permission_definitions` is
+already a hash keyed by the `model:` value from YAML. A YAML file with
+`model: project.custom_field_definition` will be indexed under that key
+automatically.
 
 ### 3.7 Controller Changes
 
@@ -427,57 +503,95 @@ def current_evaluator
 end
 ```
 
-And correspondingly for `policy` and `policy_scope`:
+**`model_name` in `PermissionEvaluator` is always the base model name** (e.g.,
+`"custom_field_definition"`), not the qualified key. The evaluator uses
+`model_name` for role resolution via `Roles::Registry`, which indexes by the
+actual model name. The scoped permission definition is already resolved — the
+evaluator doesn't need the context, it just needs the correct
+`PermissionDefinition` object (which it receives as the first argument).
+
+`policy` and `policy_scope` use `PolicyFactory.policy_for` with the
+**qualified key** as cache key, so different contexts produce different
+policy classes:
 
 ```ruby
 def policy(record)
   context = @parent_model_definition.name
-  perm_def = LcpRuby.loader.permission_definition(
-    "custom_field_definition",
-    context: context
-  )
-  policy_class = Authorization::PolicyFactory.policy_for_definition(perm_def, "custom_field_definition")
+  qualified_key = context ? "#{context}.custom_field_definition" : "custom_field_definition"
+  policy_class = Authorization::PolicyFactory.policy_for(qualified_key, context: context)
   policy_class.new(current_user, record)
+end
+
+def policy_scope(scope)
+  context = @parent_model_definition.name
+  qualified_key = context ? "#{context}.custom_field_definition" : "custom_field_definition"
+  policy_class = Authorization::PolicyFactory.policy_for(qualified_key, context: context)
+  policy_class::Scope.new(current_user, scope).resolve
 end
 ```
 
-Note: `PolicyFactory` gains a new method `policy_for_definition` that accepts
-an already-resolved `PermissionDefinition` instead of looking it up by model
-name. This avoids double-lookup and ensures the scoped definition is used.
+Note: The `index` action's manual scoping
+(`.where(target_model: @parent_model_definition.name)`) remains unchanged —
+scoped permissions control **which CRUD/fields/roles apply**, not which records
+are returned. The controller is responsible for parent scoping.
 
 ### 3.8 PolicyFactory Changes
+
+The **cache key** changes from `model_name` to the **qualified permission key**
+(e.g., `"project.custom_field_definition"`). This ensures different contexts
+produce different cached policy classes. Unscoped callers pass just the model
+name — the cache key is still the same string, so backward compatibility is
+preserved.
 
 ```ruby
 module LcpRuby
   module Authorization
     class PolicyFactory
       class << self
-        # Existing: lookup by model name (unchanged, backward compatible)
-        def policy_for(model_name)
-          policies[model_name.to_s] ||= build_policy_from_name(model_name)
-        end
-
-        # New: build policy from an already-resolved PermissionDefinition.
-        # Not cached — the caller is responsible for caching if needed.
-        def policy_for_definition(perm_def, model_name)
-          build_policy(perm_def, model_name)
+        # Lookup by permission key (qualified or unqualified).
+        #
+        # Unscoped:  policy_for("custom_field_definition")
+        #   → cache key: "custom_field_definition"
+        #   → resolves unscoped permission definition
+        #
+        # Scoped:    policy_for("project.custom_field_definition", context: "project")
+        #   → cache key: "project.custom_field_definition"
+        #   → resolves scoped permission definition
+        #
+        # @param permission_key [String] qualified key used as cache key
+        # @param context [String, nil] optional context passed to the resolver
+        def policy_for(permission_key, context: nil)
+          policies[permission_key.to_s] ||= build_policy(permission_key, context)
         end
 
         private
 
-        def build_policy_from_name(model_name)
-          perm_def = load_permission_definition(model_name)
-          build_policy(perm_def, model_name)
-        end
+        def build_policy(permission_key, context)
+          # Extract the base model name from the qualified key
+          # "project.custom_field_definition" → "custom_field_definition"
+          # "custom_field_definition" → "custom_field_definition"
+          model_name = permission_key.to_s.split(".").last
 
-        def build_policy(perm_def, model_name)
-          # ... existing dynamic policy class creation ...
+          perm_def = LcpRuby.loader.permission_definition(model_name, context: context)
+
+          policy_class = Class.new do
+            # ... existing dynamic policy class creation,
+            # using perm_def and model_name (base name for role resolution) ...
+          end
+
+          policy_class
         end
       end
     end
   end
 end
 ```
+
+**Why cache by qualified key:** If `policy_for("custom_field_definition")` is
+called first (e.g., from a non-polymorphic context) and cached, a subsequent
+`policy_for("project.custom_field_definition", context: "project")` must not
+return the cached unscoped policy. Using the qualified key as cache key
+guarantees correctness.
 
 ---
 
@@ -648,10 +762,10 @@ No existing YAML files, DB records, or host adapters need changes.
 
 | Priority | Item | Scope |
 |---|---|---|
-| 1 | `SourceResolver.for` — add `context:` parameter with fallback chain | Small change |
-| 2 | `Loader` — verify dot-keys are indexed correctly (likely works already) | Verification |
-| 3 | `CustomFieldsController` — pass parent model as context | Small change |
-| 4 | `PolicyFactory.policy_for_definition` — accept pre-resolved definition | Small change |
+| 1 | `SourceResolver.for` — add `context:` parameter with source-grouped fallback chain | Small change |
+| 2 | `Loader` — add `context:` to `permission_definition`, remove `_default` fallback from `yaml_permission_definition` | Small change |
+| 3 | `PolicyFactory` — cache by qualified key, extract base model name from key | Small change |
+| 4 | `CustomFieldsController` — pass parent model as context in `current_evaluator`, `policy`, and `policy_scope` | Small change |
 | 5 | `ConfigurationValidator` — validate scoped permission keys | Medium |
 | 6 | Documentation — reference + guide updates | Medium |
 | 7 | Tests — scoped permission resolution, controller context passing | Medium |
@@ -865,10 +979,9 @@ Some features look similar but don't benefit from this pattern:
    `qualified → _default` (skip unqualified fallback to enforce explicit
    scoped definitions).
 
-2. **Caching for PolicyFactory:** `policy_for_definition` is not cached
-   because the same model name can have different definitions per context.
-   Should we cache by qualified key instead? The performance impact depends on
-   how many unique contexts exist (typically < 20, so likely negligible).
+2. ~~**Caching for PolicyFactory:** Resolved — `policy_for` now caches by the
+   qualified permission key (e.g., `"project.custom_field_definition"`). See
+   §3.8.~~
 
 3. **Scope in scoped permissions:** When `project.custom_field_definition`
    defines a `scope:`, should it automatically include
