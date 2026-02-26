@@ -18,9 +18,9 @@ define_model :custom_field_definition do
       message: "must start with a lowercase letter and contain only lowercase letters, digits, and underscores"
   end
 
-  field :custom_type, :string, default: "string" do
+  field :custom_type, :enum, default: "string",
+    values: %w[string text integer float decimal boolean date datetime enum] do
     validates :presence
-    validates :inclusion, in: %w[string text integer float decimal boolean date datetime enum]
   end
 
   field :label, :string do
@@ -34,6 +34,7 @@ define_model :custom_field_definition do
   field :required, :boolean, default: false
   field :default_value, :string
   field :placeholder, :string
+  field :hint, :string
   field :min_length, :integer
   field :max_length, :integer
   field :min_value, :decimal, precision: 15, scale: 4

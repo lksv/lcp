@@ -53,6 +53,8 @@ module LcpRuby
         form.url_field(field_name,
           placeholder: field_config["placeholder"],
           autofocus: field_config["autofocus"])
+      when "enum"
+        render_select_input(form, field_name, field_config, field_def)
       when "color"
         form.color_field(field_name)
       when "file_upload"

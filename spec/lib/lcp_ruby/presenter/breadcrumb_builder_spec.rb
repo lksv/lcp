@@ -326,9 +326,51 @@ RSpec.describe LcpRuby::Presenter::BreadcrumbBuilder do
           view_group: node_vg, record: node_a, action: "show", path_helper: path_helper
         ).build
 
-        # MAX_DEPTH=5: depths 0..4 produce 5 levels, each with list+record crumb (10)
-        # Plus: Home + current list + current record = 13 total
-        expect(crumbs.length).to eq(13)
+        # Self-referential: list crumb emitted once, then only record crumbs per depth level
+        # Home + Nodes (list) + 5 ancestor record crumbs + current record = 8 total
+        expect(crumbs.length).to eq(8)
+        expect(crumbs.last.current?).to be true
+      end
+    end
+
+    context "with self-referential tree (parent points to same model)" do
+      it "builds: Home > Categories > Grandparent > Parent > Current Category" do
+        stub_presenter("category", label: "Categories", slug: "categories")
+
+        assoc = instance_double(
+          LcpRuby::Metadata::AssociationDefinition,
+          name: "parent", target_model: "category", polymorphic: false
+        )
+        model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ assoc ])
+
+        cat_vg = build_view_group(
+          name: "categories", model: "category", primary: "category",
+          breadcrumb_config: { "relation" => "parent" }
+        )
+
+        root = double("Root", id: 1, persisted?: true)
+        allow(root).to receive(:to_label).and_return("Root")
+        allow(root).to receive(:parent).and_return(nil)
+
+        child = double("Child", id: 2, persisted?: true)
+        allow(child).to receive(:to_label).and_return("Child")
+        allow(child).to receive(:parent).and_return(root)
+
+        leaf = double("Leaf", id: 3, persisted?: true)
+        allow(leaf).to receive(:to_label).and_return("Leaf")
+        allow(leaf).to receive(:parent).and_return(child)
+
+        allow(LcpRuby.loader).to receive(:model_definition).with("category").and_return(model_def)
+        allow(LcpRuby.loader).to receive(:view_groups_for_model).with("category").and_return([ cat_vg ])
+
+        crumbs = described_class.new(
+          view_group: cat_vg, record: leaf, action: "show", path_helper: path_helper
+        ).build
+
+        # Home > Categories > Root > Child > Leaf
+        # No duplicate "Categories" crumb between ancestors
+        expect(crumbs.map(&:label)).to eq(%w[Home Categories Root Child Leaf])
+        expect(crumbs.map(&:path)).to eq([ "/", "/categories", "/categories/1", "/categories/2", "/categories/3" ])
         expect(crumbs.last.current?).to be true
       end
     end

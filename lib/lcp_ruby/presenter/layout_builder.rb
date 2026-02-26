@@ -33,8 +33,11 @@ module LcpRuby
         config = presenter_definition.show_config
         layout = config["layout"] || []
         result = layout.map do |s|
-          if s["type"] == "association_list"
+          case s["type"]
+          when "association_list"
             enrich_association_list_section(s)
+          when "json_items_list"
+            normalize_json_field_section(s)
           else
             normalize_section(s)
           end
@@ -77,6 +80,7 @@ module LcpRuby
               )
             }
             field_config["placeholder"] = defn.placeholder if defn.placeholder.present?
+            field_config["hint"] = defn.hint if defn.hint.present?
             field_config["input_type"] = defn.input_type if defn.input_type.present?
             field_config["renderer"] = defn.renderer if defn.renderer.present?
             field_config["options"] = parse_renderer_options(defn.renderer_options) if defn.renderer_options.present?

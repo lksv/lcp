@@ -101,6 +101,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.boolean "required"
     t.string "default_value"
     t.string "placeholder"
+    t.string "hint"
     t.integer "min_length"
     t.integer "max_length"
     t.decimal "min_value", precision: 15, scale: 4

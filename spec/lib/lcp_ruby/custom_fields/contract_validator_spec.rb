@@ -14,7 +14,7 @@ RSpec.describe LcpRuby::CustomFields::ContractValidator do
   let(:valid_fields) do
     [
       { "name" => "field_name", "type" => "string" },
-      { "name" => "custom_type", "type" => "string" },
+      { "name" => "custom_type", "type" => "enum", "enum_values" => %w[string text integer] },
       { "name" => "target_model", "type" => "string" },
       { "name" => "label", "type" => "string" },
       { "name" => "active", "type" => "boolean" }
@@ -45,7 +45,7 @@ RSpec.describe LcpRuby::CustomFields::ContractValidator do
     context "with missing required field" do
       it "returns an error for each missing field" do
         model_def = build_model_def(fields: [
-          { "name" => "custom_type", "type" => "string" },
+          { "name" => "custom_type", "type" => "enum", "enum_values" => %w[string text] },
           { "name" => "target_model", "type" => "string" },
           { "name" => "label", "type" => "string" },
           { "name" => "active", "type" => "boolean" }

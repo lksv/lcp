@@ -1,0 +1,78 @@
+<%# Renders a json_items_list section on the show page.
+    Displays JSON array items as structured rows with field labels and values.
+    Locals:
+      section  - the enriched section hash from LayoutBuilder (with field_definitions)
+      record   - the parent record
+%>
+<%
+  json_field_name = section["json_field"]
+  items = record.respond_to?(json_field_name) ? (record.public_send(json_field_name) || []) : []
+  items = if items.is_a?(String)
+    begin; JSON.parse(items); rescue JSON::ParserError; []; end
+  else
+    items
+  end
+  target_model_def = section["target_model_definition"]
+
+  # Collect all display fields (flat or from sub_sections)
+  all_field_groups = if section["sub_sections"]
+    section["sub_sections"].map do |ss|
+      { title: ss["title"], fields: ss["fields"] || [], columns: ss["columns"] }
+    end
+  else
+    [{ title: nil, fields: section["fields"] || [], columns: section["columns"] }]
+  end
+%>
+
+<div class="lcp-json-items-list">
+  <% if items.empty? %>
+    <div class="lcp-json-items-list__empty">
+      <%= section["empty_message"] || "No items." %>
+    </div>
+  <% else %>
+    <% items.each_with_index do |item_hash, idx| %>
+      <%
+        item = if target_model_def
+          LcpRuby::JsonItemWrapper.new(item_hash, target_model_def)
+        else
+          LcpRuby::JsonItemWrapper.new(item_hash)
+        end
+      %>
+      <div class="lcp-json-item">
+        <div class="lcp-json-item__number"><%= idx + 1 %></div>
+        <div class="lcp-json-item__body">
+          <% all_field_groups.each do |group| %>
+            <% if group[:title] %>
+              <div class="lcp-json-item__group-title"><%= group[:title] %></div>
+            <% end %>
+            <div class="lcp-json-item__fields" style="display: grid; grid-template-columns: repeat(<%= group[:columns] || group[:fields].size %>, 1fr); gap: 0.5rem 1rem;">
+              <% group[:fields].each do |field_config| %>
+                <% field_name = field_config["field"] %>
+                <% next unless field_name %>
+                <% field_def = field_config["field_definition"] %>
+                <% value = item.respond_to?(field_name) ? item.public_send(field_name) : item_hash[field_name.to_s] %>
+                <div class="lcp-json-item__field">
+                  <div class="lcp-json-item__label"><%= field_config["label"] || field_def&.label || field_name.to_s.humanize %></div>
+                  <div class="lcp-json-item__value">
+                    <% if field_config["renderer"] %>
+                      <%= render_display_value(value, field_config["renderer"], field_config["options"], field_def, record: record) %>
+                    <% elsif field_def&.type == "boolean" %>
+                      <%= render_display_value(value, "boolean_icon", {}) %>
+                    <% elsif field_def&.type == "enum" && field_def.enum_values.is_a?(Array) %>
+                      <% enum_label = field_def.enum_values.filter_map { |ev| ev["label"] if ev.is_a?(Hash) && ev["value"] == value.to_s }.first %>
+                      <%= enum_label || value %>
+                    <% elsif value.nil? %>
+                      <span class="lcp-json-item__nil">&mdash;</span>
+                    <% else %>
+                      <%= value %>
+                    <% end %>
+                  </div>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% end %>
+</div>

@@ -30,22 +30,33 @@ define_presenter :custom_fields do
       field :description, col_span: 2
     end
 
-    section "Constraints", columns: 2 do
-      field :min_length
-      field :max_length
-      field :min_value
-      field :max_value
-      field :precision
+    section "Default & Placeholder", columns: 2 do
       field :default_value
-      field :placeholder
+      field :placeholder, visible_when: { field: :custom_type, operator: :in, value: %w[string text] }
+      field :hint
     end
 
-    section "Display", columns: 2 do
+    section "Text Constraints", columns: 2, visible_when: { field: :custom_type, operator: :in, value: %w[string text] } do
+      field :min_length
+      field :max_length
+    end
+
+    section "Numeric Constraints", columns: 2, visible_when: { field: :custom_type, operator: :in, value: %w[integer float decimal] } do
+      field :min_value
+      field :max_value
+      field :precision, visible_when: { field: :custom_type, operator: :eq, value: "decimal" }
+    end
+
+    section "Enum Values", visible_when: { field: :custom_type, operator: :eq, value: "enum" } do
+      field :enum_values
+    end
+
+    section "Display Options", columns: 2 do
       field :show_in_table
       field :show_in_form
       field :show_in_show
       field :sortable
-      field :searchable
+      field :searchable, visible_when: { field: :custom_type, operator: :in, value: %w[string text enum] }
       field :input_type
       field :renderer
       field :column_width
@@ -66,16 +77,20 @@ define_presenter :custom_fields do
       field :description, col_span: 2
     end
 
+    section "Default & Placeholder", columns: 2 do
+      field :default_value
+      field :placeholder, visible_when: { field: :custom_type, operator: :in, value: %w[string text] }
+      field :hint
+    end
+
     section "Text Constraints", columns: 2,
-            visible_when: { field: :custom_type, operator: :in, value: "string,text" } do
+            visible_when: { field: :custom_type, operator: :in, value: %w[string text] } do
       field :min_length
       field :max_length
-      field :default_value
-      field :placeholder
     end
 
     section "Numeric Constraints", columns: 2,
-            visible_when: { field: :custom_type, operator: :in, value: "integer,float,decimal" } do
+            visible_when: { field: :custom_type, operator: :in, value: %w[integer float decimal] } do
       field :min_value
       field :max_value
       field :precision, visible_when: { field: :custom_type, operator: :eq, value: "decimal" }
@@ -91,7 +106,7 @@ define_presenter :custom_fields do
       field :show_in_form
       field :show_in_show
       field :sortable
-      field :searchable
+      field :searchable, visible_when: { field: :custom_type, operator: :in, value: %w[string text enum] }
       field :input_type
       field :renderer
       field :column_width

@@ -91,48 +91,88 @@ document.addEventListener('click', function(e) {
     e.dataTransfer.effectAllowed = 'move';
   });
 
+  // Returns the last non-template, non-removed, non-dragged row in a container.
+  function lastDropTargetRow(container) {
+    var rows = container.querySelectorAll('.lcp-nested-row:not(.removed)');
+    for (var i = rows.length - 1; i >= 0; i--) {
+      if (rows[i] !== draggedRow && !isInTemplate(rows[i])) return rows[i];
+    }
+    return null;
+  }
+
+  function clearContainerIndicators(container) {
+    container.querySelectorAll('.lcp-nested-row.drag-over, .lcp-nested-row.drag-over-bottom').forEach(function(r) {
+      r.classList.remove('drag-over', 'drag-over-bottom');
+    });
+  }
+
+  // Find the drop target row and position (before/after) based on cursor Y.
+  // This works regardless of whether the cursor is on a row, in a gap, or
+  // below the last row — it only uses vertical position.
+  function findDropTarget(container, clientY) {
+    var rows = container.querySelectorAll('.lcp-nested-row:not(.removed)');
+    for (var i = 0; i < rows.length; i++) {
+      if (rows[i] === draggedRow || isInTemplate(rows[i])) continue;
+      var rect = rows[i].getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) {
+        return { row: rows[i], position: 'before' };
+      }
+      if (clientY < rect.bottom) {
+        return { row: rows[i], position: 'after' };
+      }
+    }
+    return { row: lastDropTargetRow(container), position: 'after' };
+  }
+
   document.addEventListener('dragover', function(e) {
     if (!draggedRow) return;
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
-    var targetRow = e.target.closest('.lcp-nested-row');
-    if (!targetRow || targetRow === draggedRow || isInTemplate(targetRow)) return;
-    var container = targetRow.closest('.lcp-nested-container');
-    if (!container || container !== draggedRow.closest('.lcp-nested-container')) return;
 
-    container.querySelectorAll('.lcp-nested-row.drag-over').forEach(function(r) {
-      r.classList.remove('drag-over');
-    });
-    targetRow.classList.add('drag-over');
+    var container = draggedRow.closest('.lcp-nested-container');
+    if (!container) return;
+
+    // When cursor is on the dragged row itself, keep current indicator
+    var hoveredRow = e.target.closest('.lcp-nested-row');
+    if (hoveredRow === draggedRow) return;
+
+    clearContainerIndicators(container);
+    var target = findDropTarget(container, e.clientY);
+    if (target.row) {
+      target.row.classList.add(target.position === 'before' ? 'drag-over' : 'drag-over-bottom');
+    }
   });
 
   document.addEventListener('drop', function(e) {
     if (!draggedRow) return;
     e.preventDefault();
-    var targetRow = e.target.closest('.lcp-nested-row');
-    if (!targetRow || targetRow === draggedRow || isInTemplate(targetRow)) return;
-    var container = targetRow.closest('.lcp-nested-container');
-    if (!container || container !== draggedRow.closest('.lcp-nested-container')) return;
 
-    var rect = targetRow.getBoundingClientRect();
-    var midY = rect.top + rect.height / 2;
-    if (e.clientY < midY) {
-      container.insertBefore(draggedRow, targetRow);
+    var container = draggedRow.closest('.lcp-nested-container');
+    if (!container) return;
+
+    var target = findDropTarget(container, e.clientY);
+    if (target.row && target.position === 'before') {
+      container.insertBefore(draggedRow, target.row);
+    } else if (target.row) {
+      container.insertBefore(draggedRow, target.row.nextSibling);
     } else {
-      container.insertBefore(draggedRow, targetRow.nextSibling);
+      container.appendChild(draggedRow);
     }
 
+    clearContainerIndicators(container);
     updatePositionFields(container);
   });
 
   document.addEventListener('dragend', function(e) {
     if (draggedRow) {
+      var container = draggedRow.closest('.lcp-nested-container');
       draggedRow.classList.remove('dragging');
       draggedRow.removeAttribute('draggable');
       draggedRow = null;
+      if (container) clearContainerIndicators(container);
     }
-    document.querySelectorAll('.lcp-nested-row.drag-over').forEach(function(r) {
-      r.classList.remove('drag-over');
+    document.querySelectorAll('.lcp-nested-row.drag-over, .lcp-nested-row.drag-over-bottom').forEach(function(r) {
+      r.classList.remove('drag-over', 'drag-over-bottom');
     });
   });
 

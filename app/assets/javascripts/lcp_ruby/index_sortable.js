@@ -111,7 +111,37 @@
       });
     }
 
-    // --- Drag and drop handlers ---
+    // --- Shared helpers ---
+
+    // Returns the last <tr> in tbody that is not currently being dragged.
+    function lastDropTargetRow() {
+      var rows = tbody.querySelectorAll("tr");
+      for (var i = rows.length - 1; i >= 0; i--) {
+        if (rows[i] !== dragRow && rows[i] !== touchRow) return rows[i];
+      }
+      return null;
+    }
+
+    function clearDragOverIndicators() {
+      tbody.querySelectorAll("tr.drag-over").forEach(function (r) {
+        r.classList.remove("drag-over");
+      });
+    }
+
+    // Move dragged row to end of list (after last non-dragging row).
+    function moveToEnd() {
+      var lastRow = lastDropTargetRow();
+      if (lastRow) {
+        var recordId = getRecordId(dragRow);
+        tbody.appendChild(dragRow);
+        cleanupDrag();
+        sendReorder(recordId, { after: parseInt(getRecordId(lastRow), 10) });
+      } else {
+        cleanupDrag();
+      }
+    }
+
+    // --- Desktop drag and drop (tbody handlers) ---
 
     function onDragStart(e) {
       if (isDisabled()) { e.preventDefault(); return; }
@@ -122,6 +152,12 @@
       dragRow.classList.add("dragging");
       e.dataTransfer.effectAllowed = "move";
       e.dataTransfer.setData("text/plain", getRecordId(dragRow));
+
+      // Attach document-level listeners so drops outside the tbody (e.g. below
+      // the table) are accepted. The tbody has no empty space below its last
+      // row, so without these listeners the browser blocks the drop entirely.
+      document.addEventListener("dragover", onDocDragOver);
+      document.addEventListener("drop", onDocDrop);
     }
 
     function onDragOver(e) {
@@ -131,31 +167,30 @@
       var targetRow = e.target.closest("tr");
       if (!targetRow || targetRow === dragRow || !tbody.contains(targetRow)) return;
 
-      // Remove all drag-over indicators
-      tbody.querySelectorAll("tr.drag-over").forEach(function (r) {
-        r.classList.remove("drag-over");
-      });
+      clearDragOverIndicators();
       targetRow.classList.add("drag-over");
     }
 
-    function onDragLeave(e) {
-      var targetRow = e.target.closest("tr");
-      if (targetRow) targetRow.classList.remove("drag-over");
+    function onDragLeave() {
+      // Intentional no-op: drag-over indicators are managed exclusively by
+      // onDragOver and onDocDragOver, which fire continuously during a drag.
+      // Removing the class here causes a race condition when the cursor leaves
+      // the tbody — onDragLeave fires AFTER onDocDragOver has already set the
+      // indicator on the last row, undoing it.
     }
 
     function onDrop(e) {
-      e.preventDefault();
       if (!dragRow) return;
-
-      tbody.querySelectorAll("tr.drag-over").forEach(function (r) {
-        r.classList.remove("drag-over");
-      });
 
       var targetRow = e.target.closest("tr");
       if (!targetRow || targetRow === dragRow || !tbody.contains(targetRow)) {
-        cleanupDrag();
+        // No valid target — do NOT preventDefault so onDocDrop can handle it.
         return;
       }
+
+      // Valid target found — claim the event so onDocDrop skips it.
+      e.preventDefault();
+      clearDragOverIndicators();
 
       // Determine position relative to target
       var rect = targetRow.getBoundingClientRect();
@@ -184,6 +219,38 @@
       sendReorder(recordId, position);
     }
 
+    // --- Document-level handlers (catch drops outside the tbody) ---
+
+    function onDocDragOver(e) {
+      if (!dragRow) return;
+
+      // Allow drop anywhere during an active drag.
+      e.preventDefault();
+
+      // When cursor is on the dragged row itself, keep current indicator
+      var closestRow = e.target.closest ? e.target.closest("tr") : null;
+      if (closestRow === dragRow) return;
+
+      // Show drop indicator on the last row when cursor is outside the tbody.
+      if (!closestRow || !tbody.contains(closestRow)) {
+        clearDragOverIndicators();
+        var last = lastDropTargetRow();
+        if (last) last.classList.add("drag-over");
+      }
+    }
+
+    function onDocDrop(e) {
+      if (!dragRow) return;
+
+      // The tbody onDrop calls preventDefault when it handles the event.
+      // If it already handled it, skip.
+      if (e.defaultPrevented) return;
+
+      e.preventDefault();
+      clearDragOverIndicators();
+      moveToEnd();
+    }
+
     function onDragEnd() {
       cleanupDrag();
     }
@@ -193,9 +260,9 @@
         dragRow.classList.remove("dragging");
         dragRow = null;
       }
-      tbody.querySelectorAll("tr.drag-over").forEach(function (r) {
-        r.classList.remove("drag-over");
-      });
+      clearDragOverIndicators();
+      document.removeEventListener("dragover", onDocDragOver);
+      document.removeEventListener("drop", onDocDrop);
     }
 
     // --- Touch support ---
@@ -222,16 +289,17 @@
 
       var touch = e.touches[0];
       var targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
-      if (!targetElement) return;
 
-      var targetRow = targetElement.closest("tr");
+      clearDragOverIndicators();
 
-      tbody.querySelectorAll("tr.drag-over").forEach(function (r) {
-        r.classList.remove("drag-over");
-      });
+      var targetRow = targetElement ? targetElement.closest("tr") : null;
 
       if (targetRow && targetRow !== touchRow && tbody.contains(targetRow)) {
         targetRow.classList.add("drag-over");
+      } else {
+        // Below all rows or on the dragged row — indicate drop at end
+        var last = lastDropTargetRow();
+        if (last) last.classList.add("drag-over");
       }
     }
 
@@ -241,38 +309,46 @@
       var touch = e.changedTouches[0];
       var targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
 
-      tbody.querySelectorAll("tr.drag-over").forEach(function (r) {
-        r.classList.remove("drag-over");
-      });
+      clearDragOverIndicators();
 
-      if (targetElement) {
-        var targetRow = targetElement.closest("tr");
-        if (targetRow && targetRow !== touchRow && tbody.contains(targetRow)) {
-          var rect = targetRow.getBoundingClientRect();
-          var midY = rect.top + rect.height / 2;
-          var dropAbove = touch.clientY < midY;
+      var targetRow = targetElement ? targetElement.closest("tr") : null;
 
-          var recordId = getRecordId(touchRow);
-          var position;
+      if (targetRow && targetRow !== touchRow && tbody.contains(targetRow)) {
+        var rect = targetRow.getBoundingClientRect();
+        var midY = rect.top + rect.height / 2;
+        var dropAbove = touch.clientY < midY;
 
-          if (dropAbove) {
-            tbody.insertBefore(touchRow, targetRow);
-            position = { before: parseInt(getRecordId(targetRow), 10) };
+        var recordId = getRecordId(touchRow);
+        var position;
+
+        if (dropAbove) {
+          tbody.insertBefore(touchRow, targetRow);
+          position = { before: parseInt(getRecordId(targetRow), 10) };
+        } else {
+          var nextSibling = targetRow.nextElementSibling;
+          if (nextSibling) {
+            tbody.insertBefore(touchRow, nextSibling);
           } else {
-            var nextSibling = targetRow.nextElementSibling;
-            if (nextSibling) {
-              tbody.insertBefore(touchRow, nextSibling);
-            } else {
-              tbody.appendChild(touchRow);
-            }
-            position = { after: parseInt(getRecordId(targetRow), 10) };
+            tbody.appendChild(touchRow);
           }
-
-          touchRow.classList.remove("dragging");
-          touchRow = null;
-          sendReorder(recordId, position);
-          return;
+          position = { after: parseInt(getRecordId(targetRow), 10) };
         }
+
+        touchRow.classList.remove("dragging");
+        touchRow = null;
+        sendReorder(recordId, position);
+        return;
+      }
+
+      // Dropped below all rows or on the dragged row — move to end
+      var lastRow = lastDropTargetRow();
+      if (lastRow) {
+        var recordId = getRecordId(touchRow);
+        tbody.appendChild(touchRow);
+        touchRow.classList.remove("dragging");
+        touchRow = null;
+        sendReorder(recordId, { after: parseInt(getRecordId(lastRow), 10) });
+        return;
       }
 
       if (touchRow) {

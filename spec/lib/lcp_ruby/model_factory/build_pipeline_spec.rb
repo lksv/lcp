@@ -311,8 +311,8 @@ RSpec.describe "Model build pipeline" do
       model_class.create!(title: "B", status: "active")
       model_class.create!(title: "C", status: "active")
 
-      expect(model_class.active.count).to eq(2)
-      expect(model_class.draft.count).to eq(1)
+      expect(model_class.status_active.count).to eq(2)
+      expect(model_class.status_draft.count).to eq(1)
     end
   end
 

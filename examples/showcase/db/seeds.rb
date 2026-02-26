@@ -1,5 +1,19 @@
 puts "Seeding showcase data..."
 
+# Clear existing data so seeds are re-runnable (children before parents)
+%w[
+  feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_virtual_field
+  showcase_extensibility permission_config role showcase_permission
+  showcase_attachment custom_field_definition employee_skill project
+  employee skill department showcase_form comment article_tag tag article
+  author category showcase_model showcase_field
+].each do |model_name|
+  LcpRuby.registry.model_for(model_name).delete_all
+rescue LcpRuby::Registry::ModelNotFoundError
+  nil
+end
+puts "  Cleared existing seed data"
+
 # Create default admin user for built-in auth
 if LcpRuby.configuration.authentication == :built_in
   UserModel = LcpRuby::User
@@ -238,12 +252,14 @@ authors = [
 ]
 puts "  Created #{authors.size} authors"
 
-# Categories (3 levels)
+# Categories (4 levels)
 tech = CategoryModel.create!(name: "Technology", description: "All technology related articles.")
 web = CategoryModel.create!(name: "Web Development", description: "Frontend and backend web technologies.", parent_id: tech.id)
 mobile = CategoryModel.create!(name: "Mobile Development", description: "iOS and Android development.", parent_id: tech.id)
 frontend = CategoryModel.create!(name: "Frontend", description: "React, Vue, Angular and more.", parent_id: web.id)
 backend = CategoryModel.create!(name: "Backend", description: "APIs, databases, and server-side.", parent_id: web.id)
+react_eco = CategoryModel.create!(name: "React Ecosystem", description: "React, Next.js, Remix, and related libraries.", parent_id: frontend.id)
+css_styling = CategoryModel.create!(name: "CSS & Styling", description: "CSS frameworks, Tailwind, PostCSS, and design systems.", parent_id: frontend.id)
 
 business = CategoryModel.create!(name: "Business", description: "Business strategy and management.")
 startup = CategoryModel.create!(name: "Startups", description: "Startup ecosystem and entrepreneurship.", parent_id: business.id)
@@ -289,7 +305,10 @@ articles_data = [
   { title: "Enterprise Architecture Patterns", body: "Scaling applications for enterprise use.", status: "draft", category: enterprise, author: authors[0], tags: [ 14, 11 ], comments: [] },
   { title: "Testing Rails Applications", body: "RSpec, Capybara, and factory_bot patterns.", status: "published", category: backend, author: authors[0], tags: [ 0, 1, 10 ], comments: [ [ "What about minitest?", "Tester" ], [ "Factory bot is essential", "QAEngineer" ] ] },
   { title: "Performance Optimization in React", body: "Memoization, code splitting, and lazy loading.", status: "published", category: frontend, author: authors[1], tags: [ 2, 4, 11 ], comments: [ [ "useMemo vs useCallback?", "ReactDev" ] ] },
-  { title: "DevOps Culture and Practices", body: "Building a DevOps culture in your organization.", status: "archived", category: tech, author: authors[4], tags: [ 7, 8, 9 ], comments: [] }
+  { title: "DevOps Culture and Practices", body: "Building a DevOps culture in your organization.", status: "archived", category: tech, author: authors[4], tags: [ 7, 8, 9 ], comments: [] },
+  { title: "Server Components in Next.js", body: "Understanding React Server Components and their impact on data fetching and rendering strategies.", status: "published", category: react_eco, author: authors[1], tags: [ 2, 4, 11 ], comments: [ [ "Game changer for SSR!", "NextFan" ] ] },
+  { title: "State Management with Zustand", body: "A lightweight alternative to Redux for React state management.", status: "published", category: react_eco, author: authors[3], tags: [ 2, 4, 14 ], comments: [] },
+  { title: "Tailwind CSS Best Practices", body: "Utility-first CSS patterns, custom themes, and component extraction strategies.", status: "published", category: css_styling, author: authors[2], tags: [ 14 ], comments: [ [ "Finally moved from SCSS to Tailwind", "CSSFan" ] ] }
 ]
 
 articles_data.each do |data|
@@ -413,6 +432,7 @@ employee_cfds = [
     target_model: "employee", field_name: "nickname", custom_type: "string",
     label: "Nickname", section: "Personal Info", position: 0,
     active: true, required: false, placeholder: "e.g., Johnny",
+    hint: "Short display name used in casual contexts",
     min_length: 2, max_length: 30,
     show_in_table: true, sortable: true, searchable: true
   },
@@ -428,6 +448,7 @@ employee_cfds = [
     target_model: "employee", field_name: "years_experience", custom_type: "integer",
     label: "Years of Experience", section: "Professional", position: 0,
     active: true, required: false, default_value: "0",
+    hint: "Total years of professional experience",
     min_value: 0, max_value: 50,
     show_in_table: true, sortable: true
   },
@@ -444,6 +465,7 @@ employee_cfds = [
     target_model: "employee", field_name: "hourly_rate", custom_type: "decimal",
     label: "Hourly Rate (USD)", section: "Compensation", position: 0,
     active: true, required: false,
+    hint: "Base hourly rate before taxes and deductions",
     min_value: 0, precision: 2,
     show_in_table: true, sortable: true
   },
@@ -473,6 +495,7 @@ employee_cfds = [
     target_model: "employee", field_name: "tshirt_size", custom_type: "enum",
     label: "T-Shirt Size", section: "Personal Info", position: 2,
     active: true, required: false, default_value: "M",
+    hint: "For company swag orders",
     enum_values: [
       { "value" => "XS", "label" => "Extra Small" },
       { "value" => "S", "label" => "Small" },
@@ -502,6 +525,7 @@ project_cfds = [
     target_model: "project", field_name: "priority", custom_type: "enum",
     label: "Priority", section: "Project Details", position: 0,
     active: true, required: true,
+    hint: "Determines task queue ordering",
     enum_values: %w[low medium high critical],
     default_value: "medium",
     show_in_table: true, sortable: true
@@ -511,6 +535,7 @@ project_cfds = [
     target_model: "project", field_name: "budget", custom_type: "decimal",
     label: "Budget (USD)", section: "Financials", position: 0,
     active: true, required: false,
+    hint: "Approved budget in USD, excluding contingency",
     min_value: 0, precision: 2,
     show_in_table: true, sortable: true
   },
@@ -867,8 +892,81 @@ support = PipelineModel.create!(name: "Support Pipeline", description: "Customer
 
 puts "  Created #{PipelineModel.count} pipelines with #{StageModel.count} stages"
 
-# Phase 12: Feature Catalog
+# Phase 12: Recipes (JSON Field Nested Editing)
+RecipeModel = LcpRuby.registry.model_for("showcase_recipe")
+
+[
+  {
+    title: "Spaghetti Carbonara",
+    cuisine: "italian",
+    servings: 4,
+    steps: [
+      { instruction: "Bring a large pot of salted water to boil", duration_minutes: 10 },
+      { instruction: "Cook spaghetti according to package directions", duration_minutes: 12 },
+      { instruction: "Fry guanciale in a large skillet until crispy", duration_minutes: 8 },
+      { instruction: "Whisk eggs, pecorino, and black pepper in a bowl", duration_minutes: 2 },
+      { instruction: "Toss hot pasta with guanciale, then stir in egg mixture off heat", duration_minutes: 3 }
+    ],
+    ingredients: [
+      { name: "Spaghetti", quantity: "400", unit: "g", notes: nil, optional: false },
+      { name: "Guanciale", quantity: "200", unit: "g", notes: "Pancetta works as a substitute", optional: false },
+      { name: "Egg yolks", quantity: "6", unit: "pcs", notes: nil, optional: false },
+      { name: "Pecorino Romano", quantity: "100", unit: "g", notes: "Freshly grated", optional: false },
+      { name: "Black pepper", quantity: "2", unit: "tsp", notes: "Freshly cracked", optional: false },
+      { name: "Parmesan", quantity: "50", unit: "g", notes: "For extra richness", optional: true }
+    ]
+  },
+  {
+    title: "Chicken Tikka Masala",
+    cuisine: "indian",
+    servings: 6,
+    steps: [
+      { instruction: "Marinate chicken in yogurt and spices for at least 1 hour", duration_minutes: 60 },
+      { instruction: "Grill or broil chicken until charred", duration_minutes: 15 },
+      { instruction: "Saute onions, garlic, and ginger until golden", duration_minutes: 10 },
+      { instruction: "Add tomato puree and spices, simmer for 15 minutes", duration_minutes: 15 },
+      { instruction: "Add cream and grilled chicken, simmer until heated through", duration_minutes: 10 },
+      { instruction: "Garnish with cilantro and serve with naan", duration_minutes: 2 }
+    ],
+    ingredients: [
+      { name: "Chicken thighs", quantity: "800", unit: "g", notes: "Boneless, skinless", optional: false },
+      { name: "Yogurt", quantity: "200", unit: "ml", notes: "Plain, full-fat", optional: false },
+      { name: "Garam masala", quantity: "2", unit: "tbsp", notes: nil, optional: false },
+      { name: "Tomato puree", quantity: "400", unit: "ml", notes: "Canned crushed tomatoes", optional: false },
+      { name: "Heavy cream", quantity: "200", unit: "ml", notes: nil, optional: false },
+      { name: "Onion", quantity: "2", unit: "pcs", notes: "Finely diced", optional: false },
+      { name: "Garlic", quantity: "4", unit: "pcs", notes: "Cloves, minced", optional: false },
+      { name: "Fresh cilantro", quantity: "1", unit: "tbsp", notes: "Chopped, for garnish", optional: true }
+    ]
+  },
+  {
+    title: "Miso Ramen",
+    cuisine: "japanese",
+    servings: 2,
+    steps: [
+      { instruction: "Prepare dashi broth from kombu and bonito flakes", duration_minutes: 20 },
+      { instruction: "Dissolve miso paste into the warm broth", duration_minutes: 3 },
+      { instruction: "Cook ramen noodles according to package", duration_minutes: 4 },
+      { instruction: "Prepare toppings: soft-boil eggs, slice chashu, chop scallions", duration_minutes: 15 },
+      { instruction: "Assemble bowls: noodles, broth, then arrange toppings", duration_minutes: 3 }
+    ],
+    ingredients: [
+      { name: "Ramen noodles", quantity: "200", unit: "g", notes: "Fresh preferred", optional: false },
+      { name: "White miso paste", quantity: "3", unit: "tbsp", notes: nil, optional: false },
+      { name: "Dashi stock", quantity: "800", unit: "ml", notes: nil, optional: false },
+      { name: "Chashu pork", quantity: "150", unit: "g", notes: "Sliced", optional: false },
+      { name: "Soft-boiled eggs", quantity: "2", unit: "pcs", notes: "Marinated in soy sauce overnight", optional: true },
+      { name: "Scallions", quantity: "2", unit: "pcs", notes: "Thinly sliced", optional: false },
+      { name: "Nori sheets", quantity: "2", unit: "pcs", notes: nil, optional: true }
+    ]
+  }
+].each { |attrs| RecipeModel.create!(attrs) }
+
+puts "  Created #{RecipeModel.count} showcase_recipe records"
+
+# Phase 13: Feature Catalog
 FeatureModel = LcpRuby.registry.model_for("feature")
+
 
 features = [
   # === Field Types ===
@@ -1389,7 +1487,7 @@ features = [
   {
     name: "Nested Forms",
     category: "form",
-    description: "Edit associated records inline using `accepts_nested_attributes_for`. Supports add/remove rows with drag-and-drop reordering.",
+    description: "Edit associated records inline using `accepts_nested_attributes_for`. Supports add/remove rows with drag-and-drop reordering.\n\nDrag-and-drop supports bottom-drop targeting — dropping below the last row appends the item to the end of the list.",
     config_example: "```yaml\nform:\n  sections:\n    - title: \"Comments\"\n      type: nested\n      association: comments\n      fields: [body, author_name]\n      allow_add: true\n      allow_remove: true\n      sortable: true\n```",
     demo_path: "/showcase/articles/1/edit",
     demo_hint: "Edit an article — the **Comments** section allows adding, removing, and reordering nested comment rows.",
@@ -1429,6 +1527,33 @@ features = [
     config_example: "```yaml\nform:\n  fields:\n    - field: department_id\n      input_type: association_select\n    - field: employee_id\n      input_type: association_select\n      depends_on: department_id\n```",
     demo_path: "/showcase/projects/1/edit",
     demo_hint: "Change the **Department** — the **Lead** dropdown reloads to show only employees from that department.",
+    status: "stable"
+  },
+  {
+    name: "JSON Field Inline Editing",
+    category: "form",
+    description: "Edit arrays of JSON objects inline using `json_field:` on a `nested_fields` section. Field types are defined directly in the presenter — no separate model needed.\n\nSupports add/remove rows, drag-and-drop reordering, and per-field input types. Data is stored as a JSON array in a single column.",
+    config_example: "```ruby\ndefine_presenter :recipes do\n  form do\n    nested_fields \"Steps\", json_field: :steps,\n      allow_add: true, allow_remove: true, sortable: true,\n      add_label: \"Add Step\", columns: 2 do\n      field :instruction, type: :string, label: \"Instruction\"\n      field :duration_minutes, type: :integer, label: \"Duration (min)\",\n        input_type: :number\n    end\n  end\nend\n```",
+    demo_path: "/showcase/showcase-recipes",
+    demo_hint: "Click any recipe, then **Edit** — the **Steps** section lets you add, remove, and reorder step rows. Each step has instruction text and a duration number.",
+    status: "stable"
+  },
+  {
+    name: "JSON Field with Virtual Model",
+    category: "form",
+    description: "Use `target_model:` to reference a virtual model (`table_name: _virtual`) that defines the item structure and validations for a `json_field:` section.\n\nVirtual models are metadata-only — no database table is created. They provide field types, labels, enum values, and validation rules for JSON array items.",
+    config_example: "```ruby\n# Virtual model (metadata only, no DB table)\ndefine_model :ingredient_def do\n  table_name \"_virtual\"\n  field :name, :string do\n    validates :presence\n  end\n  field :quantity, :string\n  field :unit, :enum, values: %w[g kg ml l pcs tbsp tsp]\n  field :optional, :boolean\nend\n\n# Presenter references the virtual model\nnested_fields \"Ingredients\", json_field: :ingredients,\n  target_model: :ingredient_def do\n  # fields resolved from ingredient_def model\nend\n```",
+    demo_path: "/showcase/showcase-recipes",
+    demo_hint: "Click any recipe, then **Edit** — the **Ingredients** section uses `ingredient_def` virtual model. The **Unit** field is an enum select with values from the model definition.",
+    status: "stable"
+  },
+  {
+    name: "JSON Field Sub-Sections",
+    category: "form",
+    description: "Group fields within a `json_field` nested section into collapsible sub-sections using `sub_sections:`. Each sub-section can have its own column layout, collapsible state, and visibility conditions.\n\nUseful for organizing complex item structures — keep essential fields visible while tucking optional details into collapsible groups.",
+    config_example: "```ruby\nnested_fields \"Ingredients\", json_field: :ingredients,\n  target_model: :ingredient_def do\n  section \"Item\", columns: 2 do\n    field :name\n    field :quantity\n    field :unit, input_type: :select\n  end\n  section \"Extra\", columns: 1,\n    collapsible: true, collapsed: true do\n    field :notes, input_type: :textarea\n    field :optional, input_type: :checkbox\n  end\nend\n```",
+    demo_path: "/showcase/showcase-recipes",
+    demo_hint: "Click any recipe, then **Edit** — each ingredient row has an **Item** sub-section (always visible) and a collapsible **Extra** sub-section for notes and optional flag.",
     status: "stable"
   },
 
@@ -1633,10 +1758,10 @@ features = [
   {
     name: "Breadcrumb Navigation",
     category: "navigation",
-    description: "Hierarchical breadcrumbs for parent-child models. Configure `breadcrumb.relation` in the view group to automatically build the path.",
+    description: "Hierarchical breadcrumbs for parent-child models. Configure `breadcrumb.relation` in the view group to automatically build the path.\n\nSelf-referential trees render each ancestor by its record name only — the model label appears once at the root, not at every level.",
     config_example: "```yaml\n# views/categories.yml\nview_group:\n  model: category\n  breadcrumb:\n    relation: parent\n```",
     demo_path: "/showcase/categories",
-    demo_hint: "Navigate to a subcategory (e.g., Frontend) — the breadcrumb shows: Home / Technology / Web Development / Frontend.",
+    demo_hint: "Navigate to a 4th-level category (e.g., React Ecosystem) — the breadcrumb shows: Home > Categories > Technology > Web Development > Frontend > React Ecosystem — no duplicate 'Categories' labels.",
     status: "stable"
   },
   {
@@ -1907,6 +2032,24 @@ features = [
     demo_hint: "View an employee record — custom field values like Nickname, Years of Experience, and T-Shirt Size are set via dynamic accessors in seed data.",
     status: "stable"
   },
+  {
+    name: "Custom Field Hints",
+    category: "custom_fields",
+    description: "Custom field definitions support an optional `hint` attribute — a short help text displayed below form inputs to guide users.\n\nHints are propagated through the LayoutBuilder and rendered beneath each field in create/edit forms. Use hints to clarify expected values, units, or business rules without cluttering the label.",
+    config_example: "```ruby\ncfd.create!(\n  target_model: \"employee\",\n  field_name: \"nickname\",\n  custom_type: \"string\",\n  label: \"Nickname\",\n  hint: \"Short display name used in casual contexts\",\n  # ...\n)\n```",
+    demo_path: "/showcase/employees/custom-fields",
+    demo_hint: "Edit a custom field definition — fields like Nickname and Hourly Rate show hint text below the form inputs.",
+    status: "stable"
+  },
+  {
+    name: "Conditional Custom Field Form",
+    category: "custom_fields",
+    description: "The custom field definition form uses `visible_when` on sections to show only the relevant constraint fields for the selected type.\n\n- **Text Constraints** (min_length, max_length) — visible when `custom_type` is `string` or `text`\n- **Numeric Constraints** (min_value, max_value, precision) — visible when `custom_type` is `integer`, `float`, or `decimal`\n- **Enum Values** — visible when `custom_type` is `enum`\n\nThis reduces form clutter and prevents users from setting irrelevant constraints.",
+    config_example: "```ruby\n# In the custom fields presenter DSL:\nsection \"Text Constraints\" do\n  visible_when field: :custom_type, operator: :in,\n               value: %w[string text]\n  field :min_length\n  field :max_length\nend\n\nsection \"Numeric Constraints\" do\n  visible_when field: :custom_type, operator: :in,\n               value: %w[integer float decimal]\n  field :min_value\n  field :max_value\n  field :precision\nend\n```",
+    demo_path: "/showcase/employees/custom-fields/new",
+    demo_hint: "Create a new custom field and change the Type dropdown — constraint sections appear/disappear based on the selected type.",
+    status: "stable"
+  },
   # === Virtual Fields ===
   {
     name: "Virtual Fields Overview",
@@ -2012,7 +2155,7 @@ features = [
   {
     name: "Reorderable Index",
     category: "positioning",
-    description: "Add `reorderable: true` to a presenter's index block to enable drag-and-drop reordering. Drag handles appear as the first column.\n\nThe index automatically sorts by position. The position column is optional — drag-and-drop works regardless of whether the position number is visible.",
+    description: "Add `reorderable: true` to a presenter's index block to enable drag-and-drop reordering. Drag handles appear as the first column.\n\nThe index automatically sorts by position. The position column is optional — drag-and-drop works regardless of whether the position number is visible.\n\nDropping an item below the last row places it at the end of the list. A bottom indicator is shown during the drag to confirm the target position.",
     config_example: "```ruby\ndefine_presenter :priorities do\n  model :priority\n\n  index do\n    reorderable true  # enables drag-and-drop\n    column :name, link_to: :show\n    column :position  # optional — shows position number\n  end\nend\n```\n\n```yaml\n# Equivalent YAML\nindex:\n  reorderable: true\n```",
     demo_path: "/showcase/showcase-positioning",
     demo_hint: "Drag a row by the handle on the left side to reorder it. The position numbers update automatically after the drop.",

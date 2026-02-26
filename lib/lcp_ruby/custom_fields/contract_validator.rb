@@ -3,7 +3,7 @@ module LcpRuby
     class ContractValidator
       REQUIRED_FIELDS = {
         "field_name" => "string",
-        "custom_type" => "string",
+        "custom_type" => %w[string enum],
         "target_model" => "string",
         "label" => "string",
         "active" => "boolean"
@@ -38,8 +38,10 @@ module LcpRuby
           return
         end
 
-        unless field.type == expected_type
-          @errors << "Custom field definition model '#{@model_def.name}': '#{field_name}' field must be type '#{expected_type}' (got '#{field.type}')"
+        accepted_types = Array(expected_type)
+        unless accepted_types.include?(field.type)
+          expected_label = accepted_types.size == 1 ? "'#{accepted_types.first}'" : "one of #{accepted_types.map { |t| "'#{t}'" }.join(', ')}"
+          @errors << "Custom field definition model '#{@model_def.name}': '#{field_name}' field must be type #{expected_label} (got '#{field.type}')"
         end
       end
 

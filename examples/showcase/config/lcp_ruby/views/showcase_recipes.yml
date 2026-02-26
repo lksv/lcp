@@ -1,0 +1,10 @@
+view_group:
+  model: showcase_recipe
+  primary: showcase_recipes
+  views:
+    - presenter: showcase_recipes
+      label: "Structured"
+      icon: list
+    - presenter: showcase_recipes_raw
+      label: "Raw JSON"
+      icon: code

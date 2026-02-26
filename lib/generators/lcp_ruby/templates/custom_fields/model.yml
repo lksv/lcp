@@ -24,13 +24,11 @@ model:
           message: "must start with a lowercase letter and contain only lowercase letters, digits, and underscores"
 
     - name: custom_type
-      type: string
+      type: enum
       default: "string"
+      enum_values: [string, text, integer, float, decimal, boolean, date, datetime, enum]
       validations:
         - type: presence
-        - type: inclusion
-          options:
-            in: [string, text, integer, float, decimal, boolean, date, datetime, enum]
 
     - name: label
       type: string
@@ -60,6 +58,9 @@ model:
       type: string
 
     - name: placeholder
+      type: string
+
+    - name: hint
       type: string
 
     - name: min_length

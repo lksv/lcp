@@ -30,24 +30,40 @@ presenter:
           - { field: active }
           - { field: required }
           - { field: description, col_span: 2 }
-      - section: "Constraints"
+      - section: "Default & Placeholder"
         columns: 2
+        fields:
+          - { field: default_value }
+          - field: placeholder
+            visible_when: { field: custom_type, operator: in, value: [string, text] }
+          - { field: hint }
+      - section: "Text Constraints"
+        columns: 2
+        visible_when: { field: custom_type, operator: in, value: [string, text] }
         fields:
           - { field: min_length }
           - { field: max_length }
+      - section: "Numeric Constraints"
+        columns: 2
+        visible_when: { field: custom_type, operator: in, value: [integer, float, decimal] }
+        fields:
           - { field: min_value }
           - { field: max_value }
-          - { field: precision }
-          - { field: default_value }
-          - { field: placeholder }
-      - section: "Display"
+          - field: precision
+            visible_when: { field: custom_type, operator: eq, value: decimal }
+      - section: "Enum Values"
+        visible_when: { field: custom_type, operator: eq, value: enum }
+        fields:
+          - { field: enum_values }
+      - section: "Display Options"
         columns: 2
         fields:
           - { field: show_in_table }
           - { field: show_in_form }
           - { field: show_in_show }
           - { field: sortable }
-          - { field: searchable }
+          - field: searchable
+            visible_when: { field: custom_type, operator: in, value: [string, text, enum] }
           - { field: input_type }
           - { field: renderer }
           - { field: column_width }
@@ -66,17 +82,22 @@ presenter:
           - { field: active }
           - { field: required }
           - { field: description, col_span: 2 }
+      - title: "Default & Placeholder"
+        columns: 2
+        fields:
+          - { field: default_value }
+          - field: placeholder
+            visible_when: { field: custom_type, operator: in, value: [string, text] }
+          - { field: hint }
       - title: "Text Constraints"
         columns: 2
-        visible_when: { field: custom_type, operator: in, value: "string,text" }
+        visible_when: { field: custom_type, operator: in, value: [string, text] }
         fields:
           - { field: min_length }
           - { field: max_length }
-          - { field: default_value }
-          - { field: placeholder }
       - title: "Numeric Constraints"
         columns: 2
-        visible_when: { field: custom_type, operator: in, value: "integer,float,decimal" }
+        visible_when: { field: custom_type, operator: in, value: [integer, float, decimal] }
         fields:
           - { field: min_value }
           - { field: max_value }
@@ -93,7 +114,8 @@ presenter:
           - { field: show_in_form }
           - { field: show_in_show }
           - { field: sortable }
-          - { field: searchable }
+          - field: searchable
+            visible_when: { field: custom_type, operator: in, value: [string, text, enum] }
           - { field: input_type }
           - { field: renderer }
           - { field: column_width }

@@ -13,6 +13,7 @@ menu:
         - view_group: roles
         - view_group: showcase_extensibility
         - view_group: showcase_virtual_fields
+        - view_group: showcase_recipes
         - separator: true
         - view_group: showcase_positioning
 

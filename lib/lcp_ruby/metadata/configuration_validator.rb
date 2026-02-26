@@ -505,8 +505,8 @@ module LcpRuby
             validate_condition(presenter, condition, "#{config_name} section '#{section_label}', #{cond_key}")
           end
 
-          # Validate association reference for nested_fields and association_list sections
-          if %w[nested_fields association_list].include?(section_type)
+          # Validate association reference for nested_fields, association_list, and json_items_list sections
+          if %w[nested_fields association_list json_items_list].include?(section_type)
             if section["json_field"]
               validate_section_json_field(presenter, section, config_name)
               validate_json_field_conditions(presenter, section, config_name) if section_type == "nested_fields"

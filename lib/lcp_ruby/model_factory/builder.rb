@@ -57,7 +57,7 @@ module LcpRuby
             next
           end
           values = field.enum_value_names.index_with(&:itself)
-          model_class.enum field.name.to_sym, values, default: field.default
+          model_class.enum field.name.to_sym, values, default: field.default, prefix: true
         end
       end
 

@@ -25,10 +25,18 @@ module LcpRuby
         crumbs << home_crumb
 
         if @record && @view_group&.breadcrumb_relation
-          crumbs.concat(parent_crumbs(@view_group, @record, 0))
+          root_model_def = LcpRuby.loader.model_definition(@view_group.model)
+          parent_chain = parent_crumbs(@view_group, @record, 0, model_def: root_model_def)
+          if self_referential_breadcrumb?(root_model_def)
+            crumbs << current_list_crumb
+            crumbs.concat(parent_chain)
+          else
+            crumbs.concat(parent_chain)
+            crumbs << current_list_crumb
+          end
+        else
+          crumbs << current_list_crumb
         end
-
-        crumbs << current_list_crumb
 
         if @record&.persisted?
           crumbs << record_crumb
@@ -64,13 +72,13 @@ module LcpRuby
         Crumb.new(label: I18n.t("lcp_ruby.breadcrumbs.#{@action}", default: @action.humanize))
       end
 
-      def parent_crumbs(view_group, record, depth)
+      def parent_crumbs(view_group, record, depth, model_def: nil)
         return [] if depth >= MAX_DEPTH
 
         relation_name = view_group.breadcrumb_relation
         return [] unless relation_name
 
-        model_def = LcpRuby.loader.model_definition(view_group.model)
+        model_def ||= LcpRuby.loader.model_definition(view_group.model)
         assoc = model_def.associations.find { |a| a.name == relation_name }
         return [] unless assoc
 
@@ -91,10 +99,12 @@ module LcpRuby
           crumbs.concat(parent_crumbs(parent_vg, parent_record, depth + 1))
         end
 
-        parent_label = resolve_view_group_label(parent_vg)
         parent_slug = resolve_primary_slug(parent_vg)
-        if parent_slug
-          crumbs << Crumb.new(label: parent_label, path: @path_helper.resources_path(parent_slug))
+        if target_model != @view_group.model
+          parent_label = resolve_view_group_label(parent_vg)
+          if parent_slug
+            crumbs << Crumb.new(label: parent_label, path: @path_helper.resources_path(parent_slug))
+          end
         end
 
         crumbs << Crumb.new(
@@ -103,6 +113,14 @@ module LcpRuby
         )
 
         crumbs
+      end
+
+      def self_referential_breadcrumb?(model_def)
+        return false unless @view_group&.breadcrumb_relation
+        return false unless model_def
+
+        assoc = model_def.associations.find { |a| a.name == @view_group.breadcrumb_relation }
+        assoc && !assoc.polymorphic && assoc.target_model == @view_group.model
       end
 
       def preload_association(record, association_name)

@@ -34,7 +34,7 @@ RSpec.describe LcpRuby::Generators::CustomFieldsGenerator do
       content = File.read(path)
       expect(content).to include("define_model :custom_field_definition")
       expect(content).to include("field :field_name, :string")
-      expect(content).to include("field :custom_type, :string")
+      expect(content).to include("field :custom_type, :enum")
       expect(content).to include("field :target_model, :string")
       expect(content).to include("field :active, :boolean")
       expect(content).to include("validates :field_name, :uniqueness, scope: :target_model")

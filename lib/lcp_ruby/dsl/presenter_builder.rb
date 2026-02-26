@@ -355,6 +355,30 @@ module LcpRuby
         @layout << section_hash
       end
 
+      def json_items_list(title, json_field:, target_model: nil, columns: nil,
+                          empty_message: nil, visible_when: nil, disable_when: nil, &block)
+        entry = {
+          "section" => title,
+          "type" => "json_items_list",
+          "json_field" => json_field.to_s
+        }
+        entry["target_model"] = target_model.to_s if target_model
+        entry["columns"] = columns if columns
+        entry["empty_message"] = empty_message if empty_message
+        entry["visible_when"] = stringify_deep(visible_when) if visible_when
+        entry["disable_when"] = stringify_deep(disable_when) if disable_when
+        if block
+          builder = NestedSectionBuilder.new
+          builder.instance_eval(&block)
+          if builder.has_sub_sections?
+            entry["sub_sections"] = builder.to_sub_sections
+          else
+            entry["fields"] = builder.to_fields
+          end
+        end
+        @layout << entry
+      end
+
       def association_list(title, association:, display_template: nil, link: nil, sort: nil,
                                 limit: nil, empty_message: nil, scope: nil,
                                 visible_when: nil, disable_when: nil)
