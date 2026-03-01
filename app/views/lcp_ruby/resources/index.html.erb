@@ -21,7 +21,7 @@
   <% if current_presenter.search_config["enabled"] %>
     <div class="lcp-search">
       <%= form_tag resources_path, method: :get, class: "lcp-search-form" do %>
-        <%= text_field_tag :q, params[:q], placeholder: current_presenter.search_config["placeholder"] || "Search..." %>
+        <%= text_field_tag :qs, params[:qs], placeholder: current_presenter.search_config["placeholder"] || "Search..." %>
         <%= submit_tag "Search", class: "btn" %>
       <% end %>
     </div>
@@ -47,7 +47,7 @@
                      current_model_definition.positioned? &&
                      current_evaluator.can?(:update) &&
                      current_evaluator.field_writable?(current_model_definition.positioning_field) %>
-    <% reorder_disabled = reorderable && (params[:q].present? || (params[:sort].present? && params[:sort] != current_model_definition.positioning_field)) %>
+    <% reorder_disabled = reorderable && (params[:qs].present? || (params[:sort].present? && params[:sort] != current_model_definition.positioning_field)) %>
     <table class="lcp-table"
       <% if reorderable %>
         data-reorder-url="<%= reorder_resource_path(':id') %>"

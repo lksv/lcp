@@ -1,0 +1,17 @@
+model:
+  name: category
+  label: "Category"
+  label_plural: "Categories"
+
+  fields:
+    - name: name
+      type: string
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+
+  options:
+    timestamps: true
+    label_method: name

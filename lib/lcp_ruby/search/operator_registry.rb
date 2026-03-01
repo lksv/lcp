@@ -1,0 +1,90 @@
+module LcpRuby
+  module Search
+    class OperatorRegistry
+      OPERATORS_BY_TYPE = {
+        string:   %i[eq not_eq cont not_cont start not_start end not_end in not_in present blank null not_null],
+        text:     %i[cont not_cont present blank null not_null],
+        integer:  %i[eq not_eq gt gteq lt lteq between in not_in present blank null not_null],
+        float:    %i[eq not_eq gt gteq lt lteq between present blank null not_null],
+        decimal:  %i[eq not_eq gt gteq lt lteq between present blank null not_null],
+        boolean:  %i[true not_true false not_false null not_null],
+        date:     %i[eq not_eq gt gteq lt lteq between last_n_days this_week this_month this_quarter this_year present blank null not_null],
+        datetime: %i[eq not_eq gt gteq lt lteq between last_n_days this_week this_month this_quarter this_year present blank null not_null],
+        enum:     %i[eq not_eq in not_in present blank null not_null],
+        uuid:     %i[eq not_eq in not_in present blank null not_null]
+      }.freeze
+
+      OPERATOR_LABELS = {
+        eq: "equals", not_eq: "not equals",
+        cont: "contains", not_cont: "not contains",
+        start: "starts with", not_start: "does not start with",
+        end: "ends with", not_end: "does not end with",
+        gt: "greater than", gteq: "greater or equal",
+        lt: "less than", lteq: "less or equal",
+        between: "is between",
+        in: "is one of", not_in: "is not one of",
+        present: "is present", blank: "is blank",
+        null: "is null", not_null: "is not null",
+        true: "is true", not_true: "is not true",
+        false: "is false", not_false: "is not false",
+        last_n_days: "in the last N days",
+        this_week: "this week", this_month: "this month",
+        this_quarter: "this quarter", this_year: "this year"
+      }.freeze
+
+      # Operators that require no value input
+      NO_VALUE_OPERATORS = %i[present blank null not_null true not_true false not_false
+                              this_week this_month this_quarter this_year].freeze
+
+      # Operators that accept multiple values
+      MULTI_VALUE_OPERATORS = %i[in not_in].freeze
+
+      # Operators that accept two values (from + to)
+      RANGE_OPERATORS = %i[between].freeze
+
+      # Operators that require a numeric parameter (e.g., "last N days" -> N)
+      PARAMETERIZED_OPERATORS = %i[last_n_days].freeze
+
+      # Operators resolved at query time to absolute date ranges (not native Ransack predicates)
+      RELATIVE_DATE_OPERATORS = %i[last_n_days this_week this_month this_quarter this_year].freeze
+
+      # Returns the list of operator symbols for a given field type.
+      def self.operators_for(field_type)
+        OPERATORS_BY_TYPE[field_type.to_sym] || []
+      end
+
+      # Returns the i18n-backed label for an operator.
+      def self.label_for(operator)
+        I18n.t(
+          "lcp_ruby.search.operators.#{operator}",
+          default: OPERATOR_LABELS[operator.to_sym] || operator.to_s.humanize
+        )
+      end
+
+      # Returns true if the operator requires no value input.
+      def self.no_value?(operator)
+        NO_VALUE_OPERATORS.include?(operator.to_sym)
+      end
+
+      # Returns true if the operator accepts multiple values.
+      def self.multi_value?(operator)
+        MULTI_VALUE_OPERATORS.include?(operator.to_sym)
+      end
+
+      # Returns true if the operator accepts two values (from + to).
+      def self.range?(operator)
+        RANGE_OPERATORS.include?(operator.to_sym)
+      end
+
+      # Returns true if the operator requires a numeric parameter.
+      def self.parameterized?(operator)
+        PARAMETERIZED_OPERATORS.include?(operator.to_sym)
+      end
+
+      # Returns true if the operator is a relative date operator (resolved at query time).
+      def self.relative_date?(operator)
+        RELATIVE_DATE_OPERATORS.include?(operator.to_sym)
+      end
+    end
+  end
+end

@@ -37,8 +37,10 @@ The platform currently provides two search mechanisms on the index page:
 
 - **Visual filter builder**: An interactive UI where users add filter rows — each row selects a field, an operator, and a value. Rows combine with AND logic, with optional OR grouping.
 - **Association filtering**: Filter by fields on related models through the full association chain (N levels deep, e.g., `deal → company → country.name`).
-- **Type-aware operators**: The available operators change based on field type — text fields get `contains`, `starts_with`, `equals`; numbers get `>`, `>=`, `<`, `<=`, `between`; dates get date-aware operators; booleans get `is true`/`is false`; enums get dropdown selection.
+- **Type-aware operators**: The available operators change based on field type — text fields get `contains`, `starts_with`, `equals`; numbers get `>`, `>=`, `<`, `<=`, `between`; dates get date-aware operators including relative dates (`this month`, `last 7 days`); booleans get `is true`/`is false`; enums get dropdown selection.
+- **Improved quick search**: The existing text search becomes type-aware — numeric fields skip non-numeric queries, dates match by range, enums match by display label. Models can override quick search via a `default_query` escape hatch.
 - **Predefined scopes in the filter builder**: Named scopes (existing `predefined_filters`) appear as one-click filter presets alongside user-built filters. Scopes can also appear as special "virtual fields" in the Add Filter menu.
+- **Custom filter extensibility**: Host apps can define `filter_*` class methods on models that intercept filter params before Ransack — enabling complex JOINs, subqueries, and business-logic filters.
 - **Saved filters**: Users can name and save filter combinations. Saved filters follow the Configuration Source Principle — predefined in YAML, user-created in DB, or provided by host app.
 - **Text query language (QL)**: A power-user mode where filters can be typed as a text expression (e.g., `stage = 'lead' and company.name ~ 'Acme'`). The QL is bi-directional — the visual builder can render existing QL, and the visual state can be serialized to QL.
 - **Permission-aware**: Users only see and filter on fields they have read permission for. Association paths are also permission-checked.
@@ -82,8 +84,11 @@ Not all operators make sense for all field types. `greater than` is meaningless 
 | is present | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes |
 | is null | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes |
 | is not null | yes | yes | yes | yes | yes | yes | yes | yes | yes | yes |
+| between | — | — | yes | yes | yes | — | yes | yes | — | — |
 | is true | — | — | — | — | — | yes | — | — | — | — |
 | is false | — | — | — | — | — | yes | — | — | — | — |
+
+**Note:** Date and datetime fields also support relative operators (`last_n_days`, `this_week`, `this_month`, `this_quarter`, `this_year`) not shown in the matrix above. These are resolved to absolute `gteq`/`lteq` ranges at query time by the `FilterParamBuilder`.
 
 ### Challenge 2: Association Path Ambiguity
 
@@ -183,17 +188,19 @@ User Interaction
 │   └── Parse ↔ Serialize bidirectionally with visual builder state
 │
 └── URL Parameters (bookmarkable)
-    └── ?q[field_pred]=value&q[s]=field+dir (Ransack format)
+    └── ?qs=term & ?f[field_pred]=value&f[s]=field+dir
 
          │
          ▼
 
 Controller (ResourcesController#index)
 ├── apply_advanced_search(scope)
-│   ├── Merge: quick search + filter builder + predefined scopes
-│   ├── Build Ransack params from filter state
-│   ├── Apply custom field filters (JSON query fallback)
-│   └── scope.ransack(params, auth_object: evaluator).result(distinct: true)
+│   ├── Apply predefined scope + filter scope
+│   ├── Sanitize ?f[...] params (reject blanks, normalize booleans)
+│   ├── Intercept custom filter_* methods (before Ransack)
+│   ├── scope.ransack(remaining_params, auth_object: evaluator).result(distinct: true)
+│   ├── Apply quick text search (?qs=, additive, type-aware)
+│   └── Apply custom field filters (?cf[...], JSON query fallback)
 │
 └── Filter metadata (for rendering the UI)
     ├── filterable_fields (from presenter + permissions)
@@ -283,6 +290,10 @@ presenter:
           conditions:
             - { field: expected_close_date, operator: lt, value: "{today}" }
             - { field: stage, operator: not_in, value: [closed_won, closed_lost] }
+        - name: created_this_month
+          label: "Created this month"
+          conditions:
+            - { field: created_at, operator: this_month }
 
     # --- New: Saved Filters ---
     saved_filters:
@@ -351,12 +362,12 @@ module LcpRuby
       OPERATORS_BY_TYPE = {
         string:   %i[eq not_eq cont not_cont start not_start end not_end in not_in present blank null not_null],
         text:     %i[cont not_cont present blank null not_null],
-        integer:  %i[eq not_eq gt gteq lt lteq in not_in present blank null not_null],
-        float:    %i[eq not_eq gt gteq lt lteq present blank null not_null],
-        decimal:  %i[eq not_eq gt gteq lt lteq present blank null not_null],
+        integer:  %i[eq not_eq gt gteq lt lteq between in not_in present blank null not_null],
+        float:    %i[eq not_eq gt gteq lt lteq between present blank null not_null],
+        decimal:  %i[eq not_eq gt gteq lt lteq between present blank null not_null],
         boolean:  %i[true not_true false not_false null not_null],
-        date:     %i[eq not_eq gt gteq lt lteq present blank null not_null],
-        datetime: %i[eq not_eq gt gteq lt lteq present blank null not_null],
+        date:     %i[eq not_eq gt gteq lt lteq between last_n_days this_week this_month this_quarter this_year present blank null not_null],
+        datetime: %i[eq not_eq gt gteq lt lteq between last_n_days this_week this_month this_quarter this_year present blank null not_null],
         enum:     %i[eq not_eq in not_in present blank null not_null],
         uuid:     %i[eq not_eq in not_in present blank null not_null],
       }.freeze
@@ -368,24 +379,51 @@ module LcpRuby
         end: "ends with", not_end: "does not end with",
         gt: "greater than", gteq: "greater or equal",
         lt: "less than", lteq: "less or equal",
+        between: "is between",
         in: "is one of", not_in: "is not one of",
         present: "is present", blank: "is blank",
         null: "is null", not_null: "is not null",
         true: "is true", not_true: "is not true",
         false: "is false", not_false: "is not false",
+        last_n_days: "in the last N days",
+        this_week: "this week", this_month: "this month",
+        this_quarter: "this quarter", this_year: "this year",
       }.freeze
 
       # Operators that require no value input
-      NO_VALUE_OPERATORS = %i[present blank null not_null true not_true false not_false].freeze
+      NO_VALUE_OPERATORS = %i[present blank null not_null true not_true false not_false
+                              this_week this_month this_quarter this_year].freeze
 
       # Operators that accept multiple values
       MULTI_VALUE_OPERATORS = %i[in not_in].freeze
+
+      # Operators that accept two values (from + to)
+      RANGE_OPERATORS = %i[between].freeze
+
+      # Operators that require a numeric parameter (e.g., "last N days" → N)
+      PARAMETERIZED_OPERATORS = %i[last_n_days].freeze
+
+      # Operators resolved at query time to absolute date ranges (not native Ransack predicates)
+      RELATIVE_DATE_OPERATORS = %i[last_n_days this_week this_month this_quarter this_year].freeze
     end
   end
 end
 ```
 
 Operator labels are i18n-backed: `I18n.t("lcp_ruby.search.operators.#{operator}", default: label)`.
+
+**Relative date and range operator resolution:**
+
+`between`, `last_n_days`, and relative date operators (`this_week`, `this_month`, `this_quarter`, `this_year`) are not native Ransack predicates. The `FilterParamBuilder` expands them into standard Ransack predicates at query time:
+
+| Operator | Expansion |
+|----------|-----------|
+| `between` (value: [from, to]) | `field_gteq = from` AND `field_lteq = to` |
+| `last_n_days` (value: 7) | `field_gteq = 7.days.ago.beginning_of_day` |
+| `this_week` | `field_gteq = Date.current.beginning_of_week` AND `field_lteq = Date.current.end_of_week` |
+| `this_month` | `field_gteq = Date.current.beginning_of_month` AND `field_lteq = Date.current.end_of_month` |
+| `this_quarter` | `field_gteq = Date.current.beginning_of_quarter` AND `field_lteq = Date.current.end_of_quarter` |
+| `this_year` | `field_gteq = Date.current.beginning_of_year` AND `field_lteq = Date.current.end_of_year` |
 
 ### 4. Ransack Integration on Dynamic Models
 
@@ -432,7 +470,7 @@ The `auth_object` is always the current user's `PermissionEvaluator`, passed fro
 ```ruby
 # In ResourcesController#index
 @ransack_search = scope.ransack(
-  ransack_params,
+  params[:f],                        # custom param key (not default :q)
   auth_object: current_evaluator
 )
 ```
@@ -443,19 +481,29 @@ The filter state is encoded in URL parameters for bookmarkability and back-butto
 
 **A) Simple flat format (for common single-condition filters):**
 ```
-?q[title_cont]=Acme&q[stage_eq]=lead&q[s]=value+desc
+?f[title_cont]=Acme&f[stage_eq]=lead&f[s]=value+desc
 ```
 
 **B) Grouped format (for OR groups and complex combinations):**
 ```
-?q[g][0][m]=and&q[g][0][c][title_cont]=Acme&q[g][0][c][stage_eq]=lead
-&q[g][1][m]=or&q[g][1][c][value_gteq]=10000&q[g][1][c][priority_eq]=high
+?f[g][0][m]=and&f[g][0][c][title_cont]=Acme&f[g][0][c][stage_eq]=lead
+&f[g][1][m]=or&f[g][1][c][value_gteq]=10000&f[g][1][c][priority_eq]=high
 ```
 
-This is Ransack's native param format, which means:
+This is Ransack's native param format (with custom key `f` instead of default `q`), which means:
 - URLs can be shared and bookmarked.
 - The browser back button works correctly.
 - External tools can construct filter URLs directly.
+
+**Why `?f[...]` instead of Ransack's default `?q[...]`:**
+
+Ransack defaults to `?q[field_pred]=value` (a Hash param). The platform's existing quick text search uses `?q=term` (a String param). Rails cannot parse `q` as both a String and a Hash in the same request. Following basepack's convention, we use:
+- `?qs=term` — quick text search (renamed from `?q`)
+- `?f[field_pred]=value` — Ransack structured filters
+- `?f[s]=field+dir` — Ransack sorting (within the filter namespace)
+- `?cf[field_operator]=value` — custom field filters (JSON column, outside Ransack)
+
+The Ransack search object is initialized with the custom param key: `scope.ransack(params[:f], auth_object: evaluator)`.
 
 ### 6. Controller — `apply_advanced_search`
 
@@ -481,27 +529,105 @@ def apply_advanced_search(scope)
     end
   end
 
-  # 3. Build Ransack search from advanced filter params
-  ransack_params = build_ransack_params(search_config)
+  # 3. Build filter params from ?f[...] namespace, reject blank values
+  raw_filter_params = sanitize_filter_params(params[:f])
 
-  if ransack_params.present?
-    @ransack_search = scope.ransack(ransack_params, auth_object: current_evaluator)
+  # 4. Apply custom filter_* methods (intercept before Ransack — see Section 6.5)
+  scope, remaining_params = apply_custom_filter_methods(scope, raw_filter_params)
+
+  # 5. Build Ransack search from remaining filter params
+  if remaining_params.present?
+    @ransack_search = scope.ransack(remaining_params, auth_object: current_evaluator)
     scope = @ransack_search.result(distinct: true)
   end
 
-  # 4. Apply quick text search on top (legacy ?q= param, additive)
-  if params[:q].present? && search_config["searchable_fields"]&.any?
+  # 6. Apply quick text search on top (?qs= param, additive)
+  if params[:qs].present? && search_config["searchable_fields"]&.any?
     scope = apply_text_search(scope, search_config)
   end
 
-  # 5. Apply custom field filters (JSON column — not handled by Ransack)
+  # 7. Apply custom field filters (JSON column — not handled by Ransack)
   if params.dig(:cf)&.any?
     scope = apply_custom_field_filters(scope)
   end
 
   scope
 end
+
+private
+
+def sanitize_filter_params(filter_params)
+  return {} if filter_params.blank?
+  # Strip blank values to prevent WHERE field = '' conditions
+  filter_params.to_unsafe_h.reject { |_, v| v.blank? }
+end
 ```
+
+### 6.5. Custom Filter Methods (`filter_*` Convention)
+
+Host applications can define class methods on model extensions that intercept filter parameters before Ransack processes them. This enables complex filtering logic (multi-table JOINs, subqueries, external service lookups, authorization-aware filters) that cannot be expressed as Ransack predicates.
+
+**Convention:** `self.filter_{name}(scope, value, evaluator)`
+
+```ruby
+# app/models/deal_extensions.rb (host app)
+module DealExtensions
+  extend ActiveSupport::Concern
+
+  class_methods do
+    # Simple boolean filter
+    def filter_active(scope, value, evaluator)
+      return scope unless ActiveModel::Type::Boolean.new.cast(value)
+      scope.where(stage: %w[lead qualified proposal])
+    end
+
+    # Complex JOIN-based filter
+    def filter_region(scope, value, evaluator)
+      scope.joins(company: :country)
+           .where(countries: { region: value })
+    end
+
+    # Authorization-aware filter
+    def filter_my_records(scope, value, evaluator)
+      return scope unless ActiveModel::Type::Boolean.new.cast(value)
+      scope.where(owner_id: evaluator.user.id)
+    end
+  end
+end
+```
+
+**Detection algorithm (in `apply_custom_filter_methods`):**
+
+Before passing filter params to Ransack, the controller checks each parameter key:
+1. For each filter param `(key, value)` from `params[:f]`:
+   - Build method name: `"filter_#{key}"` (strip trailing predicate like `_eq` if present)
+   - If `@model_class.respond_to?(method_name)` and the method is defined directly on the model (not inherited from `ActiveRecord::Base`):
+     - Call `@model_class.send(method_name, scope, value, current_evaluator)`
+     - Validate return value is an `ActiveRecord::Relation`
+     - Remove the key from params (so Ransack does not see it)
+   - Else: leave in params for Ransack to handle
+2. Return `[scope, remaining_params]` — Ransack processes only the remaining params.
+
+**Registration in presenter YAML** (optional explicit declaration):
+
+```yaml
+search:
+  advanced_filter:
+    custom_filters:
+      - name: region
+        label: "Region"
+        type: string            # value input type
+      - name: my_records
+        label: "My Records"
+        type: boolean
+      - name: active
+        label: "Active Only"
+        type: boolean
+```
+
+When `custom_filters` is declared, these appear as selectable fields in the filter dropdown under a "Custom" group. When not declared, `filter_*` methods still work when parameters arrive (e.g., via URL), but they do not appear in the UI dropdown.
+
+**Security:** Only methods matching the `filter_` prefix convention are callable. The method must be defined directly on the model class (not inherited from `ActiveRecord::Base`). The return value is validated to be an `ActiveRecord::Relation` — if it returns anything else, the filter is ignored and a warning is logged.
 
 ### 7. Custom Field Filtering (JSON Column Fallback)
 
@@ -567,6 +693,12 @@ active is true
 # Predefined scopes
 @open_deals                       # @ prefix invokes a named scope
 @open_deals and value > 5000      # Scopes compose with conditions
+
+# Relative date functions
+expected_close_date >= {today}
+created_at >= {7.days.ago}
+created_at in {this_month}
+created_at in {this_quarter}
 ```
 
 **Operator mapping (QL → Ransack):**
@@ -591,6 +723,11 @@ active is true
 | `is blank` | `_blank` | Is blank (null or empty) |
 | `is true` | `_true` | Boolean true |
 | `is false` | `_false` | Boolean false |
+| `>= {N.days.ago}` | expanded to `_gteq` with computed date | Last N days |
+| `in {this_week}` | expanded to `_gteq` + `_lteq` | This week |
+| `in {this_month}` | expanded to `_gteq` + `_lteq` | This month |
+| `in {this_quarter}` | expanded to `_gteq` + `_lteq` | This quarter |
+| `in {this_year}` | expanded to `_gteq` + `_lteq` | This year |
 
 **Parser implementation:** A recursive descent parser (no external gem dependency) that produces a condition tree. The tree is then serialized to Ransack's groupings param format.
 
@@ -710,13 +847,19 @@ The filter builder replaces the existing single search input with a richer UI. T
 
 - **Field select:** A searchable dropdown (Tom Select) organized by groups: "Direct fields", then one group per association ("Company", "Contact"). Nested association fields are shown with a breadcrumb path: "Company → Country → Name".
 - **Operator select:** Updates dynamically when a field is selected. Only shows operators valid for the field's type. Defaults to the most common operator for the type (`cont` for string, `eq` for enum, `gteq` for date).
-- **Value input:** Adapts to field type:
+- **Value input:** Adapts to field type and operator:
   - String → text input
   - Enum → dropdown with values
   - Boolean → no input (operator is sufficient: "is true" / "is false")
   - Date → date picker
+  - Datetime → datetime picker
   - Numeric → number input with step
-  - Association (for `in` / `not_in`) → multi-select with remote search
+  - `in` / `not_in` on enum → multi-select dropdown with checkboxes (Tom Select)
+  - `in` / `not_in` on string/integer → textarea with comma/semicolon/newline splitting (`split(/\s*[,;\n]\s*/)`). Supports pasting from spreadsheets (semicolons) and manual entry (commas). Placeholder: "Enter values separated by commas or one per line".
+  - `in` / `not_in` on association FK → multi-select with remote search (Tom Select)
+  - `between` on date/datetime/numeric → two side-by-side inputs (from + to): `[expected_close_date ▾] [between ▾] [2024-01-01] — [2024-03-31] [×]`
+  - `last_n_days` → numeric input for N value
+  - `this_week` / `this_month` / `this_quarter` / `this_year` → no input (self-contained)
   - Null/present/blank operators → no input shown
 - **OR groups:** A visually nested container with its own add/remove. Groups combine conditions with OR; groups themselves combine with AND at the top level.
 - **Remove (×):** Removes a single condition row or an entire group.
@@ -747,9 +890,29 @@ The filter builder is a standalone JavaScript module (no framework dependency, c
 
 ### 11. Interaction with Existing Features
 
-#### Quick text search (`?q=`)
+#### Quick text search (`?qs=`)
 
-Unchanged. Quick text search remains a simple LIKE query on `searchable_fields`. It is additive — applied on top of advanced filter results. This means a user can have both an advanced filter active and a text search narrowing the results further.
+The quick text search is renamed from `?q=` to `?qs=` to avoid namespace collision with Ransack's `?f[...]` params (see Section 5). It remains a text input that builds OR conditions across `searchable_fields`. It is additive — applied on top of advanced filter results. This means a user can have both an advanced filter active and a text search narrowing the results further.
+
+**Type-aware matching improvements** (inspired by basepack's `Utils.query` algorithm):
+
+The current `apply_search` builds `LIKE '%term%'` for all fields regardless of type. The improved implementation handles each field type appropriately:
+
+| Field Type | Behavior |
+|-----------|----------|
+| `string`, `text` | `LIKE '%term%'` (unchanged) |
+| `integer` | `column = integer_value` only if term parses as integer; **skip** otherwise |
+| `float`, `decimal` | `column = float_value` only if term parses as numeric; skip otherwise |
+| `boolean` | Match if term is truthy (`true`, `1`, `t`, `yes`) or falsy (`false`, `0`, `f`, `no`); skip otherwise |
+| `date` | Parse as date; if valid, `column = parsed_date`; skip otherwise |
+| `datetime` | Parse with **precision auto-detection**: date-only input ("2024-01-15") matches the whole day (`column >= day_start AND column < next_day`); time input matches the whole minute |
+| `enum` | Collect enum values where the **stored value** matches OR the **display label** contains the query (case-insensitive). Use `column IN (matched_values)` |
+
+**Additional improvements:**
+- **`default_query` escape hatch:** If the model defines `self.default_query(term)`, call it instead of building automatic conditions. This allows models to override quick search entirely (useful for complex JOINs or external search integration).
+- **Boolean normalization:** Recognize `"t"`, `"true"`, `"1"`, `"yes"` as truthy; `"f"`, `"false"`, `"0"`, `"no"` as falsy (case-insensitive).
+- **Empty/blank rejection:** Strip and reject blank query params before processing. An empty `?qs=` produces no filter (not `WHERE field = ''`).
+- **Empty result on no match:** If the query is non-empty but no conditions were generated (e.g., "hello" with only integer fields), return `scope.none` instead of all records.
 
 #### Predefined filter buttons (`?filter=`)
 
@@ -757,7 +920,7 @@ Unchanged. The buttons remain above the filter builder. When a predefined filter
 
 #### Sorting (`?sort=`, `?direction=`)
 
-Unchanged. Sorting is independent of filtering. Ransack's `s` parameter can also be used for sorting (e.g., `?q[s]=value+desc`), and the two should be reconciled — the platform's sort params take precedence if both are present.
+Unchanged. Sorting is independent of filtering. Ransack's `s` parameter can also be used for sorting (e.g., `?f[s]=value+desc`), and the two should be reconciled — the platform's sort params take precedence if both are present.
 
 #### Eager loading
 
@@ -832,51 +995,71 @@ A model like `employee` with `belongs_to :manager, target_model: employee` creat
 
 Polymorphic `belongs_to` associations (`commentable_type`, `commentable_id`) cannot be traversed by Ransack because the target model is unknown at query time. The filter builder should exclude polymorphic associations.
 
+#### Empty filter params
+
+Empty-string values in filter params (e.g., `?f[title_cont]=`) must be stripped before passing to Ransack. Without this, Ransack generates `WHERE title LIKE '%%'` or `WHERE title = ''` instead of ignoring the condition. The `build_ransack_params` method rejects blank values early in the pipeline.
+
+#### Boolean value normalization
+
+Boolean values arrive from URL params in many formats: `"t"`, `"true"`, `"1"`, `"yes"`, `true`. The filter param builder normalizes all truthy representations (`true`, `1`, `t`, `yes` — case-insensitive) and falsy representations (`false`, `0`, `f`, `no`) before passing to Ransack. Without this, a checkbox value `"t"` is not recognized as `true`.
+
 ## Implementation Plan
 
-### Phase 1: Ransack Foundation
-1. Install Ransack allowlisting on dynamic models (`ransackable_attributes`, `ransackable_associations`, `ransackable_scopes`)
-2. Refactor `apply_search` to `apply_advanced_search` with backward compatibility
-3. Implement `Search::OperatorRegistry` with type-operator mapping
-4. Implement `Search::FilterParamBuilder` to convert filter state to Ransack params
-5. Extend `PresenterDefinition` to parse `advanced_filter` config
-6. Extend `ConfigurationValidator` for new search keys
+**Phase rationale:**
+- **Phase 0 first** because the `?q` → `?qs` rename is a prerequisite for introducing Ransack params without breaking existing search. Quick search improvements are low-risk and immediately useful.
+- **Phases 1+2 merged association filtering** because it is deeply coupled with the Ransack foundation (`ransackable_associations`) and with the UI (grouped field selector). Shipping it as a separate phase would deliver an incomplete feature.
+- **Phase 3 combines custom fields + saved filters** because both are storage-layer features (JSON queries, DB model) that build on the core filter infrastructure without needing each other.
+- **Phase 4 (QL) is last** because it has the lowest user impact relative to effort and depends on all other phases being stable.
 
-### Phase 2: Visual Filter Builder (UI)
-7. Create `_advanced_filter.html.erb` partial
-8. Implement `advanced_filter.js` — dynamic filter rows, field/operator/value selects
-9. Extend `FormHelper` with filter-specific input rendering (date picker, enum dropdown, multi-select)
-10. Integrate Tom Select for field selection and enum/association value selection
-11. Add i18n keys for operator labels and UI strings
+### Phase 0: Quick Search Improvements + Param Namespace Fix
+1. Rename quick search param from `?q=` to `?qs=` in views and controller
+2. Implement type-aware quick search (numeric skip, datetime precision, enum label matching, boolean normalization, empty param rejection)
+3. Add `default_query` model escape hatch for quick search override
+4. Update tests for renamed param and improved type handling
 
-### Phase 3: Association Filtering
-12. Build association field tree from model metadata (depth-limited traversal)
-13. Implement grouped field selector in UI (direct fields, association groups)
-14. Test multi-level association filtering with Ransack
+### Phase 1: Ransack Foundation + Custom Filter Methods
+5. Install Ransack allowlisting on dynamic models (`ransackable_attributes`, `ransackable_associations`, `ransackable_scopes`) using `?f[...]` param namespace
+6. Refactor `apply_search` to `apply_advanced_search` with backward compatibility
+7. Implement `Search::OperatorRegistry` with type-operator mapping (including `between`, relative date operators)
+8. Implement `Search::FilterParamBuilder` to convert filter state to Ransack params (with relative date expansion and `between` expansion)
+9. Implement custom `filter_*` method detection and interception before Ransack
+10. Extend `PresenterDefinition` to parse `advanced_filter` config
+11. Extend `ConfigurationValidator` for new search keys
+
+### Phase 2: Visual Filter Builder + Association Filtering
+12. Create `_advanced_filter.html.erb` partial
+13. Implement `advanced_filter.js` — dynamic filter rows, field/operator/value selects
+14. Implement value input variants: date picker, enum dropdown (Tom Select), textarea for `in`/`not_in`, numeric input, date range ("between"), no-value operators
+15. Integrate Tom Select for field selection and enum/association value selection
+16. Build association field tree from model metadata (depth-limited traversal)
+17. Implement grouped field selector in UI (direct fields, association groups)
+18. Add i18n keys for operator labels and UI strings
+19. Test multi-level association filtering with Ransack
+
+### Phase 3: Custom Field Filtering + Saved Filters
+20. Implement `Search::CustomFieldFilter` for JSON column queries
+21. Add `filterable` attribute to `CustomFieldDefinition`
+22. Integrate custom fields into the filter dropdown
+23. Create `SavedFilter` model + generator
+24. Add save/load/delete UI in filter builder
+25. Implement YAML presets loading
+26. Add sharing/scoping by role
 
 ### Phase 4: Query Language
-15. Implement `Search::QueryLanguageParser` (recursive descent)
-16. Implement `Search::QueryLanguageSerializer` (AST → text)
-17. Add QL toggle in filter UI with bidirectional conversion
-18. Error display for QL parse failures
-
-### Phase 5: Saved Filters
-19. Create `SavedFilter` model + generator
-20. Add save/load/delete UI in filter builder
-21. Implement YAML presets loading
-22. Add sharing/scoping by role
-
-### Phase 6: Custom Field Filtering
-23. Implement `Search::CustomFieldFilter` for JSON column queries
-24. Add `filterable` attribute to `CustomFieldDefinition`
-25. Integrate custom fields into the filter dropdown
+27. Implement `Search::QueryLanguageParser` (recursive descent)
+28. Implement `Search::QueryLanguageSerializer` (AST → text)
+29. Add QL toggle in filter UI with bidirectional conversion
+30. Add relative date functions to QL (`{today}`, `{this_month}`, etc.)
+31. Error display for QL parse failures
 
 ## Test Plan
 
 ### Unit Tests
 
-- `spec/lib/lcp_ruby/search/operator_registry_spec.rb` — operator-type mapping, label lookup, i18n
-- `spec/lib/lcp_ruby/search/filter_param_builder_spec.rb` — condition tree → Ransack params conversion
+- `spec/lib/lcp_ruby/search/operator_registry_spec.rb` — operator-type mapping, label lookup, i18n, relative date operators
+- `spec/lib/lcp_ruby/search/filter_param_builder_spec.rb` — condition tree → Ransack params conversion, `between` expansion, relative date expansion
+- `spec/lib/lcp_ruby/search/custom_filter_method_spec.rb` — `filter_*` detection, interception, security (return type validation)
+- `spec/lib/lcp_ruby/search/quick_search_spec.rb` — type-aware matching (numeric skip, datetime range, enum labels, boolean normalization, empty rejection)
 - `spec/lib/lcp_ruby/search/query_language_parser_spec.rb` — QL parsing (valid expressions, error cases, edge cases)
 - `spec/lib/lcp_ruby/search/query_language_serializer_spec.rb` — AST → QL text round-trip
 - `spec/lib/lcp_ruby/search/custom_field_filter_spec.rb` — JSON column query generation (PostgreSQL + SQLite)
@@ -892,13 +1075,17 @@ Polymorphic `belongs_to` associations (`commentable_type`, `commentable_id`) can
   - Filter by enum field with dropdown values
   - Filter with OR groups
   - Filter with predefined scope + advanced filter combined
-  - Quick text search + advanced filter combined
+  - Quick text search + advanced filter combined (verify `?qs=` param works)
   - Permission-restricted fields not filterable
+  - Custom `filter_*` method interception
   - Custom field filtering
   - Saved filter create/load/delete
+  - Relative date operators (this_month, last_n_days, etc.)
+  - "Between" operator with date ranges
   - QL parse → apply → verify results
-  - Edge cases: empty results, NULL values, boolean fields, date ranges
+  - Edge cases: empty results, NULL values, boolean fields, date ranges, empty params
   - URL bookmarkability: apply filter, copy URL, load in new session
+  - Type-aware quick search: numeric query on mixed fields, date precision, enum label matching
 
 ### Fixtures
 

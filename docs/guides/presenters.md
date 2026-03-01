@@ -1039,6 +1039,129 @@ search:
 search enabled: false
 ```
 
+### Type-Aware Quick Search
+
+The quick search bar (`?qs=` parameter) is type-aware. Each `searchable_fields` entry is checked by type:
+
+- **String/text** — substring match (`ILIKE '%term%'`)
+- **Integer/float/decimal** — exact match only when the search term is numeric
+- **Date/datetime** — range match only when the search term parses as a date
+- **Enum** — matches against display labels, not raw values (e.g., searching "won" matches `closed_won` if its humanized label contains "won")
+
+Fields that don't match the search term's type are silently skipped, so searching for "hello" on a deals index won't error on the `value` (decimal) field.
+
+### Advanced Filter Builder
+
+The advanced filter builder adds a visual UI for constructing field-level filter conditions. Users select a field, an operator, and a value. Multiple conditions combine with AND logic, with optional OR grouping.
+
+**YAML:**
+
+```yaml
+search:
+  enabled: true
+  searchable_fields: [title, description]
+
+  advanced_filter:
+    enabled: true
+    max_conditions: 20
+    max_association_depth: 3
+    allow_or_groups: true
+
+    filterable_fields:
+      - title
+      - stage
+      - value
+      - expected_close_date
+      - company.name
+      - company.industry
+      - contact.email
+
+    field_options:
+      stage:
+        operators: [eq, not_eq, in, not_in]
+      value:
+        operators: [eq, gt, gteq, lt, lteq, between]
+
+    presets:
+      - name: high_value_open
+        label: "High-value open deals"
+        conditions:
+          - { field: stage, operator: not_in, value: [closed_won, closed_lost] }
+          - { field: value, operator: gteq, value: 10000 }
+
+    custom_filters:
+      - name: region
+        label: "Region"
+        type: string
+```
+
+**Ruby DSL:**
+
+```ruby
+search do
+  searchable_fields :title, :description
+
+  advanced_filter do
+    max_conditions 20
+    max_association_depth 3
+    allow_or_groups true
+
+    filterable_field :title
+    filterable_field :stage, operators: [:eq, :not_eq, :in, :not_in]
+    filterable_field :value, operators: [:eq, :gt, :gteq, :lt, :lteq, :between]
+    filterable_field :company, :name
+    filterable_field :contact, :email
+
+    preset "high_value_open", label: "High-value open deals" do
+      condition field: :stage, operator: :not_in, value: %w[closed_won closed_lost]
+      condition field: :value, operator: :gteq, value: 10000
+    end
+  end
+end
+```
+
+If `filterable_fields` is omitted, all readable model fields are auto-detected based on the current user's permissions.
+
+### Operators by Field Type
+
+Available operators are auto-detected from the field type. The full matrix is documented in the [Advanced Search design document](../design/advanced_search.md). Key highlights:
+
+| Field Type | Notable Operators |
+|------------|-------------------|
+| string | `eq`, `cont`, `start`, `end`, `in`, `present`, `blank` |
+| integer, float, decimal | `eq`, `gt`, `gteq`, `lt`, `lteq`, `between`, `in` |
+| date, datetime | `eq`, `gt`, `lt`, `between`, `this_week`, `this_month`, `this_year` |
+| boolean | `true`, `false`, `null` |
+| enum | `eq`, `in`, `not_in`, `present`, `blank` |
+
+Use `field_options` to restrict or customize operators for specific fields.
+
+### Filtering by Association Fields
+
+Dot notation lets users filter by fields on related models:
+
+```yaml
+filterable_fields:
+  - company.name              # 1 level deep (belongs_to :company)
+  - company.industry          # 1 level deep
+  - contact.company.country   # 2 levels deep (contact → company → country)
+```
+
+The `max_association_depth` setting (default: 3) limits how deep association chains can go. Each association segment is permission-checked — users can only filter on associations they have read access to.
+
+### Saved Filters
+
+Saved filters let users name and store filter combinations for reuse. Enable via `saved_filters`:
+
+```yaml
+search:
+  saved_filters:
+    enabled: true
+    sharing: true    # Allow sharing with roles
+```
+
+Full saved filter support (Phase 2) and a text-based query language for power users (Phase 3) are planned for future releases. See the [Advanced Search design document](../design/advanced_search.md) for details.
+
 ---
 
 ## Actions

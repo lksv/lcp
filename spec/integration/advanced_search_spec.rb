@@ -1,0 +1,330 @@
+require "spec_helper"
+require "support/integration_helper"
+
+RSpec.describe "Advanced Search Integration", type: :request do
+  before(:all) do
+    helper = Object.new.extend(IntegrationHelper)
+    helper.load_integration_metadata!("advanced_search")
+  end
+
+  after(:all) do
+    helper = Object.new.extend(IntegrationHelper)
+    helper.teardown_integration_tables!("advanced_search")
+  end
+
+  before(:each) do
+    load_integration_metadata!("advanced_search")
+    product_model.delete_all
+    category_model.delete_all
+  end
+
+  let(:product_model) { LcpRuby.registry.model_for("product") }
+  let(:category_model) { LcpRuby.registry.model_for("category") }
+
+  describe "Quick search with ?qs= param" do
+    before { stub_current_user(role: "admin") }
+
+    it "filters by string field" do
+      product_model.create!(name: "Red Widget")
+      product_model.create!(name: "Blue Gadget")
+
+      get "/products", params: { qs: "Widget" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Red Widget")
+      expect(response.body).not_to include("Blue Gadget")
+    end
+
+    it "filters by text field (description)" do
+      product_model.create!(name: "Product AAA", description: "Amazing product for everyone")
+      product_model.create!(name: "Product BBB", description: "Basic item")
+
+      get "/products", params: { qs: "Amazing" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Product AAA")
+      expect(response.body).not_to include("Product BBB")
+    end
+
+    it "returns no results for non-matching query" do
+      product_model.create!(name: "Red Widget")
+
+      get "/products", params: { qs: "ZZZ_NONEXISTENT" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("Red Widget")
+    end
+
+    it "returns all results when qs is empty" do
+      product_model.create!(name: "Alpha Product")
+      product_model.create!(name: "Beta Product")
+
+      get "/products", params: { qs: "" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Alpha Product")
+      expect(response.body).to include("Beta Product")
+    end
+  end
+
+  describe "Type-aware quick search" do
+    before { stub_current_user(role: "admin") }
+
+    it "matches integer field with numeric query" do
+      product_model.create!(name: "Qty100 Product", quantity: 100)
+      product_model.create!(name: "Qty200 Product", quantity: 200)
+
+      # "100" matches quantity=100 AND also matches "Qty100" in name via LIKE
+      get "/products", params: { qs: "100" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Qty100 Product")
+    end
+
+    it "matches enum by stored value" do
+      product_model.create!(name: "Published Product", status: "published")
+      product_model.create!(name: "Draft Product", status: "draft")
+
+      get "/products", params: { qs: "published" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Published Product")
+    end
+
+    it "matches by SKU string field" do
+      product_model.create!(name: "Product Alpha", sku: "SKU-001")
+      product_model.create!(name: "Product Beta", sku: "SKU-002")
+
+      get "/products", params: { qs: "SKU-001" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Product Alpha")
+      expect(response.body).not_to include("Product Beta")
+    end
+  end
+
+  describe "Ransack filter via ?f[...] params" do
+    before { stub_current_user(role: "admin") }
+
+    it "filters with equals operator" do
+      product_model.create!(name: "Widget Alpha", status: "published")
+      product_model.create!(name: "Widget Beta", status: "draft")
+
+      get "/products", params: { f: { status_eq: "published" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Widget Alpha")
+      expect(response.body).not_to include("Widget Beta")
+    end
+
+    it "filters with contains operator" do
+      product_model.create!(name: "Super Widget")
+      product_model.create!(name: "Basic Gadget")
+
+      get "/products", params: { f: { name_cont: "Widget" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Super Widget")
+      expect(response.body).not_to include("Basic Gadget")
+    end
+
+    it "filters with numeric comparison" do
+      product_model.create!(name: "Cheap Product", price: 9.99)
+      product_model.create!(name: "Expensive Product", price: 199.99)
+
+      get "/products", params: { f: { price_gteq: "100" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Expensive Product")
+      expect(response.body).not_to include("Cheap Product")
+    end
+
+    it "combines multiple filter conditions" do
+      product_model.create!(name: "Published Cheap", status: "published", price: 10.0)
+      product_model.create!(name: "Published Expensive", status: "published", price: 500.0)
+      product_model.create!(name: "Draft Cheap", status: "draft", price: 10.0)
+
+      get "/products", params: { f: { status_eq: "published", price_gteq: "100" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Published Expensive")
+      expect(response.body).not_to include("Published Cheap")
+      expect(response.body).not_to include("Draft Cheap")
+    end
+  end
+
+  describe "Association filter" do
+    before { stub_current_user(role: "admin") }
+
+    it "filters by association field" do
+      electronics = category_model.create!(name: "Electronics")
+      clothing = category_model.create!(name: "Clothing")
+
+      product_model.create!(name: "Laptop", category_id: electronics.id)
+      product_model.create!(name: "T-Shirt", category_id: clothing.id)
+
+      get "/products", params: { f: { category_name_cont: "Electronics" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Laptop")
+      expect(response.body).not_to include("T-Shirt")
+    end
+  end
+
+  describe "Predefined filter + Ransack filter combined" do
+    before { stub_current_user(role: "admin") }
+
+    it "applies predefined filter and Ransack filter together" do
+      product_model.create!(name: "Active Published", active: true, status: "published", price: 50.0)
+      product_model.create!(name: "Active Draft", active: true, status: "draft", price: 50.0)
+      product_model.create!(name: "Inactive Published", active: false, status: "published", price: 50.0)
+
+      get "/products", params: { filter: "active", f: { status_eq: "published" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Active Published")
+      expect(response.body).not_to include("Active Draft")
+      expect(response.body).not_to include("Inactive Published")
+    end
+  end
+
+  describe "Quick search + Ransack filter combined" do
+    before { stub_current_user(role: "admin") }
+
+    it "applies both quick search and Ransack filter" do
+      product_model.create!(name: "Widget Pro", status: "published")
+      product_model.create!(name: "Widget Basic", status: "draft")
+      product_model.create!(name: "Gadget Pro", status: "published")
+
+      get "/products", params: { qs: "Widget", f: { status_eq: "published" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Widget Pro")
+      expect(response.body).not_to include("Widget Basic")
+      expect(response.body).not_to include("Gadget Pro")
+    end
+  end
+
+  describe "Empty params don't break queries" do
+    before { stub_current_user(role: "admin") }
+
+    it "handles empty f params gracefully" do
+      product_model.create!(name: "Test Product")
+
+      get "/products", params: { f: { name_cont: "" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Test Product")
+    end
+
+    it "handles nil f params gracefully" do
+      product_model.create!(name: "Test Product")
+
+      get "/products"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Test Product")
+    end
+  end
+
+  describe "Permission-restricted filtering" do
+    it "allows filtering on readable fields for viewer" do
+      stub_current_user(role: "viewer")
+
+      product_model.create!(name: "Visible Widget", status: "published")
+      product_model.create!(name: "Visible Gadget", status: "draft")
+
+      get "/products", params: { f: { status_eq: "published" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Visible Widget")
+      expect(response.body).not_to include("Visible Gadget")
+    end
+
+    it "rejects filtering on non-readable fields for viewer" do
+      stub_current_user(role: "viewer")
+
+      product_model.create!(name: "Product A", price: 100.0)
+      product_model.create!(name: "Product B", price: 200.0)
+
+      # price is not in viewer's readable fields, so Ransack should reject it
+      get "/products", params: { f: { price_gteq: "150" } }
+
+      expect(response).to have_http_status(:ok)
+      # Both products should appear since the price filter is ignored
+      expect(response.body).to include("Product A")
+      expect(response.body).to include("Product B")
+    end
+  end
+
+  describe "Custom filter_* method interception" do
+    before { stub_current_user(role: "admin") }
+
+    it "calls custom filter method when defined on model" do
+      product_model.create!(name: "High Value Product", price: 500.0)
+      product_model.create!(name: "Low Value Product", price: 10.0)
+
+      # Define a custom filter method on the model
+      product_model.define_singleton_method(:filter_min_price) do |scope, value, _evaluator|
+        scope.where("price >= ?", value.to_f)
+      end
+
+      get "/products", params: { f: { min_price: "100" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("High Value Product")
+      expect(response.body).not_to include("Low Value Product")
+    end
+  end
+
+  describe "Ransackable attributes authorization" do
+    it "exposes all columns without auth_object" do
+      load_integration_metadata!("advanced_search")
+      model = LcpRuby.registry.model_for("product")
+      expect(model.ransackable_attributes).to include("name", "price", "quantity", "status")
+    end
+
+    it "restricts to readable fields with evaluator" do
+      load_integration_metadata!("advanced_search")
+      model = LcpRuby.registry.model_for("product")
+      perm_def = LcpRuby.loader.permission_definition("product")
+      user = OpenStruct.new(id: 1, lcp_role: ["viewer"])
+      evaluator = LcpRuby::Authorization::PermissionEvaluator.new(perm_def, user, "product")
+
+      attrs = model.ransackable_attributes(evaluator)
+      expect(attrs).to include("name", "status", "sku")
+      expect(attrs).not_to include("price", "quantity", "weight")
+    end
+
+    it "includes association in ransackable_associations" do
+      load_integration_metadata!("advanced_search")
+      model = LcpRuby.registry.model_for("product")
+      expect(model.ransackable_associations).to include("category")
+    end
+  end
+
+  describe "PresenterDefinition convenience methods" do
+    it "returns advanced_filter_config" do
+      load_integration_metadata!("advanced_search")
+      presenter = LcpRuby.loader.presenter_definitions["product"]
+
+      expect(presenter.advanced_filter_config).to be_a(Hash)
+      expect(presenter.advanced_filter_config["enabled"]).to be true
+      expect(presenter.advanced_filter_config["max_conditions"]).to eq(10)
+    end
+
+    it "returns advanced_filter_enabled?" do
+      load_integration_metadata!("advanced_search")
+      presenter = LcpRuby.loader.presenter_definitions["product"]
+      expect(presenter.advanced_filter_enabled?).to be true
+    end
+
+    it "returns false when search is disabled" do
+      load_integration_metadata!("advanced_search")
+      presenter = LcpRuby.loader.presenter_definitions["product"]
+      # Override search_config to disabled
+      allow(presenter).to receive(:search_config).and_return("enabled" => false)
+      expect(presenter.advanced_filter_enabled?).to be_falsey
+    end
+  end
+end

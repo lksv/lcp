@@ -62,6 +62,10 @@ Implemented:
 - [Record Rules Action Visibility](design/record_rules_action_visibility.md) — Automatic hiding of edit/destroy buttons based on record_rules
 - [Inline Collection Editor](design/inline_collection_editor.md) — Unified editing for nested associations, JSON arrays, and bulk records: row-scoped conditions, JSON field source, virtual models, sub-sections, presenter-driven manage page
 
+In Progress:
+
+- [Advanced Search & Filter Builder](design/advanced_search.md) — Type-aware quick search, Ransack-based filter builder, custom filter methods, saved filters
+
 Proposed:
 
 - [Model Options Infrastructure](design/model_options_infrastructure.md) — Shared patterns for model-level feature flags (soft_delete, auditing)

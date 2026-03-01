@@ -9,7 +9,7 @@ module LcpRuby
     def index
       authorize @model_class
       scope = policy_scope(@model_class)
-      scope = apply_search(scope)
+      scope = apply_advanced_search(scope)
       scope = apply_sort(scope)
 
       @summaries = compute_summaries(scope) if summary_columns_present?
@@ -693,7 +693,7 @@ module LcpRuby
 
     def resolve_loading_strategy(context)
       sort_field = params[:sort] if context == :index
-      search_fields = current_presenter.search_config["searchable_fields"] if context == :index && params[:q].present?
+      search_fields = current_presenter.search_config["searchable_fields"] if context == :index && params[:qs].present?
       Presenter::IncludesResolver.resolve(
         presenter_def: current_presenter,
         model_def: current_model_definition,

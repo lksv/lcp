@@ -1,0 +1,33 @@
+presenter:
+  name: category
+  model: category
+  slug: categories
+  label: "Categories"
+
+  search:
+    enabled: true
+    searchable_fields: [name]
+
+  index:
+    table_columns:
+      - { field: name, sortable: true }
+
+  form:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+
+  show:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in }

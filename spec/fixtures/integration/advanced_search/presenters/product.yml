@@ -1,0 +1,86 @@
+presenter:
+  name: product
+  model: product
+  slug: products
+  label: "Products"
+
+  search:
+    enabled: true
+    searchable_fields: [name, description, sku]
+    placeholder: "Search products..."
+
+    predefined_filters:
+      - { name: all, label: "All", default: true }
+      - { name: active, label: "Active", scope: active_products }
+      - { name: published, label: "Published", scope: published }
+
+    advanced_filter:
+      enabled: true
+      max_conditions: 10
+      max_association_depth: 2
+      default_combinator: and
+      filterable_fields:
+        - name
+        - description
+        - price
+        - quantity
+        - weight
+        - active
+        - release_date
+        - last_ordered_at
+        - status
+        - sku
+        - category.name
+      field_options:
+        status:
+          operators: [eq, not_eq, in, not_in]
+        price:
+          operators: [eq, gt, gteq, lt, lteq, between, present, blank]
+
+  index:
+    table_columns:
+      - { field: name, sortable: true, link_to: show }
+      - { field: status, sortable: true }
+      - { field: price, sortable: true }
+      - { field: quantity, sortable: true }
+      - { field: active }
+      - { field: category.name, sortable: true }
+
+  form:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+          - { field: description }
+          - { field: sku }
+          - { field: price }
+          - { field: quantity }
+          - { field: weight }
+          - { field: active }
+          - { field: release_date }
+          - { field: last_ordered_at }
+          - { field: status }
+          - { field: category_id, input_type: association_select }
+
+  show:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+          - { field: description }
+          - { field: sku }
+          - { field: price }
+          - { field: quantity }
+          - { field: weight }
+          - { field: active }
+          - { field: release_date }
+          - { field: last_ordered_at }
+          - { field: status }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in }

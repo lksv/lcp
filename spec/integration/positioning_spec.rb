@@ -246,7 +246,7 @@ RSpec.describe "Record Positioning Integration", type: :request do
       priority_model.create!(label: "High")
       priority_model.create!(label: "Medium")
 
-      get "/priorities", params: { q: "High" }
+      get "/priorities", params: { qs: "High" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("lcp-drag-handle")

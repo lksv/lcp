@@ -79,6 +79,14 @@ module LcpRuby
         actions_config["batch"] || []
       end
 
+      def advanced_filter_config
+        search_config["advanced_filter"] || {}
+      end
+
+      def advanced_filter_enabled?
+        search_config["enabled"] && advanced_filter_config.fetch("enabled", search_config["enabled"])
+      end
+
       private
 
       def validate!

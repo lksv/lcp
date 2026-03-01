@@ -1597,7 +1597,9 @@ When a form field has `input_type: association_select` on a foreign key column (
 
 ## Search Configuration
 
-Controls the search bar and predefined filters on the index page.
+Controls quick search, predefined filters, and the advanced filter builder on the index page.
+
+The quick search parameter is `?qs=` (query string). Previous versions used `?q=`; the rename avoids collision with Ransack's internal `q` parameter.
 
 ```yaml
 search:
@@ -1608,6 +1610,47 @@ search:
     - { name: all, label: "All", default: true }
     - { name: open, label: "Open", scope: open_deals }
     - { name: won, label: "Won", scope: won }
+
+  advanced_filter:
+    enabled: true
+    max_conditions: 20
+    max_association_depth: 3
+    default_combinator: and
+    allow_or_groups: true
+    query_language: false
+
+    filterable_fields:
+      - title
+      - stage
+      - value
+      - company.name
+      - contact.email
+
+    field_options:
+      stage:
+        operators: [eq, not_eq, in, not_in]
+      value:
+        operators: [eq, gt, gteq, lt, lteq, between]
+        step: 0.01
+
+    presets:
+      - name: high_value_open
+        label: "High-value open deals"
+        conditions:
+          - { field: stage, operator: not_in, value: [closed_won, closed_lost] }
+          - { field: value, operator: gteq, value: 10000 }
+
+    custom_filters:
+      - name: region
+        label: "Region"
+        type: string
+      - name: active
+        label: "Active Only"
+        type: boolean
+
+  saved_filters:
+    enabled: false
+    sharing: false
 ```
 
 ### Search Attributes
@@ -1615,9 +1658,29 @@ search:
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `enabled` | boolean | Enable/disable the search bar |
-| `searchable_fields` | array | Field names to search with LIKE queries |
+| `searchable_fields` | array | Field names to search with quick search (`?qs=`). Type-aware: numeric fields skip non-numeric queries, date fields match by range, enum fields match by display label |
 | `placeholder` | string | Search input placeholder text |
 | `predefined_filters` | array | Filter buttons (see below) |
+| `advanced_filter` | object | Advanced filter builder configuration (see below) |
+| `saved_filters` | object | Saved filter configuration (see below) |
+
+### Quick Search Behavior
+
+Quick search (`?qs=term`) is type-aware. Instead of applying a blanket `LIKE` to all `searchable_fields`, the search module checks each field's type:
+
+- **String/text fields** — `ILIKE '%term%'` (contains match)
+- **Numeric fields** (integer, float, decimal) — exact match when the term is numeric, skipped otherwise
+- **Date/datetime fields** — range match when the term parses as a date, skipped otherwise
+- **Enum fields** — matches against enum display labels (e.g., searching "won" matches `closed_won` if its label contains "won")
+
+Models can override quick search entirely with a `default_query` class method (escape hatch):
+
+```ruby
+# Model extension
+def self.default_query(scope, term, evaluator)
+  scope.where("title ILIKE :q OR reference_number = :exact", q: "%#{term}%", exact: term)
+end
+```
 
 ### Predefined Filter Attributes
 
@@ -1629,6 +1692,89 @@ search:
 | `scope` | string | Named [scope](models.md#scopes) to apply. Omit for the "all" filter |
 
 Predefined filters render as buttons above the table. Each filter (except the default "all") maps to a named scope defined in the model YAML.
+
+### Advanced Filter Attributes
+
+The `advanced_filter` key controls the visual filter builder that lets users construct field-level filter conditions.
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enabled` | boolean | `true` (when `search.enabled`) | Show the "Add Filter" button |
+| `max_conditions` | integer | `20` | Safety limit on filter rows |
+| `max_association_depth` | integer | `3` | Maximum levels of association traversal (e.g., `company.country.name` = depth 2) |
+| `default_combinator` | string | `"and"` | Top-level combinator: `"and"` or `"or"` |
+| `allow_or_groups` | boolean | `true` | Allow users to create OR groups within the filter |
+| `query_language` | boolean | `false` | Show "Edit as QL" toggle for text-based query input (Phase 3) |
+| `filterable_fields` | array | auto-detected | Fields available in the filter dropdown. Supports dot-path association syntax (e.g., `company.name`). If omitted, all readable fields are auto-detected from permissions |
+| `field_options` | object | `{}` | Per-field operator overrides and input hints (see below) |
+| `presets` | array | `[]` | Predefined filter combinations that populate the builder with one click |
+| `custom_filters` | array | `[]` | Explicit declaration of `filter_*` methods for UI exposure (see [Custom Filter Methods](../guides/extensibility.md#custom-filter-methods)) |
+
+#### `filterable_fields`
+
+When omitted, the platform auto-detects filterable fields from the model definition, filtered by the current user's read permissions. When specified, only the listed fields appear in the filter dropdown. Association fields use dot notation:
+
+```yaml
+filterable_fields:
+  - title                    # Direct field
+  - stage                    # Enum — auto-detects values for dropdown
+  - value                    # Numeric — auto-detects numeric operators
+  - company.name             # belongs_to association (1 level)
+  - contact.company.country  # Association chain (2 levels)
+```
+
+#### `field_options`
+
+Override the default operators or input hints for specific fields:
+
+```yaml
+field_options:
+  stage:
+    operators: [eq, not_eq, in, not_in]   # Only these operators
+  value:
+    operators: [eq, gt, gteq, lt, lteq, between, present, blank]
+    step: 0.01                             # Numeric input step
+```
+
+See the [Advanced Search design document](../design/advanced_search.md) for the full operator-by-type matrix.
+
+#### `presets`
+
+Presets are predefined filter combinations. Each preset has a `name`, `label`, and a list of `conditions`:
+
+```yaml
+presets:
+  - name: high_value_open
+    label: "High-value open deals"
+    conditions:
+      - { field: stage, operator: not_in, value: [closed_won, closed_lost] }
+      - { field: value, operator: gteq, value: 10000 }
+```
+
+#### `custom_filters`
+
+Declares `filter_*` class methods on the model so they appear in the filter dropdown UI. Each entry has a `name`, `label`, and `type` (for the value input):
+
+```yaml
+custom_filters:
+  - name: region
+    label: "Region"
+    type: string
+  - name: active
+    label: "Active Only"
+    type: boolean
+```
+
+See [Custom Filter Methods](../guides/extensibility.md#custom-filter-methods) for implementation details.
+
+### Saved Filter Attributes
+
+| Attribute | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `enabled` | boolean | `false` | Allow users to save personal filters |
+| `sharing` | boolean | `false` | Allow sharing saved filters with roles |
+
+Saved filters follow the Configuration Source Principle: predefined in YAML (via `presets`), user-created in DB (when `enabled: true`), or provided by the host application. Full saved filter support is planned for Phase 2.
 
 ## Actions Configuration
 

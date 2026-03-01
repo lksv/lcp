@@ -52,6 +52,13 @@ require "lcp_ruby/services/accessors/json_field"
 require "lcp_ruby/services/built_in_accessors"
 require "lcp_ruby/services/checker"
 
+# Search
+require "lcp_ruby/search/param_sanitizer"
+require "lcp_ruby/search/operator_registry"
+require "lcp_ruby/search/quick_search"
+require "lcp_ruby/search/filter_param_builder"
+require "lcp_ruby/search/custom_filter_interceptor"
+
 # Model Factory
 require "lcp_ruby/model_factory/registry"
 require "lcp_ruby/model_factory/schema_manager"
@@ -65,6 +72,7 @@ require "lcp_ruby/model_factory/computed_applicator"
 require "lcp_ruby/model_factory/service_accessor_applicator"
 require "lcp_ruby/model_factory/attachment_applicator"
 require "lcp_ruby/model_factory/positioning_applicator"
+require "lcp_ruby/model_factory/ransack_applicator"
 require "lcp_ruby/model_factory/builder"
 
 # JSON Item Wrapper (for model-backed JSON field items)

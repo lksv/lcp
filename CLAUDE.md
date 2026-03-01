@@ -183,6 +183,7 @@ YAML metadata (config/lcp_ruby/)
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |
 | `Actions` | `lib/lcp_ruby/actions/` | ActionExecutor + ActionRegistry. Host apps define custom actions in `app/actions/` |
 | `Conditions` | `lib/lcp_ruby/condition_evaluator.rb`, `lib/lcp_ruby/condition_service_registry.rb` | ConditionEvaluator (strict: 12 operators, raises ConditionError on unknown operator/missing field), ConditionServiceRegistry. All condition callers (PermissionEvaluator, ActionSet, views) delegate to ConditionEvaluator. Host apps define condition services in `app/condition_services/` |
+| `Search` | `lib/lcp_ruby/search/` | QuickSearch (type-aware text search), ParamSanitizer (filter param cleanup), FilterParamBuilder (LCP operators to Ransack predicates), OperatorRegistry (type-to-operator mapping), CustomFilterInterceptor (filter_* method detection and interception). Ransack model setup (`ransackable_attributes`, `ransackable_associations`) handled by `ModelFactory::RansackApplicator` at boot |
 | `Attachments` | `lib/lcp_ruby/model_factory/attachment_applicator.rb` | Applies Active Storage macros (has_one_attached/has_many_attached), validations (size, content_type, max_files), and variant config to dynamic models |
 | `Positioning` | `lib/lcp_ruby/model_factory/positioning_applicator.rb` | Applies `positioning` gem macro to positioned models; SchemaManager creates unique indices on scope + position columns (except SQLite) |
 | `JsonItemWrapper` | `lib/lcp_ruby/json_item_wrapper.rb` | ActiveModel wrapper for JSON hash items; dynamic getter/setter per field from ModelDefinition; type coercion (integer, float, boolean); `validate_with_model_rules!` (presence, length, numericality, format); `to_hash` for persistence. Used by `json_field:` + `target_model:` nested sections |
@@ -198,7 +199,7 @@ YAML metadata (config/lcp_ruby/)
 `ResourcesController` (`app/controllers/lcp_ruby/resources_controller.rb`):
 - Standard CRUD (index/show/new/create/edit/update/destroy)
 - `permitted_params` filters by writable fields + association FK fields
-- `apply_search` handles text search + predefined filter scopes
+- `apply_advanced_search` 7-step pipeline: predefined scope, param sanitization, Ransack param building, custom filter interception, Ransack query, quick search (`?qs=`), custom field filters
 - Authorization via Pundit on every action
 
 `CustomFieldsController` (`app/controllers/lcp_ruby/custom_fields_controller.rb`):

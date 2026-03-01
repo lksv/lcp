@@ -16,6 +16,7 @@ module LcpRuby
         apply_associations(model_class)
         apply_attachments(model_class)
         apply_scopes(model_class)
+        apply_ransack(model_class)
         apply_callbacks(model_class)
         apply_defaults(model_class)
         apply_computed(model_class)
@@ -79,6 +80,10 @@ module LcpRuby
 
       def apply_scopes(model_class)
         ScopeApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_ransack(model_class)
+        RansackApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_callbacks(model_class)
