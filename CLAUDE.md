@@ -251,6 +251,24 @@ Permissions YAML defines roles with: `crud` list, `fields` (readable/writable), 
 
 **Presenter actions**: `type: built_in` actions (show, edit, destroy, create) check `PermissionEvaluator.can?`. `type: custom` actions check `can_execute_action?` and dispatch to registered action classes.
 
+## Error Handling
+
+**Never use `expression rescue nil`** or bare `rescue` to silently swallow exceptions. Always rescue the specific exception class you expect (`rescue KeyError`, `rescue ActiveRecord::RecordNotFound`, etc.).
+
+If graceful degradation is genuinely needed (e.g., a renderer should not crash the whole page), use environment-aware handling:
+
+```ruby
+begin
+  risky_operation
+rescue SpecificError => e
+  raise unless Rails.env.production?
+  Rails.logger.error("[LcpRuby] #{e.class}: #{e.message} (model=#{model_name}, field=#{field_name})")
+  nil # or fallback value
+end
+```
+
+Log messages must include enough context to identify the source: model/table name, field name, presenter, record ID, or whatever is relevant to the call site. In development and test environments, exceptions must always propagate so bugs are caught early.
+
 ## Dependencies
 
 Core: `rails` (>= 7.1), `pundit` (authorization), `kaminari` (pagination), `ransack` (search). Linting: `rubocop-rails-omakase`.
