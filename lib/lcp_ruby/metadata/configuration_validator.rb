@@ -131,7 +131,7 @@ module LcpRuby
 
       def validate_models
         loader.model_definitions.each_value do |model|
-          if model.table_name == "_virtual"
+          if model.virtual?
             validate_virtual_model(model)
           else
             validate_model_fields(model)
@@ -139,6 +139,10 @@ module LcpRuby
             validate_model_events(model)
             validate_display_templates(model)
             validate_positioning(model)
+            validate_soft_delete(model)
+            validate_auditing(model)
+            validate_userstamps(model)
+            validate_tree(model)
           end
         end
       end
@@ -161,6 +165,13 @@ module LcpRuby
         if model.positioned?
           @warnings << "Model '#{model.name}': virtual model (table_name: _virtual) " \
                        "has positioning which will be ignored"
+        end
+
+        features = %w[soft_delete auditing userstamps tree]
+        enabled = features.select { |f| model.send(:"#{f}?") }
+        if enabled.any?
+          @warnings << "Model '#{model.name}': model features (#{enabled.join(', ')}) " \
+                       "have no effect on virtual models (table_name: _virtual)"
         end
       end
 
@@ -315,6 +326,58 @@ module LcpRuby
             @errors << "Model '#{model.name}': positioning scope '#{scope_col}' is not a defined field or FK"
           end
         end
+      end
+
+      def validate_boolean_or_hash_option(model, option_name, allowed_keys: [])
+        value = model.options[option_name]
+        return nil unless value
+
+        unless value == true || value.is_a?(Hash)
+          @errors << "Model '#{model.name}': #{option_name} must be true or a Hash, got #{value.class}"
+          return nil
+        end
+
+        return {} if value == true
+
+        unknown = value.keys - allowed_keys
+        if unknown.any?
+          @errors << "Model '#{model.name}': #{option_name} has unknown keys: #{unknown.join(', ')}. " \
+                     "Allowed keys: #{allowed_keys.join(', ')}"
+        end
+
+        value
+      end
+
+      def validate_soft_delete(model)
+        opts = validate_boolean_or_hash_option(model, "soft_delete", allowed_keys: %w[column])
+        return unless opts.is_a?(Hash) && opts.any?
+
+        if opts.key?("column") && !opts["column"].is_a?(String)
+          @errors << "Model '#{model.name}': soft_delete.column must be a string, got #{opts["column"].class}"
+        end
+      end
+
+      def validate_auditing(model)
+        opts = validate_boolean_or_hash_option(
+          model, "auditing",
+          allowed_keys: %w[only ignore track_associations track_attachments expand_custom_fields expand_json_fields]
+        )
+        return unless opts.is_a?(Hash) && opts.any?
+
+        if opts.key?("only") && opts.key?("ignore")
+          @errors << "Model '#{model.name}': auditing.only and auditing.ignore are mutually exclusive"
+        end
+      end
+
+      def validate_userstamps(model)
+        validate_boolean_or_hash_option(model, "userstamps", allowed_keys: %w[created_by updated_by])
+      end
+
+      def validate_tree(model)
+        validate_boolean_or_hash_option(
+          model, "tree",
+          allowed_keys: %w[parent_field children_name depth_column counter_cache]
+        )
       end
 
       def validate_presenter_reorderable(presenter, model)

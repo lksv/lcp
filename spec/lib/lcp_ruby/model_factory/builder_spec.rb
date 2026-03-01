@@ -147,6 +147,58 @@ RSpec.describe LcpRuby::ModelFactory::Builder do
     end
   end
 
+  context "with model options (soft_delete, auditing, userstamps, tree)" do
+    let(:options_hash) do
+      {
+        "name" => "opt_item",
+        "fields" => [
+          { "name" => "title", "type" => "string" }
+        ],
+        "options" => {
+          "timestamps" => false,
+          "soft_delete" => true
+        }
+      }
+    end
+    let(:options_definition) { LcpRuby::Metadata::ModelDefinition.from_hash(options_hash) }
+
+    before do
+      LcpRuby::ModelFactory::SchemaManager.new(options_definition).ensure_table!
+    end
+
+    after do
+      ActiveRecord::Base.connection.drop_table(:opt_items) if ActiveRecord::Base.connection.table_exists?(:opt_items)
+    end
+
+    it "builds without error when soft_delete is true" do
+      model_class = LcpRuby::ModelFactory::Builder.new(options_definition).build
+      expect(model_class.name).to eq("LcpRuby::Dynamic::OptItem")
+    end
+
+    it "builds without error when all four features are enabled" do
+      all_opts_hash = {
+        "name" => "all_opt_item",
+        "fields" => [
+          { "name" => "title", "type" => "string" }
+        ],
+        "options" => {
+          "timestamps" => false,
+          "soft_delete" => true,
+          "auditing" => true,
+          "userstamps" => true,
+          "tree" => true
+        }
+      }
+      all_opts_def = LcpRuby::Metadata::ModelDefinition.from_hash(all_opts_hash)
+      LcpRuby::ModelFactory::SchemaManager.new(all_opts_def).ensure_table!
+
+      model_class = LcpRuby::ModelFactory::Builder.new(all_opts_def).build
+      expect(model_class.name).to eq("LcpRuby::Dynamic::AllOptItem")
+    ensure
+      ActiveRecord::Base.connection.drop_table(:all_opt_items) if ActiveRecord::Base.connection.table_exists?(:all_opt_items)
+    end
+  end
+
   context "with belongs_to options (counter_cache, touch, dependent)" do
     let(:parent_hash) do
       {

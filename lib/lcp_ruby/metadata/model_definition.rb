@@ -53,6 +53,46 @@ module LcpRuby
         options.fetch("custom_fields", false) == true
       end
 
+      def virtual?
+        table_name == "_virtual"
+      end
+
+      def soft_delete?
+        boolean_or_hash_option("soft_delete").first
+      end
+
+      def soft_delete_options
+        boolean_or_hash_option("soft_delete").last
+      end
+
+      def soft_delete_column
+        soft_delete_options.fetch("column", "discarded_at")
+      end
+
+      def auditing?
+        boolean_or_hash_option("auditing").first
+      end
+
+      def auditing_options
+        boolean_or_hash_option("auditing").last
+      end
+
+      def userstamps?
+        boolean_or_hash_option("userstamps").first
+      end
+
+      def userstamps_options
+        boolean_or_hash_option("userstamps").last
+      end
+
+      def tree?
+        boolean_or_hash_option("tree").first
+      end
+
+      def tree_options
+        boolean_or_hash_option("tree").last
+      end
+
       def field(name)
         fields.find { |f| f.name == name.to_s }
       end
@@ -87,6 +127,15 @@ module LcpRuby
       end
 
       private
+
+      def boolean_or_hash_option(key)
+        value = options[key]
+        case value
+        when true then [ true, {} ]
+        when Hash then [ true, value ]
+        else [ false, {} ]
+        end
+      end
 
       def validate!
         raise MetadataError, "Model name is required" if @name.blank?

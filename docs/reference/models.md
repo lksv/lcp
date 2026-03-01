@@ -1414,6 +1414,10 @@ The `IncludesResolver` automatically detects dot-path fields in display template
 options:
   timestamps: true
   label_method: title
+  soft_delete: true                    # or { column: deleted_at }
+  auditing: true                       # or { only: [title, status], ... }
+  userstamps: true                     # or { created_by: author_id, updated_by: editor_id }
+  tree: true                           # or { parent_field: parent_category_id, ... }
 ```
 
 ### `timestamps`
@@ -1456,6 +1460,148 @@ options:
 ```
 
 See [Custom Fields Reference](custom-fields.md) for the complete attribute reference and [Custom Fields Guide](../guides/custom-fields.md) for a step-by-step tutorial.
+
+### `soft_delete`
+
+| | |
+|---|---|
+| **Default** | `false` (disabled) |
+| **Type** | `true` or Hash |
+
+Enables soft delete (logical deletion) for this model. Instead of permanently deleting records, the engine sets a timestamp column to mark them as discarded.
+
+**Simple form** — uses default column `discarded_at`:
+
+```yaml
+options:
+  soft_delete: true
+```
+
+**Hash form** — custom column name:
+
+```yaml
+options:
+  soft_delete:
+    column: deleted_at
+```
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `column` | string | `"discarded_at"` | Name of the datetime column that stores the discard timestamp |
+
+> **Note:** The `soft_delete` option declares intent. The actual Applicator that adds scopes, default scope, and `discard`/`undiscard` methods will be implemented in a separate feature PR.
+
+### `auditing`
+
+| | |
+|---|---|
+| **Default** | `false` (disabled) |
+| **Type** | `true` or Hash |
+
+Enables change auditing for this model. When enabled, all field changes are tracked and stored via the configured `audit_writer`.
+
+**Simple form** — tracks all fields:
+
+```yaml
+options:
+  auditing: true
+```
+
+**Hash form** — fine-grained control:
+
+```yaml
+options:
+  auditing:
+    only:
+      - title
+      - status
+    track_associations: true
+    track_attachments: true
+    expand_custom_fields: true
+    expand_json_fields:
+      - addresses
+```
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `only` | array of strings | all fields | Track only these fields. Mutually exclusive with `ignore`. |
+| `ignore` | array of strings | none | Track all fields except these. Mutually exclusive with `only`. |
+| `track_associations` | boolean | `false` | Include association changes in audit trail |
+| `track_attachments` | boolean | `false` | Include attachment changes in audit trail |
+| `expand_custom_fields` | boolean | `false` | Expand `custom_data` JSON into individual field changes |
+| `expand_json_fields` | array of strings | `[]` | JSON columns to expand into individual key changes |
+
+> **Note:** `only` and `ignore` are mutually exclusive — specifying both causes a validation error.
+
+> **Note:** The `auditing` option declares intent. The actual Applicator and AuditWriter integration will be implemented in a separate feature PR.
+
+### `userstamps`
+
+| | |
+|---|---|
+| **Default** | `false` (disabled) |
+| **Type** | `true` or Hash |
+
+Enables automatic user tracking — stores the ID of the user who created and last updated each record.
+
+**Simple form** — uses default columns `created_by` and `updated_by`:
+
+```yaml
+options:
+  userstamps: true
+```
+
+**Hash form** — custom column names:
+
+```yaml
+options:
+  userstamps:
+    created_by: author_id
+    updated_by: editor_id
+```
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `created_by` | string | `"created_by"` | Column name for the creating user's ID |
+| `updated_by` | string | `"updated_by"` | Column name for the last updating user's ID |
+
+> **Note:** The `userstamps` option declares intent. The actual Applicator that sets callbacks will be implemented in a separate feature PR.
+
+### `tree`
+
+| | |
+|---|---|
+| **Default** | `false` (disabled) |
+| **Type** | `true` or Hash |
+
+Enables tree/hierarchy structure for this model. The model becomes self-referencing with parent-child relationships, enabling nested structures like categories, organizational units, or threaded comments.
+
+**Simple form** — uses defaults:
+
+```yaml
+options:
+  tree: true
+```
+
+**Hash form** — custom configuration:
+
+```yaml
+options:
+  tree:
+    parent_field: parent_category_id
+    children_name: subcategories
+    depth_column: depth
+    counter_cache: true
+```
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `parent_field` | string | `"parent_id"` | Foreign key column for the parent record |
+| `children_name` | string | `"children"` | Name of the `has_many` children association |
+| `depth_column` | string | none | Column to store computed depth (for efficient queries) |
+| `counter_cache` | boolean | `false` | Maintain a counter of direct children |
+
+> **Note:** The `tree` option declares intent. The actual Applicator that sets up the self-referencing associations and tree traversal methods will be implemented in a separate feature PR.
 
 ## Complete Example
 

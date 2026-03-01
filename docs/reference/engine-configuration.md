@@ -323,6 +323,25 @@ presenter:
   empty_value: "-"
 ```
 
+### `audit_writer`
+
+| | |
+|---|---|
+| **Type** | Object responding to `#write` or `nil` |
+| **Default** | `nil` |
+
+Custom audit writer for models with `auditing: true`. When set, the auditing system delegates change persistence to this object instead of the default writer.
+
+The object must respond to `#write(model_name:, record_id:, action:, changes:, user:, metadata:)`.
+
+```ruby
+LcpRuby.configure do |config|
+  config.audit_writer = MyCustomAuditWriter.new
+end
+```
+
+> **Note:** The audit writer integration is infrastructure-only. The actual auditing system that calls `audit_writer.write` will be implemented in the auditing feature PR.
+
 ### `attachment_allowed_content_types`
 
 | | |

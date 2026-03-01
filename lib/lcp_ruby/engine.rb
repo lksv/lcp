@@ -106,7 +106,7 @@ module LcpRuby
 
       def build_model(model_def)
         # Virtual models exist only as metadata (no table, no AR class)
-        return if model_def.table_name == "_virtual"
+        return if model_def.virtual?
 
         schema_manager = ModelFactory::SchemaManager.new(model_def)
         schema_manager.ensure_table! if LcpRuby.configuration.auto_migrate
