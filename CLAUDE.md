@@ -33,6 +33,24 @@ This principle applies to all existing concepts and **must be followed for every
 | Groups | YAML (`groups.yml`) | DB definitions (`group_source: :model`) | host adapter (`group_source: :host`) |
 | Workflows | — | — | — |
 
+## i18n Principle
+
+**All user-visible text must use Rails i18n.** No hardcoded strings in views, controllers, or helpers. No `label` keys in YAML metadata — YAML defines structure only, locale files define text.
+
+**Lookup convention:** `I18n.t("lcp_ruby.<namespace>.<key>", default: "Humanized fallback")`
+
+Key namespaces:
+- `lcp_ruby.toolbar.*` — toolbar buttons (copy_url, back_to_list, etc.)
+- `lcp_ruby.actions.*` — CRUD action labels (show, edit, delete, create, confirm_delete)
+- `lcp_ruby.filters.<name>` — predefined filter labels (derived from scope name)
+- `lcp_ruby.presenters.<presenter>.sections.<section>` — section titles
+- `lcp_ruby.flash.*` — flash messages (created, updated, deleted) with `%{model}` interpolation
+- `lcp_ruby.search.*` — search placeholder and submit
+- `lcp_ruby.errors.*` — error pages (not_found, etc.)
+- `lcp_ruby.empty_value` — placeholder for nil/empty values in display
+
+The fallback (`default:`) is always the humanized key name so the app works without a locale file.
+
 ## Documentation
 
 - [Documentation Index](docs/README.md) — Links to all documentation
