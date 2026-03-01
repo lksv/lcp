@@ -5,7 +5,7 @@
 
 ## Problem
 
-As the platform grows, more model-level features are being added — `positioning`, `custom_fields`, `soft_delete`, `auditing`, and more will follow (workflow, approval processes, etc.). Each feature follows the same integration pattern:
+As the platform grows, more model-level features are being added — `positioning`, `custom_fields`, `soft_delete`, `auditing`, `userstamps`, `tree`, and more will follow (workflow, approval processes, etc.). Each feature follows the same integration pattern:
 
 1. A `true`-or-`Hash` option in YAML/DSL
 2. A predicate + options method on `ModelDefinition`
@@ -68,7 +68,7 @@ apply_label_method
 validate_external_methods!
 ```
 
-**Extended pipeline** with soft_delete and auditing:
+**Extended pipeline** with all current and planned model features:
 
 ```
 create_model_class
@@ -80,11 +80,13 @@ apply_associations          # AR associations (has_many, belongs_to, etc.)
 apply_attachments           # Active Storage macros
 apply_scopes                # User-defined scopes from YAML
 apply_soft_delete           # ← NEW: scopes (kept/discarded), instance methods (discard!/undiscard!)
+apply_tree                  # ← NEW: parent/child associations, traversal helpers, cycle detection
 apply_callbacks             # User-defined event callbacks
 apply_auditing              # ← NEW: after_save/after_destroy audit callbacks
 apply_defaults
 apply_computed
 apply_positioning
+apply_userstamps            # ← NEW: created_by_id/updated_by_id before_save callback
 apply_external_fields
 apply_model_extensions      # Host app extensions (may add callbacks, methods)
 apply_custom_fields
@@ -98,11 +100,26 @@ validate_external_methods!
 |------|----------------|--------|
 | `apply_soft_delete` | `apply_scopes` | Adds `kept`/`discarded`/`with_discarded` scopes — same mechanism as user-defined scopes |
 | `apply_soft_delete` | `apply_associations` | Reads association definitions to identify `dependent: :discard` targets |
+| `apply_tree` | `apply_associations` | Adds parent/child self-referential associations; needs base associations to exist first |
+| `apply_tree` | `apply_soft_delete` | Tree may reference `dependent: :discard` for subtree cascade |
 | `apply_auditing` | `apply_soft_delete` | Auditing must be aware of soft delete (to handle `update_columns` bypass) |
 | `apply_auditing` | `apply_callbacks` | Audit callbacks should fire after user-defined callbacks (user logic completes first, then audit records the result) |
 | `apply_auditing` | `apply_associations` | Reads nested_attributes associations for aggregated child change tracking |
+| `apply_userstamps` | `apply_positioning` | Userstamps' `before_save` should run after positioning's callbacks (positioning fires position shifts during save) |
+| `apply_userstamps` | `apply_auditing` | Userstamp fields (`updated_by_id`) appear in `saved_changes`, so auditing callback captures them correctly |
 
-**Future steps** should be inserted according to these dependency rules. For example, a future `apply_workflow` would go after `apply_soft_delete` (workflow may prevent discard) and before `apply_auditing` (workflow transitions should be auditable).
+**Future steps** should be inserted according to these dependency rules. For example, a future `apply_workflow` would go after `apply_soft_delete` (workflow may prevent discard) and after `apply_tree` but before `apply_auditing` (workflow transitions should be auditable).
+
+#### Virtual Models
+
+Virtual models (`table_name: _virtual`) have no database table and no AR class. All model-level features (soft_delete, auditing, userstamps, tree) are DB-dependent and **must be skipped** for virtual models. The Builder pipeline handles this — virtual models already exit early before `apply_*` steps. However, `ConfigurationValidator` should emit a warning if a virtual model has model features enabled:
+
+```ruby
+if model.virtual? && model.options.slice("soft_delete", "auditing", "userstamps", "tree").any? { |_, v| v }
+  @warnings << "Model '#{model.name}': model features (soft_delete, auditing, etc.) " \
+               "have no effect on virtual models (table_name: _virtual)"
+end
+```
 
 ### 2. Tracked Change Notifications (`update_columns` Bypass)
 
@@ -112,10 +129,10 @@ ActiveRecord's `update_columns` skips all callbacks, including `after_save`. Thi
 
 But auditing relies on `after_save` callbacks to detect changes. When soft delete calls `update_columns(discarded_at: Time.current)`, auditing never fires.
 
-This affects any current or future feature that uses `update_columns`:
-- **Soft delete** — `discard!`, `undiscard!`
-- **Positioning** — the `positioning` gem uses `update_all` for batch position updates
-- **Future bulk operations** — batch updates, counter caches, etc.
+This affects any current or future feature that uses `update_columns` or `update_all`:
+- **Soft delete** — `discard!`, `undiscard!` (per-record `update_columns`)
+- **Positioning** — the `positioning` gem uses `update_all` for batch position updates (sibling shift)
+- **Future bulk operations** — batch updates from multiselect/batch actions, counter caches, etc.
 
 #### Solution: Explicit `AuditWriter.log` Dispatch
 
@@ -154,12 +171,12 @@ Any code that uses `update_columns` or `update_all` on an auditable model **must
 
 The `AuditWriter.log` method already handles the case where `action` is not a standard CRUD action — it accepts any symbol (`:discard`, `:undiscard`, `:reposition`, etc.) and records it in the `action` column.
 
-**Why not a wrapper method?**
+**Why not a `tracked_update_columns` wrapper for per-record updates?**
 
 A `tracked_update_columns` wrapper was considered:
 
 ```ruby
-# Considered but rejected:
+# Considered but rejected for per-record updates:
 def tracked_update_columns(attrs)
   update_columns(attrs)
   AuditWriter.log(...) if auditing?
@@ -171,7 +188,115 @@ This doesn't work well because:
 - The caller may need to compute changes differently (soft delete tracks `discarded_at`, positioning tracks `position`)
 - Cascade operations (discard children) need to happen between `update_columns` and audit logging
 
-Explicit dispatch is clearer and more flexible.
+Explicit dispatch is clearer and more flexible for per-record `update_columns`.
+
+#### Bulk Updates: `BulkUpdater` Helper
+
+For `update_all` scenarios (batch operations from platform code), a shared helper provides a standard way to combine bulk SQL updates with audit notifications:
+
+```ruby
+# lib/lcp_ruby/bulk_updater.rb
+module LcpRuby
+  module BulkUpdater
+    # Performs update_all + audit notification for each affected record.
+    # Use this instead of calling scope.update_all directly when the
+    # affected model has auditing enabled.
+    def self.tracked_update_all(scope, updates, action: :bulk_update, model_definition:)
+      affected_ids = scope.pluck(:id)
+      return 0 if affected_ids.empty?
+
+      # Capture before-state for audit diff
+      before_state = {}
+      if model_definition.auditing?
+        before_state = scope.where(id: affected_ids)
+                            .pluck(:id, *updates.keys)
+                            .index_by(&:first)
+      end
+
+      result = scope.update_all(updates)
+
+      # Write audit entries
+      if model_definition.auditing? && affected_ids.any?
+        model_class = LcpRuby.registry.model_for(model_definition.name)
+        affected_ids.each do |record_id|
+          changes = build_changes(before_state[record_id], updates)
+          next if changes.empty?
+
+          LcpRuby::Auditing::AuditWriter.log(
+            action: action,
+            record: model_class.find(record_id),
+            options: model_definition.auditing_options,
+            model_definition: model_definition,
+            nested_associations: []
+          )
+        end
+      end
+
+      result
+    end
+  end
+end
+```
+
+This is intended for **platform code** that performs batch operations (multiselect batch actions, future bulk update endpoints). It is NOT needed for:
+- **Per-record `update_columns`** — use explicit `AuditWriter.log` dispatch (see above)
+- **Third-party gem internals** — see positioning strategy below
+
+#### Positioning: Why Gem-Internal `update_all` Calls Are Not Audited
+
+The `positioning` gem internally calls `update_all` to shift sibling positions when records are created, destroyed, or moved. These are **mechanical reordering adjustments**, not user-initiated field changes. Auditing them individually would:
+- Create noise (dozens of audit entries for a single reorder drag-drop)
+- Not match the user's mental model ("I moved item A to position 3", not "items B,C,D shifted by +1")
+
+**Strategy for positioning audit:**
+
+1. **Gem-internal sibling shifts** — NOT audited. When a record is created at position 3 and items 3,4,5 shift to 4,5,6, only the created record is audited (via `after_create` callback). The sibling shifts are treated as internal bookkeeping.
+2. **Explicit reorder action** — The reorder controller action writes a **single summary audit entry** with the user-visible operation:
+
+```ruby
+# In ResourcesController#reorder
+if current_model_definition.auditing?
+  LcpRuby::Auditing::AuditWriter.log(
+    action: :reorder,
+    record: @record,
+    options: current_model_definition.auditing_options,
+    model_definition: current_model_definition,
+    nested_associations: []
+  )
+end
+```
+
+3. **Record's own `position` field change** — When a record's position changes via normal `save`, the `after_save` callback captures `{"position": [3, 1]}` in the audit log automatically.
+
+This approach audits the **user intent** (reorder operation) rather than the **mechanical side effects** (sibling shifts), which is the right level of granularity for business audit trails.
+
+#### Internal vs. Host API Signature
+
+`AuditWriter.log` has two distinct interfaces:
+
+**Internal API** (used by platform code and plugins):
+```ruby
+AuditWriter.log(
+  action:,              # Symbol — :create, :update, :destroy, :discard, :undiscard, :reorder, etc.
+  record:,              # ActiveRecord instance
+  options:,             # Hash — auditing_options from ModelDefinition
+  model_definition:,    # ModelDefinition instance
+  nested_associations:  # Array<String> — association names for aggregated child tracking
+)
+```
+
+**Host override API** (contract for `config.audit_writer`):
+```ruby
+custom_writer.log(
+  action:,    # Symbol
+  record:,    # ActiveRecord instance
+  changes:,   # Hash — pre-computed field-level diffs
+  user:,      # User instance (Current.user)
+  metadata:   # Hash — request context
+)
+```
+
+The internal API receives raw inputs and computes diffs internally. The host override API receives pre-computed diffs — the platform does the heavy lifting (field filtering, JSONB expansion, nested aggregation) before delegating to the custom writer. This separation means host writers don't need to understand platform internals.
 
 ### 3. Model Option Accessor Pattern
 
@@ -261,6 +386,22 @@ end
 
 def auditing_options
   boolean_or_hash_option("auditing").last
+end
+
+def userstamps?
+  boolean_or_hash_option("userstamps").first
+end
+
+def userstamps_options
+  boolean_or_hash_option("userstamps").last
+end
+
+def tree?
+  boolean_or_hash_option("tree").first
+end
+
+def tree_options
+  boolean_or_hash_option("tree").last
 end
 ```
 
@@ -460,9 +601,10 @@ However, all log tables should follow **shared conventions**:
 
 Feature-specific columns are added alongside these shared ones.
 
-`SchemaManager` can provide a helper for creating log tables:
+`SchemaManager` provides a helper for creating log tables:
 
 ```ruby
+# TODO: extract to LogTableBuilder if partitioning/archival complexity grows
 def self.create_log_table(table_name, record_prefix:)
   connection = ActiveRecord::Base.connection
   return if connection.table_exists?(table_name)
@@ -515,27 +657,77 @@ end
 Both auditing and workflow logs need to capture a snapshot of the acting user. This should be a shared utility, not reimplemented per feature:
 
 ```ruby
-# lib/lcp_ruby/auditing/user_snapshot.rb
+# lib/lcp_ruby/user_snapshot.rb
 module LcpRuby
-  module Auditing
-    module UserSnapshot
-      def self.capture(user)
-        return nil unless user
+  module UserSnapshot
+    def self.capture(user)
+      return nil unless user
 
-        snapshot = { "id" => user.id }
-        snapshot["email"] = user.email if user.respond_to?(:email)
-        snapshot["name"] = user.name if user.respond_to?(:name)
-        if user.respond_to?(LcpRuby.configuration.role_method)
-          snapshot["role"] = user.send(LcpRuby.configuration.role_method)
-        end
-        snapshot
+      snapshot = { "id" => user.id }
+      snapshot["email"] = user.email if user.respond_to?(:email)
+      snapshot["name"] = user.name if user.respond_to?(:name)
+      if user.respond_to?(LcpRuby.configuration.role_method)
+        snapshot["role"] = user.send(LcpRuby.configuration.role_method)
       end
+      snapshot
     end
   end
 end
 ```
 
-The auditing `AuditWriter` and future workflow log writer both call `UserSnapshot.capture(Current.user)`.
+`UserSnapshot` lives at the top-level `LcpRuby` namespace because it is shared across multiple features (auditing, workflow, userstamps name snapshots). The auditing `AuditWriter` and future workflow log writer both call `LcpRuby::UserSnapshot.capture(Current.user)`.
+
+### 9. Cross-Feature Interaction Matrix
+
+When multiple model features are enabled on the same model, their interactions must be well-defined. This matrix documents known interactions and their resolution:
+
+#### Interaction Table
+
+| Feature A | Feature B | Interaction | Resolution |
+|-----------|-----------|------------|------------|
+| **soft_delete** | **auditing** | `discard!`/`undiscard!` use `update_columns` → bypass `after_save` audit callback | Soft delete calls `AuditWriter.log` explicitly with action `:discard`/`:undiscard` (see section 2) |
+| **soft_delete** | **userstamps** | `discard!` uses `update_columns` → `updated_by_id` is NOT updated | By design. Discard is not a content change — `updated_by_id` tracks who last edited the data, not who archived the record. The audit log captures who discarded via `user_snapshot`. |
+| **soft_delete** | **tree** | Discarding a parent node — what happens to the subtree? | Tree associations with `dependent: :discard` cascade discard to children (same as any `has_many` with `dependent: :discard`). Tree's `ancestors`/`descendants` traversal methods work on `kept` scope by default. |
+| **soft_delete** | **workflow** | Can a record in a mid-workflow state be discarded? | Workflow guards should check this. A recommended pattern: workflow defines a `can_discard` guard condition that blocks discard for records in non-terminal states. Soft delete's `discard!` checks `before_discard` callbacks where workflow can raise. |
+| **auditing** | **userstamps** | `updated_by_id` change appears in audit diffs | By default, userstamp fields are audited (they appear in `saved_changes`). If this is noise, the model can use `auditing: { ignore: [created_by_id, updated_by_id] }`. Not added to global `EXCLUDED_FIELDS` because some deployments want to audit who-changed-what explicitly. |
+| **auditing** | **tree** | No direct interaction | Tree structure changes (reparenting) are audited as normal field changes (`parent_id: [old, new]`). |
+| **auditing** | **positioning** | `positioning` gem's internal `update_all` bypasses audit callbacks | Sibling position shifts are NOT individually audited (mechanical bookkeeping). Explicit reorder operations are audited at the controller level (see section 2, "Positioning" subsection). |
+| **auditing** | **workflow** | Data changes vs. state transitions — different audit concerns | Data changes go to `lcp_audit_logs` (this feature). Workflow transitions go to `lcp_workflow_logs` (separate table, separate feature). Both coexist on the same model without conflict. |
+| **userstamps** | **positioning** | Positioning gem's `update_all` for sibling shifts bypasses `before_save` → `updated_by_id` not set on shifted siblings | By design. Same rationale as soft_delete: mechanical sibling shifts are not user content edits. |
+| **tree** | **positioning** | Tree nodes may need ordered siblings within a parent | Tree's `positioning: { scope: :parent_id }` config delegates to the existing positioning feature. No conflict — they compose naturally. |
+
+#### General Rules
+
+1. **`update_columns` / `update_all` bypass rule**: Any platform code that uses these methods on a model with `auditing: true` MUST call `AuditWriter.log` explicitly. This applies to soft_delete, future batch operations, and any new feature. Third-party gem internals (positioning) are exempt when the operations are mechanical (see section 2).
+
+2. **`before_save` bypass rule**: Features that rely on `before_save` (userstamps) accept that `update_columns`/`update_all` bypass them. This is documented as "by design" — these bypass methods are used for operations that are not user content edits.
+
+3. **Feature independence**: Each feature must work correctly when enabled alone. Cross-feature interactions are always opt-in or gracefully degraded. For example, soft_delete's `AuditWriter.log` call is guarded by `model_def.auditing?` — if auditing is not enabled, the call is skipped.
+
+### 10. Error Handling Conventions
+
+All model feature implementations (Applicators, Writers, Validators) must follow the project's error handling rules (see CLAUDE.md):
+
+- **Never use `expression rescue nil`** or bare `rescue` to silently swallow exceptions
+- Rescue the **specific exception class** you expect (`rescue JSON::ParserError`, not `rescue`)
+- In production, log errors with enough context (model name, field name, record ID) and use a fallback value
+- In development/test, always re-raise so bugs are caught early
+
+```ruby
+# WRONG — bare rescue in AuditWriter
+JSON.parse(value) rescue value
+
+# CORRECT — specific rescue with environment awareness
+begin
+  JSON.parse(value)
+rescue JSON::ParserError => e
+  raise unless Rails.env.production?
+  Rails.logger.error("[LcpRuby::AuditWriter] JSON parse error: #{e.message} (value=#{value.inspect.truncate(100)})")
+  value
+end
+```
+
+This applies to all shared infrastructure (UserSnapshot, BulkUpdater, create_log_table) and all feature Applicators.
 
 ## Target Architecture: Model Feature Plugins
 
@@ -609,12 +801,15 @@ module LcpRuby
 
       # --- Pipeline Integration ---
 
-      # Declares where in the Builder pipeline this feature's Applicator runs.
-      # @param after [Symbol, Array<Symbol>] core step(s) or feature(s) to run after
-      # @param before [Symbol, Array<Symbol>] core step(s) or feature(s) to run before
-      def pipeline(after: nil, before: nil)
-        @pipeline_after = Array(after) if after
-        @pipeline_before = Array(before) if before
+      # Declares the named hook point where this feature's Applicator runs.
+      # Available hooks: :after_scopes, :after_callbacks, :after_positioning, :after_extensions
+      # @param hook [Symbol] named hook point in the Builder pipeline
+      def pipeline(hook:)
+        @pipeline_hook = hook
+      end
+
+      def pipeline_hook
+        @pipeline_hook
       end
 
       # Optional soft dependencies on other plugins.
@@ -703,10 +898,11 @@ module LcpRuby
       inject_dsl_method(plugin_class)
     end
 
-    # Returns plugins sorted by dependency order for the Builder pipeline.
-    # Uses topological sort; raises on circular dependencies.
-    def pipeline_order
-      tsort_plugins(@features.values)
+    # Returns plugins for a specific hook point, sorted by dependency order.
+    # Uses topological sort within each hook; raises on circular dependencies.
+    def plugins_for_hook(hook_point)
+      plugins = @features.values.select { |p| p.pipeline_hook == hook_point }
+      tsort_plugins(plugins)
     end
 
     # Validates all registered features for a given model.
@@ -804,8 +1000,24 @@ end
 ### Builder Pipeline with Plugins
 
 With the plugin registry, the Builder no longer hardcodes feature-specific
-`apply_*` methods. Instead, it iterates over registered plugins at the
-appropriate point in the pipeline:
+`apply_*` methods. Instead, it dispatches registered plugins at **named hook
+points** in the pipeline.
+
+#### Why Multiple Hook Points Are Required
+
+A single hook point (as initially considered) does not work even for the two
+primary features:
+
+- **soft_delete** must run **after scopes, before callbacks** (adds scopes, no callback dependency)
+- **auditing** must run **after callbacks** (audit callbacks must fire after user-defined callbacks)
+
+These two requirements are mutually exclusive in a single hook point. Since
+this is a day-1 requirement (not a future consideration), the plugin system
+must support multiple named hook points from the start.
+
+#### Named Hook Points
+
+The pipeline defines four hook points where plugins can be inserted:
 
 ```ruby
 # lib/lcp_ruby/model_factory/builder.rb
@@ -819,31 +1031,75 @@ def build
   apply_attachments
   apply_scopes
 
-  # ── Plugin hook ──────────────────────────────────────
-  apply_registered_features
-  # ─────────────────────────────────────────────────────
+  # ── Hook: after_scopes ────────────────────────────────
+  apply_registered_features(:after_scopes)
+  # ──────────────────────────────────────────────────────
 
   apply_callbacks
+
+  # ── Hook: after_callbacks ─────────────────────────────
+  apply_registered_features(:after_callbacks)
+  # ──────────────────────────────────────────────────────
+
   apply_defaults
   apply_computed
   apply_positioning
+
+  # ── Hook: after_positioning ───────────────────────────
+  apply_registered_features(:after_positioning)
+  # ──────────────────────────────────────────────────────
+
   apply_external_fields
   apply_model_extensions
   apply_custom_fields
   apply_label_method
+
+  # ── Hook: after_extensions ────────────────────────────
+  apply_registered_features(:after_extensions)
+  # ──────────────────────────────────────────────────────
+
   validate_external_methods!
 end
 
 private
 
-def apply_registered_features
-  LcpRuby.model_feature_registry.pipeline_order.each do |plugin|
+def apply_registered_features(hook_point)
+  LcpRuby.model_feature_registry.plugins_for_hook(hook_point).each do |plugin|
     next unless @model_definition.send(:"#{plugin.feature_name}?")
 
     plugin.applicator.apply!(@model_class, @model_definition)
   end
 end
 ```
+
+Plugins declare which hook point they run at:
+
+```ruby
+class SoftDeletePlugin < LcpRuby::ModelFeaturePlugin
+  feature_name :soft_delete
+  pipeline hook: :after_scopes          # ← declares hook point
+  depends_on :auditing, optional: true
+end
+
+class AuditingPlugin < LcpRuby::ModelFeaturePlugin
+  feature_name :auditing
+  pipeline hook: :after_callbacks       # ← different hook point
+end
+
+class TreePlugin < LcpRuby::ModelFeaturePlugin
+  feature_name :tree
+  pipeline hook: :after_scopes
+  depends_on :soft_delete, optional: true
+end
+
+class UserstampsPlugin < LcpRuby::ModelFeaturePlugin
+  feature_name :userstamps
+  pipeline hook: :after_positioning
+end
+```
+
+Within the same hook point, plugins are ordered by their `depends_on`
+declarations using topological sort (see section on plugin priorities).
 
 Note that the core pipeline steps (`apply_callbacks`, `apply_positioning`, etc.)
 remain hardcoded. Only model-option features that follow the `true`-or-`Hash`
@@ -936,7 +1192,7 @@ module LcpRuby
     class Plugin < LcpRuby::ModelFeaturePlugin
       feature_name :soft_delete
 
-      pipeline after: :apply_scopes
+      pipeline hook: :after_scopes
       depends_on :auditing, optional: true
 
       applicator LcpRuby::SoftDelete::Applicator
@@ -1059,22 +1315,23 @@ auto-registration. The plugin API doesn't change.
 
 | File | Change |
 |------|--------|
-| `lib/lcp_ruby/model_factory/builder.rb` | Extend pipeline with `apply_soft_delete` and `apply_auditing` in correct order |
-| `lib/lcp_ruby/metadata/model_definition.rb` | Add `boolean_or_hash_option` helper; add `soft_delete?`/`soft_delete_options`/`auditing?`/`auditing_options` |
-| `lib/lcp_ruby/metadata/configuration_validator.rb` | Add `validate_boolean_or_hash_option` helper; add `validate_soft_delete`, `validate_auditing`, `validate_dependent_discard` |
+| `lib/lcp_ruby/model_factory/builder.rb` | Extend pipeline with `apply_soft_delete`, `apply_tree`, `apply_auditing`, `apply_userstamps` in correct order |
+| `lib/lcp_ruby/metadata/model_definition.rb` | Add `boolean_or_hash_option` helper; add predicate/options methods for each feature |
+| `lib/lcp_ruby/metadata/configuration_validator.rb` | Add `validate_boolean_or_hash_option` helper; add per-feature validation + virtual model warning |
 | `lib/lcp_ruby/model_factory/schema_manager.rb` | Add `create_log_table` class method for shared log table creation |
-| `lib/lcp_ruby/auditing/user_snapshot.rb` | **New** — shared user snapshot capture |
+| `lib/lcp_ruby/user_snapshot.rb` | **New** — shared user snapshot capture (top-level namespace) |
+| `lib/lcp_ruby/bulk_updater.rb` | **New** — `tracked_update_all` for bulk operations with audit notification |
 | `lib/lcp_ruby/configuration.rb` | Add `audit_writer` accessor |
 
-**Phase 2 (after 2–3 features are implemented):**
+**Phase 2 (after 3–4 features are implemented):**
 
 | File | Change |
 |------|--------|
-| `lib/lcp_ruby/model_feature_plugin.rb` | **New** — base class for model feature plugins |
-| `lib/lcp_ruby/model_feature_registry.rb` | **New** — plugin registration, pipeline ordering, validation dispatch |
-| `lib/lcp_ruby/model_factory/builder.rb` | Replace hardcoded `apply_soft_delete`/`apply_auditing` with `apply_registered_features` |
+| `lib/lcp_ruby/model_feature_plugin.rb` | **New** — base class with named hook point support |
+| `lib/lcp_ruby/model_feature_registry.rb` | **New** — plugin registration, `plugins_for_hook`, per-hook topological sort, validation dispatch |
+| `lib/lcp_ruby/model_factory/builder.rb` | Replace hardcoded `apply_*` feature calls with `apply_registered_features(:hook_point)` at four hook points |
 | `lib/lcp_ruby/metadata/model_definition.rb` | Remove manual predicate/options methods (auto-generated by registry) |
-| `lib/lcp_ruby/metadata/configuration_validator.rb` | Replace manual `validate_soft_delete`/`validate_auditing` with registry-delegated validation |
+| `lib/lcp_ruby/metadata/configuration_validator.rb` | Replace manual `validate_*` calls with registry-delegated validation |
 
 ### Implementation Order
 
@@ -1094,6 +1351,55 @@ workflow or versioning). At that point, extract `ModelFeaturePlugin` and
 `ModelFeatureRegistry` from the patterns that have proven stable across three
 real implementations.
 
+## Test Plan
+
+The shared infrastructure components defined in this document need their own tests, independent of feature-specific tests (which are in the soft_delete, auditing, etc. design documents).
+
+### Unit Tests
+
+1. **`ModelDefinition#boolean_or_hash_option`**
+   - Returns `[true, {}]` for `true`
+   - Returns `[true, {"column" => "x"}]` for Hash
+   - Returns `[false, {}]` for `false`, `nil`, absent key
+   - Returns `[false, {}]` for non-boolean/non-hash values (string, integer)
+
+2. **`ConfigurationValidator#validate_boolean_or_hash_option`**
+   - Accepts `true` — returns empty hash, no errors
+   - Accepts valid Hash — returns the hash, no errors
+   - Rejects non-boolean/non-hash (string, integer, array) — adds error
+   - Rejects Hash with unknown keys — adds error with key names
+   - Accepts Hash with only allowed keys — no errors
+
+3. **`ConfigurationValidator` — virtual model warning**
+   - Emits warning when virtual model has `soft_delete: true`
+   - No warning for non-virtual model with `soft_delete: true`
+   - No warning for virtual model without model features
+
+4. **`SchemaManager.create_log_table`**
+   - Creates table with shared columns (`*_type`, `*_id`, `user_id`, `user_snapshot`, `metadata`, `created_at`)
+   - Creates three standard indexes (record+time, user+time, time)
+   - Adds feature-specific columns from block
+   - Idempotent — no-ops if table already exists
+   - Uses correct `record_prefix` in column names
+
+5. **`UserSnapshot.capture`**
+   - Captures `{id, email, name, role}` from user with all methods
+   - Omits `email` key when user doesn't respond to `:email`
+   - Omits `name` key when user doesn't respond to `:name`
+   - Omits `role` key when user doesn't respond to configured `role_method`
+   - Returns `nil` for `nil` user
+
+6. **`BulkUpdater.tracked_update_all`**
+   - Calls `scope.update_all` and returns result count
+   - Writes audit entries for each affected record when auditing is enabled
+   - Skips audit when model definition has `auditing: false`
+   - No-ops (returns 0) when scope is empty
+
+### Integration Tests
+
+7. **Pipeline ordering** — model with `soft_delete: true` and `auditing: true` builds correctly; soft_delete scopes exist before audit callbacks fire
+8. **Cross-feature** — discard on model with both `soft_delete` and `auditing` creates audit entry with action `:discard`
+
 ## Updates to Feature Design Documents
 
 After this infrastructure document is accepted, the following sections in feature design documents should be updated to reference it:
@@ -1104,6 +1410,7 @@ After this infrastructure document is accepted, the following sections in featur
 - **ModelDefinition**: Use `boolean_or_hash_option` helper
 - **ConfigurationValidator**: Use `validate_boolean_or_hash_option` helper
 - **Add**: Explicit `AuditWriter.log` calls in `discard!` and `undiscard!` (guarded by `model_definition.auditing?`)
+- **Cross-feature**: Reference interaction matrix for soft_delete + userstamps and soft_delete + tree
 
 ### `auditing.md`
 
@@ -1111,19 +1418,43 @@ After this infrastructure document is accepted, the following sections in featur
 - **ModelDefinition**: Use `boolean_or_hash_option` helper
 - **ConfigurationValidator**: Use `validate_boolean_or_hash_option` helper
 - **SchemaManager**: Use `create_log_table` helper instead of inline table creation
-- **UserSnapshot**: Use shared `UserSnapshot.capture` instead of inline implementation
+- **UserSnapshot**: Use shared `LcpRuby::UserSnapshot.capture` instead of inline `snapshot_user` implementation
 - **Interaction with Soft Delete**: Reference this document's "Tracked Change Notifications" section instead of describing the bypass problem independently
+- **Error handling**: Fix `JSON.parse(value) rescue value` in `AuditWriter.parse_json_value` to use specific `rescue JSON::ParserError` (see section 10)
+- **Positioning interaction**: Reference positioning audit strategy from section 2
+
+### `userstamps.md`
+
+- **Builder pipeline**: Reference this document for canonical pipeline position (`apply_userstamps` after `apply_positioning`)
+- **ModelDefinition**: Use `boolean_or_hash_option` helper
+- **Plugin migration**: Reference Phase 2 plugin system — userstamps is a `true`-or-`Hash` model feature plugin candidate
+- **Cross-feature**: Reference interaction matrix for userstamps + soft_delete and userstamps + auditing
+
+### `tree_structures.md`
+
+- **Builder pipeline**: Reference this document for canonical pipeline position (`apply_tree` after `apply_soft_delete`)
+- **ModelDefinition**: Use `boolean_or_hash_option` helper
+- **Cross-feature**: Reference interaction matrix for tree + soft_delete (subtree cascade discard)
+
+### `multiselect_and_batch_actions.md`
+
+- **Bulk audit**: Reference `BulkUpdater.tracked_update_all` helper for batch operations that need audit trails
+- **Bulk discard**: Reference `AuditWriter.log` explicit dispatch pattern for batch discard operations
 
 ## Open Questions
 
-1. **Should `positioning` be migrated to the `options` hash?** Currently, `positioning` is a top-level YAML key with its own `@positioning_config` attribute on `ModelDefinition`. Moving it under `options` (like `soft_delete` and `auditing`) would make the pattern consistent, but it's a breaking change to YAML format. Recommendation: defer — positioning works fine, and this is a pre-production project so it can be migrated later if the inconsistency bothers. If the plugin system is extracted in phase 2, positioning could become the first migrated legacy feature.
+1. **Should `positioning` be migrated to the `options` hash?** Currently, `positioning` is a top-level YAML key with its own `@positioning_config` attribute on `ModelDefinition`. Moving it under `options` (like `soft_delete` and `auditing`) would make the pattern consistent, but it's a breaking change to YAML format. Recommendation: defer — positioning works fine, and this is a pre-production project so it can be migrated later. **Note for Phase 2:** If positioning stays top-level, it will be a "legacy core step" excluded from the plugin system. All new model features should use the `options` pattern. When the plugin system is extracted, positioning should be migrated to maintain a single consistent pattern.
 
-2. **Should the `create_log_table` helper live on `SchemaManager` or a separate `LogTableBuilder`?** `SchemaManager` already handles table creation, so adding a class method there is natural. But if log tables grow more complex (partitioning, archival), a separate class might be warranted. Recommendation: start on `SchemaManager`, extract later if needed.
+2. **Should the plugin registry support plugin priorities within the same hook point?** Topological sort produces a valid order within a hook point, but the exact sequence among independent plugins is undefined. If two unrelated plugins both run at `:after_scopes` with no mutual dependency, their relative order is arbitrary. Recommendation: accept arbitrary order for independent plugins. If order matters, plugins should declare `depends_on` — that's what it's for. Artificial priority numbers create hidden coupling.
 
-3. **Should `UserSnapshot` be in the `Auditing` namespace or a top-level `LcpRuby::UserSnapshot`?** It's used by auditing first, but workflow and other features will use it too. Recommendation: keep in `Auditing` namespace for now — it can be moved when a second consumer appears. Premature extraction adds no value.
+3. **Should plugins be able to expose configuration in `LcpRuby.configure`?** For example, `lcp_ruby-auditing` might want `config.audit_max_changes_size`. Currently, `Configuration` is a core class. Options: (a) plugins add accessors via `class_eval`, (b) plugins use a namespaced `config.plugin_options[:auditing]` hash, (c) plugins define their own configuration object. Recommendation: defer until phase 2 — the first features can use simple constants or `option_defaults`.
 
-4. **Should plugins be able to add core pipeline steps, or only feature steps?** The current design restricts plugins to the feature hook point between `apply_scopes` and `apply_callbacks`. A plugin that needs to run after `apply_model_extensions` (e.g., a feature that wraps host-defined methods) would not fit this model. Recommendation: start with the single hook point. If a real need arises, consider multiple named hook points (`:after_scopes`, `:after_callbacks`, `:after_extensions`) rather than making the entire pipeline pluggable.
+4. **Where does `retention` fit?** Data retention adds a `retention:` key to model YAML, but it follows a different pattern — it's always a Hash with category sub-keys (not `true`-or-`Hash`), and it doesn't have an Applicator in the Builder pipeline. Retention is a **batch job system** that reads model definitions at runtime, not a model-building feature. It does not fit the `ModelFeaturePlugin` contract. Recommendation: retention stays as a separate subsystem (like groups/roles), documented in its own design doc. This infrastructure document's `create_log_table` and `UserSnapshot` helpers are available to retention (e.g., for `lcp_retention_runs` table), but retention is not a model feature plugin.
 
-5. **Should the plugin registry support plugin priorities within the same dependency level?** Topological sort produces a valid order but the exact sequence among independent plugins is undefined. If two unrelated plugins both run after `apply_scopes` with no mutual dependency, their relative order is arbitrary. Recommendation: accept arbitrary order for independent plugins. If order matters, plugins should declare `depends_on` — that's what it's for. Artificial priority numbers create hidden coupling.
+## Resolved Decisions
 
-6. **Should plugins be able to expose configuration in `LcpRuby.configure`?** For example, `lcp_ruby-auditing` might want `config.audit_max_changes_size`. Currently, `Configuration` is a core class. Options: (a) plugins add accessors via `class_eval`, (b) plugins use a namespaced `config.plugin_options[:auditing]` hash, (c) plugins define their own configuration object. Recommendation: defer until phase 2 — the first features can use simple constants or `option_defaults`.
+Decisions that were originally open questions but have been resolved:
+
+1. **~~Should the `create_log_table` helper live on `SchemaManager` or a separate `LogTableBuilder`?~~** **Decision: `SchemaManager` for now.** `SchemaManager` already handles table creation, so adding a class method there is natural. The helper should include a `# TODO: extract to LogTableBuilder if partitioning/archival complexity grows` comment to signal the extraction point.
+
+2. **~~Should `UserSnapshot` be in the `Auditing` namespace or a top-level `LcpRuby::UserSnapshot`?~~** **Decision: top-level `LcpRuby::UserSnapshot`.** Multiple features need user snapshots (auditing, workflow, userstamps name snapshots). Placing it in `Auditing` would create a misleading dependency direction. File: `lib/lcp_ruby/user_snapshot.rb`.
