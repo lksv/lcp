@@ -42,6 +42,7 @@ en:
     errors:
       not_found: "Page not found"
       not_found_message: "The page you're looking for doesn't exist."
+      record_not_found_message: "The record you're looking for doesn't exist or has been deleted."
 ```
 
 ---
@@ -341,6 +342,7 @@ rescue MetadataError
   if LcpRuby.configuration.not_found_handler == :raise
     raise ActionController::RoutingError, "No page found at /#{slug}"
   else
+    flash.now[:alert] = t("lcp_ruby.errors.not_found_message")
     render "lcp_ruby/errors/not_found", status: :not_found
   end
 end
@@ -351,8 +353,17 @@ Create `app/views/lcp_ruby/errors/not_found.html.erb`:
 ```erb
 <div class="lcp-error-page">
   <h1>404</h1>
-  <p><%= t("lcp_ruby.errors.not_found_message") %></p>
+  <p><%= flash[:alert] %></p>
 </div>
+```
+
+The same pattern applies to record not found (`ActiveRecord::RecordNotFound` in show/edit/update/destroy):
+
+```ruby
+rescue ActiveRecord::RecordNotFound
+  flash[:alert] = t("lcp_ruby.errors.record_not_found_message")
+  redirect_to resources_path
+end
 ```
 
 ### Edge cases
