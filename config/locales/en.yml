@@ -1,11 +1,16 @@
 en:
   lcp_ruby:
+    empty_value: "\u2014"
     select:
       include_blank: "-- Select --"
       no_results: "No results found"
       loading_more: "Loading more..."
       add_new: "+ Add new..."
       legacy_group: "Archived"
+    flash:
+      created: "%{model} was successfully created."
+      updated: "%{model} was successfully updated."
+      deleted: "%{model} was successfully deleted."
     form:
       create: "Create"
       update: "Update"
@@ -25,6 +30,19 @@ en:
       manage_custom_fields: "Manage Custom Fields"
       cancel: "Cancel"
       remove: "Remove"
+    toolbar:
+      back_to_list: "Back to list"
+      copy_url: "Copy link"
+      copied: "Copied!"
+      copy_value: "Copy value"
+    search:
+      placeholder: "Search..."
+      submit: "Search"
+    errors:
+      not_found: "Page not found"
+      not_found_message: "The page you requested could not be found."
+      record_not_found_message: "The record you requested could not be found."
+      back_to_home: "Back to home"
     breadcrumbs:
       home: "Home"
       edit: "Edit"

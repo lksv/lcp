@@ -1,0 +1,23 @@
+model:
+  name: copy_item
+  label: "Copy Item"
+  label_plural: "Copy Items"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      validations:
+        - type: presence
+
+    - name: description
+      type: text
+      label: "Description"
+
+    - name: email
+      type: email
+      label: "Email"
+
+  options:
+    timestamps: true
+    label_method: title

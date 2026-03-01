@@ -989,6 +989,112 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
     end
   end
 
+  describe "show copy_url" do
+    it "includes copy_url: false in show hash" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        show do
+          copy_url false
+          section "Details" do
+            field :title
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["show"]["copy_url"]).to eq(false)
+    end
+
+    it "includes copy_url: true in show hash" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        show do
+          copy_url true
+          section "Details" do
+            field :title
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["show"]["copy_url"]).to eq(true)
+    end
+
+    it "omits copy_url when not set" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        show do
+          section "Details" do
+            field :title
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["show"]).not_to have_key("copy_url")
+    end
+  end
+
+  describe "redirect_after" do
+    it "produces redirect_after hash with both keys" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        redirect_after create: :index, update: :index
+      end
+      hash = builder.to_hash
+
+      expect(hash["redirect_after"]).to eq({ "create" => "index", "update" => "index" })
+    end
+
+    it "supports partial redirect_after (create only)" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        redirect_after create: :edit
+      end
+      hash = builder.to_hash
+
+      expect(hash["redirect_after"]).to eq({ "create" => "edit" })
+    end
+
+    it "omits redirect_after when not set" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+      end
+      hash = builder.to_hash
+
+      expect(hash).not_to have_key("redirect_after")
+    end
+  end
+
+  describe "empty_value" do
+    it "produces empty_value at top level" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        empty_value "N/A"
+      end
+      hash = builder.to_hash
+
+      expect(hash["empty_value"]).to eq("N/A")
+    end
+
+    it "omits empty_value when not set" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+      end
+      hash = builder.to_hash
+
+      expect(hash).not_to have_key("empty_value")
+    end
+  end
+
   describe "search block" do
     it "produces search hash with full config" do
       builder = described_class.new(:test)
@@ -1061,6 +1167,51 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       hash = builder.to_hash
 
       expect(hash["search"]).not_to have_key("predefined_filters")
+    end
+
+    it "produces auto_search config" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        search do
+          auto_search true
+          debounce_ms 300
+          min_query_length 2
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["search"]["auto_search"]).to eq(true)
+      expect(hash["search"]["debounce_ms"]).to eq(300)
+      expect(hash["search"]["min_query_length"]).to eq(2)
+    end
+
+    it "supports auto_search without argument (defaults to true)" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        search do
+          auto_search
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["search"]["auto_search"]).to eq(true)
+    end
+
+    it "omits auto_search keys when not set" do
+      builder = described_class.new(:test)
+      builder.instance_eval do
+        model :deal
+        search do
+          searchable_fields :title
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["search"]).not_to have_key("auto_search")
+      expect(hash["search"]).not_to have_key("debounce_ms")
+      expect(hash["search"]).not_to have_key("min_query_length")
     end
   end
 
@@ -1252,6 +1403,30 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       merged = builder.to_hash_with_parent(parent_hash)
 
       expect(merged["read_only"]).to eq(true)
+    end
+
+    it "overrides empty_value from child" do
+      parent = parent_hash.merge("empty_value" => "—")
+      builder = described_class.new(:deal_pipeline)
+      builder.instance_eval do
+        empty_value "N/A"
+      end
+
+      merged = builder.to_hash_with_parent(parent)
+
+      expect(merged["empty_value"]).to eq("N/A")
+    end
+
+    it "overrides redirect_after from child" do
+      parent = parent_hash.merge("redirect_after" => { "create" => "show" })
+      builder = described_class.new(:deal_pipeline)
+      builder.instance_eval do
+        redirect_after create: :index, update: :index
+      end
+
+      merged = builder.to_hash_with_parent(parent)
+
+      expect(merged["redirect_after"]).to eq({ "create" => "index", "update" => "index" })
     end
 
     it "does not mutate the parent hash" do

@@ -35,6 +35,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-
 .lcp-table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 4px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 .lcp-table th, .lcp-table td { padding: 0.6rem 0.75rem; text-align: left; border-bottom: 1px solid #dee2e6; }
 .lcp-table th { background: #f8f9fa; font-weight: 600; font-size: 0.8rem; text-transform: uppercase; color: #6c757d; }
+.lcp-table thead th { position: sticky; top: 0; z-index: 10; background: var(--lcp-bg-color, #f8f9fa); }
 .lcp-table th a { color: #6c757d; text-decoration: none; }
 .lcp-table th a:hover { color: #333; }
 .lcp-table th a.lcp-sorted { color: #333; }
@@ -371,7 +372,7 @@ pre.lcp-code-block { display: block; padding: 0.75em 1em; overflow-x: auto; whit
 .lcp-layout-sidebar .lcp-container { max-width: none; }
 
 /* Sidebar */
-.lcp-sidebar { width: 240px; flex-shrink: 0; background: #fff; border-right: 1px solid #dee2e6; display: flex; flex-direction: column; }
+.lcp-sidebar { width: 240px; flex-shrink: 0; background: #fff; border-right: 1px solid #dee2e6; display: flex; flex-direction: column; position: sticky; top: 1rem; max-height: calc(100vh - 2rem); overflow-y: auto; }
 .lcp-sidebar-nav { display: flex; flex-direction: column; flex: 1; padding: 0.5rem 0; }
 .lcp-sidebar-list { list-style: none; margin: 0; padding: 0; }
 .lcp-sidebar-main { flex: 1; }
@@ -496,3 +497,17 @@ th.lcp-drag-column { background: #f8f9fa; }
 .lcp-table tr.dragging { opacity: 0.4; background: #e9ecef; }
 .lcp-table tr.drag-over { box-shadow: 0 -2px 0 0 #0d6efd inset; }
 .lcp-reorder-flash { margin-bottom: 1rem; }
+
+/* Error pages */
+.lcp-error-page { text-align: center; padding: 3rem 1rem; }
+.lcp-error-page h1 { font-size: 2rem; margin-bottom: 1rem; color: #6c757d; }
+.lcp-error-message { color: #6c757d; margin-bottom: 1.5rem; }
+
+/* Empty value placeholder */
+.lcp-empty-value { color: #adb5bd; font-style: italic; }
+
+/* Copy buttons */
+.lcp-copy-url.lcp-copied { background: #d4edda; border-color: #c3e6cb; }
+.lcp-copy-field { background: none; border: none; cursor: pointer; color: #6c757d; padding: 0 0.25rem; vertical-align: middle; opacity: 0.6; }
+.lcp-copy-field:hover { opacity: 1; color: #333; }
+.lcp-copy-field.lcp-copied { color: #28a745; opacity: 1; }

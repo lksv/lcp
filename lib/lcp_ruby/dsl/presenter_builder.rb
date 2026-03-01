@@ -40,6 +40,17 @@ module LcpRuby
         @options["embeddable"] = value
       end
 
+      def redirect_after(create: nil, update: nil)
+        ra = {}
+        ra["create"] = create.to_s if create
+        ra["update"] = update.to_s if update
+        @options["redirect_after"] = ra
+      end
+
+      def empty_value(value)
+        @options["empty_value"] = value
+      end
+
       # View blocks
       def index(&block)
         builder = IndexBuilder.new
@@ -115,7 +126,7 @@ module LcpRuby
         merged = Marshal.load(Marshal.dump(parent_hash))
 
         # Always override these from child if defined
-        %w[name label slug icon read_only embeddable].each do |key|
+        %w[name label slug icon read_only embeddable redirect_after empty_value].each do |key|
           merged[key] = child_hash[key] if child_hash.key?(key)
         end
 
@@ -334,10 +345,15 @@ module LcpRuby
         @includes_list = nil
         @eager_load_list = nil
         @description_value = nil
+        @copy_url_value = nil
       end
 
       def description(text)
         @description_value = text
+      end
+
+      def copy_url(value)
+        @copy_url_value = value
       end
 
       def section(title, columns: 1, description: nil, responsive: nil,
@@ -409,6 +425,7 @@ module LcpRuby
       def to_hash
         hash = {}
         hash["description"] = @description_value if @description_value
+        hash["copy_url"] = @copy_url_value unless @copy_url_value.nil?
         hash["layout"] = @layout
         hash["includes"] = @includes_list if @includes_list
         hash["eager_load"] = @eager_load_list if @eager_load_list
@@ -528,6 +545,9 @@ module LcpRuby
         @searchable_fields_list = nil
         @placeholder_value = nil
         @filters = []
+        @auto_search_value = nil
+        @debounce_ms_value = nil
+        @min_query_length_value = nil
       end
 
       def enabled(value)
@@ -542,6 +562,18 @@ module LcpRuby
         @placeholder_value = value
       end
 
+      def auto_search(value = true)
+        @auto_search_value = value
+      end
+
+      def debounce_ms(value)
+        @debounce_ms_value = value
+      end
+
+      def min_query_length(value)
+        @min_query_length_value = value
+      end
+
       def filter(name, label:, default: false, scope: nil)
         filter_hash = { "name" => name.to_s, "label" => label }
         filter_hash["default"] = true if default
@@ -553,6 +585,9 @@ module LcpRuby
         hash = { "enabled" => @enabled }
         hash["searchable_fields"] = @searchable_fields_list if @searchable_fields_list
         hash["placeholder"] = @placeholder_value if @placeholder_value
+        hash["auto_search"] = @auto_search_value unless @auto_search_value.nil?
+        hash["debounce_ms"] = @debounce_ms_value if @debounce_ms_value
+        hash["min_query_length"] = @min_query_length_value if @min_query_length_value
         hash["predefined_filters"] = @filters unless @filters.empty?
         hash
       end

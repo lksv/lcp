@@ -1,0 +1,19 @@
+presenter:
+  name: redirect_task_default
+  model: redirect_task
+  label: "Tasks (Default)"
+  slug: tasks-default
+
+  form:
+    sections:
+      - title: "Details"
+        fields:
+          - { field: title }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

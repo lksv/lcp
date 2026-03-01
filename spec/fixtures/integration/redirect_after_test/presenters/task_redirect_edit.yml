@@ -1,0 +1,23 @@
+presenter:
+  name: redirect_task_edit
+  model: redirect_task
+  label: "Tasks (Redirect to Edit)"
+  slug: tasks-redirect-edit
+
+  redirect_after:
+    create: edit
+    update: edit
+
+  form:
+    sections:
+      - title: "Details"
+        fields:
+          - { field: title }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

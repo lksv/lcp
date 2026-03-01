@@ -24,6 +24,7 @@ module LcpRuby
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
     rescue_from LcpRuby::MetadataError, with: :metadata_error
+    rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
 
     private
 
@@ -396,9 +397,32 @@ module LcpRuby
     end
 
     def metadata_error(exception)
+      if LcpRuby.configuration.not_found_handler == :raise
+        raise exception
+      end
+
       respond_to do |format|
-        format.html { render plain: "Configuration error: #{exception.message}", status: :internal_server_error }
-        format.json { render json: { error: exception.message }, status: :internal_server_error }
+        format.html do
+          render "lcp_ruby/errors/not_found",
+                 status: :not_found,
+                 locals: { message: I18n.t("lcp_ruby.errors.not_found_message", default: "The page you requested could not be found.") }
+        end
+        format.json { render json: { error: I18n.t("lcp_ruby.errors.not_found", default: "Not found") }, status: :not_found }
+      end
+    end
+
+    def record_not_found(exception)
+      if LcpRuby.configuration.not_found_handler == :raise
+        raise exception
+      end
+
+      respond_to do |format|
+        format.html do
+          render "lcp_ruby/errors/not_found",
+                 status: :not_found,
+                 locals: { message: I18n.t("lcp_ruby.errors.record_not_found_message", default: "The record you requested could not be found.") }
+        end
+        format.json { render json: { error: I18n.t("lcp_ruby.errors.record_not_found", default: "Record not found") }, status: :not_found }
       end
     end
 

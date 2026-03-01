@@ -1,0 +1,5 @@
+<div class="lcp-error-page">
+  <h1><%= I18n.t("lcp_ruby.errors.not_found", default: "Page not found") %></h1>
+  <p class="lcp-error-message"><%= message %></p>
+  <p><%= link_to I18n.t("lcp_ruby.errors.back_to_home", default: "Back to home"), LcpRuby.configuration.breadcrumb_home_path, class: "btn btn-primary" %></p>
+</div>

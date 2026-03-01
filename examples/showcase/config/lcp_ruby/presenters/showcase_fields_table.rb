@@ -3,6 +3,7 @@ define_presenter :showcase_fields_table do
   label "Field Types (Table)"
   slug "showcase-fields"
   icon "grid"
+  empty_value "N/A"
 
   index do
     description "Every column uses a different display type to demonstrate the full range of display renderers."

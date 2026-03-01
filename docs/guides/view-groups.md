@@ -213,6 +213,18 @@ To hide breadcrumbs for a specific view group:
 breadcrumb: false
 ```
 
+### Self-Referential Trees
+
+When the parent model has a self-referential `breadcrumb.relation` (e.g., department → parent department), the engine follows the full ancestor chain. The list crumb (e.g., "Departments") appears once at the top of the chain, not at every level.
+
+For example, an employee in the DevOps department (child of Engineering):
+
+```
+Home > Departments > Engineering > DevOps > Employees > Eva Green
+```
+
+This works across model boundaries: the employee view group follows its `department` relation into the department's self-referential `parent` chain, producing a clean path without duplicates.
+
 ### Polymorphic Associations
 
 For polymorphic belongs_to associations, the engine reads `{relation}_type` on the record to determine the parent model and resolves its view group dynamically.

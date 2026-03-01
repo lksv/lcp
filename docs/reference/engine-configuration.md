@@ -268,6 +268,61 @@ LcpRuby.configure do |config|
 end
 ```
 
+### `not_found_handler`
+
+| | |
+|---|---|
+| **Type** | `Symbol` |
+| **Default** | `:default` |
+| **Allowed values** | `:default`, `:raise` |
+
+Controls how the engine handles unknown slugs (`MetadataError`) and missing records (`ActiveRecord::RecordNotFound`).
+
+| Value | Behavior |
+|-------|----------|
+| `:default` | Renders a styled 404 error page with a "Back to home" link (default) |
+| `:raise` | Re-raises the exception so the host application's error handling takes over |
+
+When set to `:default`, the engine renders `lcp_ruby/errors/not_found` with appropriate i18n messages. JSON requests receive a JSON error response with a 404 status.
+
+```ruby
+LcpRuby.configure do |config|
+  config.not_found_handler = :raise  # Let the host app handle 404s
+end
+```
+
+### `empty_value`
+
+| | |
+|---|---|
+| **Type** | `String` or `nil` |
+| **Default** | `nil` (uses i18n key `lcp_ruby.empty_value`, which defaults to `"—"`) |
+
+Text to display when a field value is nil, empty string, whitespace-only, or empty array on index and show pages. The placeholder is rendered as a `<span class="lcp-empty-value">` element.
+
+**Important:** `false` and `0` are **not** considered empty and are rendered as-is.
+
+The resolution order is:
+1. Per-presenter `empty_value` in the presenter YAML
+2. Global `config.empty_value`
+3. `I18n.t("lcp_ruby.empty_value", default: "—")`
+
+```ruby
+LcpRuby.configure do |config|
+  config.empty_value = "N/A"
+end
+```
+
+Per-presenter override in YAML:
+
+```yaml
+presenter:
+  name: deals
+  model: deal
+  slug: deals
+  empty_value: "-"
+```
+
 ### `attachment_allowed_content_types`
 
 | | |

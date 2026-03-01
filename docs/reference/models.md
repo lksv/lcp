@@ -1213,6 +1213,36 @@ scopes:
 
 This generates: `scope :top_open_deals, -> { where.not(stage: [...]).order(value: :desc).limit(5) }`
 
+### NULL / Empty Value Scopes
+
+YAML `null` maps to Ruby `nil`, which ActiveRecord translates to `WHERE column IS NULL`. This works in both `where` and `where_not` conditions.
+
+```yaml
+scopes:
+  # Records where phone is NULL
+  - name: without_phone
+    where:
+      phone: null
+
+  # Records where phone is NOT NULL
+  - name: with_phone
+    where_not:
+      phone: null
+
+  # Records where phone is NULL or empty string
+  - name: blank_phone
+    where:
+      phone: [null, ""]
+```
+
+Generated SQL:
+
+| Scope | SQL |
+|-------|-----|
+| `without_phone` | `WHERE phone IS NULL` |
+| `with_phone` | `WHERE phone IS NOT NULL` |
+| `blank_phone` | `WHERE phone IS NULL OR phone = ''` |
+
 ## Events
 
 Events trigger [event handlers](../guides/event-handlers.md) in response to record changes.

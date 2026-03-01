@@ -183,13 +183,13 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
       end
       hash = builder.to_hash
 
-      expect(hash["view_group"]["switcher"]).to eq(["show"])
+      expect(hash["view_group"]["switcher"]).to eq([ "show" ])
     end
 
     it "serializes array argument" do
       builder = described_class.new(:my_group)
       builder.instance_eval do
-        switcher [:index, :show, :form]
+        switcher [ :index, :show, :form ]
       end
       hash = builder.to_hash
 
@@ -295,7 +295,7 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
 
       definition = LcpRuby::Metadata::ViewGroupDefinition.from_hash(builder.to_hash)
 
-      expect(definition.switcher_config).to eq(["show"])
+      expect(definition.switcher_config).to eq([ "show" ])
       expect(definition.has_switcher?).to be true
       expect(definition.show_switcher?(:show)).to be true
       expect(definition.show_switcher?(:index)).to be false

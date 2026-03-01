@@ -57,7 +57,7 @@ define_presenter :employees do
 
     section "Enum Select", columns: 2, description: "Select for enum fields with include_blank." do
       info "Enum selects render the model's enum values as dropdown options."
-      field :role, input_type: :select
+      field :role, input_type: :select, input_options: { sort: "alphabetical" }
       field :status, input_type: :select
     end
 
@@ -92,6 +92,7 @@ define_presenter :employees do
     placeholder "Search employees..."
     filter :all, label: "All", default: true
     filter :active, label: "Active", scope: :active_employees
+    filter :without_mentor, label: "No Mentor", scope: :without_mentor
   end
 
   action :create, type: :built_in, on: :collection, label: "New Employee"

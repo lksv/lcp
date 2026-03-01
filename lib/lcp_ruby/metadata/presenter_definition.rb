@@ -89,7 +89,9 @@ module LcpRuby
       def self.extract_options(hash)
         {
           "read_only" => hash["read_only"],
-          "embeddable" => hash["embeddable"]
+          "embeddable" => hash["embeddable"],
+          "redirect_after" => hash["redirect_after"],
+          "empty_value" => hash["empty_value"]
         }.compact
       end
     end

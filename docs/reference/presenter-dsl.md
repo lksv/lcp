@@ -109,6 +109,32 @@ Whether the presenter can be embedded inside another presenter's view.
 embeddable true
 ```
 
+### `redirect_after`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | keyword arguments |
+
+Controls where the user is redirected after create or update. Each key maps to a target page. Valid targets: `:index`, `:show`, `:edit`, `:new`. Default for both is `:show`.
+
+```ruby
+redirect_after create: :index, update: :index
+```
+
+### `empty_value`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | string |
+
+Overrides the placeholder text for nil/blank field values in this presenter. Takes precedence over the global config and i18n key.
+
+```ruby
+empty_value "N/A"
+```
+
 ## Index Configuration
 
 The `index` block configures the list/table view.
@@ -266,6 +292,17 @@ Descriptive text displayed below the page heading on the show view.
 description "View deal details and related contacts."
 ```
 
+#### `copy_url(value)`
+
+Controls whether the "Copy link" toolbar button is shown on the show page. Default: `true`. Set to `false` to hide it.
+
+```ruby
+show do
+  copy_url false
+  # ...
+end
+```
+
 #### `includes(*associations)` / `eager_load(*associations)`
 
 Same as index. Manually specify associations to preload for the show page. Auto-detection handles `association_list` sections automatically. See [Eager Loading](eager-loading.md).
@@ -332,6 +369,7 @@ field :budget, renderer: :currency
 |--------|------|-------------|
 | `renderer:` | symbol | Renderer for the field value. Alternatively, use `partial:` to render with a custom view partial |
 | `label:` | string | Custom field label (e.g., `"Company"` for a `"company.name"` dot-path field) |
+| `copyable:` | boolean | Adds a copy-to-clipboard icon next to the field value |
 | `col_span:` | integer | Number of grid columns this field spans |
 | `hidden_on:` | symbol or array | Responsive breakpoints to hide the field on |
 | `options:` | hash | Additional renderer configuration |
@@ -708,6 +746,32 @@ searchable_fields :title, :description, :email
 #### `placeholder(value)`
 
 Placeholder text for the search input.
+
+#### `auto_search(value = true)`
+
+Enables auto-submit on the search form. When `true`, the form submits automatically as the user types after a debounce delay.
+
+```ruby
+search do
+  auto_search true
+end
+```
+
+#### `debounce_ms(value)`
+
+Sets the debounce delay in milliseconds before auto-submit triggers. Default: `300`.
+
+```ruby
+debounce_ms 300
+```
+
+#### `min_query_length(value)`
+
+Minimum number of characters before auto-submit triggers. Empty input (length 0) always triggers to clear the search. Default: `2`.
+
+```ruby
+min_query_length 2
+```
 
 #### `filter(name, label:, default: false, scope: nil)`
 

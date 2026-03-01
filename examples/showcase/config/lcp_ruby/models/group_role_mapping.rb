@@ -4,7 +4,7 @@ define_model :group_role_mapping do
 
   field :role_name, :string, label: "Role Name", limit: 50, null: false do
     validates :presence
-    validates :uniqueness, fields: [:group_id, :role_name]
+    validates :uniqueness, fields: [ :group_id, :role_name ]
   end
 
   belongs_to :group, model: :group, required: true

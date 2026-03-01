@@ -19,6 +19,7 @@ define_presenter :showcase_fields_card, inherits: :showcase_fields_table do
 
   show do
     description "Compact view with fewer sections."
+    copy_url false
 
     section "Overview", columns: 3 do
       field :title, renderer: :heading

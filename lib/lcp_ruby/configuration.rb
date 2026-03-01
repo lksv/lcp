@@ -4,7 +4,7 @@ module LcpRuby
                   :auto_migrate, :label_method_default, :parent_controller,
                   :strict_loading, :impersonation_roles,
                   :attachment_max_size, :attachment_allowed_content_types,
-                  :breadcrumb_home_path
+                  :breadcrumb_home_path, :not_found_handler, :empty_value
 
     # Authentication settings
     attr_accessor :auth_allow_registration,
@@ -82,6 +82,7 @@ module LcpRuby
       @attachment_max_size = "50MB"
       @attachment_allowed_content_types = nil
       @breadcrumb_home_path = "/"
+      @not_found_handler = :default
       @menu_mode = :auto
       @model_extensions = {}
 

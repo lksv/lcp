@@ -270,13 +270,25 @@ module LcpRuby
       values = apply_role_value_filters(values, input_options)
       i18n_scope = input_options["label_i18n_scope"]
 
+      labeled_values = values.map do |v|
+        label_text = if i18n_scope
+          I18n.t("#{i18n_scope}.#{v}", default: v.humanize)
+        else
+          v.humanize
+        end
+        [ label_text, v ]
+      end
+
+      # Apply optional sorting (by label, consistent with select)
+      case input_options["sort"]
+      when "alphabetical"
+        labeled_values = labeled_values.sort_by { |label, _| label.to_s.downcase }
+      when "reverse"
+        labeled_values = labeled_values.reverse
+      end
+
       content_tag(:div, class: "lcp-radio-group") do
-        values.map do |v|
-          label_text = if i18n_scope
-            I18n.t("#{i18n_scope}.#{v}", default: v.humanize)
-          else
-            v.humanize
-          end
+        labeled_values.map do |label_text, v|
           content_tag(:label, class: "lcp-radio-label") do
             form.radio_button(field_name, v) + " ".html_safe + label_text
           end
@@ -299,6 +311,15 @@ module LcpRuby
         end
         [ label, v ]
       end
+
+      # Apply optional sorting
+      case input_options["sort"]
+      when "alphabetical"
+        options = options.sort_by { |label, _| label.to_s.downcase }
+      when "reverse"
+        options = options.reverse
+      end
+
       include_blank = input_options.fetch("include_blank", true)
 
       form.select(field_name, options, include_blank: include_blank)

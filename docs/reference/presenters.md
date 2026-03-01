@@ -15,6 +15,7 @@ presenter:
   icon: <icon_name>
   read_only: false
   embeddable: false
+  redirect_after: { create: show, update: show }
   index: {}
   show: {}
   form: {}
@@ -87,6 +88,33 @@ When `true`, disables create, edit, and destroy operations for this presenter. T
 | **Type** | boolean |
 
 Marks this presenter as embeddable within other views (e.g., as an inline table within a parent record's show page). This is a metadata flag for the UI layer to decide rendering behavior.
+
+### `redirect_after`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | hash |
+
+Controls where the user is redirected after successful create or update operations. Each key maps a CRUD action to a target page. Destroy always redirects to index.
+
+| Key | Allowed values | Default |
+|-----|---------------|---------|
+| `create` | `index`, `show`, `edit`, `new` | `show` |
+| `update` | `index`, `show`, `edit`, `new` | `show` |
+
+```yaml
+presenter:
+  name: quick_entry
+  model: ticket
+  slug: tickets
+
+  # After creating a ticket, go back to the list.
+  # After updating, stay on the edit page.
+  redirect_after:
+    create: index
+    update: edit
+```
 
 ## Index Configuration
 
@@ -730,6 +758,22 @@ Renders a single download link with the filename. Designed for single non-image 
   renderer: attachment_link
 ```
 
+### `empty_value`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | string |
+
+Overrides the placeholder text displayed when a field value is `nil` or blank. Takes precedence over the global `LcpRuby.configure { |c| c.empty_value = "..." }` setting and the `lcp_ruby.empty_value` i18n key. The placeholder is rendered with CSS class `lcp-empty-value`.
+
+```yaml
+presenter:
+  name: showcase_fields
+  model: showcase_field
+  empty_value: "N/A"
+```
+
 ## Show Configuration
 
 Controls the record detail view.
@@ -737,6 +781,7 @@ Controls the record detail view.
 ```yaml
 show:
   description: "View record details and related items."
+  copy_url: true
   includes: [contacts, deals]
   layout:
     - section: "Section Title"
@@ -749,6 +794,21 @@ show:
     - section: "Related Items"
       type: association_list
       association: contacts
+```
+
+### `copy_url`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `true` |
+| **Type** | boolean |
+
+Controls whether the "Copy link" toolbar button is shown on the show page. Set to `false` to hide it (e.g., for read-only summary views where the URL is not useful).
+
+```yaml
+show:
+  copy_url: false
 ```
 
 ### `includes` / `eager_load`
@@ -843,6 +903,7 @@ Use `responsive` to override the number of columns at different breakpoints:
 | `label` | string | Custom field label. Defaults to humanized last segment of the field name. Useful for dot-path fields (e.g., `"company.name"` → label `"Company"`) |
 | `renderer` | string | Renderer for the field value (see [Renderers](#renderers)). Alternatively, use `partial: "path/to/partial"` to render with a custom view partial |
 | `options` | hash | Options passed to the renderer (see [Renderers](#renderers) for per-renderer options) |
+| `copyable` | boolean | Adds a copy-to-clipboard icon next to the field value. When clicked, copies the displayed value to the clipboard with a "Copied!" tooltip |
 | `col_span` | integer | Number of grid columns this field spans (defaults to 1) |
 | `hidden_on` | array/string | Hide field at specific breakpoints. Values: `"mobile"`, `"tablet"` |
 
@@ -1230,6 +1291,7 @@ Attachment fields auto-resolve to `input_type: file_upload` — you only need to
 | `include_blank` | boolean/string | Show a blank option. `true` (default) adds an empty option, `false` removes it, a string uses custom text |
 | `include_values` | hash | Role-based whitelist. Keys are role names, values are arrays of allowed enum values |
 | `exclude_values` | hash | Role-based blacklist. Keys are role names, values are arrays of excluded enum values |
+| `sort` | string | Sort options: `"alphabetical"` sorts by label (case-insensitive), `"reverse"` reverses definition order. Default: no sorting (preserves YAML definition order). Applies to both `select` and `radio` input types |
 
 When both `include_values` and `exclude_values` are specified for the same role, `include_values` is applied first (whitelist), then `exclude_values` removes from the remaining set.
 
@@ -1243,6 +1305,14 @@ When both `include_values` and `exclude_values` are specified for the same role,
       viewer: [active, archived]
     exclude_values:
       editor: [deleted]
+```
+
+```yaml
+# Sort enum options alphabetically
+- field: category
+  input_type: select
+  input_options:
+    sort: alphabetical
 ```
 
 **Association Select:**
@@ -1604,6 +1674,9 @@ search:
   enabled: true
   searchable_fields: [title, description]
   placeholder: "Search..."
+  auto_search: true
+  debounce_ms: 500
+  min_query_length: 3
   predefined_filters:
     - { name: all, label: "All", default: true }
     - { name: open, label: "Open", scope: open_deals }
@@ -1617,6 +1690,9 @@ search:
 | `enabled` | boolean | Enable/disable the search bar |
 | `searchable_fields` | array | Field names to search with LIKE queries |
 | `placeholder` | string | Search input placeholder text |
+| `auto_search` | boolean | When `true`, the form auto-submits as the user types (default: `false`) |
+| `debounce_ms` | integer | Debounce delay in milliseconds before auto-submit (default: `300`) |
+| `min_query_length` | integer | Minimum query length to trigger auto-submit; empty input (length 0) always triggers to clear the search (default: `2`) |
 | `predefined_filters` | array | Filter buttons (see below) |
 
 ### Predefined Filter Attributes
