@@ -1,0 +1,10 @@
+model:
+  name: article
+  table_name: auto_search_articles
+  fields:
+    - { name: title, type: string }
+    - { name: body, type: text }
+    - { name: status, type: string }
+  scopes:
+    - name: published
+      where: { status: published }

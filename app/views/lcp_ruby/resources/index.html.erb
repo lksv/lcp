@@ -20,9 +20,19 @@
 
   <% if current_presenter.search_config["enabled"] %>
     <div class="lcp-search">
-      <%= form_tag resources_path, method: :get, class: "lcp-search-form" do %>
-        <%= text_field_tag :q, params[:q], placeholder: current_presenter.search_config["placeholder"] || "Search..." %>
-        <%= submit_tag "Search", class: "btn" %>
+      <% search_config = current_presenter.search_config %>
+      <%= form_tag resources_path, method: :get, class: "lcp-search-form",
+          data: {
+            lcp_auto_search: search_config["auto_search"],
+            lcp_debounce: search_config["debounce_ms"] || 300,
+            lcp_min_query: search_config["min_query_length"] || 2
+          }.compact do %>
+        <%= text_field_tag :q, params[:q],
+            placeholder: search_config["placeholder"] || I18n.t("lcp_ruby.search.placeholder", default: "Search...") %>
+        <% if params[:filter].present? %>
+          <%= hidden_field_tag :filter, params[:filter] %>
+        <% end %>
+        <%= submit_tag I18n.t("lcp_ruby.search.submit", default: "Search"), class: "btn" %>
       <% end %>
     </div>
   <% end %>
@@ -100,7 +110,7 @@
                 <% elsif value.is_a?(Array) %>
                   <%= render_display_value(value, "collection", {}) %>
                 <% else %>
-                  <%= value %>
+                  <%= empty_value_placeholder(value, current_presenter) %>
                 <% end %>
               </td>
             <% end %>

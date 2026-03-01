@@ -1,0 +1,15 @@
+model:
+  name: redirect_task
+  label: "Task"
+  label_plural: "Tasks"
+
+  fields:
+    - name: title
+      type: string
+      label: "Title"
+      validations:
+        - type: presence
+
+  options:
+    timestamps: true
+    label_method: title

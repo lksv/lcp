@@ -375,6 +375,60 @@ RSpec.describe LcpRuby::Presenter::BreadcrumbBuilder do
       end
     end
 
+    context "cross-model into self-referential tree" do
+      it "builds: Home > Departments > Engineering > DevOps > Employees > Eva without duplicate Departments" do
+        stub_presenter("department", label: "Departments", slug: "departments")
+        stub_presenter("employee", label: "Employees", slug: "employees")
+
+        parent_assoc = instance_double(
+          LcpRuby::Metadata::AssociationDefinition,
+          name: "parent", target_model: "department", polymorphic: false
+        )
+        dept_model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ parent_assoc ])
+
+        dept_assoc = instance_double(
+          LcpRuby::Metadata::AssociationDefinition,
+          name: "department", target_model: "department", polymorphic: false
+        )
+        emp_model_def = instance_double(LcpRuby::Metadata::ModelDefinition, associations: [ dept_assoc ])
+
+        dept_vg = build_view_group(
+          name: "departments", model: "department", primary: "department",
+          breadcrumb_config: { "relation" => "parent" }
+        )
+        emp_vg = build_view_group(
+          name: "employees", model: "employee", primary: "employee",
+          breadcrumb_config: { "relation" => "department" }
+        )
+
+        engineering = double("Engineering", id: 1, persisted?: true)
+        allow(engineering).to receive(:to_label).and_return("Engineering")
+        allow(engineering).to receive(:parent).and_return(nil)
+
+        devops = double("DevOps", id: 2, persisted?: true)
+        allow(devops).to receive(:to_label).and_return("DevOps")
+        allow(devops).to receive(:parent).and_return(engineering)
+
+        eva = double("Eva", id: 67, persisted?: true)
+        allow(eva).to receive(:to_label).and_return("Eva Green")
+        allow(eva).to receive(:department).and_return(devops)
+
+        allow(LcpRuby.loader).to receive(:model_definition).with("employee").and_return(emp_model_def)
+        allow(LcpRuby.loader).to receive(:model_definition).with("department").and_return(dept_model_def)
+        allow(LcpRuby.loader).to receive(:view_groups_for_model).with("department").and_return([ dept_vg ])
+
+        crumbs = described_class.new(
+          view_group: emp_vg, record: eva, action: "show", path_helper: path_helper
+        ).build
+
+        expect(crumbs.map(&:label)).to eq([ "Home", "Departments", "Engineering", "DevOps", "Employees", "Eva Green" ])
+        expect(crumbs.map(&:path)).to eq([
+          "/", "/departments", "/departments/1", "/departments/2", "/employees", "/employees/67"
+        ])
+        expect(crumbs.last.current?).to be true
+      end
+    end
+
     context "last crumb is always marked current" do
       it "marks the last crumb as current" do
         stub_presenter("items", label: "Items", slug: "items")

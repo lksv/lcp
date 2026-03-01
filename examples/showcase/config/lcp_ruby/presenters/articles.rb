@@ -25,11 +25,11 @@ define_presenter :articles do
     description "Demonstrates association display, display templates, and rich content."
 
     section "Article Details", columns: 2, description: "Basic article information with association fields." do
-      field :title, renderer: :heading
+      field :title, renderer: :heading, copyable: true
       field :status, renderer: :badge, options: {
         color_map: { draft: "gray", published: "green", archived: "orange" }
       }
-      field "category.name", label: "Category"
+      field "category.name", label: "Category", copyable: true
       field "author.name", label: "Author"
       field :word_count, renderer: :number
       field :created_at, renderer: :relative_date

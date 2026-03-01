@@ -7,6 +7,7 @@ puts "Seeding showcase data..."
   showcase_attachment custom_field_definition employee_skill project
   employee skill department showcase_form comment article_tag tag article
   author category showcase_model showcase_field
+  group_role_mapping group_membership group
 ].each do |model_name|
   LcpRuby.registry.model_for(model_name).delete_all
 rescue LcpRuby::Registry::ModelNotFoundError
@@ -841,7 +842,11 @@ legacy_team = GroupModel.create!(
   { group: legacy_team, user_id: 11, source: "ldap" },
   { group: legacy_team, user_id: 12, source: "ldap" },
   { group: engineering, user_id: 6, source: "manual" }
-].each { |attrs| MembershipModel.create!(attrs) }
+].each do |attrs|
+  MembershipModel.create!(attrs)
+rescue ActiveRecord::RecordInvalid
+  nil
+end
 
 # Role mappings — map groups to authorization roles
 [
@@ -850,7 +855,11 @@ legacy_team = GroupModel.create!(
   { group: design, role_name: "editor" },
   { group: management, role_name: "admin" },
   { group: contractors, role_name: "viewer" }
-].each { |attrs| RoleMappingModel.create!(attrs) }
+].each do |attrs|
+  RoleMappingModel.create!(attrs)
+rescue ActiveRecord::RecordInvalid
+  nil
+end
 
 puts "  Created #{GroupModel.count} groups, #{MembershipModel.count} memberships, #{RoleMappingModel.count} role mappings"
 
@@ -2385,6 +2394,89 @@ features = [
     config_example: "```ruby\n# Model DSL\ndefine_model :stage do\n  field :position, :integer\n  positioning                                    # basic\n  positioning field: :sort_order                  # custom field\n  positioning scope: :pipeline_id                 # scoped\n  positioning scope: [:pipeline_id, :category]    # multi-scope\nend\n\n# Presenter DSL\ndefine_presenter :stages do\n  index do\n    reorderable true\n  end\nend\n```",
     demo_path: "/showcase/showcase-positioning",
     demo_hint: "Both the priority list and pipeline stages use the DSL form. Check the model source files for examples.",
+    status: "stable"
+  },
+
+  # --- Tier 1: UX Polish Features ---
+  {
+    name: "Empty Value Display",
+    category: "presenter",
+    description: "When a field value is `nil` or blank, the platform renders a styled placeholder instead of an empty cell. The placeholder text is configurable at three levels:\n\n1. **Global** — `LcpRuby.configure { |c| c.empty_value = \"---\" }`\n2. **Presenter** — `empty_value \"N/A\"` (overrides global for this presenter)\n3. **i18n** — `lcp_ruby.empty_value` locale key (fallback when neither is set)\n\nThe placeholder is rendered with the CSS class `lcp-empty-value` for consistent styling.",
+    config_example: "```ruby\n# Presenter DSL\ndefine_presenter :showcase_fields_table do\n  empty_value \"N/A\"\n  # ...\nend\n\n# YAML equivalent\npresenter:\n  name: showcase_fields_table\n  empty_value: \"N/A\"\n```",
+    demo_path: "/showcase/showcase-fields",
+    demo_hint: "Open any record that has nil fields (e.g., phone, website). The empty fields display \"N/A\" in muted text instead of blank space.",
+    status: "stable"
+  },
+  {
+    name: "Copy URL Button",
+    category: "presenter",
+    description: "The show page toolbar includes a \"Copy link\" button that copies the current record's URL to the clipboard. This is enabled by default on all presenters.\n\nTo disable it (e.g., for read-only summary views), set `copy_url: false` in the show block.",
+    config_example: "```ruby\n# Disable copy URL on a specific presenter\ndefine_presenter :compact_view do\n  show do\n    copy_url false\n    # ...\n  end\nend\n\n# YAML equivalent\nshow:\n  copy_url: false\n```",
+    demo_path: "/showcase/showcase-fields-card",
+    demo_hint: "Open a record in the Card view — the \"Copy link\" button is hidden. Then open the same record in the Table view (showcase-fields) — the button is visible.",
+    status: "stable"
+  },
+  {
+    name: "Copyable Fields",
+    category: "presenter",
+    description: "Individual fields on the show page can have a copy-to-clipboard icon. When clicked, the field's display value is copied to the clipboard with a brief \"Copied!\" tooltip.\n\nAdd `copyable: true` to any field in the show layout. Works with all field types and renderers.",
+    config_example: "```ruby\n# Presenter DSL — show section\nsection \"Article Details\", columns: 2 do\n  field :title, renderer: :heading, copyable: true\n  field \"category.name\", label: \"Category\", copyable: true\nend\n\n# YAML equivalent\nfields:\n  - { field: title, renderer: heading, copyable: true }\n  - { field: category.name, label: Category, copyable: true }\n```",
+    demo_path: "/showcase/articles",
+    demo_hint: "Open any article — the title and category fields have a small copy icon. Click it to copy the value.",
+    status: "stable"
+  },
+  {
+    name: "Sticky Table Header",
+    category: "presenter",
+    description: "Index page table headers (`<thead>`) stay pinned to the top of the viewport when scrolling long lists. This is a pure CSS feature using `position: sticky` — no configuration needed.\n\nThe sticky behavior automatically adapts to the toolbar height and works in all modern browsers.",
+    config_example: "```css\n/* Built-in — no configuration needed */\n/* The engine applies this automatically: */\n.lcp-table thead th {\n  position: sticky;\n  top: 0;\n  z-index: 10;\n}\n```",
+    demo_path: "/showcase/features",
+    demo_hint: "Scroll down the feature catalog table — the column headers stay pinned at the top of the page.",
+    status: "stable"
+  },
+  {
+    name: "404 Error Page",
+    category: "presenter",
+    description: "When navigating to a non-existent presenter slug or a missing record ID, the platform renders a styled 404 page with a \"Back to home\" link instead of a raw Rails error.\n\nThis is the default behavior — no configuration required. The page uses the `lcp_ruby.errors.not_found` i18n key.",
+    config_example: "```ruby\n# No configuration needed — automatic behavior\n# Try navigating to any invalid URL:\n#   /showcase/this-page-does-not-exist\n#   /showcase/articles/999999\n\n# Customize the message via i18n:\n# config/locales/en.yml\nen:\n  lcp_ruby:\n    errors:\n      not_found: \"Page not found\"\n      not_found_message: \"The page you're looking for doesn't exist.\"\n```",
+    demo_path: "/showcase/this-page-does-not-exist",
+    demo_hint: "Click the demo link — it navigates to a non-existent page and shows a styled 404 error with a link back to the home page.",
+    status: "stable"
+  },
+  {
+    name: "Redirect After CRUD",
+    category: "presenter",
+    description: "Controls where the user is redirected after a successful create or update. By default, both redirect to the show page. Override per presenter to change the flow.\n\nValid targets: `index`, `show`, `edit`, `new`.",
+    config_example: "```ruby\n# Presenter DSL\ndefine_presenter :tags do\n  redirect_after create: :index, update: :index\n  # ...\nend\n\n# YAML equivalent\npresenter:\n  name: tags\n  redirect_after:\n    create: index\n    update: index\n```",
+    demo_path: "/showcase/tags",
+    demo_hint: "Create a new tag — after saving, you're redirected to the tag list (index) instead of the show page. Edit a tag and save — same redirect to index.",
+    status: "stable"
+  },
+  {
+    name: "Selectbox Sorting",
+    category: "form",
+    description: "Enum select dropdowns can be sorted alphabetically by adding `input_options: { sort: \"alphabetical\" }` to the field definition. By default, enum options are displayed in the order defined in the model.",
+    config_example: "```ruby\n# Presenter DSL — form section\nfield :role, input_type: :select, input_options: { sort: \"alphabetical\" }\n\n# YAML equivalent\nfields:\n  - field: role\n    input_type: select\n    input_options:\n      sort: alphabetical\n```",
+    demo_path: "/showcase/employees/new",
+    demo_hint: "Open the Role dropdown — options are sorted alphabetically (Admin, Designer, Developer, Intern, Manager) instead of the model-defined order.",
+    status: "stable"
+  },
+  {
+    name: "Auto-Search",
+    category: "presenter",
+    description: "When `auto_search: true` is set in the search config, the search form auto-submits as the user types, after a configurable debounce delay. This eliminates the need to press Enter or click a Search button.\n\nOptions:\n- `debounce_ms` — delay in ms before auto-submit (default: 300)\n- `min_query_length` — minimum characters before triggering (default: 2; empty input always triggers to clear the search)",
+    config_example: "```ruby\n# Presenter DSL\nsearch do\n  auto_search true\n  debounce_ms 300\n  min_query_length 2\nend\n\n# YAML equivalent\nsearch:\n  auto_search: true\n  debounce_ms: 300\n  min_query_length: 2\n```",
+    demo_path: "/showcase/features",
+    demo_hint: "Start typing in the search box — the table updates automatically after a short delay. No need to press Enter.",
+    status: "stable"
+  },
+  {
+    name: "NULL Filter (Predefined Scope)",
+    category: "presenter",
+    description: "Predefined filters can use model scopes that filter by NULL values. Define a scope with `where: { field: nil }` in the model, then reference it as a predefined filter in the presenter.\n\nThis enables \"missing data\" filters like \"No Mentor\", \"No Category\", etc.",
+    config_example: "```ruby\n# Model DSL\ndefine_model :employee do\n  scope :without_mentor, where: { mentor_id: nil }\nend\n\n# Presenter DSL\nsearch do\n  filter :without_mentor, label: \"No Mentor\", scope: :without_mentor\nend\n```",
+    demo_path: "/showcase/employees",
+    demo_hint: "Click the \"No Mentor\" filter tab — only employees without an assigned mentor are shown.",
     status: "stable"
   }
 ]

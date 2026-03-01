@@ -48,7 +48,7 @@ RSpec.describe "Groups YAML source integration", type: :request do
   describe "role_resolution_strategy :groups_only" do
     it "ignores direct roles and uses only group-derived roles" do
       # User has direct admin role but groups_only means we only use groups
-      user = stub_current_user(role: ["admin"], id: 3)
+      user = stub_current_user(role: [ "admin" ], id: 3)
       allow(user).to receive(:lcp_groups).and_return(%w[editors_group])
 
       LcpRuby.configuration.role_resolution_strategy = :groups_only
@@ -65,7 +65,7 @@ RSpec.describe "Groups YAML source integration", type: :request do
 
   describe "role_resolution_strategy :direct_only" do
     it "ignores group-derived roles and uses only direct roles" do
-      user = stub_current_user(role: ["viewer"], id: 4)
+      user = stub_current_user(role: [ "viewer" ], id: 4)
       allow(user).to receive(:lcp_groups).and_return(%w[admins_group])
 
       LcpRuby.configuration.role_resolution_strategy = :direct_only

@@ -122,7 +122,7 @@ Controls breadcrumb navigation for this view group. Breadcrumbs provide hierarch
 
 The `relation` value must match a `belongs_to` association name on the model. The engine automatically resolves the parent's view group to generate the correct links and labels. Polymorphic associations are supported — the engine reads `{relation}_type` to determine the parent model dynamically.
 
-If the FK is nullable and the parent record is `nil`, the parent breadcrumb level is skipped. The chain recurses up to 5 levels when parent view groups also define `breadcrumb.relation`.
+If the FK is nullable and the parent record is `nil`, the parent breadcrumb level is skipped. The chain recurses up to 5 levels when parent view groups also define `breadcrumb.relation`. When crossing into a self-referential tree (e.g., employee → department → parent department), the list crumb appears once at the top of the chain, producing `Home > Departments > Engineering > DevOps > Employees > Eva` without duplicates.
 
 The "Home" crumb links to `"/"` by default. Override via `config.breadcrumb_home_path` (see [Engine Configuration](engine-configuration.md#breadcrumb_home_path)).
 

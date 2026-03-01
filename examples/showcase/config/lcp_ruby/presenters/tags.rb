@@ -3,6 +3,7 @@ define_presenter :tags do
   label "Tags"
   slug "tags"
   icon "tag"
+  redirect_after create: :index, update: :index
 
   index do
     description "Simple tag model with color. Used for has_many :through associations."

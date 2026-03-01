@@ -1,0 +1,33 @@
+presenter:
+  name: copy_item_no_url
+  model: copy_item
+  label: "Copy Items (No URL)"
+  slug: copy-items-no-url
+
+  index:
+    default_view: table
+    table_columns:
+      - { field: title, sortable: true }
+
+  show:
+    copy_url: false
+    layout:
+      - section: "Details"
+        columns: 1
+        fields:
+          - { field: title }
+          - { field: description }
+
+  form:
+    sections:
+      - title: "Info"
+        fields:
+          - { field: title }
+          - { field: description }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }

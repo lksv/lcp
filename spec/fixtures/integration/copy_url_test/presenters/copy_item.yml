@@ -1,0 +1,36 @@
+presenter:
+  name: copy_item
+  model: copy_item
+  label: "Copy Items"
+  slug: copy-items
+
+  index:
+    default_view: table
+    table_columns:
+      - { field: title, sortable: true }
+      - { field: description }
+
+  show:
+    layout:
+      - section: "Details"
+        columns: 1
+        fields:
+          - { field: title, copyable: true }
+          - { field: description }
+          - { field: email, copyable: true }
+
+  form:
+    sections:
+      - title: "Info"
+        fields:
+          - { field: title }
+          - { field: description }
+          - { field: email }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

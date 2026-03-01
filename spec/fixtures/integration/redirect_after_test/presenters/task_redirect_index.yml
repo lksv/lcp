@@ -1,0 +1,23 @@
+presenter:
+  name: redirect_task_index
+  model: redirect_task
+  label: "Tasks (Redirect to Index)"
+  slug: tasks-redirect-index
+
+  redirect_after:
+    create: index
+    update: index
+
+  form:
+    sections:
+      - title: "Details"
+        fields:
+          - { field: title }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

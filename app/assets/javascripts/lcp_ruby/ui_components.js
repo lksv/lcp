@@ -52,3 +52,30 @@ document.addEventListener('click', function(e) {
     document.querySelectorAll('.lcp-actions-dropdown.open').forEach(function(d) { d.classList.remove('open'); });
   }
 });
+
+/* Copy URL to clipboard */
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-lcp-copy-url]');
+  if (!btn || !navigator.clipboard) return;
+  var url = btn.dataset.lcpCopyUrl;
+  navigator.clipboard.writeText(url).then(function() {
+    var original = btn.textContent;
+    btn.textContent = btn.dataset.lcpCopiedText || 'Copied!';
+    btn.classList.add('lcp-copied');
+    setTimeout(function() {
+      btn.textContent = original;
+      btn.classList.remove('lcp-copied');
+    }, 2000);
+  }).catch(function() {});
+});
+
+/* Copy field value to clipboard */
+document.addEventListener('click', function(e) {
+  var btn = e.target.closest('[data-lcp-copy-value]');
+  if (!btn || !navigator.clipboard) return;
+  var value = btn.dataset.lcpCopyValue;
+  navigator.clipboard.writeText(value).then(function() {
+    btn.classList.add('lcp-copied');
+    setTimeout(function() { btn.classList.remove('lcp-copied'); }, 2000);
+  }).catch(function() {});
+});

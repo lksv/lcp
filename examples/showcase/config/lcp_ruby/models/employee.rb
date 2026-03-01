@@ -29,6 +29,7 @@ define_model :employee do
   has_many :skills, through: :employee_skills
 
   scope :active_employees, where: { status: "active" }
+  scope :without_mentor, where: { mentor_id: nil }
 
   timestamps true
   label_method :name

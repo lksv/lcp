@@ -6,7 +6,7 @@ RSpec.describe LcpRuby::Groups::ContractValidator do
       model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
         "name" => "group",
         "fields" => [
-          { "name" => "name", "type" => "string", "validations" => [{ "type" => "uniqueness" }] },
+          { "name" => "name", "type" => "string", "validations" => [ { "type" => "uniqueness" } ] },
           { "name" => "active", "type" => "boolean" }
         ],
         "options" => { "timestamps" => true }
@@ -19,7 +19,7 @@ RSpec.describe LcpRuby::Groups::ContractValidator do
     it "errors when name field is missing" do
       model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
         "name" => "group",
-        "fields" => [{ "name" => "label", "type" => "string" }],
+        "fields" => [ { "name" => "label", "type" => "string" } ],
         "options" => { "timestamps" => true }
       })
 
@@ -31,7 +31,7 @@ RSpec.describe LcpRuby::Groups::ContractValidator do
     it "errors when name field is not string type" do
       model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
         "name" => "group",
-        "fields" => [{ "name" => "name", "type" => "integer" }],
+        "fields" => [ { "name" => "name", "type" => "integer" } ],
         "options" => { "timestamps" => true }
       })
 
@@ -43,7 +43,7 @@ RSpec.describe LcpRuby::Groups::ContractValidator do
     it "warns when name field lacks uniqueness validation" do
       model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
         "name" => "group",
-        "fields" => [{ "name" => "name", "type" => "string" }],
+        "fields" => [ { "name" => "name", "type" => "string" } ],
         "options" => { "timestamps" => true }
       })
 
@@ -56,7 +56,7 @@ RSpec.describe LcpRuby::Groups::ContractValidator do
       model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
         "name" => "group",
         "fields" => [
-          { "name" => "name", "type" => "string", "validations" => [{ "type" => "uniqueness" }] },
+          { "name" => "name", "type" => "string", "validations" => [ { "type" => "uniqueness" } ] },
           { "name" => "active", "type" => "string" }
         ],
         "options" => { "timestamps" => true }
@@ -71,7 +71,7 @@ RSpec.describe LcpRuby::Groups::ContractValidator do
       model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
         "name" => "group",
         "fields" => [
-          { "name" => "group_name", "type" => "string", "validations" => [{ "type" => "uniqueness" }] },
+          { "name" => "group_name", "type" => "string", "validations" => [ { "type" => "uniqueness" } ] },
           { "name" => "enabled", "type" => "boolean" }
         ],
         "options" => { "timestamps" => true }

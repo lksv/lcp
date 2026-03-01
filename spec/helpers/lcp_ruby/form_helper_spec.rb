@@ -1090,6 +1090,40 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
       end
     end
 
+    context "with sort option for enum select" do
+      let(:field_def) do
+        double("field_def",
+          enum?: true,
+          enum_value_names: %w[cherry apple banana],
+          type_definition: nil,
+          type: "enum")
+      end
+
+      it "preserves definition order when no sort option is set" do
+        config = { "input_options" => {} }
+        expect(form).to receive(:select).with(:fruit,
+          [ [ "Cherry", "cherry" ], [ "Apple", "apple" ], [ "Banana", "banana" ] ],
+          include_blank: true)
+        render_form_input(form, :fruit, "select", config, field_def)
+      end
+
+      it "sorts options alphabetically by label case-insensitively" do
+        config = { "input_options" => { "sort" => "alphabetical" } }
+        expect(form).to receive(:select).with(:fruit,
+          [ [ "Apple", "apple" ], [ "Banana", "banana" ], [ "Cherry", "cherry" ] ],
+          include_blank: true)
+        render_form_input(form, :fruit, "select", config, field_def)
+      end
+
+      it "reverses definition order with sort reverse" do
+        config = { "input_options" => { "sort" => "reverse" } }
+        expect(form).to receive(:select).with(:fruit,
+          [ [ "Banana", "banana" ], [ "Apple", "apple" ], [ "Cherry", "cherry" ] ],
+          include_blank: true)
+        render_form_input(form, :fruit, "select", config, field_def)
+      end
+    end
+
     context "with legacy_scope" do
       let(:lcp_assoc) do
         double("association", lcp_model?: true, target_model: "contact")
@@ -1330,6 +1364,37 @@ RSpec.describe LcpRuby::FormHelper, type: :helper do
           result = render_form_input(form, :address_type, "radio", config, field_def)
           expect(result).to include("Not Set")
           expect(result).to include("Has Address")
+        end
+      end
+
+      context "with sort option" do
+        let(:field_def) do
+          double("field_def",
+            enum?: true,
+            enum_value_names: %w[cherry apple banana],
+            type_definition: nil,
+            type: "enum")
+        end
+
+        it "preserves definition order when no sort option is set" do
+          config = { "input_options" => {} }
+          result = render_form_input(form, :fruit, "radio", config, field_def)
+          positions = %w[Cherry Apple Banana].map { |v| result.index(v) }
+          expect(positions).to eq(positions.sort)
+        end
+
+        it "sorts values alphabetically case-insensitively" do
+          config = { "input_options" => { "sort" => "alphabetical" } }
+          result = render_form_input(form, :fruit, "radio", config, field_def)
+          positions = %w[Apple Banana Cherry].map { |v| result.index(v) }
+          expect(positions).to eq(positions.sort)
+        end
+
+        it "reverses definition order with sort reverse" do
+          config = { "input_options" => { "sort" => "reverse" } }
+          result = render_form_input(form, :fruit, "radio", config, field_def)
+          positions = %w[Banana Apple Cherry].map { |v| result.index(v) }
+          expect(positions).to eq(positions.sort)
         end
       end
     end

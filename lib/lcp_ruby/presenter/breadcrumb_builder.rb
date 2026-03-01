@@ -94,13 +94,19 @@ module LcpRuby
         return [] unless parent_vg
 
         crumbs = []
+        ancestor_crumbs = []
 
         if parent_vg.breadcrumb_relation
-          crumbs.concat(parent_crumbs(parent_vg, parent_record, depth + 1))
+          ancestor_crumbs = parent_crumbs(parent_vg, parent_record, depth + 1)
+          crumbs.concat(ancestor_crumbs)
         end
 
         parent_slug = resolve_primary_slug(parent_vg)
-        if target_model != @view_group.model
+        # Add the list crumb only if:
+        # 1. target model differs from the current view group's model
+        # 2. the recursive call didn't already add a list crumb for this self-referential chain
+        list_already_added = self_referential_vg?(parent_vg) && ancestor_crumbs.any?
+        if target_model != @view_group.model && !list_already_added
           parent_label = resolve_view_group_label(parent_vg)
           if parent_slug
             crumbs << Crumb.new(label: parent_label, path: @path_helper.resources_path(parent_slug))
@@ -115,12 +121,18 @@ module LcpRuby
         crumbs
       end
 
-      def self_referential_breadcrumb?(model_def)
-        return false unless @view_group&.breadcrumb_relation
-        return false unless model_def
+      def self_referential_breadcrumb?(_model_def = nil)
+        self_referential_vg?(@view_group)
+      end
 
-        assoc = model_def.associations.find { |a| a.name == @view_group.breadcrumb_relation }
-        assoc && !assoc.polymorphic && assoc.target_model == @view_group.model
+      def self_referential_vg?(vg)
+        return false unless vg&.breadcrumb_relation
+
+        md = LcpRuby.loader.model_definition(vg.model)
+        return false unless md
+
+        assoc = md.associations.find { |a| a.name == vg.breadcrumb_relation }
+        assoc && !assoc.polymorphic && assoc.target_model == vg.model
       end
 
       def preload_association(record, association_name)

@@ -1,0 +1,45 @@
+presenter:
+  name: article_auto
+  model: article
+  label: "Articles (Auto Search)"
+  slug: articles-auto
+
+  index:
+    default_view: table
+    table_columns:
+      - { field: title, link_to: show }
+      - { field: status }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+          - { field: body }
+          - { field: status }
+
+  form:
+    sections:
+      - title: "Details"
+        fields:
+          - { field: title }
+          - { field: body }
+          - { field: status }
+
+  search:
+    enabled: true
+    searchable_fields: [title, body]
+    auto_search: true
+    debounce_ms: 500
+    min_query_length: 3
+    predefined_filters:
+      - { name: all, label: "All", default: true }
+      - { name: published, label: "Published", scope: published }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

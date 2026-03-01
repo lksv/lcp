@@ -12,6 +12,15 @@
     "icon": { "type": "string" },
     "read_only": { "type": "boolean" },
     "embeddable": { "type": "boolean" },
+    "redirect_after": {
+      "type": "object",
+      "properties": {
+        "create": { "type": "string", "enum": ["index", "show", "edit", "new"] },
+        "update": { "type": "string", "enum": ["index", "show", "edit", "new"] }
+      },
+      "additionalProperties": false
+    },
+    "empty_value": { "type": "string" },
     "index": { "$ref": "#/$defs/index_config" },
     "show": { "$ref": "#/$defs/show_config" },
     "form": { "$ref": "#/$defs/form_config" },
@@ -63,6 +72,7 @@
         "options": { "type": "object" },
         "partial": { "type": "string" },
         "col_span": { "type": "integer", "minimum": 1 },
+        "copyable": { "type": "boolean" },
         "hidden_on": { "$ref": "#/$defs/hidden_on" },
         "type": { "type": "string", "enum": ["divider", "info"] },
         "text": { "type": "string" }
@@ -233,6 +243,7 @@
       "type": "object",
       "properties": {
         "description": { "type": "string" },
+        "copy_url": { "type": "boolean" },
         "layout": {
           "type": "array",
           "items": { "$ref": "#/$defs/show_section" }
@@ -267,6 +278,9 @@
           "items": { "type": "string" }
         },
         "placeholder": { "type": "string" },
+        "auto_search": { "type": "boolean" },
+        "debounce_ms": { "type": "integer" },
+        "min_query_length": { "type": "integer" },
         "predefined_filters": {
           "type": "array",
           "items": { "$ref": "#/$defs/search_filter" }

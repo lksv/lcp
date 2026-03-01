@@ -85,6 +85,9 @@ define_presenter :features_card do
   search do
     searchable_fields :name, :description, :demo_hint
     placeholder "Search features..."
+    auto_search true
+    debounce_ms 300
+    min_query_length 2
     filter :all, label: "All", default: true
     filter :field_types, label: "Field Types", scope: :by_category_field_types
     filter :display_types, label: "Display", scope: :by_category_display_types

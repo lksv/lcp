@@ -4,7 +4,7 @@ define_model :group_membership do
 
   field :user_id, :integer, label: "User ID", null: false do
     validates :presence
-    validates :uniqueness, fields: [:group_id, :user_id]
+    validates :uniqueness, fields: [ :group_id, :user_id ]
   end
 
   field :source, :enum, label: "Source", values: %w[manual ldap api], default: "manual"

@@ -52,7 +52,9 @@ module LcpRuby
       validate_association_values!(@record)
 
       if @record.errors.none? && @record.save
-        redirect_to resource_path(@record), notice: "#{current_model_definition.label} was successfully created."
+        redirect_to redirect_path_for("create", @record),
+          notice: I18n.t("lcp_ruby.flash.created", model: current_model_definition.label,
+            default: "%{model} was successfully created.")
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
         render :new, status: :unprocessable_entity
@@ -75,7 +77,9 @@ module LcpRuby
       validate_association_values!(@record)
 
       if @record.errors.none? && @record.save
-        redirect_to resource_path(@record), notice: "#{current_model_definition.label} was successfully updated."
+        redirect_to redirect_path_for("update", @record),
+          notice: I18n.t("lcp_ruby.flash.updated", model: current_model_definition.label,
+            default: "%{model} was successfully updated.")
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
         render :edit, status: :unprocessable_entity
@@ -85,7 +89,9 @@ module LcpRuby
     def destroy
       authorize @record
       @record.destroy!
-      redirect_to resources_path, notice: "#{current_model_definition.label} was successfully deleted."
+      redirect_to resources_path,
+        notice: I18n.t("lcp_ruby.flash.deleted", model: current_model_definition.label,
+          default: "%{model} was successfully deleted.")
     end
 
     def select_options
@@ -210,6 +216,26 @@ module LcpRuby
 
     def set_record
       @record = @model_class.find(params[:id])
+    end
+
+    VALID_REDIRECT_TARGETS = %w[index show edit new].freeze
+
+    def redirect_path_for(action, record)
+      target = current_presenter.options&.dig("redirect_after", action)
+
+      if target && !VALID_REDIRECT_TARGETS.include?(target)
+        Rails.logger.warn("[LcpRuby] Invalid redirect_after target '#{target}' for action '#{action}' " \
+                          "in presenter '#{current_presenter.name}', falling back to 'show'")
+        target = nil
+      end
+
+      case target
+      when "index" then resources_path
+      when "show" then resource_path(record)
+      when "edit" then edit_resource_path(record)
+      when "new" then new_resource_path
+      else resource_path(record)
+      end
     end
 
     def purge_removed_attachments!(record)

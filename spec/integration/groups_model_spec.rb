@@ -49,7 +49,7 @@ RSpec.describe "Groups model source integration", type: :request do
       membership_model.create!(group_id: group.id, user_id: 43)
 
       # User has direct viewer role + editor from group
-      user = stub_current_user(role: ["viewer"], id: 43)
+      user = stub_current_user(role: [ "viewer" ], id: 43)
 
       LcpRuby.configuration.role_resolution_strategy = :merged
 

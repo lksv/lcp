@@ -122,10 +122,10 @@ module LcpRuby
 
         @presenter_diff_cache.fetch(context) do
           config_method = case context
-                          when "index" then :index_config
-                          when "show"  then :show_config
-                          when "form"  then :form_config
-                          end
+          when "index" then :index_config
+          when "show"  then :show_config
+          when "form"  then :form_config
+          end
 
           defs = presenter_definitions
           result = if defs.length < 2
