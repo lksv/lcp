@@ -965,25 +965,25 @@ end
 
 See [Model Options Infrastructure §9](model_options_infrastructure.md#9-cross-feature-interaction-matrix) for the full cross-feature interaction matrix covering all feature combinations.
 
-### Soft Delete
+### Soft Delete ([soft_delete.md](soft_delete.md))
 
 When a soft-deletable model has `auditing: true`:
 - `discard!` uses `update_columns` which **bypasses** `after_save` callbacks
 - `SoftDeleteApplicator` dispatches to `AuditWriter.log` explicitly with action `:discard` / `:undiscard` (see [Model Options Infrastructure §2](model_options_infrastructure.md#2-tracked-change-notifications-update_columns-bypass))
 - The `changes_data` contains `{"discarded_at": [null, "2026-02-22T..."]}` or the reverse
 
-### Positioning
+### Positioning ([record_positioning.md](record_positioning.md))
 
 The `positioning` gem internally calls `update_all` to shift sibling positions — these mechanical adjustments are **NOT individually audited** (see [Model Options Infrastructure §2, Positioning subsection](model_options_infrastructure.md#positioning-why-gem-internal-update_all-calls-are-not-audited)). Instead:
 - Gem-internal sibling shifts are treated as internal bookkeeping
 - The reorder controller action writes a single summary audit entry with action `:reorder`
 - A record's own `position` field change is captured by the normal `after_save` callback
 
-### Userstamps
+### Userstamps ([userstamps.md](userstamps.md))
 
 When a model has both `userstamps: true` and `auditing: true`, userstamp fields (`updated_by_id`, `created_by_id`) appear in `saved_changes` and are audited by default. If this is noise, the model can use `auditing: { ignore: [created_by_id, updated_by_id] }`.
 
-### Workflow Transitions
+### Workflow Transitions ([workflow_and_approvals.md](workflow_and_approvals.md))
 
 The workflow design document defines its own `workflow_audit_logs` table for transition history. Data auditing (this feature) and workflow auditing are complementary:
 - **Data audit** answers "what fields changed on this record?"
@@ -1225,3 +1225,14 @@ end
 4. **How to handle bulk operations?** If a future bulk update feature changes 100 records at once, should each get its own audit entry? Recommendation: yes, one entry per record — this matches the per-record callback model and keeps the audit trail unambiguous.
 
 5. **Should `auditing` be a top-level key (like `positioning`) or nested under `options`?** Currently proposed under `options` for consistency with `custom_fields` and `timestamps`. However, `positioning` is top-level. Recommendation: keep under `options` — auditing is a behavioral option, not a structural declaration like positioning.
+
+## Related Documents
+
+- **[Model Options Infrastructure](model_options_infrastructure.md):** Defines shared patterns used by this design: `boolean_or_hash_option` (§3), `validate_boolean_or_hash_option` (§4), `create_log_table` (§7), `LcpRuby::UserSnapshot` (§8), canonical Builder pipeline (§1), `update_columns` bypass contract (§2), positioning audit strategy (§2), cross-feature interaction matrix (§9), error handling conventions (§10).
+- **[Soft Delete](soft_delete.md):** `discard!`/`undiscard!` bypass `after_save`, so soft delete dispatches `AuditWriter.log` explicitly.
+- **[Userstamps](userstamps.md):** Userstamp fields appear in audit diffs by default. Can be excluded via `auditing: { ignore: [...] }`.
+- **[Tree Structures](tree_structures.md):** Reparenting (`parent_id` change) is audited as a normal field change.
+- **[Record Positioning](record_positioning.md):** Gem-internal sibling shifts are NOT audited; explicit reorder is audited at controller level.
+- **[Multiselect and Batch Actions](multiselect_and_batch_actions.md):** Batch operations create per-record audit entries. `BulkUpdater.tracked_update_all` for future optimized batch paths.
+- **[Data Retention](data_retention.md):** Automatic purge of old audit records.
+- **[Workflow and Approvals](workflow_and_approvals.md):** Separate `lcp_workflow_logs` table for transition history. Data auditing and workflow auditing are complementary.

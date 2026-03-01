@@ -771,7 +771,7 @@ categories of extensibility:
 | **Model features** | soft_delete, auditing, workflow, versioning, approval | `options:` in model YAML, Applicator in Builder pipeline | Yes |
 | **Platform subsystems** | groups, roles, permissions, custom_fields, menu | `LcpRuby.configure`, own Registry/Setup/Contract | No |
 
-Platform subsystems like Groups (see `groups_roles_and_org_structure.md`) follow
+Platform subsystems like Groups (see [Groups, Roles and Org Structure](groups_roles_and_org_structure.md)) follow
 the **Registry/Setup/Contract** pattern — they have their own configuration
 sources (YAML, DB, Host API), their own boot sequence, and they modify
 platform-level behavior (e.g., PermissionEvaluator role resolution). They do
@@ -1402,44 +1402,44 @@ The shared infrastructure components defined in this document need their own tes
 
 ## Updates to Feature Design Documents
 
-After this infrastructure document is accepted, the following sections in feature design documents should be updated to reference it:
+All feature design documents have been updated to reference this infrastructure document. Summary of changes applied:
 
-### `soft_delete.md`
+### [`soft_delete.md`](soft_delete.md) — Done
 
-- **Builder pipeline**: Reference this document for canonical ordering instead of proposing its own
-- **ModelDefinition**: Use `boolean_or_hash_option` helper
-- **ConfigurationValidator**: Use `validate_boolean_or_hash_option` helper
-- **Add**: Explicit `AuditWriter.log` calls in `discard!` and `undiscard!` (guarded by `model_definition.auditing?`)
-- **Cross-feature**: Reference interaction matrix for soft_delete + userstamps and soft_delete + tree
+- `boolean_or_hash_option` in ModelDefinition, `validate_boolean_or_hash_option` in ConfigurationValidator
+- Canonical pipeline reference (§1), `AuditWriter.log` dispatch in `discard!`/`undiscard!` (§2)
+- Cross-feature references (§9), Related Documents section added
 
-### `auditing.md`
+### [`auditing.md`](auditing.md) — Done
 
-- **Builder pipeline**: Reference this document for canonical ordering instead of proposing its own
-- **ModelDefinition**: Use `boolean_or_hash_option` helper
-- **ConfigurationValidator**: Use `validate_boolean_or_hash_option` helper
-- **SchemaManager**: Use `create_log_table` helper instead of inline table creation
-- **UserSnapshot**: Use shared `LcpRuby::UserSnapshot.capture` instead of inline `snapshot_user` implementation
-- **Interaction with Soft Delete**: Reference this document's "Tracked Change Notifications" section instead of describing the bypass problem independently
-- **Error handling**: Fix `JSON.parse(value) rescue value` in `AuditWriter.parse_json_value` to use specific `rescue JSON::ParserError` (see section 10)
-- **Positioning interaction**: Reference positioning audit strategy from section 2
+- `boolean_or_hash_option` in ModelDefinition, `validate_boolean_or_hash_option` in ConfigurationValidator
+- `create_log_table` (§7), `LcpRuby::UserSnapshot.capture` (§8), canonical pipeline (§1)
+- Fixed bare `rescue` in `parse_json_value` (§10), positioning audit strategy (§2)
+- Interaction subsections link to feature docs, Related Documents section added
 
-### `userstamps.md`
+### [`userstamps.md`](userstamps.md) — Done
 
-- **Builder pipeline**: Reference this document for canonical pipeline position (`apply_userstamps` after `apply_positioning`)
-- **ModelDefinition**: Use `boolean_or_hash_option` helper
-- **Plugin migration**: Reference Phase 2 plugin system — userstamps is a `true`-or-`Hash` model feature plugin candidate
-- **Cross-feature**: Reference interaction matrix for userstamps + soft_delete and userstamps + auditing
+- `boolean_or_hash_option` in ModelDefinition, `validate_boolean_or_hash_option` in ConfigurationValidator
+- Canonical pipeline position (§1), `update_columns` bypass contract (§2)
+- Cross-feature references (§9), Related Documents section added
 
-### `tree_structures.md`
+### [`tree_structures.md`](tree_structures.md) — Done
 
-- **Builder pipeline**: Reference this document for canonical pipeline position (`apply_tree` after `apply_soft_delete`)
-- **ModelDefinition**: Use `boolean_or_hash_option` helper
-- **Cross-feature**: Reference interaction matrix for tree + soft_delete (subtree cascade discard)
+- Canonical pipeline reference (§1), cross-feature interaction references (§9)
+- Interaction subsections link to infrastructure §9, Related Documents section added
 
-### `multiselect_and_batch_actions.md`
+### [`multiselect_and_batch_actions.md`](multiselect_and_batch_actions.md) — Done
 
-- **Bulk audit**: Reference `BulkUpdater.tracked_update_all` helper for batch operations that need audit trails
-- **Bulk discard**: Reference `AuditWriter.log` explicit dispatch pattern for batch discard operations
+- `BulkUpdater.tracked_update_all` reference (§2), `AuditWriter.log` dispatch for batch discard
+- Related Documents section added
+
+### [`record_positioning.md`](record_positioning.md) — Done
+
+- Related Documents section added (infrastructure §2 positioning audit strategy, tree_structures, auditing)
+
+### [`data_retention.md`](data_retention.md) — Done
+
+- Related Documents section added (infrastructure OQ#4, soft_delete, auditing, document_management)
 
 ## Open Questions
 
@@ -1458,3 +1458,18 @@ Decisions that were originally open questions but have been resolved:
 1. **~~Should the `create_log_table` helper live on `SchemaManager` or a separate `LogTableBuilder`?~~** **Decision: `SchemaManager` for now.** `SchemaManager` already handles table creation, so adding a class method there is natural. The helper should include a `# TODO: extract to LogTableBuilder if partitioning/archival complexity grows` comment to signal the extraction point.
 
 2. **~~Should `UserSnapshot` be in the `Auditing` namespace or a top-level `LcpRuby::UserSnapshot`?~~** **Decision: top-level `LcpRuby::UserSnapshot`.** Multiple features need user snapshots (auditing, workflow, userstamps name snapshots). Placing it in `Auditing` would create a misleading dependency direction. File: `lib/lcp_ruby/user_snapshot.rb`.
+
+## Related Documents
+
+**Model feature designs** (use shared patterns from this document):
+- **[Soft Delete](soft_delete.md):** `boolean_or_hash_option`, pipeline §1, `update_columns` bypass §2, interaction matrix §9
+- **[Auditing](auditing.md):** `boolean_or_hash_option`, `create_log_table` §7, `UserSnapshot` §8, pipeline §1, positioning audit §2
+- **[Userstamps](userstamps.md):** `boolean_or_hash_option`, pipeline §1, `update_columns` bypass §2
+- **[Tree Structures](tree_structures.md):** `boolean_or_hash_option`, pipeline §1, interaction matrix §9
+- **[Record Positioning](record_positioning.md):** Positioning audit strategy §2, interaction matrix §9
+- **[Multiselect and Batch Actions](multiselect_and_batch_actions.md):** `BulkUpdater` §2, batch audit strategy
+
+**Platform subsystems** (use helpers but are NOT model feature plugins):
+- **[Data Retention](data_retention.md):** Can use `create_log_table` and `UserSnapshot`, but is a batch job system (see OQ#4)
+- **[Groups, Roles and Org Structure](groups_roles_and_org_structure.md):** Registry/Setup/Contract pattern, not model option plugins
+- **[Workflow and Approvals](workflow_and_approvals.md):** Future model feature plugin candidate; separate `lcp_workflow_logs` table

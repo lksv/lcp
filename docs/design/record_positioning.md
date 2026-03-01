@@ -889,3 +889,10 @@ For models that currently use a plain `position` integer field and want to adopt
 8. **List version (concurrent reordering)** — correct `list_version` returned in reorder response; reorder with matching `list_version` succeeds; reorder with stale `list_version` returns 409 with current version; reorder without `list_version` succeeds (param is optional for backwards compatibility); `list_version` changes after a record is created, destroyed, or reordered within the same scope; `list_version` is unaffected by changes in a different scope
 9. **Integration** — drag handle rendered for users with update + field write permission; not rendered for read-only roles or roles without position field write access; reorder endpoint returns 200; reorder rejected (403) when field not writable; positions update correctly; `data-list-version` attribute present on table when reorderable
 9. **DSL** — `positioning` method produces correct hash; round-trip YAML → DSL → YAML
+
+## Related Documents
+
+- **[Model Options Infrastructure](model_options_infrastructure.md):** Positioning audit strategy (§2) — gem-internal `update_all` for sibling shifts is NOT audited; explicit reorder is audited at controller level. Cross-feature interaction matrix (§9) covers positioning+auditing and positioning+userstamps.
+- **[Tree Structures](tree_structures.md):** `tree: { ordered: true }` creates positioning config with `scope: [parent_id]` automatically.
+- **[Auditing](auditing.md):** A record's own `position` field change is captured by `after_save`. Reorder controller writes a summary `:reorder` audit entry.
+- **[Multiselect and Batch Actions](multiselect_and_batch_actions.md):** Batch selection and drag-and-drop reordering are mutually exclusive modes in the UI.

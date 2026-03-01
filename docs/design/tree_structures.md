@@ -1734,3 +1734,11 @@ end
 8. **Multi-tree models.** A model could have multiple self-referential FKs (e.g., `parent_id` and `reporting_to_id`). The current design supports one `tree` config per model. Multiple trees would need `trees: [...]` array syntax. Recommendation: defer — this is an edge case. If needed, the model can use `tree` for one hierarchy and manual associations for the other.
 
 9. **Drag-and-drop between tree_view presenters.** Two presenters for the same model (e.g., "Active Categories" and "Archived Categories") could theoretically support drag-and-drop between them. Recommendation: out of scope — each presenter is an independent page. Cross-presenter drag would require a split-pane UI, which is a separate feature.
+
+## Related Documents
+
+- **[Model Options Infrastructure](model_options_infrastructure.md):** Defines shared patterns used by this design: `boolean_or_hash_option` (§3), `validate_boolean_or_hash_option` (§4), canonical Builder pipeline (§1), cross-feature interaction matrix (§9), error handling conventions (§10).
+- **[Record Positioning](record_positioning.md):** `tree: { ordered: true }` delegates to the positioning feature with `scope: [parent_id]`.
+- **[Soft Delete](soft_delete.md):** `dependent: :discard` cascade behavior on tree associations. ConfigurationValidator enforces `soft_delete: true` when tree uses `dependent: discard`.
+- **[Auditing](auditing.md):** Reparenting (`parent_id` change) is audited as a normal field change. No tree-specific audit logic needed.
+- **[Scoped Permissions](scoped_permissions.md):** Subtree-based permission scopes (`scope: subtree_of(...)`) build on the `subtree_ids` method.

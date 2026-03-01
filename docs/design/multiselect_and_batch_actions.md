@@ -1064,3 +1064,10 @@ presenter:
 4. **Maximum batch size?** Sending 10,000 IDs in a form POST is technically possible but may cause issues (request body size, long execution time). Recommendation: set a configurable limit (default: 500) and show a warning when exceeded. The limit is enforced server-side.
 
 5. **Should batch action results show per-record details?** For a batch of 50 records where 3 fail, should the result show which 3 failed and why? Recommendation: yes, but only in the JSON response (for API consumers). The HTML response shows a summary count. A future enhancement could show a "results" modal with per-record status.
+
+## Related Documents
+
+- **[Model Options Infrastructure](model_options_infrastructure.md):** `update_columns` bypass contract (§2), `BulkUpdater.tracked_update_all` helper for audited batch operations (§2), cross-feature interaction matrix (§9).
+- **[Soft Delete](soft_delete.md):** Batch `destroy` calls `discard!` on soft-deletable models. Archive presenters support batch `restore` and `permanently_destroy`.
+- **[Auditing](auditing.md):** Batch operations create per-record audit entries via callbacks. `discard!` dispatches `AuditWriter.log` explicitly.
+- **[Userstamps](userstamps.md):** Per-record `update` fires callbacks, so userstamps work normally. `BulkUpdater.tracked_update_all` bypasses userstamps by design.

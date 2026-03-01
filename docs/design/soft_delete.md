@@ -1183,3 +1183,12 @@ events:
 5. **Performance of deep cascade trees.** `find_each` iterates in batches of 1000, but each `discard!` call is a separate `UPDATE` statement. For large association trees (e.g., deal with 10,000 comments, each with replies), this could be slow. Possible optimization: batch `UPDATE` with `update_all` for cascade discard (set `discarded_at`, `discarded_by_type`, `discarded_by_id` in one query per association), then fire events per-record only if event handlers are registered. Recommendation: start with per-record `discard!` for correctness (events, multi-level cascade), optimize later if needed.
 
 6. **Should `dependent: :restrict_with_exception` prevent discard?** Currently, `restrict_with_exception` only prevents AR `destroy!`. If a parent model has `has_many :orders, dependent: :restrict_with_exception`, discarding the parent would succeed even though hard-deleting would fail. Should the platform also check restrict-style dependents on discard? Recommendation: yes, add a `restrict_with_exception` / `restrict_with_error` check in `discard!` that mirrors AR's behavior — raise/add error if kept children exist on restricted associations.
+
+## Related Documents
+
+- **[Model Options Infrastructure](model_options_infrastructure.md):** Defines shared patterns used by this design: `boolean_or_hash_option` (§3), `validate_boolean_or_hash_option` (§4), canonical Builder pipeline (§1), `update_columns` bypass contract (§2), cross-feature interaction matrix (§9).
+- **[Auditing](auditing.md):** `discard!`/`undiscard!` bypass `after_save` callbacks, so soft delete must dispatch `AuditWriter.log` explicitly. See infrastructure §2 and §9 for the contract.
+- **[Tree Structures](tree_structures.md):** Tree associations support `dependent: :discard` for subtree cascade. ConfigurationValidator enforces `soft_delete: true` when `tree.dependent` is `discard`.
+- **[Userstamps](userstamps.md):** `discard!` uses `update_columns` which bypasses userstamps' `before_save` — `updated_by_id` is NOT updated on discard. This is by design (infrastructure §9).
+- **[Multiselect and Batch Actions](multiselect_and_batch_actions.md):** Batch `destroy` calls `discard!` on soft-deletable models. Archive presenters support batch `restore` and `permanently_destroy`.
+- **[Data Retention](data_retention.md):** Automatic purge of old discarded records.

@@ -1228,3 +1228,10 @@ Sidekiq::Cron::Job.create(
 5. **How to handle the global `retention.yml` file?** Should it be loaded by `Metadata::Loader` alongside models/presenters, or by `Configuration` as an engine config? Recommendation: load via `Metadata::Loader` — it follows the same YAML-in-`config/lcp_ruby/` pattern, and the loader already handles file-not-found gracefully.
 
 6. **Should anonymization clear custom_data JSONB fields individually?** Currently, listing `custom_data` in `fields` clears the entire JSON blob. A more granular approach would support `cf:field_name` syntax (matching the auditing prefix convention) to clear individual custom fields. Recommendation: defer — full `custom_data` clearing is sufficient for the initial implementation.
+
+## Related Documents
+
+- **[Model Options Infrastructure](model_options_infrastructure.md):** Retention is a separate subsystem (not a model feature plugin), but can use shared helpers like `create_log_table` (§7) and `LcpRuby::UserSnapshot` (§8). See OQ#4 in infrastructure doc.
+- **[Soft Delete](soft_delete.md):** Retention operates on soft-deleted records — `destroy` category purges discarded records older than `min_age`.
+- **[Auditing](auditing.md):** Retention can purge old audit log entries via the `audit_logs` category.
+- **[Document Management](document_management.md):** Retention policies for automatic file cleanup.
