@@ -14,7 +14,8 @@ YAML metadata (config/lcp_ruby/)
   └── menu.yml           → Metadata::Loader → MenuDefinition → MenuItem (with badges)
                                 ↓
               ModelFactory::Builder.build → LcpRuby::Dynamic::<Name>
-              (creates AR class + DB table + validations + transforms + associations + scopes)
+              (creates AR class + DB table + validations + transforms + associations + scopes +
+               soft_delete + tree + callbacks + auditing + positioning + userstamps)
               (virtual models with table_name: _virtual are skipped — metadata only, no AR class)
                                 ↓
               LcpRuby.registry.register(name, model_class)
@@ -71,7 +72,7 @@ Business type system that bundles storage type, transforms, validations, and UI 
 
 Builds dynamic ActiveRecord models from metadata definitions.
 
-- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace, applies enums, validations, transforms, associations, scopes, callbacks, positioning, label method, and registers the model in the Registry. Virtual models (`table_name: _virtual`) are skipped entirely — no AR class or DB table
+- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace and applies the following pipeline in canonical order: enums → validations → transforms → associations → attachments → scopes → soft_delete → tree → callbacks → auditing → defaults → computed → positioning → userstamps → external fields → model extensions → custom fields → label method. Virtual models (`table_name: _virtual`) are skipped entirely — no AR class or DB table. The `soft_delete`, `tree`, `auditing`, and `userstamps` steps are currently no-op placeholders — actual Applicators will be implemented in feature-specific PRs
 - **PositioningApplicator** — applies the `positioning` gem's `positioned` macro with column and scope configuration; enables automatic position management (insert at end, gap closing on destroy, atomic reorder)
 - **SchemaManager** — auto-creates/updates DB tables when `auto_migrate: true` is set in configuration; merges type-level column_options before field-level (field wins); skips virtual models
 - **ValidationApplicator** — applies AR validations from metadata (standard + custom); after explicit field validations, applies type-default validations (skips if field already has a validation of the same type)
@@ -153,6 +154,18 @@ Runtime user-defined fields stored in a JSONB/JSON `custom_data` column.
 - **Setup** — shared boot logic used by both `Engine.load_metadata!` and test helper; orchestrates registry, handlers, accessors, and scopes
 - **Utils** — `safe_parse_json` and `safe_to_decimal` with environment-aware error handling (raise in dev/test, log in production)
 
+### UserSnapshot (`lib/lcp_ruby/user_snapshot.rb`)
+
+Utility module that captures a snapshot of the current user as a plain hash. Used by the auditing and userstamps systems to store user identity without tight coupling to the User model.
+
+- **`capture(user)`** — returns `{ "id" => ..., "email" => ..., "name" => ..., "role" => ... }` with keys omitted when the user doesn't respond to the corresponding method. Returns `nil` for nil user.
+
+### BulkUpdater (`lib/lcp_ruby/bulk_updater.rb`)
+
+Utility module that wraps `update_all` with an extensible callback hook. Used for batch operations that need to track affected records (e.g., bulk soft-delete, batch status changes).
+
+- **`tracked_update_all(scope, updates, action:, model_definition:)`** — plucks IDs before update, performs `update_all`, then yields `(affected_ids, updates, action)` to an optional block. Returns 0 for empty scopes without executing the update.
+
 ### JsonItemWrapper (`lib/lcp_ruby/json_item_wrapper.rb`)
 
 ActiveModel wrapper for plain hash items stored in JSON arrays. Used when `nested_fields` sections have `json_field:` + `target_model:`.
@@ -232,6 +245,7 @@ end
 | `role_source` | `:implicit` | `:implicit` (string keys) or `:model` (DB-backed) |
 | `role_model` | `"role"` | Model name for role definitions (when `role_source == :model`) |
 | `role_model_fields` | `{ name: "name", active: "active" }` | Field mapping for the role model contract |
+| `audit_writer` | `nil` | Custom audit writer object for models with `auditing: true` |
 
 ## Engine Loading (`lib/lcp_ruby/engine.rb`)
 

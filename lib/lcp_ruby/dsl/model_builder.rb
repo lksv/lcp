@@ -185,6 +185,47 @@ module LcpRuby
         @positioning_config = config
       end
 
+      def soft_delete(value = true, column: nil)
+        hash = column ? { "column" => column.to_s } : nil
+        set_boolean_or_hash_option("soft_delete", value, hash)
+      end
+
+      def auditing(value = true, **opts)
+        hash = if value == true && opts.any?
+          h = {}
+          h["only"] = opts[:only].map(&:to_s) if opts[:only]
+          h["ignore"] = opts[:ignore].map(&:to_s) if opts[:ignore]
+          h["track_associations"] = opts[:track_associations] if opts.key?(:track_associations)
+          h["track_attachments"] = opts[:track_attachments] if opts.key?(:track_attachments)
+          h["expand_custom_fields"] = opts[:expand_custom_fields] if opts.key?(:expand_custom_fields)
+          h["expand_json_fields"] = opts[:expand_json_fields].map(&:to_s) if opts[:expand_json_fields]
+          h
+        end
+        set_boolean_or_hash_option("auditing", value, hash)
+      end
+
+      def userstamps(value = true, created_by: nil, updated_by: nil)
+        hash = if value == true && (created_by || updated_by)
+          h = {}
+          h["created_by"] = created_by.to_s if created_by
+          h["updated_by"] = updated_by.to_s if updated_by
+          h
+        end
+        set_boolean_or_hash_option("userstamps", value, hash)
+      end
+
+      def tree(value = true, parent_field: nil, children_name: nil, depth_column: nil, counter_cache: nil)
+        hash = if value == true && (parent_field || children_name || depth_column || !counter_cache.nil?)
+          h = {}
+          h["parent_field"] = parent_field.to_s if parent_field
+          h["children_name"] = children_name.to_s if children_name
+          h["depth_column"] = depth_column.to_s if depth_column
+          h["counter_cache"] = counter_cache unless counter_cache.nil?
+          h
+        end
+        set_boolean_or_hash_option("tree", value, hash)
+      end
+
       # Field change events
       def on_field_change(name, field:, condition: nil)
         event_hash = {
@@ -349,6 +390,16 @@ module LcpRuby
 
       def extract_model_level_validations
         @model_validations.select { |mv| mv[:model_level] }.map { |mv| mv[:hash] }
+      end
+
+      def set_boolean_or_hash_option(key, value, hash_from_keywords = nil)
+        @options[key] = if hash_from_keywords
+          hash_from_keywords
+        elsif value.is_a?(Hash)
+          stringify_keys(value)
+        else
+          value
+        end
       end
 
       def stringify_keys(hash)

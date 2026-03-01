@@ -4,6 +4,8 @@ require "lcp_ruby/configuration"
 require "lcp_ruby/association_options_builder"
 require "lcp_ruby/dynamic"
 require "lcp_ruby/current"
+require "lcp_ruby/user_snapshot"
+require "lcp_ruby/bulk_updater"
 require "lcp_ruby/condition_evaluator"
 require "lcp_ruby/condition_service_registry"
 

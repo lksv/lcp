@@ -3492,6 +3492,319 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       virtual_warnings = result.warnings.select { |w| w.include?("virtual") }
       expect(virtual_warnings).to be_empty
     end
+
+    it "warns when virtual model has model features enabled" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item_def
+            table_name: _virtual
+            fields:
+              - { name: name, type: string }
+            options:
+              soft_delete: true
+              auditing: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/model features.*soft_delete, auditing.*have no effect on virtual models/)
+      )
+    end
+  end
+
+  # --- Model option validations ---
+
+  context "model options (soft_delete, auditing, userstamps, tree)" do
+    let(:metadata_path) { "" }
+
+    it "accepts soft_delete: true" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              soft_delete: true
+        YAML
+      )
+
+      result = v.validate
+      soft_delete_errors = result.errors.select { |e| e.include?("soft_delete") }
+      expect(soft_delete_errors).to be_empty
+    end
+
+    it "accepts soft_delete with valid Hash" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              soft_delete:
+                column: deleted_at
+        YAML
+      )
+
+      result = v.validate
+      soft_delete_errors = result.errors.select { |e| e.include?("soft_delete") }
+      expect(soft_delete_errors).to be_empty
+    end
+
+    it "rejects soft_delete with invalid type" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              soft_delete: "yes"
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/soft_delete must be true or a Hash/)
+      )
+    end
+
+    it "rejects soft_delete with unknown keys" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              soft_delete:
+                column: deleted_at
+                unknown_key: value
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/soft_delete has unknown keys: unknown_key/)
+      )
+    end
+
+    it "rejects soft_delete.column that is not a string" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              soft_delete:
+                column: 123
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/soft_delete.column must be a string/)
+      )
+    end
+
+    it "accepts auditing: true" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              auditing: true
+        YAML
+      )
+
+      result = v.validate
+      auditing_errors = result.errors.select { |e| e.include?("auditing") }
+      expect(auditing_errors).to be_empty
+    end
+
+    it "accepts auditing with only option" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+            options:
+              auditing:
+                only:
+                  - title
+                  - status
+        YAML
+      )
+
+      result = v.validate
+      auditing_errors = result.errors.select { |e| e.include?("auditing") }
+      expect(auditing_errors).to be_empty
+    end
+
+    it "rejects auditing with both only and ignore" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              auditing:
+                only:
+                  - title
+                ignore:
+                  - status
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/auditing.only and auditing.ignore are mutually exclusive/)
+      )
+    end
+
+    it "accepts userstamps: true" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              userstamps: true
+        YAML
+      )
+
+      result = v.validate
+      userstamps_errors = result.errors.select { |e| e.include?("userstamps") }
+      expect(userstamps_errors).to be_empty
+    end
+
+    it "accepts userstamps with custom column names" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              userstamps:
+                created_by: author_id
+                updated_by: editor_id
+        YAML
+      )
+
+      result = v.validate
+      userstamps_errors = result.errors.select { |e| e.include?("userstamps") }
+      expect(userstamps_errors).to be_empty
+    end
+
+    it "rejects userstamps with unknown keys" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              userstamps:
+                destroyed_by: remover_id
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/userstamps has unknown keys: destroyed_by/)
+      )
+    end
+
+    it "accepts tree: true" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+            options:
+              tree: true
+        YAML
+      )
+
+      result = v.validate
+      tree_errors = result.errors.select { |e| e.include?("tree") }
+      expect(tree_errors).to be_empty
+    end
+
+    it "accepts tree with valid options" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+            options:
+              tree:
+                parent_field: parent_category_id
+                children_name: subcategories
+                depth_column: depth
+                counter_cache: true
+        YAML
+      )
+
+      result = v.validate
+      tree_errors = result.errors.select { |e| e.include?("tree") }
+      expect(tree_errors).to be_empty
+    end
+
+    it "rejects tree with unknown keys" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+            options:
+              tree:
+                order_column: position
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/tree has unknown keys: order_column/)
+      )
+    end
+
+    it "accepts a model with all four features enabled" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: document
+            fields:
+              - { name: title, type: string }
+            options:
+              soft_delete: true
+              auditing: true
+              userstamps: true
+              tree: true
+        YAML
+      )
+
+      result = v.validate
+      feature_errors = result.errors.select { |e|
+        e.include?("soft_delete") || e.include?("auditing") ||
+          e.include?("userstamps") || e.include?("tree")
+      }
+      expect(feature_errors).to be_empty
+    end
   end
 
   # --- Sub-section validations ---

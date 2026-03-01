@@ -211,6 +211,177 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
     end
   end
 
+  describe "#virtual?" do
+    it "returns true when table_name is _virtual" do
+      definition = described_class.from_hash(
+        "name" => "item_def",
+        "table_name" => "_virtual",
+        "fields" => [{ "name" => "name", "type" => "string" }]
+      )
+      expect(definition.virtual?).to be true
+    end
+
+    it "returns false for normal models" do
+      definition = described_class.from_hash(
+        "name" => "item",
+        "fields" => [{ "name" => "name", "type" => "string" }]
+      )
+      expect(definition.virtual?).to be false
+    end
+  end
+
+  describe "model options predicates" do
+    describe "#soft_delete?" do
+      it "returns true when soft_delete is true" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "soft_delete" => true }
+        )
+        expect(definition.soft_delete?).to be true
+        expect(definition.soft_delete_options).to eq({})
+      end
+
+      it "returns true when soft_delete is a Hash" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "soft_delete" => { "column" => "deleted_at" } }
+        )
+        expect(definition.soft_delete?).to be true
+        expect(definition.soft_delete_options).to eq({ "column" => "deleted_at" })
+      end
+
+      it "returns false when soft_delete is absent" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }]
+        )
+        expect(definition.soft_delete?).to be false
+        expect(definition.soft_delete_options).to eq({})
+      end
+
+      it "returns false when soft_delete is false" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "soft_delete" => false }
+        )
+        expect(definition.soft_delete?).to be false
+      end
+
+      it "returns false when soft_delete is nil" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "soft_delete" => nil }
+        )
+        expect(definition.soft_delete?).to be false
+      end
+
+      it "returns false when soft_delete is a string" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "soft_delete" => "yes" }
+        )
+        expect(definition.soft_delete?).to be false
+      end
+    end
+
+    describe "#soft_delete_column" do
+      it "defaults to discarded_at" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "soft_delete" => true }
+        )
+        expect(definition.soft_delete_column).to eq("discarded_at")
+      end
+
+      it "uses custom column when specified" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "soft_delete" => { "column" => "deleted_at" } }
+        )
+        expect(definition.soft_delete_column).to eq("deleted_at")
+      end
+    end
+
+    describe "#auditing?" do
+      it "returns true for boolean true" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "auditing" => true }
+        )
+        expect(definition.auditing?).to be true
+        expect(definition.auditing_options).to eq({})
+      end
+
+      it "returns true for Hash" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "auditing" => { "only" => %w[title status] } }
+        )
+        expect(definition.auditing?).to be true
+        expect(definition.auditing_options).to eq({ "only" => %w[title status] })
+      end
+
+      it "returns false when absent" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }]
+        )
+        expect(definition.auditing?).to be false
+      end
+    end
+
+    describe "#userstamps?" do
+      it "returns true for boolean true" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => true }
+        )
+        expect(definition.userstamps?).to be true
+      end
+
+      it "returns true for Hash" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => { "created_by" => "author_id" } }
+        )
+        expect(definition.userstamps?).to be true
+        expect(definition.userstamps_options).to eq({ "created_by" => "author_id" })
+      end
+    end
+
+    describe "#tree?" do
+      it "returns true for boolean true" do
+        definition = described_class.from_hash(
+          "name" => "category",
+          "fields" => [{ "name" => "name", "type" => "string" }],
+          "options" => { "tree" => true }
+        )
+        expect(definition.tree?).to be true
+      end
+
+      it "returns true for Hash" do
+        definition = described_class.from_hash(
+          "name" => "category",
+          "fields" => [{ "name" => "name", "type" => "string" }],
+          "options" => { "tree" => { "parent_field" => "parent_category_id" } }
+        )
+        expect(definition.tree?).to be true
+        expect(definition.tree_options).to eq({ "parent_field" => "parent_category_id" })
+      end
+    end
+  end
+
   describe "validation" do
     it "raises on missing name" do
       expect {

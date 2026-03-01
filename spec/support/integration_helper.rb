@@ -27,7 +27,7 @@ module IntegrationHelper
 
     loader.model_definitions.each_value do |model_def|
       # Virtual models exist only as metadata (no table, no AR class)
-      next if model_def.table_name == "_virtual"
+      next if model_def.virtual?
 
       schema_manager = LcpRuby::ModelFactory::SchemaManager.new(model_def)
       schema_manager.ensure_table!

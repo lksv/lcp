@@ -136,6 +136,105 @@ positioning scope: :pipeline_id
 positioning field: :sort_order, scope: [:pipeline_id, :category]
 ```
 
+### `soft_delete`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | boolean or keyword arguments |
+
+Enables soft delete (logical deletion). See [Models Reference — soft_delete](models.md#soft_delete) for semantics.
+
+```ruby
+# Simple — uses default column "discarded_at"
+soft_delete
+
+# Custom column name
+soft_delete column: :deleted_at
+```
+
+### `auditing`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | boolean or keyword arguments |
+
+Enables change auditing. See [Models Reference — auditing](models.md#auditing) for semantics.
+
+```ruby
+# Simple — tracks all fields
+auditing
+
+# Track only specific fields
+auditing only: [:title, :status]
+
+# Ignore specific fields
+auditing ignore: [:updated_at]
+
+# With boolean flags
+auditing track_associations: true, track_attachments: true
+
+# With JSON field expansion
+auditing expand_custom_fields: true, expand_json_fields: [:addresses]
+```
+
+| Keyword | Type | Description |
+|---------|------|-------------|
+| `only:` | array of symbols | Track only these fields |
+| `ignore:` | array of symbols | Track all fields except these |
+| `track_associations:` | boolean | Include association changes |
+| `track_attachments:` | boolean | Include attachment changes |
+| `expand_custom_fields:` | boolean | Expand `custom_data` JSON |
+| `expand_json_fields:` | array of symbols | JSON columns to expand |
+
+### `userstamps`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | boolean or keyword arguments |
+
+Enables automatic user tracking. See [Models Reference — userstamps](models.md#userstamps) for semantics.
+
+```ruby
+# Simple — uses default columns "created_by" and "updated_by"
+userstamps
+
+# Custom column names
+userstamps created_by: :author_id, updated_by: :editor_id
+```
+
+### `tree`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | boolean or keyword arguments |
+
+Enables tree/hierarchy structure. See [Models Reference — tree](models.md#tree) for semantics.
+
+```ruby
+# Simple — uses defaults
+tree
+
+# Custom configuration
+tree parent_field: :parent_category_id, children_name: :subcategories
+
+# Full configuration
+tree parent_field: :parent_category_id,
+     children_name: :subcategories,
+     depth_column: :depth,
+     counter_cache: true
+```
+
+| Keyword | Type | Description |
+|---------|------|-------------|
+| `parent_field:` | symbol | Foreign key column for parent record |
+| `children_name:` | symbol | Name of the children association |
+| `depth_column:` | symbol | Column for computed depth |
+| `counter_cache:` | boolean | Maintain child count |
+
 ## Fields
 
 ```ruby
@@ -674,6 +773,14 @@ The DSL produces the exact same hash structure as parsed YAML. Every DSL constru
 | `display_template :card, renderer: "X"` | `display_templates: { card: { renderer: X } }` |
 | `positioning` | `positioning: true` |
 | `positioning scope: :pipeline_id` | `positioning: { scope: pipeline_id }` |
+| `soft_delete` | `options: { soft_delete: true }` |
+| `soft_delete column: :deleted_at` | `options: { soft_delete: { column: deleted_at } }` |
+| `auditing` | `options: { auditing: true }` |
+| `auditing only: [:title]` | `options: { auditing: { only: [title] } }` |
+| `userstamps` | `options: { userstamps: true }` |
+| `userstamps created_by: :author_id` | `options: { userstamps: { created_by: author_id } }` |
+| `tree` | `options: { tree: true }` |
+| `tree parent_field: :parent_id` | `options: { tree: { parent_field: parent_id } }` |
 | `timestamps true` | `options: { timestamps: true }` |
 
 For the full YAML attribute reference, see [Models Reference](models.md).

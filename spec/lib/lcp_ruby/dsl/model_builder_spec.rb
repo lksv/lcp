@@ -831,6 +831,107 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
     end
   end
 
+  describe "model feature options" do
+    describe "soft_delete" do
+      it "sets soft_delete: true with no arguments" do
+        builder = described_class.new(:item)
+        builder.instance_eval { soft_delete }
+        expect(builder.to_hash["options"]["soft_delete"]).to eq(true)
+      end
+
+      it "sets soft_delete with custom column" do
+        builder = described_class.new(:item)
+        builder.instance_eval { soft_delete column: :deleted_at }
+        expect(builder.to_hash["options"]["soft_delete"]).to eq({ "column" => "deleted_at" })
+      end
+    end
+
+    describe "auditing" do
+      it "sets auditing: true with no arguments" do
+        builder = described_class.new(:item)
+        builder.instance_eval { auditing }
+        expect(builder.to_hash["options"]["auditing"]).to eq(true)
+      end
+
+      it "sets auditing with only option" do
+        builder = described_class.new(:item)
+        builder.instance_eval { auditing only: [:title, :status] }
+        expect(builder.to_hash["options"]["auditing"]).to eq({ "only" => %w[title status] })
+      end
+
+      it "sets auditing with ignore option" do
+        builder = described_class.new(:item)
+        builder.instance_eval { auditing ignore: [:updated_at] }
+        expect(builder.to_hash["options"]["auditing"]).to eq({ "ignore" => %w[updated_at] })
+      end
+
+      it "sets auditing with boolean flags" do
+        builder = described_class.new(:item)
+        builder.instance_eval { auditing track_associations: true, track_attachments: false }
+        expect(builder.to_hash["options"]["auditing"]).to eq({
+          "track_associations" => true,
+          "track_attachments" => false
+        })
+      end
+    end
+
+    describe "userstamps" do
+      it "sets userstamps: true with no arguments" do
+        builder = described_class.new(:item)
+        builder.instance_eval { userstamps }
+        expect(builder.to_hash["options"]["userstamps"]).to eq(true)
+      end
+
+      it "sets userstamps with custom column names" do
+        builder = described_class.new(:item)
+        builder.instance_eval { userstamps created_by: :author_id, updated_by: :editor_id }
+        expect(builder.to_hash["options"]["userstamps"]).to eq({
+          "created_by" => "author_id",
+          "updated_by" => "editor_id"
+        })
+      end
+    end
+
+    describe "tree" do
+      it "sets tree: true with no arguments" do
+        builder = described_class.new(:category)
+        builder.instance_eval { tree }
+        expect(builder.to_hash["options"]["tree"]).to eq(true)
+      end
+
+      it "sets tree with custom options" do
+        builder = described_class.new(:category)
+        builder.instance_eval do
+          tree parent_field: :parent_category_id, children_name: :subcategories,
+               depth_column: :depth, counter_cache: true
+        end
+        expect(builder.to_hash["options"]["tree"]).to eq({
+          "parent_field" => "parent_category_id",
+          "children_name" => "subcategories",
+          "depth_column" => "depth",
+          "counter_cache" => true
+        })
+      end
+    end
+
+    it "produces valid ModelDefinition with all features via define_model" do
+      defn = LcpRuby.define_model(:featured_item) do
+        field :title, :string
+        soft_delete column: :deleted_at
+        auditing only: [:title]
+        userstamps
+        tree
+      end
+
+      expect(defn.soft_delete?).to be true
+      expect(defn.soft_delete_column).to eq("deleted_at")
+      expect(defn.auditing?).to be true
+      expect(defn.auditing_options).to eq({ "only" => ["title"] })
+      expect(defn.userstamps?).to be true
+      expect(defn.tree?).to be true
+    end
+  end
+
   describe "#to_yaml" do
     it "produces YAML string with model key" do
       builder = described_class.new(:project)

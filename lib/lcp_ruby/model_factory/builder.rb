@@ -16,10 +16,14 @@ module LcpRuby
         apply_associations(model_class)
         apply_attachments(model_class)
         apply_scopes(model_class)
+        apply_soft_delete(model_class)
+        apply_tree(model_class)
         apply_callbacks(model_class)
+        apply_auditing(model_class)
         apply_defaults(model_class)
         apply_computed(model_class)
         apply_positioning(model_class)
+        apply_userstamps(model_class)
         apply_external_fields(model_class)
         apply_model_extensions(model_class)
         apply_custom_fields(model_class)
@@ -81,6 +85,14 @@ module LcpRuby
         ScopeApplicator.new(model_class, model_definition).apply!
       end
 
+      def apply_soft_delete(_model_class)
+        # No-op placeholder — will be implemented by SoftDeleteApplicator in soft_delete feature PR
+      end
+
+      def apply_tree(_model_class)
+        # No-op placeholder — will be implemented by TreeApplicator in tree feature PR
+      end
+
       def apply_callbacks(model_class)
         CallbackApplicator.new(model_class, model_definition).apply!
       end
@@ -93,8 +105,16 @@ module LcpRuby
         ComputedApplicator.new(model_class, model_definition).apply!
       end
 
+      def apply_auditing(_model_class)
+        # No-op placeholder — will be implemented by AuditingApplicator in auditing feature PR
+      end
+
       def apply_positioning(model_class)
         PositioningApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_userstamps(_model_class)
+        # No-op placeholder — will be implemented by UserstampsApplicator in userstamps feature PR
       end
 
       def apply_external_fields(model_class)

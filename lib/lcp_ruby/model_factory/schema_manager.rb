@@ -8,7 +8,7 @@ module LcpRuby
       end
 
       def ensure_table!
-        return if model_definition.table_name == "_virtual"
+        return if model_definition.virtual?
 
         table = model_definition.table_name
 
