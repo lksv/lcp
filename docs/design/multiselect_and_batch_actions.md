@@ -545,7 +545,7 @@ This matches the existing single-action pattern where `ActionSet` filters visibl
 
 #### Soft Delete
 
-When a model has `soft_delete: true`, the built-in `destroy` batch action calls `discard!` instead of `destroy!` on each record — same as the single-record destroy behavior. No special configuration needed.
+When a model has `soft_delete: true`, the built-in `destroy` batch action calls `discard!` instead of `destroy!` on each record — same as the single-record destroy behavior. No special configuration needed. The `discard!` method handles audit tracking via explicit `AuditWriter.log` dispatch (see [Model Options Infrastructure §2](model_options_infrastructure.md)).
 
 For archive presenters (`scope: discarded`), the batch actions `restore` and `permanently_destroy` can be configured:
 
@@ -564,11 +564,25 @@ presenter:
 
 #### Auditing
 
-Batch operations create **one audit log entry per record** — not one entry for the entire batch. This follows the principle from `model_options_infrastructure.md`: the audit trail is per-record, matching the database state.
+Batch operations create **one audit log entry per record** — not one entry for the entire batch. This follows the principle from [Model Options Infrastructure §2](model_options_infrastructure.md): the audit trail is per-record, matching the database state.
 
 For built-in `update` and `destroy` batch actions, audit entries are created automatically via the existing `after_save` / `after_destroy` callbacks. No special handling needed — the batch action loops over records and calls `update` / `destroy!` on each, which fires callbacks normally.
 
-For soft delete's `discard!` (which uses `update_columns`), the explicit `AuditWriter.log` call in `SoftDeleteApplicator` handles audit tracking as defined in `model_options_infrastructure.md`.
+For soft delete's `discard!` (which uses `update_columns`), the explicit `AuditWriter.log` call in `SoftDeleteApplicator` handles audit tracking — this follows the `update_columns` bypass contract (infrastructure §2).
+
+**If a future batch action uses `update_all` for performance** (e.g., mass status change on 500+ records), it should use `BulkUpdater.tracked_update_all` (infrastructure §2) which combines bulk SQL updates with per-record audit notifications:
+
+```ruby
+# Example: future optimized batch update
+LcpRuby::BulkUpdater.tracked_update_all(
+  scope.where(id: record_ids),
+  { status: "approved" },
+  action: :bulk_approve,
+  model_definition: current_model_definition
+)
+```
+
+The current implementation uses per-record `update` for correctness (see Open Question #1). `BulkUpdater` is the path for future optimization when batch sizes warrant it.
 
 #### Positioning
 

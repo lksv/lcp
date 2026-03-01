@@ -3,7 +3,7 @@
 **Status:** Proposed
 **Date:** 2026-02-22
 
-> **Note:** This feature depends on [Model Options Infrastructure](model_options_infrastructure.md) for `boolean_or_hash_option` helper and Builder pipeline ordering. See also [Record Positioning](record_positioning.md) for the `positioning` gem integration that tree ordering builds on, and [Soft Delete](soft_delete.md) for `dependent: :discard` cascade behavior on tree associations.
+> **Note:** This feature depends on [Model Options Infrastructure](model_options_infrastructure.md) for `boolean_or_hash_option` helper (§3), `validate_boolean_or_hash_option` validator (§4), Builder pipeline ordering (§1), cross-feature interaction matrix (§9), and error handling conventions (§10). See also [Record Positioning](record_positioning.md) for the `positioning` gem integration that tree ordering builds on, [Soft Delete](soft_delete.md) for `dependent: :discard` cascade behavior on tree associations, and [Auditing](auditing.md) for reparenting audit trail.
 
 ## Problem
 
@@ -249,6 +249,8 @@ For in-memory tree building (tree_select, tree index), all records are loaded an
 
 ### Interaction with Positioning
 
+Tree and positioning compose naturally (see [Model Options Infrastructure §9](model_options_infrastructure.md), tree+positioning row).
+
 When `tree: { ordered: true }`:
 
 1. `TreeApplicator` sets `@model_definition.positioning_config` to `{ "field" => position_field, "scope" => [parent_field] }` **before** `PositioningApplicator` runs
@@ -276,7 +278,7 @@ tree:
 
 ### Interaction with Soft Delete
 
-Tree does not need special soft delete handling. The `dependent` option on the auto-generated `has_many :children` association controls cascade behavior:
+Tree does not need special soft delete handling (see [Model Options Infrastructure §9](model_options_infrastructure.md), soft_delete+tree row). The `dependent` option on the auto-generated `has_many :children` association controls cascade behavior:
 
 | `tree.dependent` value | On parent `destroy!` | On parent `discard!` (if soft_delete) |
 |------------------------|---------------------|---------------------------------------|
@@ -291,7 +293,7 @@ When `tree.dependent` is `discard`, the `ConfigurationValidator` enforces that t
 
 ### Interaction with Auditing
 
-No special handling needed. Reparenting (`update(parent_id: 12)`) is recorded as a normal field change:
+No special handling needed (see [Model Options Infrastructure §9](model_options_infrastructure.md), auditing+tree row). Reparenting (`update(parent_id: 12)`) is recorded as a normal field change:
 
 ```json
 { "parent_id": [5, 12] }
@@ -1057,46 +1059,30 @@ end
 
 **File:** `lib/lcp_ruby/model_factory/builder.rb`
 
-Add `apply_tree` to the pipeline **before** `apply_associations` — because TreeApplicator creates associations that AssociationApplicator should not duplicate. Alternatively, TreeApplicator creates associations directly (bypassing AssociationApplicator) and runs **after** `apply_associations`:
+`apply_tree` is part of the canonical Builder pipeline defined in [Model Options Infrastructure §1](model_options_infrastructure.md). It runs after `apply_soft_delete` and before `apply_callbacks`:
 
 ```ruby
-def build
-  model_class = create_model_class
-  apply_table_name(model_class)
-  apply_enums(model_class)
-  apply_validations(model_class)
-  apply_transforms(model_class)
-  apply_associations(model_class)
-  apply_tree(model_class)              # ← NEW: after associations (adds its own)
-  apply_attachments(model_class)
-  apply_scopes(model_class)
-  apply_soft_delete(model_class)       # (from soft_delete design)
-  apply_callbacks(model_class)
-  apply_auditing(model_class)          # (from auditing design)
-  apply_defaults(model_class)
-  apply_computed(model_class)
-  apply_positioning(model_class)       # tree: { ordered: true } configured positioning here
-  apply_external_fields(model_class)
-  apply_model_extensions(model_class)
-  apply_custom_fields(model_class)
-  apply_label_method(model_class)
-  validate_external_methods!(model_class)
-  model_class
-end
+# Canonical pipeline position (see model_options_infrastructure.md §1):
+# ...
+# apply_scopes
+# apply_soft_delete
+# apply_tree              ← parent/child associations, traversal, cycle detection
+# apply_callbacks
+# apply_auditing
+# ...
 
 def apply_tree(model_class)
   TreeApplicator.new(model_class, model_definition).apply!
 end
 ```
 
-**Pipeline ordering rationale:**
+**Tree-specific ordering rationale** (see full rationale table in infrastructure §1):
 
 | Step | Must come after | Reason |
 |------|----------------|--------|
 | `apply_tree` | `apply_associations` | TreeApplicator adds its own associations directly on the model class. Running after AssociationApplicator ensures manual associations are already in place, so ConfigurationValidator can detect conflicts at boot time. |
-| `apply_tree` | — before `apply_scopes` | Tree scopes (`roots`, `leaves`) are added by TreeApplicator, not ScopeApplicator. No dependency. |
+| `apply_tree` | `apply_soft_delete` | Tree may reference `dependent: :discard` for subtree cascade; soft_delete scopes must exist first. |
 | `apply_tree` | — before `apply_positioning` | When `ordered: true`, TreeApplicator writes `@positioning_config` on ModelDefinition. PositioningApplicator reads it later. |
-| `apply_tree` | — before `apply_soft_delete` | SoftDeleteApplicator reads association definitions to find `dependent: :discard`. Tree associations must exist first. |
 
 ### 4. `ModelFactory::SchemaManager`
 

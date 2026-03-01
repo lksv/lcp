@@ -1,9 +1,9 @@
 # Design: Auditing (Change History)
 
-**Status:** Proposed — pending revision
+**Status:** Proposed
 **Date:** 2026-02-22
 
-> **Note:** This document should be revised after [Model Options Infrastructure](model_options_infrastructure.md) is implemented. That document defines shared infrastructure (Builder pipeline ordering, `update_columns` bypass contract, `boolean_or_hash_option` helper, `create_log_table` helper, `UserSnapshot`) that this design should reference instead of defining inline. Key sections affected: Builder pipeline order (§7), ModelDefinition accessors (§2), ConfigurationValidator (§12), SchemaManager table creation (§3), and user snapshot logic (§5). See also [Multiselect and Batch Actions](multiselect_and_batch_actions.md) for bulk operation audit implications.
+> **Infrastructure:** This document references [Model Options Infrastructure](model_options_infrastructure.md) for shared patterns: `boolean_or_hash_option` helper (§3), `validate_boolean_or_hash_option` (§4), `create_log_table` helper (§7), `LcpRuby::UserSnapshot` (§8), canonical Builder pipeline ordering (§1), `update_columns` bypass contract (§2), positioning audit strategy (§2), cross-feature interaction matrix (§9), and error handling conventions (§10). See also [Multiselect and Batch Actions](multiselect_and_batch_actions.md) for bulk operation audit implications.
 
 ## Problem
 
@@ -370,26 +370,15 @@ end
 
 **File:** `lib/lcp_ruby/metadata/model_definition.rb`
 
-Add auditing accessor methods:
+Add auditing accessor methods using the shared `boolean_or_hash_option` helper (see [Model Options Infrastructure §3](model_options_infrastructure.md#3-model-option-accessor-pattern)):
 
 ```ruby
 def auditing?
-  !!auditing_config
+  boolean_or_hash_option("auditing").first
 end
 
 def auditing_options
-  case options["auditing"]
-  when true then {}
-  when Hash then options["auditing"]
-  else {}
-  end
-end
-
-private
-
-def auditing_config
-  a = options["auditing"]
-  a == true || a.is_a?(Hash) ? a : nil
+  boolean_or_hash_option("auditing").last
 end
 ```
 
@@ -397,35 +386,18 @@ end
 
 **File:** `lib/lcp_ruby/model_factory/schema_manager.rb`
 
-Create the shared `lcp_audit_logs` table if any model has `auditing: true`. This is done once during boot, not per-model:
+Create the shared `lcp_audit_logs` table using the `create_log_table` helper (see [Model Options Infrastructure §7](model_options_infrastructure.md#7-unified-vs-per-feature-log-tables)). This is done once during boot, not per-model:
 
 ```ruby
 def self.ensure_audit_table!
-  connection = ActiveRecord::Base.connection
-  return if connection.table_exists?("lcp_audit_logs")
-
-  connection.create_table("lcp_audit_logs") do |t|
-    t.string  :auditable_type, null: false
-    t.bigint  :auditable_id,   null: false
-    t.string  :action,         null: false
-    t.column  :changes_data, LcpRuby.json_column_type, null: false, default: {}
-    t.bigint  :user_id
-    t.column  :user_snapshot, LcpRuby.json_column_type
-    t.column  :metadata, LcpRuby.json_column_type
-    t.datetime :created_at, null: false
+  create_log_table("lcp_audit_logs", record_prefix: "auditable") do |t|
+    t.string :action, null: false
+    t.column :changes_data, LcpRuby.json_column_type, null: false, default: {}
   end
-
-  connection.add_index "lcp_audit_logs",
-    [:auditable_type, :auditable_id, :created_at],
-    name: "idx_audit_logs_on_auditable_and_time"
-  connection.add_index "lcp_audit_logs",
-    [:user_id, :created_at],
-    name: "idx_audit_logs_on_user_and_time"
-  connection.add_index "lcp_audit_logs",
-    [:created_at],
-    name: "idx_audit_logs_on_time"
 end
 ```
+
+The `create_log_table` helper provides the shared columns (`auditable_type`, `auditable_id`, `user_id`, `user_snapshot`, `metadata`, `created_at`) and standard indexes automatically.
 
 Called from `Engine.load_metadata!` after all models are loaded, but only if at least one model has `auditing: true`.
 
@@ -687,16 +659,10 @@ module LcpRuby
 
       # -- Helpers --
 
+      # Delegates to the shared LcpRuby::UserSnapshot module
+      # (see Model Options Infrastructure §8).
       def self.snapshot_user(user)
-        return nil unless user
-
-        snapshot = { "id" => user.id }
-        snapshot["email"] = user.email if user.respond_to?(:email)
-        snapshot["name"] = user.name if user.respond_to?(:name)
-        if user.respond_to?(LcpRuby.configuration.role_method)
-          snapshot["role"] = user.send(LcpRuby.configuration.role_method)
-        end
-        snapshot
+        LcpRuby::UserSnapshot.capture(user)
       end
 
       def self.build_metadata
@@ -707,7 +673,13 @@ module LcpRuby
         case value
         when Hash then value
         when String
-          JSON.parse(value) rescue value
+          begin
+            JSON.parse(value)
+          rescue JSON::ParserError => e
+            raise unless Rails.env.production?
+            Rails.logger.error("[LcpRuby::AuditWriter] JSON parse error: #{e.message} (value=#{value.inspect.truncate(100)})")
+            value
+          end
         else
           value
         end
@@ -750,35 +722,15 @@ end
 
 **File:** `lib/lcp_ruby/model_factory/builder.rb`
 
-Add `apply_auditing` to the pipeline after `apply_callbacks`:
+Add `apply_auditing` to the pipeline after `apply_callbacks`. See [Model Options Infrastructure §1](model_options_infrastructure.md#1-canonical-builder-pipeline-order) for the canonical pipeline ordering with all model features:
 
 ```ruby
-def build
-  model_class = create_model_class
-  apply_table_name(model_class)
-  apply_enums(model_class)
-  apply_validations(model_class)
-  apply_transforms(model_class)
-  apply_associations(model_class)
-  apply_attachments(model_class)
-  apply_scopes(model_class)
-  apply_callbacks(model_class)
-  apply_auditing(model_class)              # <-- new, after callbacks
-  apply_defaults(model_class)
-  apply_computed(model_class)
-  apply_positioning(model_class)
-  apply_external_fields(model_class)
-  apply_model_extensions(model_class)
-  apply_custom_fields(model_class)
-  apply_label_method(model_class)
-  validate_external_methods!(model_class)
-  model_class
-end
-
 def apply_auditing(model_class)
   AuditingApplicator.new(model_class, model_definition).apply!
 end
 ```
+
+Pipeline position: after `apply_callbacks`, before `apply_defaults` (audit callbacks must fire after user-defined callbacks so user logic completes first).
 
 ### 8. `Configuration`
 
@@ -1011,12 +963,25 @@ end
 
 ## Interaction with Other Features
 
+See [Model Options Infrastructure §9](model_options_infrastructure.md#9-cross-feature-interaction-matrix) for the full cross-feature interaction matrix covering all feature combinations.
+
 ### Soft Delete
 
 When a soft-deletable model has `auditing: true`:
 - `discard!` uses `update_columns` which **bypasses** `after_save` callbacks
-- Audit log for discard/undiscard operations should be written by `SoftDeleteApplicator` directly, dispatching to `AuditWriter.log` with action `:discard` / `:undiscard`
+- `SoftDeleteApplicator` dispatches to `AuditWriter.log` explicitly with action `:discard` / `:undiscard` (see [Model Options Infrastructure §2](model_options_infrastructure.md#2-tracked-change-notifications-update_columns-bypass))
 - The `changes_data` contains `{"discarded_at": [null, "2026-02-22T..."]}` or the reverse
+
+### Positioning
+
+The `positioning` gem internally calls `update_all` to shift sibling positions — these mechanical adjustments are **NOT individually audited** (see [Model Options Infrastructure §2, Positioning subsection](model_options_infrastructure.md#positioning-why-gem-internal-update_all-calls-are-not-audited)). Instead:
+- Gem-internal sibling shifts are treated as internal bookkeeping
+- The reorder controller action writes a single summary audit entry with action `:reorder`
+- A record's own `position` field change is captured by the normal `after_save` callback
+
+### Userstamps
+
+When a model has both `userstamps: true` and `auditing: true`, userstamp fields (`updated_by_id`, `created_by_id`) appear in `saved_changes` and are audited by default. If this is noise, the model can use `auditing: { ignore: [created_by_id, updated_by_id] }`.
 
 ### Workflow Transitions
 

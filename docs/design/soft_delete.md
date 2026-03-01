@@ -1,9 +1,9 @@
 # Design: Soft Delete (Discard)
 
-**Status:** Proposed — pending revision
+**Status:** Proposed
 **Date:** 2026-02-22
 
-> **Note:** This document should be revised after [Model Options Infrastructure](model_options_infrastructure.md) is implemented. That document defines shared infrastructure (Builder pipeline ordering, `update_columns` bypass contract for auditing integration, `boolean_or_hash_option` helper) that this design should reference instead of defining inline. Key sections affected: Builder pipeline order (§4), ModelDefinition accessors (§1), ConfigurationValidator (§11), and `discard!`/`undiscard!` methods which must include explicit `AuditWriter.log` calls when the model has auditing enabled. See also [Multiselect and Batch Actions](multiselect_and_batch_actions.md) for bulk discard/restore support.
+> **Infrastructure:** This document references [Model Options Infrastructure](model_options_infrastructure.md) for shared patterns: `boolean_or_hash_option` helper (§3), `validate_boolean_or_hash_option` (§4), canonical Builder pipeline ordering (§1), `update_columns` bypass contract with explicit `AuditWriter.log` dispatch (§2), and cross-feature interaction matrix (§9). See also [Multiselect and Batch Actions](multiselect_and_batch_actions.md) for bulk discard/restore support.
 
 ## Problem
 
@@ -423,26 +423,19 @@ When a parent is discarded and a `has_many` association has **no** `dependent` o
 
 **File:** `lib/lcp_ruby/metadata/model_definition.rb`
 
-Add soft delete accessor methods:
+Add soft delete accessor methods using the shared `boolean_or_hash_option` helper (see [Model Options Infrastructure §3](model_options_infrastructure.md#3-model-option-accessor-pattern)):
 
 ```ruby
 def soft_delete?
-  !!soft_delete_config
+  boolean_or_hash_option("soft_delete").first
+end
+
+def soft_delete_options
+  boolean_or_hash_option("soft_delete").last
 end
 
 def soft_delete_column
-  case options["soft_delete"]
-  when true then "discarded_at"
-  when Hash then options["soft_delete"]["column"] || "discarded_at"
-  else nil
-  end
-end
-
-private
-
-def soft_delete_config
-  sd = options["soft_delete"]
-  sd == true || sd.is_a?(Hash) ? sd : nil
+  soft_delete_options.fetch("column", "discarded_at")
 end
 ```
 
@@ -539,6 +532,18 @@ module LcpRuby
               send(assoc.name).kept.find_each { |child| child.discard!(by: self) }
             end
 
+          # Explicit audit notification — update_columns bypasses after_save callbacks.
+          # See Model Options Infrastructure §2 (Tracked Change Notifications).
+          if model_def.auditing?
+            LcpRuby::Auditing::AuditWriter.log(
+              action: :discard,
+              record: self,
+              options: model_def.auditing_options,
+              model_definition: model_def,
+              nested_associations: []
+            )
+          end
+
           LcpRuby::Events::Dispatcher.dispatch(
             event_name: :after_discard,
             record: self,
@@ -562,6 +567,17 @@ module LcpRuby
             end
 
           update_columns(col => nil, discarded_by_type: nil, discarded_by_id: nil)
+
+          # Explicit audit notification — see Model Options Infrastructure §2.
+          if model_def.auditing?
+            LcpRuby::Auditing::AuditWriter.log(
+              action: :undiscard,
+              record: self,
+              options: model_def.auditing_options,
+              model_definition: model_def,
+              nested_associations: []
+            )
+          end
 
           LcpRuby::Events::Dispatcher.dispatch(
             event_name: :after_undiscard,
@@ -591,34 +607,15 @@ end
 
 **File:** `lib/lcp_ruby/model_factory/builder.rb`
 
-Add `apply_soft_delete` to the pipeline after `apply_scopes` (line 18):
+Add `apply_soft_delete` to the pipeline after `apply_scopes`. See [Model Options Infrastructure §1](model_options_infrastructure.md#1-canonical-builder-pipeline-order) for the canonical pipeline ordering with all model features:
 
 ```ruby
-def build
-  model_class = create_model_class
-  apply_table_name(model_class)
-  apply_enums(model_class)
-  apply_validations(model_class)
-  apply_transforms(model_class)
-  apply_associations(model_class)
-  apply_attachments(model_class)
-  apply_scopes(model_class)
-  apply_soft_delete(model_class)          # <-- new, after scopes
-  apply_callbacks(model_class)
-  apply_defaults(model_class)
-  apply_computed(model_class)
-  apply_external_fields(model_class)
-  apply_model_extensions(model_class)
-  apply_custom_fields(model_class)
-  apply_label_method(model_class)
-  validate_external_methods!(model_class)
-  model_class
-end
-
 def apply_soft_delete(model_class)
   SoftDeleteApplicator.new(model_class, model_definition).apply!
 end
 ```
+
+Pipeline position: after `apply_scopes`, before `apply_tree` (soft_delete adds scopes and must be available for tree's `dependent: :discard` support).
 
 ### 5. `ResourcesController`
 
@@ -762,30 +759,16 @@ Recognize `after_discard` and `after_undiscard` as valid event types. Event disp
 
 **File:** `lib/lcp_ruby/metadata/configuration_validator.rb`
 
-Add validation for `soft_delete` option and `dependent: :discard` associations:
+Add validation for `soft_delete` option using the shared `validate_boolean_or_hash_option` helper (see [Model Options Infrastructure §4](model_options_infrastructure.md#4-configurationvalidator-pattern)), plus `dependent: :discard` cross-model validation:
 
 ```ruby
 def validate_soft_delete(model)
-  sd = model.options["soft_delete"]
-  return unless sd
+  opts = validate_boolean_or_hash_option(model, "soft_delete", allowed_keys: %w[column])
+  return unless opts
 
-  unless sd == true || sd.is_a?(Hash)
-    @errors << "Model '#{model.name}': soft_delete must be true or a Hash " \
-               "with optional 'column' key, got #{sd.class}"
-    return
-  end
-
-  if sd.is_a?(Hash)
-    allowed_keys = %w[column]
-    unknown = sd.keys - allowed_keys
-    if unknown.any?
-      @errors << "Model '#{model.name}': soft_delete has unknown keys: #{unknown.join(', ')}. " \
-                 "Allowed keys: #{allowed_keys.join(', ')}"
-    end
-
-    if sd["column"].present? && !sd["column"].is_a?(String)
-      @errors << "Model '#{model.name}': soft_delete.column must be a string"
-    end
+  # Feature-specific validation
+  if opts["column"].present? && !opts["column"].is_a?(String)
+    @errors << "Model '#{model.name}': soft_delete.column must be a string"
   end
 end
 
