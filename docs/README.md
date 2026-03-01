@@ -61,18 +61,29 @@ Implemented:
 - [Unified Condition Operators](design/unified_condition_operators.md) — Strict condition evaluation, shared 12-operator set across all contexts
 - [Record Rules Action Visibility](design/record_rules_action_visibility.md) — Automatic hiding of edit/destroy buttons based on record_rules
 - [Inline Collection Editor](design/inline_collection_editor.md) — Unified editing for nested associations, JSON arrays, and bulk records: row-scoped conditions, JSON field source, virtual models, sub-sections, presenter-driven manage page
+- [Groups, Roles & Org Structure](design/groups_roles_and_org_structure.md) — Enterprise organizational units, groups, and group-to-role mapping
 
 Proposed:
 
-- [Model Options Infrastructure](design/model_options_infrastructure.md) — Shared patterns for model-level feature flags (soft_delete, auditing)
-- [Auditing](design/auditing.md) — Native change tracking and audit trail
+- [Model Options Infrastructure](design/model_options_infrastructure.md) — Shared patterns for model-level feature flags (soft_delete, auditing, userstamps, tree)
 - [Soft Delete](design/soft_delete.md) — Discard/restore support with `discarded_at` timestamp
+- [Auditing](design/auditing.md) — Native change tracking and audit trail
+- [Userstamps](design/userstamps.md) — Automatic `created_by_id` / `updated_by_id` tracking
+- [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments
-- [Array Field Type](design/array_field_type.md) — Native array fields with typed items and array-specific operators
 - [Multiselect and Batch Actions](design/multiselect_and_batch_actions.md) — Checkbox selection and bulk operations on index pages
+- [Array Field Type](design/array_field_type.md) — Native array fields with typed items and array-specific operators
+- [Advanced Search & Filter Builder](design/advanced_search.md) — Multi-field search, saved filters, and visual filter builder
+- [Context-Aware Presenters](design/context_aware_presenters.md) — Parent-context-dependent presenter resolution for polymorphic sub-resources
+- [Dynamic Presenters](design/dynamic_presenters.md) — DB-backed presenter overrides (user/role/system personalization layer)
 - [Scoped Permissions](design/scoped_permissions.md) — Context-dependent permission definitions for polymorphic sub-resources
-- [Groups, Roles & Org Structure](design/groups_roles_and_org_structure.md) — Enterprise organizational units, groups, and group-to-role mapping
+- [Context-Aware View Switcher](design/view_switcher_context.md) — View switcher integration with context-aware presenters
+- [Document Management](design/document_management.md) — File-centric document management (versioning, preview, metadata, workflows)
 - [Workflow & Approvals](design/workflow_and_approvals.md) — Metadata-driven state machines and approval processes
+
+Research:
+
+- [Basepack Search Lessons](design/basepack_lessons.md) — Lessons learned from Basepack search system for advanced search design
 
 ## Internals
 
