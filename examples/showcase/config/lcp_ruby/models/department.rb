@@ -9,9 +9,10 @@ define_model :department do
     validates :presence
     validates :uniqueness
   end
+  field :parent_id, :integer
 
-  belongs_to :parent, model: :department, required: false
-  has_many :children, model: :department, foreign_key: :parent_id
+  tree true
+
   has_many :employees, model: :employee
 
   timestamps true

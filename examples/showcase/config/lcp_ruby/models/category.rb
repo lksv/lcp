@@ -6,9 +6,10 @@ define_model :category do
     validates :presence
   end
   field :description, :text, label: "Description"
+  field :parent_id, :integer
 
-  belongs_to :parent, model: :category, required: false
-  has_many :children, model: :category, foreign_key: :parent_id
+  tree true
+
   has_many :articles, model: :article
 
   timestamps true

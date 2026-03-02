@@ -7,11 +7,12 @@ define_presenter :departments do
   index do
     default_sort :name, :asc
     per_page 25
-    row_click :show
+    tree_view true
+    default_expanded 2
+    reparentable true
 
     column :name, link_to: :show, sortable: true
     column :code, sortable: true
-    column "parent.name", label: "Parent Department"
 
     includes :parent
   end

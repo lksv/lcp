@@ -8,6 +8,9 @@ define_presenter :categories do
     description "Self-referential tree model with parent/children associations."
     default_sort :name, :asc
     per_page 25
+    tree_view true
+    default_expanded "all"
+    reparentable true
 
     column :name, link_to: :show, sortable: true
     column :description, renderer: :truncate, options: { max: 80 }
