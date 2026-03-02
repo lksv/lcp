@@ -51,7 +51,9 @@
     <%= render "lcp_ruby/resources/advanced_filter" %>
   <% end %>
 
-  <% if @records.empty? && current_presenter.index_config["empty_message"] %>
+  <% if current_presenter.tree_view? && current_model_definition.tree? %>
+    <%= render "lcp_ruby/resources/tree_index" %>
+  <% elsif @records.empty? && current_presenter.index_config["empty_message"] %>
     <div class="lcp-empty-state">
       <p><%= current_presenter.index_config["empty_message"] %></p>
     </div>

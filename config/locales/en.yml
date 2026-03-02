@@ -27,6 +27,10 @@ en:
     tree_select:
       expand: "Expand"
       collapse: "Collapse"
+    tree:
+      expand_all: "Expand all"
+      collapse_all: "Collapse all"
+      root_drop_zone: "Drop here to make root"
     manage:
       details: "Details"
       collapse: "Collapse"

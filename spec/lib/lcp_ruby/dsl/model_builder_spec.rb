@@ -921,13 +921,17 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
         builder = described_class.new(:category)
         builder.instance_eval do
           tree parent_field: :parent_category_id, children_name: :subcategories,
-               depth_column: :depth, counter_cache: true
+               parent_name: :parent_category, dependent: :nullify,
+               max_depth: 5, ordered: true, position_field: :sort_order
         end
         expect(builder.to_hash["options"]["tree"]).to eq({
           "parent_field" => "parent_category_id",
           "children_name" => "subcategories",
-          "depth_column" => "depth",
-          "counter_cache" => true
+          "parent_name" => "parent_category",
+          "dependent" => "nullify",
+          "max_depth" => 5,
+          "ordered" => true,
+          "position_field" => "sort_order"
         })
       end
     end

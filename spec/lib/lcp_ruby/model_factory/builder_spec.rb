@@ -179,7 +179,8 @@ RSpec.describe LcpRuby::ModelFactory::Builder do
       all_opts_hash = {
         "name" => "all_opt_item",
         "fields" => [
-          { "name" => "title", "type" => "string" }
+          { "name" => "title", "type" => "string" },
+          { "name" => "parent_id", "type" => "integer" }
         ],
         "options" => {
           "timestamps" => false,

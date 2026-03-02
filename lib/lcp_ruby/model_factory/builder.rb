@@ -90,8 +90,8 @@ module LcpRuby
         SoftDeleteApplicator.new(model_class, model_definition).apply!
       end
 
-      def apply_tree(_model_class)
-        # No-op placeholder — will be implemented by TreeApplicator in tree feature PR
+      def apply_tree(model_class)
+        TreeApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_ransack(model_class)

@@ -556,6 +556,20 @@ th.lcp-drag-column { background: #f8f9fa; }
 /* Empty value placeholder */
 .lcp-empty-value { color: #adb5bd; font-style: italic; }
 
+/* Tree index view */
+.lcp-tree-table .lcp-tree-row { transition: background-color 0.15s; }
+.lcp-tree-chevron { background: none; border: none; cursor: pointer; padding: 0 4px; font-size: 0.7em; color: #6c757d; transition: transform 0.2s; display: inline-block; width: 20px; text-align: center; }
+.lcp-tree-chevron.expanded { transform: rotate(90deg); }
+.lcp-tree-leaf-spacer { display: inline-block; width: 20px; }
+.lcp-tree-ancestor-context { opacity: 0.5; }
+.lcp-tree-ancestor-context .lcp-actions { visibility: hidden; }
+.lcp-tree-drop-before { border-top: 2px solid #0d6efd; }
+.lcp-tree-drop-child { background-color: #e8f0fe; }
+.lcp-tree-drop-after { border-bottom: 2px solid #0d6efd; }
+.lcp-tree-drop-invalid { border: 2px solid #dc3545; }
+.lcp-tree-root-drop-zone { padding: 8px; margin-top: 4px; border: 2px dashed #dee2e6; border-radius: 4px; text-align: center; color: #6c757d; font-size: 0.85em; display: none; }
+.lcp-tree-root-drop-zone.active { display: block; border-color: #0d6efd; background: #f0f7ff; }
+
 /* Copy buttons */
 .lcp-copy-url.lcp-copied { background: #d4edda; border-color: #c3e6cb; }
 .lcp-copy-field { background: none; border: none; cursor: pointer; color: #6c757d; padding: 0 0.25rem; vertical-align: middle; opacity: 0.6; }

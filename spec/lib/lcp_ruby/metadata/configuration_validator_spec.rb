@@ -3858,13 +3858,14 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       expect(timestamp_warnings).to be_empty
     end
 
-    it "accepts tree: true" do
+    it "accepts tree: true with parent_id field" do
       v = with_metadata(
         models: [ <<~YAML ]
           model:
             name: category
             fields:
               - { name: name, type: string }
+              - { name: parent_id, type: integer }
             options:
               tree: true
         YAML
@@ -3882,12 +3883,12 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             name: category
             fields:
               - { name: name, type: string }
+              - { name: parent_category_id, type: integer }
             options:
               tree:
                 parent_field: parent_category_id
                 children_name: subcategories
-                depth_column: depth
-                counter_cache: true
+                parent_name: parent_category
         YAML
       )
 
@@ -3903,6 +3904,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             name: category
             fields:
               - { name: name, type: string }
+              - { name: parent_id, type: integer }
             options:
               tree:
                 order_column: position
@@ -3915,6 +3917,144 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       )
     end
 
+    it "errors when tree parent_field is not declared in fields" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+            options:
+              tree: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/tree parent_field 'parent_id' must be declared in fields/)
+      )
+    end
+
+    it "errors when tree parent_field is not integer type" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+              - { name: parent_id, type: string }
+            options:
+              tree: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/tree parent_field 'parent_id' must be type integer/)
+      )
+    end
+
+    it "errors when tree dependent is invalid" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+              - { name: parent_id, type: integer }
+            options:
+              tree:
+                dependent: cascade
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/tree dependent 'cascade' is invalid/)
+      )
+    end
+
+    it "errors when tree dependent: discard without soft_delete" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+              - { name: parent_id, type: integer }
+            options:
+              tree:
+                dependent: discard
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/dependent: discard requires soft_delete/)
+      )
+    end
+
+    it "errors when tree ordered: true without position field" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+              - { name: parent_id, type: integer }
+            options:
+              tree:
+                ordered: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/tree ordered: true requires position_field 'position'/)
+      )
+    end
+
+    it "accepts tree ordered: true with position field" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+              - { name: parent_id, type: integer }
+              - { name: position, type: integer }
+            options:
+              tree:
+                ordered: true
+        YAML
+      )
+
+      result = v.validate
+      tree_errors = result.errors.select { |e| e.include?("tree") }
+      expect(tree_errors).to be_empty
+    end
+
+    it "warns on manual association conflict with tree" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+              - { name: parent_id, type: integer }
+            associations:
+              - { type: belongs_to, name: parent, target_model: category }
+            options:
+              tree: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/manual belongs_to :parent association.*conflicts with tree/)
+      )
+    end
+
     it "accepts a model with all four features enabled" do
       v = with_metadata(
         models: [ <<~YAML ]
@@ -3922,6 +4062,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             name: document
             fields:
               - { name: title, type: string }
+              - { name: parent_id, type: integer }
             options:
               soft_delete: true
               auditing: true

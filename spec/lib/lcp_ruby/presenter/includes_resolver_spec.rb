@@ -681,6 +681,86 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
       expect(strategy.includes).to eq([ { company: :industry } ])
     end
 
+    context "with tree-generated associations (AR-only, not in metadata)" do
+      let(:tree_model_def) do
+        LcpRuby::Metadata::ModelDefinition.from_hash(
+          "name" => "tree_category",
+          "fields" => [
+            { "name" => "name", "type" => "string" },
+            { "name" => "parent_id", "type" => "integer" }
+          ],
+          "options" => { "tree" => true },
+          "associations" => []
+        )
+      end
+
+      before do
+        LcpRuby::Types::BuiltInTypes.register_all!
+        LcpRuby::Services::BuiltInTransforms.register_all!
+        LcpRuby::Services::BuiltInDefaults.register_all!
+        LcpRuby::Services::BuiltInAccessors.register_all!
+        LcpRuby::ModelFactory::SchemaManager.new(tree_model_def).ensure_table!
+        model_class = LcpRuby::ModelFactory::Builder.new(tree_model_def).build
+        LcpRuby.registry.register(tree_model_def.name, model_class)
+      end
+
+      after do
+        conn = ActiveRecord::Base.connection
+        conn.drop_table(:tree_categories) if conn.table_exists?(:tree_categories)
+      end
+
+      it "resolves has_many tree association (children) via AR reflections" do
+        deps = [
+          LcpRuby::Presenter::IncludesResolver::AssociationDependency.new(path: :children, reason: :display)
+        ]
+
+        strategy = described_class.resolve(deps, tree_model_def)
+
+        expect(strategy.includes).to eq([ :children ])
+      end
+
+      it "resolves belongs_to tree association (parent) via AR reflections" do
+        deps = [
+          LcpRuby::Presenter::IncludesResolver::AssociationDependency.new(path: :parent, reason: :display)
+        ]
+
+        strategy = described_class.resolve(deps, tree_model_def)
+
+        expect(strategy.includes).to eq([ :parent ])
+      end
+
+      it "maps tree belongs_to + query to eager_load" do
+        deps = [
+          LcpRuby::Presenter::IncludesResolver::AssociationDependency.new(path: :parent, reason: :query)
+        ]
+
+        strategy = described_class.resolve(deps, tree_model_def)
+
+        expect(strategy.eager_load).to eq([ :parent ])
+      end
+
+      it "maps tree has_many + query to joins + includes" do
+        deps = [
+          LcpRuby::Presenter::IncludesResolver::AssociationDependency.new(path: :children, reason: :query)
+        ]
+
+        strategy = described_class.resolve(deps, tree_model_def)
+
+        expect(strategy.joins).to eq([ :children ])
+        expect(strategy.includes).to eq([ :children ])
+      end
+
+      it "still ignores truly nonexistent associations on tree models" do
+        deps = [
+          LcpRuby::Presenter::IncludesResolver::AssociationDependency.new(path: :nonexistent, reason: :display)
+        ]
+
+        strategy = described_class.resolve(deps, tree_model_def)
+
+        expect(strategy).to be_empty
+      end
+    end
+
     it "merges nested path with simple path for same association" do
       deps = [
         LcpRuby::Presenter::IncludesResolver::AssociationDependency.new(path: :company, reason: :display),

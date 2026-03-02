@@ -235,7 +235,15 @@
         "empty_message": { "type": "string" },
         "actions_position": { "type": "string" },
         "includes": { "type": "array" },
-        "eager_load": { "type": "array" }
+        "eager_load": { "type": "array" },
+        "tree_view": { "type": "boolean" },
+        "default_expanded": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "string", "const": "all" }
+          ]
+        },
+        "reparentable": { "type": "boolean" }
       },
       "additionalProperties": false
     },

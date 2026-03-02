@@ -166,12 +166,40 @@ module LcpRuby
             f = f.merge("field_definition" => field_def)
             # Computed fields are readonly in forms
             f = f.merge("readonly" => true) if field_def.computed?
+
+            # Attach association metadata for FK fields that are also declared as fields
+            # (e.g., tree parent_id declared in fields + tree generates belongs_to :parent)
+            unless f.key?("association")
+              assoc = find_association_for_fk(f["field"])
+              f = f.merge("association" => assoc) if assoc
+            end
           end
 
           f
         end
 
         section.merge("fields" => fields)
+      end
+
+      # Find a belongs_to association for a FK field name.
+      # Checks metadata associations first, then synthesizes one for tree models.
+      def find_association_for_fk(field_name)
+        field_str = field_name.to_s
+
+        # Check explicit metadata associations
+        assoc = model_definition.associations.find { |a| a.foreign_key == field_str }
+        return assoc if assoc
+
+        # Synthesize association for tree-generated parent FK
+        if model_definition.tree? && field_str == model_definition.tree_parent_field
+          Metadata::AssociationDefinition.new(
+            type: "belongs_to",
+            name: model_definition.tree_parent_name,
+            target_model: model_definition.name,
+            foreign_key: field_str,
+            required: false
+          )
+        end
       end
 
       def normalize_json_field_section(section)

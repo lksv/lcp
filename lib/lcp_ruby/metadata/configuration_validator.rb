@@ -417,10 +417,79 @@ module LcpRuby
       end
 
       def validate_tree(model)
-        validate_boolean_or_hash_option(
+        opts = validate_boolean_or_hash_option(
           model, "tree",
-          allowed_keys: %w[parent_field children_name depth_column counter_cache]
+          allowed_keys: %w[parent_field children_name parent_name dependent max_depth ordered position_field]
         )
+        return unless opts
+
+        parent_field = model.tree_parent_field
+        children_name = model.tree_children_name
+        parent_name = model.tree_parent_name
+
+        # parent_field must exist in fields and be integer type
+        field_def = model.field(parent_field)
+        if field_def.nil?
+          @errors << "Model '#{model.name}': tree parent_field '#{parent_field}' must be declared in fields"
+        elsif field_def.type != "integer"
+          @errors << "Model '#{model.name}': tree parent_field '#{parent_field}' must be type integer, got '#{field_def.type}'"
+        else
+          # Must be nullable (optional: true is default for belongs_to in tree)
+          col_opts = field_def.respond_to?(:column_options) ? field_def.column_options : {}
+          if col_opts.is_a?(Hash) && col_opts["null"] == false
+            @errors << "Model '#{model.name}': tree parent_field '#{parent_field}' must be nullable (null: true or omit null option) — root nodes have NULL parent"
+          end
+        end
+
+        # dependent must be a valid enum
+        valid_dependents = %w[destroy nullify restrict_with_exception restrict_with_error discard]
+        dep = model.tree_dependent
+        unless valid_dependents.include?(dep)
+          @errors << "Model '#{model.name}': tree dependent '#{dep}' is invalid. " \
+                     "Allowed values: #{valid_dependents.join(', ')}"
+        end
+
+        # discard requires soft_delete
+        if dep == "discard" && !model.soft_delete?
+          @errors << "Model '#{model.name}': tree dependent: discard requires soft_delete to be enabled"
+        end
+
+        # max_depth must be positive integer
+        max_depth = model.tree_max_depth
+        unless max_depth.is_a?(Integer) && max_depth > 0
+          @errors << "Model '#{model.name}': tree max_depth must be a positive integer, got '#{max_depth}'"
+        end
+
+        # ordered: true requires position field to exist and be integer
+        if model.tree_ordered?
+          pos_field = model.tree_position_field
+          pos_field_def = model.field(pos_field)
+          if pos_field_def.nil?
+            @errors << "Model '#{model.name}': tree ordered: true requires position_field '#{pos_field}' " \
+                       "to be declared in fields"
+          elsif pos_field_def.type != "integer"
+            @errors << "Model '#{model.name}': tree position_field '#{pos_field}' must be type integer, " \
+                       "got '#{pos_field_def.type}'"
+          end
+
+          # Warn if explicit positioning is also configured
+          if model.positioned?
+            @warnings << "Model '#{model.name}': tree ordered: true auto-configures positioning — " \
+                         "the explicit positioning config may be overridden"
+          end
+        end
+
+        # Conflict detection: manual associations with same name
+        model.associations.each do |assoc|
+          if assoc.name == parent_name && assoc.type == "belongs_to"
+            @warnings << "Model '#{model.name}': manual belongs_to :#{parent_name} association " \
+                         "conflicts with tree-generated parent association — tree will override it"
+          end
+          if assoc.name == children_name && assoc.type == "has_many"
+            @warnings << "Model '#{model.name}': manual has_many :#{children_name} association " \
+                         "conflicts with tree-generated children association — tree will override it"
+          end
+        end
       end
 
       def validate_presenter_reorderable(presenter, model)
@@ -428,6 +497,20 @@ module LcpRuby
 
         unless model.positioned?
           @errors << "Presenter '#{presenter.name}': index.reorderable is true but model '#{model.name}' has no positioning config"
+        end
+      end
+
+      def validate_presenter_tree_view(presenter, model)
+        if presenter.tree_view? && !model.tree?
+          @errors << "Presenter '#{presenter.name}': index.tree_view is true but model '#{model.name}' does not have tree enabled"
+        end
+
+        if presenter.reparentable? && !presenter.tree_view?
+          @errors << "Presenter '#{presenter.name}': index.reparentable requires tree_view to be true"
+        end
+
+        if presenter.reparentable? && !model.tree?
+          @errors << "Presenter '#{presenter.name}': index.reparentable requires model '#{model.name}' to have tree enabled"
         end
       end
 
@@ -567,6 +650,7 @@ module LcpRuby
           if model_def
             validate_presenter_reorderable(presenter, model_def)
             validate_positioning_field_not_in_form(presenter, model_def)
+            validate_presenter_tree_view(presenter, model_def)
           end
         end
       end

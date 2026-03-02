@@ -7,6 +7,7 @@ module LcpRuby
     helper LcpRuby::FormHelper
     helper LcpRuby::LayoutHelper
     helper LcpRuby::ConditionHelper
+    helper LcpRuby::TreeHelper
 
     layout "lcp_ruby/application"
 
@@ -16,7 +17,8 @@ module LcpRuby
 
     helper_method :current_presenter, :current_model_definition, :current_evaluator,
                   :resource_path, :resources_path, :new_resource_path, :edit_resource_path,
-                  :reorder_resource_path, :restore_resource_path, :permanently_destroy_resource_path,
+                  :reorder_resource_path, :reparent_resource_path,
+                  :restore_resource_path, :permanently_destroy_resource_path,
                   :single_action_path, :select_options_path,
                   :toggle_direction, :current_sort_field, :current_sort_direction,
                   :current_view_group, :sibling_views,
@@ -213,6 +215,10 @@ module LcpRuby
 
     def reorder_resource_path(record)
       lcp_ruby.reorder_resource_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record)
+    end
+
+    def reparent_resource_path(record)
+      lcp_ruby.reparent_resource_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record)
     end
 
     def restore_resource_path(record)

@@ -91,6 +91,18 @@ module LcpRuby
         search_config["enabled"] && advanced_filter_config["enabled"] == true
       end
 
+      def tree_view?
+        index_config["tree_view"] == true
+      end
+
+      def default_expanded
+        index_config.fetch("default_expanded", 0)
+      end
+
+      def reparentable?
+        index_config["reparentable"] == true
+      end
+
       private
 
       def validate!

@@ -188,6 +188,9 @@ module LcpRuby
         @includes_list = nil
         @eager_load_list = nil
         @description_value = nil
+        @tree_view_value = nil
+        @default_expanded_value = nil
+        @reparentable_value = nil
       end
 
       def reorderable(value = true)
@@ -242,6 +245,18 @@ module LcpRuby
         @eager_load_list = assocs.flatten.map { |a| a.is_a?(Hash) ? HashUtils.stringify_deep(a) : a.to_s }
       end
 
+      def tree_view(value = true)
+        @tree_view_value = value
+      end
+
+      def default_expanded(value)
+        @default_expanded_value = value
+      end
+
+      def reparentable(value = true)
+        @reparentable_value = value
+      end
+
       def to_hash
         hash = {}
         hash["reorderable"] = @reorderable_value unless @reorderable_value.nil?
@@ -256,6 +271,9 @@ module LcpRuby
         hash["actions_position"] = @actions_position_value if @actions_position_value
         hash["includes"] = @includes_list if @includes_list
         hash["eager_load"] = @eager_load_list if @eager_load_list
+        hash["tree_view"] = @tree_view_value unless @tree_view_value.nil?
+        hash["default_expanded"] = @default_expanded_value unless @default_expanded_value.nil?
+        hash["reparentable"] = @reparentable_value unless @reparentable_value.nil?
         hash
       end
     end

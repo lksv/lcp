@@ -9,11 +9,17 @@ define_model :department do
     validates :presence
     validates :uniqueness
   end
+<<<<<<< HEAD
   field :parent_id, :integer
 
   tree true
+=======
+  field :parent_id, :integer, label: "Parent"
+>>>>>>> ddb43eb (feat: implement tree structures with tree index view, filtered search, and drag-and-drop reparenting)
 
   has_many :employees, model: :employee
+
+  tree true
 
   timestamps true
   label_method :name

@@ -1,0 +1,55 @@
+<% columns = @column_set.visible_table_columns %>
+<% parent_field = current_model_definition.tree_parent_field %>
+<% default_expanded = current_presenter.default_expanded %>
+<% reparentable = current_presenter.reparentable? &&
+                   current_model_definition.tree? &&
+                   current_evaluator.can?(:update) &&
+                   current_evaluator.field_writable?(parent_field) %>
+
+<% if @roots.blank? && !@search_active %>
+  <% if current_presenter.index_config["empty_message"] %>
+    <div class="lcp-empty-state">
+      <p><%= current_presenter.index_config["empty_message"] %></p>
+    </div>
+  <% end %>
+<% else %>
+  <table class="lcp-table lcp-tree-table"
+    data-lcp-tree-index="true"
+    data-default-expanded="<%= default_expanded %>"
+    <% if @search_active %>data-search-active="true"<% end %>
+    <% if reparentable && @tree_version %>
+      data-tree-version="<%= @tree_version %>"
+    <% end %>>
+    <thead>
+      <tr>
+        <% if reparentable && !@search_active %>
+          <th class="lcp-drag-column"></th>
+        <% end %>
+        <% columns.each do |col| %>
+          <th style="<%= "width: #{col['width']}" if col['width'] %>"
+              class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
+            <%= col["label"] || col["field"].to_s.split(".").last.humanize %>
+          </th>
+        <% end %>
+        <th><%= I18n.t("lcp_ruby.actions.label", default: "Actions") %></th>
+      </tr>
+    </thead>
+    <tbody>
+      <%= render_tree_rows(@roots, @children_map, columns, depth: 0,
+            default_expanded: default_expanded, match_ids: @match_ids,
+            reparentable: reparentable, search_active: @search_active) %>
+    </tbody>
+  </table>
+
+  <% if reparentable && !@search_active %>
+    <div class="lcp-tree-root-drop-zone">
+      <%= I18n.t("lcp_ruby.tree.root_drop_zone", default: "Drop here to make root") %>
+    </div>
+  <% end %>
+
+  <% if @search_active && @roots.blank? %>
+    <div class="lcp-empty-state">
+      <p><%= I18n.t("lcp_ruby.search.no_results", default: "No results found.") %></p>
+    </div>
+  <% end %>
+<% end %>

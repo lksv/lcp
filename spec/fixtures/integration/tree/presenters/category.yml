@@ -5,7 +5,8 @@ presenter:
   slug: categories
 
   index:
-    default_view: table
+    tree_view: true
+    default_expanded: 1
     per_page: 25
     table_columns:
       - { field: name, width: "40%", link_to: show }
@@ -13,11 +14,17 @@ presenter:
       - { field: active, width: "15%", renderer: boolean }
 
   show:
+    includes: [children, parent]
     layout:
       - section: "Category"
         fields:
           - { field: name }
           - { field: active }
+      - section: "Subcategories"
+        type: association_list
+        association: children
+        link: true
+        empty_message: "No subcategories."
 
   form:
     sections:

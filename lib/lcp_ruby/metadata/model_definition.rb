@@ -126,6 +126,34 @@ module LcpRuby
         boolean_or_hash_option("tree").last
       end
 
+      def tree_parent_field
+        tree_options.fetch("parent_field", "parent_id")
+      end
+
+      def tree_children_name
+        tree_options.fetch("children_name", "children")
+      end
+
+      def tree_parent_name
+        tree_options.fetch("parent_name", "parent")
+      end
+
+      def tree_dependent
+        tree_options.fetch("dependent", "destroy")
+      end
+
+      def tree_max_depth
+        tree_options.fetch("max_depth", 10)
+      end
+
+      def tree_ordered?
+        tree_options.fetch("ordered", false) == true
+      end
+
+      def tree_position_field
+        tree_options.fetch("position_field", "position")
+      end
+
       def field(name)
         fields.find { |f| f.name == name.to_s }
       end
@@ -153,10 +181,26 @@ module LcpRuby
       # Returns a Hash mapping FK field name to its belongs_to AssociationDefinition.
       # e.g. { "company_id" => <AssociationDefinition name="company"> }
       # Memoized since it's called from multiple places (ColumnSet, DependencyCollector, PermissionEvaluator).
+      # Includes tree-generated parent association when tree? is enabled.
       def belongs_to_fk_map
-        @belongs_to_fk_map ||= associations
-          .select { |a| a.type == "belongs_to" && a.foreign_key.present? }
-          .each_with_object({}) { |a, h| h[a.foreign_key] = a }
+        @belongs_to_fk_map ||= begin
+          map = associations
+            .select { |a| a.type == "belongs_to" && a.foreign_key.present? }
+            .each_with_object({}) { |a, h| h[a.foreign_key] = a }
+
+          # Add tree-generated parent association if not already present
+          if tree? && !map.key?(tree_parent_field)
+            map[tree_parent_field] = AssociationDefinition.new(
+              type: "belongs_to",
+              name: tree_parent_name,
+              target_model: name,
+              foreign_key: tree_parent_field,
+              required: false
+            )
+          end
+
+          map
+        end
       end
 
       private

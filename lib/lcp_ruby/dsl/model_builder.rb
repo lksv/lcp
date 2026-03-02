@@ -215,13 +215,17 @@ module LcpRuby
         set_boolean_or_hash_option("userstamps", value, hash)
       end
 
-      def tree(value = true, parent_field: nil, children_name: nil, depth_column: nil, counter_cache: nil)
-        hash = if value == true && (parent_field || children_name || depth_column || !counter_cache.nil?)
+      def tree(value = true, parent_field: nil, children_name: nil, parent_name: nil,
+               dependent: nil, max_depth: nil, ordered: nil, position_field: nil)
+        hash = if value == true && (parent_field || children_name || parent_name || dependent || max_depth || !ordered.nil? || position_field)
           h = {}
           h["parent_field"] = parent_field.to_s if parent_field
           h["children_name"] = children_name.to_s if children_name
-          h["depth_column"] = depth_column.to_s if depth_column
-          h["counter_cache"] = counter_cache unless counter_cache.nil?
+          h["parent_name"] = parent_name.to_s if parent_name
+          h["dependent"] = dependent.to_s if dependent
+          h["max_depth"] = max_depth if max_depth
+          h["ordered"] = ordered unless ordered.nil?
+          h["position_field"] = position_field.to_s if position_field
           h
         end
         set_boolean_or_hash_option("tree", value, hash)

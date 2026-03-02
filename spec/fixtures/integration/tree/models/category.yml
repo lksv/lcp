@@ -13,21 +13,15 @@ model:
       validations:
         - type: presence
 
+    - name: parent_id
+      type: integer
+      label: "Parent"
+
     - name: active
       type: boolean
       label: "Active"
 
-  associations:
-    - type: belongs_to
-      name: parent
-      target_model: category
-      foreign_key: parent_id
-      required: false
-    - type: has_many
-      name: children
-      target_model: category
-      foreign_key: parent_id
-
   options:
     timestamps: true
     label_method: name
+    tree: true

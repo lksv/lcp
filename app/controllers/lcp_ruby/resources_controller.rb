@@ -4,28 +4,19 @@ module LcpRuby
   class ResourcesController < ApplicationController
     include LcpRuby::AssociationOptionsBuilder
 
-    before_action :set_record, only: [ :show, :edit, :update, :destroy, :evaluate_conditions, :reorder ]
+    before_action :set_record, only: [ :show, :edit, :update, :destroy, :evaluate_conditions, :reorder, :reparent ]
     before_action :set_record_with_discarded, only: [ :restore, :permanently_destroy ]
 
     def index
       authorize @model_class
       scope = policy_scope(@model_class)
       scope = apply_soft_delete_scope(scope)
-      scope = apply_advanced_search(scope)
-      scope = apply_sort(scope)
 
-      @summaries = compute_summaries(scope) if summary_columns_present?
-
-      strategy = resolve_loading_strategy(:index)
-      scope = strategy.apply(scope)
-      scope = scope.strict_loading if LcpRuby.configuration.strict_loading_enabled?
-
-      @records = scope.page(params[:page]).per(current_presenter.per_page)
-
-      @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
-      @fk_map = @column_set.fk_association_map(current_model_definition)
-      @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
-      @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
+      if current_presenter.tree_view? && current_model_definition.tree?
+        load_tree_index(scope)
+      else
+        load_flat_index(scope)
+      end
     end
 
     def show
@@ -211,6 +202,40 @@ module LcpRuby
       }
     end
 
+    def reparent
+      unless current_model_definition.tree?
+        head :not_found
+        return
+      end
+
+      authorize @record, :update?
+      authorize_parent_field_writable!
+
+      stale = verify_tree_version!
+      return if stale
+
+      parent_field = current_model_definition.tree_parent_field
+      new_parent_id = parse_parent_id_param
+
+      @record.send("#{parent_field}=", new_parent_id)
+
+      # Optional position when tree is ordered
+      if params[:position].present? && current_model_definition.tree_ordered?
+        pos_field = current_model_definition.tree_position_field
+        @record.send("#{pos_field}=", parse_position_param)
+      end
+
+      if @record.save
+        render json: {
+          id: @record.id,
+          parent_id: @record[parent_field],
+          tree_version: compute_tree_version
+        }
+      else
+        render json: { errors: @record.errors.full_messages }, status: :unprocessable_entity
+      end
+    end
+
     def inline_create_form
       target_model_name = params[:target_model]
       return head(:bad_request) unless target_model_name.present?
@@ -260,6 +285,96 @@ module LcpRuby
     end
 
     private
+
+    def load_flat_index(scope)
+      scope = apply_advanced_search(scope)
+      scope = apply_sort(scope)
+
+      @summaries = compute_summaries(scope) if summary_columns_present?
+
+      strategy = resolve_loading_strategy(:index)
+      scope = strategy.apply(scope)
+      scope = scope.strict_loading if LcpRuby.configuration.strict_loading_enabled?
+
+      @records = scope.page(params[:page]).per(current_presenter.per_page)
+
+      @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
+      @fk_map = @column_set.fk_association_map(current_model_definition)
+      @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
+      @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
+    end
+
+    def load_tree_index(scope)
+      parent_field = current_model_definition.tree_parent_field
+      scope = scope.all unless scope.is_a?(ActiveRecord::Relation)
+
+      # Detect if search is active
+      @search_active = search_active?
+
+      if @search_active
+        # Run search pipeline to get matching IDs
+        filtered_scope = apply_advanced_search(scope)
+        filtered_scope = apply_sort(filtered_scope)
+        @match_ids = Set.new(filtered_scope.pluck(:id))
+
+        # Load all records to build complete tree with ancestor context
+        all_records = scope.to_a
+        @tree_records, @children_map, @roots = build_filtered_tree(all_records, @match_ids, parent_field)
+      else
+        # Load all records (no pagination for tree view)
+        sorted = apply_sort(scope)
+        sorted = sorted.all unless sorted.is_a?(ActiveRecord::Relation)
+        all_records = sorted.to_a
+        @children_map = all_records.group_by { |r| r[parent_field] }
+        @roots = @children_map[nil] || []
+        @match_ids = nil
+      end
+
+      @tree_version = compute_tree_version if current_presenter.reparentable?
+
+      @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
+      @fk_map = @column_set.fk_association_map(current_model_definition)
+      @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
+      @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
+    end
+
+    def search_active?
+      params[:qs].present? || params[:f].present? || params[:filter].present? || params[:cf].present?
+    end
+
+    def build_filtered_tree(all_records, match_ids, parent_field)
+      # Build lookup
+      by_id = all_records.index_by(&:id)
+
+      # Collect ancestor IDs for all matching records
+      ancestor_ids = Set.new
+      match_ids.each do |mid|
+        record = by_id[mid]
+        next unless record
+
+        pid = record[parent_field]
+        while pid.present? && !ancestor_ids.include?(pid)
+          ancestor_ids << pid
+          parent_record = by_id[pid]
+          break unless parent_record
+          pid = parent_record[parent_field]
+        end
+      end
+
+      display_ids = match_ids | ancestor_ids
+      display_records = all_records.select { |r| display_ids.include?(r.id) }
+
+      children_map = display_records.group_by { |r| r[parent_field] }
+      roots = children_map[nil] || []
+
+      [display_records, children_map, roots]
+    end
+
+    def compute_tree_version
+      parent_field = current_model_definition.tree_parent_field
+      pairs = @model_class.order(:id).pluck(:id, parent_field)
+      Digest::SHA256.hexdigest(pairs.map { |id, pid| "#{id}:#{pid}" }.join(","))
+    end
 
     def set_record
       scope = apply_soft_delete_scope(@model_class)
@@ -853,6 +968,31 @@ module LcpRuby
       return explicit_method.to_sym if explicit_method.present?
       method = model_def.label_method
       method && method != "to_s" ? method.to_sym : :to_label
+    end
+
+    def authorize_parent_field_writable!
+      parent_field = current_model_definition.tree_parent_field
+      unless current_evaluator.field_writable?(parent_field)
+        raise Pundit::NotAuthorizedError,
+          "Not allowed to write tree parent field '#{parent_field}'"
+      end
+    end
+
+    def parse_parent_id_param
+      raw = params[:parent_id]
+      return nil if raw.blank? || raw == "null"
+      raw.to_i
+    end
+
+    def verify_tree_version!
+      return false unless params[:tree_version].present?
+
+      current_version = compute_tree_version
+      return false if current_version == params[:tree_version]
+
+      render json: { error: "tree_version_mismatch", tree_version: current_version },
+             status: :conflict
+      true
     end
 
     def authorize_position_field!

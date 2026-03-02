@@ -48,6 +48,7 @@ LcpRuby::Engine.routes.draw do
     post   "/:id/restore",             to: "resources#restore",                 as: :restore_resource
     delete "/:id/permanently_destroy", to: "resources#permanently_destroy",     as: :permanently_destroy_resource
     patch  "/:id/reorder",             to: "resources#reorder",                 as: :reorder_resource
+    patch  "/:id/reparent",            to: "resources#reparent",                as: :reparent_resource
     post   "/:id/evaluate_conditions", to: "resources#evaluate_conditions",     as: :evaluate_conditions
     post   "/actions/:action_name",       to: "actions#execute_collection", as: :collection_action
     post   "/:id/actions/:action_name",   to: "actions#execute_single",     as: :single_action

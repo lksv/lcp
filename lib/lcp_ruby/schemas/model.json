@@ -114,8 +114,11 @@
               "properties": {
                 "parent_field": { "type": "string" },
                 "children_name": { "type": "string" },
-                "depth_column": { "type": "string" },
-                "counter_cache": { "type": "boolean" }
+                "parent_name": { "type": "string" },
+                "dependent": { "type": "string", "enum": ["destroy", "nullify", "restrict_with_exception", "restrict_with_error", "discard"] },
+                "max_depth": { "type": "integer", "minimum": 1 },
+                "ordered": { "type": "boolean" },
+                "position_field": { "type": "string" }
               },
               "additionalProperties": false
             }

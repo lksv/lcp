@@ -5,14 +5,20 @@ define_presenter :categories do
   icon "folder"
 
   index do
+<<<<<<< HEAD
     description "Self-referential tree model with parent/children associations."
     default_sort :name, :asc
     per_page 25
     tree_view true
     default_expanded "all"
+=======
+    description "Hierarchical tree view with drag-and-drop reparenting."
+    tree_view true
+    default_expanded 1
+>>>>>>> ddb43eb (feat: implement tree structures with tree index view, filtered search, and drag-and-drop reparenting)
     reparentable true
 
-    column :name, link_to: :show, sortable: true
+    column :name, link_to: :show
     column :description, renderer: :truncate, options: { max: 80 }
   end
 

@@ -34,10 +34,10 @@ module LcpRuby
 
           grouped.each do |assoc_name, deps|
             assoc = @model_def.associations.find { |a| a.name == assoc_name.to_s }
-            next unless assoc
+            assoc_type = resolve_assoc_type(assoc, assoc_name)
+            next unless assoc_type
 
             has_query = deps.any?(&:query?)
-            assoc_type = assoc.type
             # Use the most nested path among the deps for this association
             path = select_path(deps)
 
@@ -65,6 +65,26 @@ module LcpRuby
         end
 
         private
+
+        # Resolve association type from metadata or AR reflections.
+        # Tree-generated associations (parent, children) exist only on the AR model,
+        # not in model_def.associations, so we fall back to AR reflections.
+        def resolve_assoc_type(assoc, assoc_name)
+          return assoc.type if assoc
+
+          return nil unless LcpRuby.registry.registered?(@model_def.name)
+
+          model_class = LcpRuby.registry.model_for(@model_def.name)
+          reflection = model_class.reflect_on_association(assoc_name.to_sym)
+          return nil unless reflection
+
+          case reflection
+          when ActiveRecord::Reflection::HasManyReflection then "has_many"
+          when ActiveRecord::Reflection::BelongsToReflection then "belongs_to"
+          when ActiveRecord::Reflection::HasOneReflection then "has_one"
+          else "has_many"
+          end
+        end
 
         # Merge all paths for the same association into a single path.
         # e.g. :company + { company: :industry } + { company: :address }
