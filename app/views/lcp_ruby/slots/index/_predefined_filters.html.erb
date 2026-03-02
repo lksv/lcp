@@ -1,0 +1,8 @@
+<% if slot_context.presenter.search_config.dig("predefined_filters")&.any? %>
+  <div class="lcp-filters">
+    <% slot_context.presenter.search_config["predefined_filters"].each do |filter| %>
+      <%= link_to filter["label"], resources_path + "?filter=#{filter['name']}",
+            class: "btn btn-filter #{'active' if slot_context.params[:filter] == filter['name']}" %>
+    <% end %>
+  </div>
+<% end %>

@@ -17,6 +17,7 @@ module IntegrationHelper
     LcpRuby::Services::BuiltInTransforms.register_all!
     LcpRuby::Services::BuiltInDefaults.register_all!
     LcpRuby::Display::RendererRegistry.register_built_ins!
+    LcpRuby::ViewSlots::Registry.register_built_ins!
 
     # Configure and load
     LcpRuby.configuration.metadata_path = fixture_path

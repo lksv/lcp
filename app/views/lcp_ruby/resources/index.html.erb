@@ -1,55 +1,18 @@
 <div class="lcp-resources-index">
+  <%= render_slot(:page_header, page: :index) %>
   <div class="lcp-header">
     <h1><%= current_presenter.label %></h1>
     <% if current_presenter.index_config["description"].present? %>
       <p class="lcp-view-description"><%= current_presenter.index_config["description"] %></p>
     <% end %>
     <div class="lcp-toolbar">
-      <%= render "lcp_ruby/resources/view_switcher", context: :index %>
-      <% if defined?(@manage_path) && @manage_path %>
-        <%= link_to t("lcp_ruby.manage.manage_all"), @manage_path, class: "btn" %>
-      <% end %>
-      <% @action_set.collection_actions.each do |action| %>
-
-        <% if action["type"] == "built_in" && action["name"] == "create" %>
-          <%= link_to action["label"] || "New", new_resource_path, class: "btn btn-primary" %>
-        <% end %>
-      <% end %>
+      <%= render_slot(:toolbar_start, page: :index) %>
+      <%= render_slot(:toolbar_center, page: :index) %>
+      <%= render_slot(:toolbar_end, page: :index) %>
     </div>
   </div>
 
-  <% if current_presenter.search_config["enabled"] %>
-    <div class="lcp-search">
-      <% search_config = current_presenter.search_config %>
-      <%= form_tag resources_path, method: :get, class: "lcp-search-form",
-          data: {
-            lcp_auto_search: search_config["auto_search"],
-            lcp_debounce: search_config["debounce_ms"] || 300,
-            lcp_min_query: search_config["min_query_length"] || 2
-          }.compact do %>
-        <%= text_field_tag :qs, params[:qs],
-            placeholder: search_config["placeholder"] || I18n.t("lcp_ruby.search.placeholder", default: "Search...") %>
-        <% if params[:filter].present? %>
-          <%= hidden_field_tag :filter, params[:filter] %>
-        <% end %>
-        <%= submit_tag I18n.t("lcp_ruby.search.submit", default: "Search"), class: "btn" %>
-      <% end %>
-    </div>
-  <% end %>
-
-  <% if current_presenter.search_config.dig("predefined_filters")&.any? %>
-    <div class="lcp-filters">
-      <% current_presenter.search_config["predefined_filters"].each do |filter| %>
-
-        <%= link_to filter["label"], resources_path + "?filter=#{filter['name']}",
-              class: "btn btn-filter #{'active' if params[:filter] == filter['name']}" %>
-      <% end %>
-    </div>
-  <% end %>
-
-  <% if current_presenter.advanced_filter_enabled? %>
-    <%= render "lcp_ruby/resources/advanced_filter" %>
-  <% end %>
+  <%= render_slot(:filter_bar, page: :index) %>
 
   <% if current_presenter.tree_view? && current_model_definition.tree? %>
     <%= render "lcp_ruby/resources/tree_index" %>
@@ -160,5 +123,5 @@
     </table>
   <% end %>
 
-  <%= paginate @records if @records.respond_to?(:total_pages) %>
+  <%= render_slot(:below_content, page: :index) %>
 </div>

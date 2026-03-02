@@ -23,6 +23,7 @@ module LcpRuby
       @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
       @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
       @manage_path = manage_custom_fields_path if current_evaluator.can?(:update)
+      @slot_locals = { manage_path: @manage_path }
     end
 
     def show

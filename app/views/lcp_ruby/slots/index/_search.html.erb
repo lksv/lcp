@@ -1,0 +1,18 @@
+<% if slot_context.presenter.search_config["enabled"] %>
+  <div class="lcp-search">
+    <% search_config = slot_context.presenter.search_config %>
+    <%= form_tag resources_path, method: :get, class: "lcp-search-form",
+        data: {
+          lcp_auto_search: search_config["auto_search"],
+          lcp_debounce: search_config["debounce_ms"] || 300,
+          lcp_min_query: search_config["min_query_length"] || 2
+        }.compact do %>
+      <%= text_field_tag :qs, slot_context.params[:qs],
+          placeholder: search_config["placeholder"] || I18n.t("lcp_ruby.search.placeholder", default: "Search...") %>
+      <% if slot_context.params[:filter].present? %>
+        <%= hidden_field_tag :filter, slot_context.params[:filter] %>
+      <% end %>
+      <%= submit_tag I18n.t("lcp_ruby.search.submit", default: "Search"), class: "btn" %>
+    <% end %>
+  </div>
+<% end %>

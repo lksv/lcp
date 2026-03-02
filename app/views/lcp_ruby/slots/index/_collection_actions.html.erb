@@ -1,0 +1,5 @@
+<% slot_context.action_set.collection_actions.each do |action| %>
+  <% if action["type"] == "built_in" && action["name"] == "create" %>
+    <%= link_to action["label"] || "New", new_resource_path, class: "btn btn-primary" %>
+  <% end %>
+<% end %>

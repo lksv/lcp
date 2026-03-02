@@ -1,17 +1,10 @@
 <div class="lcp-resource-show">
+  <%= render_slot(:page_header, page: :show) %>
   <div class="lcp-header">
     <h1><%= @record.respond_to?(:to_label) ? @record.to_label : @record.to_s %></h1>
     <div class="lcp-toolbar">
-      <%= render "lcp_ruby/resources/view_switcher", context: :show %>
-      <%= link_to I18n.t("lcp_ruby.toolbar.back_to_list", default: "Back to list"), resources_path, class: "btn" %>
-      <% unless current_presenter.show_config.dig("copy_url") == false %>
-        <button type="button" class="btn lcp-copy-url" data-lcp-copy-url="<%= request.url %>" data-lcp-copied-text="<%= I18n.t('lcp_ruby.toolbar.copied', default: 'Copied!') %>">
-          <%= I18n.t("lcp_ruby.toolbar.copy_url", default: "Copy link") %>
-        </button>
-      <% end %>
-      <% @action_set.single_actions(@record).each do |action| %>
-        <%= render "lcp_ruby/resources/action_button", action: action, record: @record, css_class: "btn" %>
-      <% end %>
+      <%= render_slot(:toolbar_start, page: :show) %>
+      <%= render_slot(:toolbar_end, page: :show) %>
     </div>
   </div>
 
@@ -85,4 +78,6 @@
       <% end %>
     </div>
   <% end %>
+
+  <%= render_slot(:below_content, page: :show) %>
 </div>

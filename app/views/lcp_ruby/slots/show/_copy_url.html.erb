@@ -1,0 +1,5 @@
+<% unless slot_context.presenter.show_config.dig("copy_url") == false %>
+  <button type="button" class="btn lcp-copy-url" data-lcp-copy-url="<%= request.url %>" data-lcp-copied-text="<%= I18n.t('lcp_ruby.toolbar.copied', default: 'Copied!') %>">
+    <%= I18n.t("lcp_ruby.toolbar.copy_url", default: "Copy link") %>
+  </button>
+<% end %>

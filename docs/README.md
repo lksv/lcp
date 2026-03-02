@@ -24,6 +24,7 @@ Complete attribute reference for every YAML configuration file:
 - [Auditing](reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading](reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Tree Structures](reference/tree-structures.md) — Declarative tree hierarchies: model options, traversal, reparenting, tree index view
+- [View Slots](reference/view-slots.md) — Extensible page layout injection points: registry, slot names, SlotContext, position ordering
 - [Engine Configuration](reference/engine-configuration.md) — `LcpRuby.configure` options
 
 ## DSL Reference
@@ -56,6 +57,7 @@ Complete attribute reference for every YAML configuration file:
 - [Groups](guides/groups.md) — Organizational groups: YAML, DB, host adapter, testing
 - [Hierarchical Authorization](guides/hierarchical-authorization.md) — Multi-level parent-child access control (factory → production line → machine → sensor reading)
 - [Impersonation](guides/impersonation.md) — "View as Role X" for testing permissions
+- [View Slots](guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components, overriding built-ins
 - [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate`, `lcp_ruby:erd`, `lcp_ruby:permissions`, and `lcp_ruby:create_admin` rake tasks
 
 ## Design Documents
@@ -77,6 +79,7 @@ Implemented:
 In Progress:
 
 - [Advanced Search & Filter Builder](design/advanced_search.md) — Type-aware quick search, Ransack-based filter builder, custom filter methods, query language (Phase 0–4 implemented, saved filters deferred)
+- [Page Layouts & View Slots](design/page_layout_and_slots.md) — Extensible page layout system: slot registry (Phase 1 implemented), layout variants (planned)
 - [Deep Filter Enhancements](design/recursive_association_field_picker.md) — Recursive association field picker and recursive condition nesting (AND/OR tree)
 
 Proposed:

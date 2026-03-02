@@ -150,6 +150,11 @@ require "lcp_ruby/display/base_renderer"
 require "lcp_ruby/display/renderer_registry"
 require "lcp_ruby/display/renderers"
 
+# View Slots
+require "lcp_ruby/view_slots/slot_component"
+require "lcp_ruby/view_slots/slot_context"
+require "lcp_ruby/view_slots/registry"
+
 # Presenter
 require "lcp_ruby/presenter/metadata_lookup"
 require "lcp_ruby/presenter/resolver"
@@ -268,6 +273,7 @@ module LcpRuby
       Groups::Registry.clear!
       Auditing::Registry.clear!
       Auditing::AuditWriter.clear_cache!
+      ViewSlots::Registry.clear!
 
       # Remove dynamic constants to avoid "already initialized" warnings
       Dynamic.constants.each do |const|

@@ -1,0 +1,3 @@
+<% slot_context.action_set.single_actions(slot_context.record).each do |action| %>
+  <%= render "lcp_ruby/resources/action_button", action: action, record: slot_context.record, css_class: "btn" %>
+<% end %>

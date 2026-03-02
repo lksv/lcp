@@ -78,6 +78,7 @@ module LcpRuby
         Services::Registry.discover!(Rails.root.join("app").to_s)
         Display::RendererRegistry.register_built_ins!
         Display::RendererRegistry.discover!(Rails.root.join("app").to_s)
+        ViewSlots::Registry.register_built_ins!
 
         loader = LcpRuby.loader
         loader.load_all

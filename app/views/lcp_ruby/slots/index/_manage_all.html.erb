@@ -1,0 +1,4 @@
+<% manage_path = slot_context.locals[:manage_path] %>
+<% if manage_path %>
+  <%= link_to t("lcp_ruby.manage.manage_all"), manage_path, class: "btn" %>
+<% end %>

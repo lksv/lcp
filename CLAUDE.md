@@ -72,6 +72,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Auditing Reference](docs/reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Tree Structures Reference](docs/reference/tree-structures.md) — Declarative tree hierarchies: model options, traversal, reparenting, tree index view
+- [View Slots Reference](docs/reference/view-slots.md) — Extensible page layout: slot registry, slot names, SlotContext, position ordering
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
 - [Presenter DSL Reference](docs/reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenters (with inheritance)
@@ -96,6 +97,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Groups Guide](docs/guides/groups.md) — Organizational groups: YAML, DB, host adapter, testing
 - [Hierarchical Authorization](docs/guides/hierarchical-authorization.md) — Multi-level parent-child access control (factory → production line → machine → sensor reading)
 - [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
+- [View Slots Guide](docs/guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views
 - [Examples](docs/examples.md) — TODO and CRM app walkthroughs
@@ -175,6 +177,7 @@ YAML metadata (config/lcp_ruby/)
               Services::Registry.discover! → data providers from app/lcp_services/data_providers/
               Display::RendererRegistry.register_built_ins! → 26 built-in renderers + badge renderers
               Display::RendererRegistry.discover! → custom renderers from app/renderers/
+              ViewSlots::Registry.register_built_ins! → 11 built-in slot components (toolbar, filters, pagination)
                                 ↓
               Engine routes (/:lcp_slug/*) → ResourcesController
               (CRUD with Pundit authorization, presenter-driven UI, conditional rendering)
@@ -203,6 +206,7 @@ YAML metadata (config/lcp_ruby/)
 | `Auditing` | `lib/lcp_ruby/auditing/` | Registry (available? flag), ContractValidator (audit model contract checks), AuditWriter (field diffs, JSON/custom field expansion, nested changes), Setup (boot orchestration). AuditingApplicator installs AR callbacks on audited models |
 | `UserSnapshot` | `lib/lcp_ruby/user_snapshot.rb` | Captures `{id, email, name, role}` from user objects; used by auditing and userstamps |
 | `BulkUpdater` | `lib/lcp_ruby/bulk_updater.rb` | `tracked_update_all` wrapper with yield hook for post-update callbacks (auditing, events) |
+| `ViewSlots` | `lib/lcp_ruby/view_slots/` | Registry (page+slot component store with position ordering), SlotComponent (immutable value object: name, partial, position, enabled callback), SlotContext (immutable data bag for slot partials: presenter, evaluator, params, records, record, locals). ViewSlotHelper provides `render_slot` for ERB templates. 11 built-in components registered at boot |
 | `JsonItemWrapper` | `lib/lcp_ruby/json_item_wrapper.rb` | ActiveModel wrapper for JSON hash items; dynamic getter/setter per field from ModelDefinition; type coercion (integer, float, boolean); `validate_with_model_rules!` (presence, length, numericality, format); `to_hash` for persistence. Used by `json_field:` + `target_model:` nested sections |
 
 ### Controller Stack

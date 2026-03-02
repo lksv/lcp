@@ -8,6 +8,7 @@ module LcpRuby
     helper LcpRuby::LayoutHelper
     helper LcpRuby::ConditionHelper
     helper LcpRuby::TreeHelper
+    helper LcpRuby::ViewSlotHelper
 
     layout "lcp_ruby/application"
 
