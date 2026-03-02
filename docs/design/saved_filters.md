@@ -539,3 +539,9 @@ Rationale: Notification is a separate feature with its own complexity (schedulin
 ## Open Questions
 
 1. **Filter analytics.** Track usage counts and last-used timestamps for saved filters? Useful for admins to curate global filters and deprecate unused ones. Adds a DB write on every filter activation — nice to have, not required for the initial version.
+
+## Related Documents
+
+- **[Page Layouts & View Slots](page_layout_and_slots.md)** — Slot registry that saved filters will use to inject into the `:filter_bar` slot on index pages (Phase 1 implemented)
+- **[View Slots Reference](../reference/view-slots.md)** — API reference for registering slot components
+- **[Advanced Search & Filter Builder](advanced_search.md)** — The existing filter pipeline that saved filters build on
