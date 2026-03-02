@@ -99,7 +99,8 @@
               "type": "object",
               "properties": {
                 "created_by": { "type": "string" },
-                "updated_by": { "type": "string" }
+                "updated_by": { "type": "string" },
+                "store_name": { "type": "boolean" }
               },
               "additionalProperties": false
             }

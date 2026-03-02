@@ -204,11 +204,12 @@ module LcpRuby
         set_boolean_or_hash_option("auditing", value, hash)
       end
 
-      def userstamps(value = true, created_by: nil, updated_by: nil)
-        hash = if value == true && (created_by || updated_by)
+      def userstamps(value = true, created_by: nil, updated_by: nil, store_name: nil)
+        hash = if value == true && (created_by || updated_by || !store_name.nil?)
           h = {}
           h["created_by"] = created_by.to_s if created_by
           h["updated_by"] = updated_by.to_s if updated_by
+          h["store_name"] = store_name unless store_name.nil?
           h
         end
         set_boolean_or_hash_option("userstamps", value, hash)

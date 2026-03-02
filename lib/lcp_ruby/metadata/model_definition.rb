@@ -85,6 +85,39 @@ module LcpRuby
         boolean_or_hash_option("userstamps").last
       end
 
+      def userstamps_creator_field
+        userstamps_options.fetch("created_by", "created_by_id")
+      end
+
+      def userstamps_updater_field
+        userstamps_options.fetch("updated_by", "updated_by_id")
+      end
+
+      def userstamps_store_name?
+        userstamps_options.fetch("store_name", false) == true
+      end
+
+      def userstamps_creator_name_field
+        return nil unless userstamps_store_name?
+        userstamps_creator_field.sub(/_id$/, "_name")
+      end
+
+      def userstamps_updater_name_field
+        return nil unless userstamps_store_name?
+        userstamps_updater_field.sub(/_id$/, "_name")
+      end
+
+      def userstamp_column_names
+        return [] unless userstamps?
+
+        cols = [ userstamps_creator_field, userstamps_updater_field ]
+        if userstamps_store_name?
+          cols << userstamps_creator_name_field
+          cols << userstamps_updater_name_field
+        end
+        cols
+      end
+
       def tree?
         boolean_or_hash_option("tree").first
       end

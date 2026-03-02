@@ -16,6 +16,7 @@ menu:
         - view_group: showcase_recipes
         - separator: true
         - view_group: showcase_positioning
+        - view_group: showcase_userstamps
 
     - label: "Blog"
       icon: file-text

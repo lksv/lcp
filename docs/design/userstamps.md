@@ -1,6 +1,6 @@
 # Userstamps (Created By / Updated By) — Design Document
 
-> **Status:** Proposed
+> **Status:** Implemented
 > **Date:** 2026-02-26
 
 ## Problem

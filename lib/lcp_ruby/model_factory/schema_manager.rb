@@ -54,6 +54,8 @@ module LcpRuby
           end
 
           t.timestamps if timestamps
+
+          apply_userstamp_columns_create!(t) if model_definition.userstamps?
         end
 
         if model_definition.custom_fields_enabled? && LcpRuby.postgresql?
@@ -124,7 +126,45 @@ module LcpRuby
           end
         end
 
+        apply_userstamp_columns_update!(table, connection, existing_columns) if model_definition.userstamps?
+
         apply_positioning_constraints!(table) if model_definition.positioned?
+      end
+
+      def apply_userstamp_columns_create!(t)
+        creator = model_definition.userstamps_creator_field
+        updater = model_definition.userstamps_updater_field
+
+        t.bigint creator, null: true
+        t.bigint updater, null: true
+        t.index creator
+        t.index updater
+
+        if model_definition.userstamps_store_name?
+          t.string model_definition.userstamps_creator_name_field, null: true
+          t.string model_definition.userstamps_updater_name_field, null: true
+        end
+      end
+
+      def apply_userstamp_columns_update!(table, connection, existing_columns)
+        creator = model_definition.userstamps_creator_field
+        updater = model_definition.userstamps_updater_field
+
+        [ creator, updater ].each do |col|
+          unless existing_columns.include?(col)
+            connection.add_column(table, col, :bigint, null: true)
+            connection.add_index(table, col) unless connection.index_exists?(table, col)
+          end
+        end
+
+        if model_definition.userstamps_store_name?
+          [ model_definition.userstamps_creator_name_field,
+            model_definition.userstamps_updater_name_field ].each do |col|
+            unless existing_columns.include?(col)
+              connection.add_column(table, col, :string, null: true)
+            end
+          end
+        end
       end
 
       def apply_positioning_constraints!(table)

@@ -28,6 +28,8 @@ define_model :article do
   scope :published, where: { status: "published" }
   scope :drafts, where: { status: "draft" }
 
+  userstamps
+
   timestamps true
   label_method :title
 end

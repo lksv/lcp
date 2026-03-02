@@ -198,12 +198,21 @@ auditing expand_custom_fields: true, expand_json_fields: [:addresses]
 Enables automatic user tracking. See [Models Reference — userstamps](models.md#userstamps) for semantics.
 
 ```ruby
-# Simple — uses default columns "created_by" and "updated_by"
+# Simple — uses default columns "created_by_id" and "updated_by_id"
 userstamps
 
-# Custom column names
-userstamps created_by: :author_id, updated_by: :editor_id
+# With name snapshots
+userstamps store_name: true
+
+# Custom column names with name snapshots
+userstamps created_by: :author_id, updated_by: :editor_id, store_name: true
 ```
+
+| Keyword | Type | Description |
+|---------|------|-------------|
+| `created_by:` | symbol | Custom creator FK column name |
+| `updated_by:` | symbol | Custom updater FK column name |
+| `store_name:` | boolean | Add denormalized `_name` snapshot columns |
 
 ### `tree`
 
@@ -779,6 +788,7 @@ The DSL produces the exact same hash structure as parsed YAML. Every DSL constru
 | `auditing only: [:title]` | `options: { auditing: { only: [title] } }` |
 | `userstamps` | `options: { userstamps: true }` |
 | `userstamps created_by: :author_id` | `options: { userstamps: { created_by: author_id } }` |
+| `userstamps store_name: true` | `options: { userstamps: { store_name: true } }` |
 | `tree` | `options: { tree: true }` |
 | `tree parent_field: :parent_id` | `options: { tree: { parent_field: parent_id } }` |
 | `timestamps true` | `options: { timestamps: true }` |

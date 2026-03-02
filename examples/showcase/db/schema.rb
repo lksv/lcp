@@ -57,8 +57,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "author_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
     t.index ["author_id"], name: "index_articles_on_author_id"
     t.index ["category_id"], name: "index_articles_on_category_id"
+    t.index ["created_by_id"], name: "index_articles_on_created_by_id"
+    t.index ["updated_by_id"], name: "index_articles_on_updated_by_id"
   end
 
   create_table "authors", force: :cascade do |t|
@@ -253,8 +257,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.json "custom_data", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.index ["created_by_id"], name: "index_projects_on_created_by_id"
     t.index ["department_id"], name: "index_projects_on_department_id"
     t.index ["lead_id"], name: "index_projects_on_lead_id"
+    t.index ["updated_by_id"], name: "index_projects_on_updated_by_id"
   end
 
   create_table "roles", force: :cascade do |t|
@@ -372,6 +380,22 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
+
+  create_table "showcase_userstamps", force: :cascade do |t|
+    t.string "title", limit: 200, null: false
+    t.text "content"
+    t.string "status", default: "draft"
+    t.string "priority", default: "normal"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.string "created_by_name"
+    t.string "updated_by_name"
+    t.index ["created_by_id"], name: "index_showcase_userstamps_on_created_by_id"
+    t.index ["updated_by_id"], name: "index_showcase_userstamps_on_updated_by_id"
+  end
+
 
   create_table "showcase_virtual_fields", force: :cascade do |t|
     t.string "name", limit: 100, null: false

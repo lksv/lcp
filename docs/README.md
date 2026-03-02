@@ -43,6 +43,7 @@ Complete attribute reference for every YAML configuration file:
 - [Renderers](guides/display-types.md) — Visual guide to all built-in renderers (including dot-notation, templates, and collections)
 - [Custom Renderers](guides/custom-renderers.md) — Creating custom renderers for host applications
 - [Attachments](guides/attachments.md) — File upload with Active Storage
+- [Userstamps](guides/userstamps.md) — Automatic created_by / updated_by tracking: setup, name snapshots, presenter display, seeds
 - [Eager Loading](guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [Custom Fields](guides/custom-fields.md) — Runtime user-defined fields: enabling, defining, sections, permissions, programmatic access
 - [Role Source](guides/role-source.md) — DB-backed role management: setup, validation, cache, testing
@@ -62,13 +63,13 @@ Implemented:
 - [Record Rules Action Visibility](design/record_rules_action_visibility.md) — Automatic hiding of edit/destroy buttons based on record_rules
 - [Inline Collection Editor](design/inline_collection_editor.md) — Unified editing for nested associations, JSON arrays, and bulk records: row-scoped conditions, JSON field source, virtual models, sub-sections, presenter-driven manage page
 - [Groups, Roles & Org Structure](design/groups_roles_and_org_structure.md) — Enterprise organizational units, groups, and group-to-role mapping
+- [Model Options Infrastructure](design/model_options_infrastructure.md) — Shared patterns for model-level feature flags (soft_delete, auditing, userstamps, tree)
+- [Userstamps](design/userstamps.md) — Automatic `created_by_id` / `updated_by_id` tracking
 
 Proposed:
 
-- [Model Options Infrastructure](design/model_options_infrastructure.md) — Shared patterns for model-level feature flags (soft_delete, auditing, userstamps, tree)
 - [Soft Delete](design/soft_delete.md) — Discard/restore support with `discarded_at` timestamp
 - [Auditing](design/auditing.md) — Native change tracking and audit trail
-- [Userstamps](design/userstamps.md) — Automatic `created_by_id` / `updated_by_id` tracking
 - [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments
 - [Multiselect and Batch Actions](design/multiselect_and_batch_actions.md) — Checkbox selection and bulk operations on index pages

@@ -1,0 +1,7 @@
+view_group:
+  model: showcase_userstamps
+  primary: showcase_userstamps
+  views:
+    - presenter: showcase_userstamps
+      label: "Userstamps"
+      icon: user-check

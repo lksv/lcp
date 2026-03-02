@@ -1,4 +1,5 @@
 require "spec_helper"
+require "ostruct"
 
 RSpec.describe LcpRuby::Authorization::PermissionEvaluator do
   let(:fixtures_path) { File.expand_path("../../../fixtures/metadata", __dir__) }

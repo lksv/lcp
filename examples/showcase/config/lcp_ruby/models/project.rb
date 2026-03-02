@@ -16,6 +16,8 @@ define_model :project do
   belongs_to :department, model: :department, required: true
   belongs_to :lead, model: :employee, required: false
 
+  userstamps
+
   timestamps true
   label_method :name
 end

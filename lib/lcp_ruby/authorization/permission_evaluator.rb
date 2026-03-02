@@ -183,7 +183,8 @@ module LcpRuby
         Groups::Registry.roles_for_user(user)
       end
 
-      # Returns all field names for this model, including belongs_to FK fields.
+      # Returns all field names for this model, including belongs_to FK fields,
+      # timestamp columns, and userstamp columns.
       # FK fields (e.g. company_id) are included because they are real DB columns that
       # need to be readable for index FK-column rendering and writable for association_select forms.
       # Note: this means `readable: all` / `writable: all` includes FK fields.
@@ -191,6 +192,8 @@ module LcpRuby
         model_def = LcpRuby.loader.model_definition(model_name)
         names = model_def.fields.map(&:name)
         names.concat(model_def.belongs_to_fk_map.keys)
+        names.concat(%w[created_at updated_at]) if model_def.timestamps?
+        names.concat(model_def.userstamp_column_names)
         if model_def.custom_fields_enabled?
           names << "custom_data"
           cf_names = CustomFields::Registry.for_model(model_name)
