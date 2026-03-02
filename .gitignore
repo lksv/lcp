@@ -4,6 +4,7 @@
 *.sqlite3-wal
 log/
 tmp/
+coverage/
 
 # Active Storage uploads
 storage/

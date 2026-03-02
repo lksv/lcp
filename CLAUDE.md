@@ -116,6 +116,9 @@ bundle exec rspec spec/lib/
 # Run only integration tests
 bundle exec rspec spec/integration/
 
+# Run tests with coverage report (HTML report in tmp/coverage/index.html)
+COVERAGE=1 bundle exec rspec
+
 # Lint
 bundle exec rubocop
 
@@ -308,6 +311,8 @@ Concrete "As a user, I want to..." stories showing how the feature will be used 
 
 Settings, defaults, edge cases. Include DSL/YAML config examples where relevant.
 Describe the user-facing behavior in enough detail that someone could test it.
+
+## Usage Examples
 
 ## General Implementation Approach
 
