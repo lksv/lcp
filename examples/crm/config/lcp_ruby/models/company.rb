@@ -43,14 +43,15 @@ define_model :company do
     content_types: %w[application/pdf application/vnd.openxmlformats-officedocument.wordprocessingml.document]
   }
 
-  has_many :contacts, model: :contact, foreign_key: :company_id, dependent: :destroy
-  has_many :deals, model: :deal, foreign_key: :company_id, dependent: :destroy
+  has_many :contacts, model: :contact, foreign_key: :company_id, dependent: :discard
+  has_many :deals, model: :deal, foreign_key: :company_id, dependent: :discard
 
   belongs_to :country, model: :country, required: false
   belongs_to :region, model: :region, required: false
   belongs_to :city, model: :city, required: false
 
   custom_fields true
+  soft_delete
 
   timestamps true
   label_method :name

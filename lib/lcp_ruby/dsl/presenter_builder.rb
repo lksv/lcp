@@ -51,6 +51,10 @@ module LcpRuby
         @options["empty_value"] = value
       end
 
+      def scope(value)
+        @options["scope"] = value.to_s
+      end
+
       # View blocks
       def index(&block)
         builder = IndexBuilder.new
@@ -126,7 +130,7 @@ module LcpRuby
         merged = Marshal.load(Marshal.dump(parent_hash))
 
         # Always override these from child if defined
-        %w[name label slug icon read_only embeddable redirect_after empty_value].each do |key|
+        %w[name label slug icon read_only embeddable redirect_after empty_value scope].each do |key|
           merged[key] = child_hash[key] if child_hash.key?(key)
         end
 

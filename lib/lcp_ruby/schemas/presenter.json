@@ -21,6 +21,7 @@
       "additionalProperties": false
     },
     "empty_value": { "type": "string" },
+    "scope": { "type": "string", "enum": ["discarded", "with_discarded"] },
     "index": { "$ref": "#/$defs/index_config" },
     "show": { "$ref": "#/$defs/show_config" },
     "form": { "$ref": "#/$defs/form_config" },

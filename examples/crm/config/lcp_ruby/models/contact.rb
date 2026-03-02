@@ -42,6 +42,7 @@ define_model :contact do
   scope :active_contacts, where: { active: true }
 
   custom_fields true
+  soft_delete
 
   timestamps true
   label_method :full_name
