@@ -17,8 +17,8 @@ RSpec.describe "Auditing integration", type: :request do
   # spec_helper resets LcpRuby state before each test, so reload metadata each time.
   before(:each) do
     load_integration_metadata!("auditing")
-    stub_current_user(role: ["admin"], id: 42)
-    LcpRuby::Current.user = OpenStruct.new(id: 42, email: "test@example.com", name: "Test User", lcp_role: ["admin"])
+    stub_current_user(role: [ "admin" ], id: 42)
+    LcpRuby::Current.user = OpenStruct.new(id: 42, email: "test@example.com", name: "Test User", lcp_role: [ "admin" ])
     audit_class.delete_all
     audited_class.delete_all
     unaudited_class.delete_all
@@ -37,12 +37,12 @@ RSpec.describe "Auditing integration", type: :request do
 
       entry = entries.first
       expect(entry.action).to eq("create")
-      expect(entry.changes_data).to include("title" => [nil, "Test Item"])
-      expect(entry.changes_data).to include("amount" => [nil, 100])
+      expect(entry.changes_data).to include("title" => [ nil, "Test Item" ])
+      expect(entry.changes_data).to include("amount" => [ nil, 100 ])
     end
 
     it "records user information" do
-      LcpRuby::Current.user = OpenStruct.new(id: 42, email: "test@example.com", name: "Test User", lcp_role: ["admin"])
+      LcpRuby::Current.user = OpenStruct.new(id: 42, email: "test@example.com", name: "Test User", lcp_role: [ "admin" ])
 
       record = audited_class.create!(title: "Test")
 
@@ -64,7 +64,7 @@ RSpec.describe "Auditing integration", type: :request do
 
       entry = entries.first
       expect(entry.action).to eq("update")
-      expect(entry.changes_data).to include("title" => ["Original", "Updated"])
+      expect(entry.changes_data).to include("title" => [ "Original", "Updated" ])
       expect(entry.changes_data).not_to have_key("amount")
     end
 
@@ -93,8 +93,8 @@ RSpec.describe "Auditing integration", type: :request do
 
       entry = entries.first
       expect(entry.action).to eq("destroy")
-      expect(entry.changes_data).to include("title" => ["To Delete", nil])
-      expect(entry.changes_data).to include("amount" => [200, nil])
+      expect(entry.changes_data).to include("title" => [ "To Delete", nil ])
+      expect(entry.changes_data).to include("amount" => [ 200, nil ])
     end
   end
 
@@ -153,7 +153,7 @@ RSpec.describe "Auditing integration", type: :request do
       expect(audit_class.count).to eq(1)
       entry = audit_class.last
       expect(entry.action).to eq("create")
-      expect(entry.changes_data["title"]).to eq([nil, "Via HTTP"])
+      expect(entry.changes_data["title"]).to eq([ nil, "Via HTTP" ])
     end
 
     it "creates audit entry on PATCH update" do
@@ -166,7 +166,7 @@ RSpec.describe "Auditing integration", type: :request do
       expect(audit_class.count).to eq(1)
       entry = audit_class.last
       expect(entry.action).to eq("update")
-      expect(entry.changes_data["title"]).to eq(["Before", "After"])
+      expect(entry.changes_data["title"]).to eq([ "Before", "After" ])
     end
 
     it "creates audit entry on DELETE destroy" do

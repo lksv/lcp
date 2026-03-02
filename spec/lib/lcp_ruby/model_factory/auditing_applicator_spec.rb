@@ -8,7 +8,7 @@ RSpec.describe LcpRuby::ModelFactory::AuditingApplicator do
       it "does nothing" do
         model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
           "name" => "plain",
-          "fields" => [{ "name" => "name", "type" => "string" }],
+          "fields" => [ { "name" => "name", "type" => "string" } ],
           "options" => { "timestamps" => true }
         })
 
@@ -22,7 +22,7 @@ RSpec.describe LcpRuby::ModelFactory::AuditingApplicator do
       let(:model_def) do
         LcpRuby::Metadata::ModelDefinition.from_hash({
           "name" => "audited",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "timestamps" => true, "auditing" => true }
         })
       end

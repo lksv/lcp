@@ -9,7 +9,7 @@ RSpec.describe LcpRuby::Auditing::Setup do
 
         model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
           "name" => "plain_item",
-          "fields" => [{ "name" => "name", "type" => "string" }],
+          "fields" => [ { "name" => "name", "type" => "string" } ],
           "options" => { "timestamps" => true }
         })
 
@@ -27,7 +27,7 @@ RSpec.describe LcpRuby::Auditing::Setup do
 
         model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
           "name" => "audited_thing",
-          "fields" => [{ "name" => "name", "type" => "string" }],
+          "fields" => [ { "name" => "name", "type" => "string" } ],
           "options" => { "timestamps" => true, "auditing" => true }
         })
 
@@ -44,7 +44,7 @@ RSpec.describe LcpRuby::Auditing::Setup do
 
         model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
           "name" => "audited_thing",
-          "fields" => [{ "name" => "name", "type" => "string" }],
+          "fields" => [ { "name" => "name", "type" => "string" } ],
           "options" => { "timestamps" => true, "auditing" => true }
         })
 
@@ -64,13 +64,13 @@ RSpec.describe LcpRuby::Auditing::Setup do
 
         audited_def = LcpRuby::Metadata::ModelDefinition.from_hash({
           "name" => "audited_thing",
-          "fields" => [{ "name" => "name", "type" => "string" }],
+          "fields" => [ { "name" => "name", "type" => "string" } ],
           "options" => { "timestamps" => true, "auditing" => true }
         })
 
         bad_audit_def = LcpRuby::Metadata::ModelDefinition.from_hash({
           "name" => "audit_log",
-          "fields" => [{ "name" => "action", "type" => "string" }],
+          "fields" => [ { "name" => "action", "type" => "string" } ],
           "options" => { "timestamps" => false }
         })
 

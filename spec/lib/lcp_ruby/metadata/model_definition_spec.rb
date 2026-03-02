@@ -216,7 +216,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       definition = described_class.from_hash(
         "name" => "item_def",
         "table_name" => "_virtual",
-        "fields" => [{ "name" => "name", "type" => "string" }]
+        "fields" => [ { "name" => "name", "type" => "string" } ]
       )
       expect(definition.virtual?).to be true
     end
@@ -224,7 +224,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
     it "returns false for normal models" do
       definition = described_class.from_hash(
         "name" => "item",
-        "fields" => [{ "name" => "name", "type" => "string" }]
+        "fields" => [ { "name" => "name", "type" => "string" } ]
       )
       expect(definition.virtual?).to be false
     end
@@ -235,7 +235,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns true when soft_delete is true" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "soft_delete" => true }
         )
         expect(definition.soft_delete?).to be true
@@ -245,7 +245,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns true when soft_delete is a Hash" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "soft_delete" => { "column" => "deleted_at" } }
         )
         expect(definition.soft_delete?).to be true
@@ -255,7 +255,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns false when soft_delete is absent" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }]
+          "fields" => [ { "name" => "title", "type" => "string" } ]
         )
         expect(definition.soft_delete?).to be false
         expect(definition.soft_delete_options).to eq({})
@@ -264,7 +264,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns false when soft_delete is false" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "soft_delete" => false }
         )
         expect(definition.soft_delete?).to be false
@@ -273,7 +273,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns false when soft_delete is nil" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "soft_delete" => nil }
         )
         expect(definition.soft_delete?).to be false
@@ -282,7 +282,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns false when soft_delete is a string" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "soft_delete" => "yes" }
         )
         expect(definition.soft_delete?).to be false
@@ -293,7 +293,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "defaults to discarded_at" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "soft_delete" => true }
         )
         expect(definition.soft_delete_column).to eq("discarded_at")
@@ -302,7 +302,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "uses custom column when specified" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "soft_delete" => { "column" => "deleted_at" } }
         )
         expect(definition.soft_delete_column).to eq("deleted_at")
@@ -313,7 +313,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns true for boolean true" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "auditing" => true }
         )
         expect(definition.auditing?).to be true
@@ -323,7 +323,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns true for Hash" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "auditing" => { "only" => %w[title status] } }
         )
         expect(definition.auditing?).to be true
@@ -333,7 +333,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns false when absent" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }]
+          "fields" => [ { "name" => "title", "type" => "string" } ]
         )
         expect(definition.auditing?).to be false
       end
@@ -343,7 +343,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns true for boolean true" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => true }
         )
         expect(definition.userstamps?).to be true
@@ -352,7 +352,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns true for Hash" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => { "created_by" => "author_id" } }
         )
         expect(definition.userstamps?).to be true
@@ -362,7 +362,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns false when absent" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }]
+          "fields" => [ { "name" => "title", "type" => "string" } ]
         )
         expect(definition.userstamps?).to be false
       end
@@ -372,7 +372,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns default creator and updater fields" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => true }
         )
         expect(definition.userstamps_creator_field).to eq("created_by_id")
@@ -382,7 +382,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns custom creator and updater fields" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => { "created_by" => "author_id", "updated_by" => "editor_id" } }
         )
         expect(definition.userstamps_creator_field).to eq("author_id")
@@ -392,7 +392,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns false for store_name? by default" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => true }
         )
         expect(definition.userstamps_store_name?).to be false
@@ -401,7 +401,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns true for store_name? when enabled" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => { "store_name" => true } }
         )
         expect(definition.userstamps_store_name?).to be true
@@ -410,7 +410,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns nil for name fields when store_name is false" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => true }
         )
         expect(definition.userstamps_creator_name_field).to be_nil
@@ -420,7 +420,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "derives name fields from default FK columns" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => { "store_name" => true } }
         )
         expect(definition.userstamps_creator_name_field).to eq("created_by_name")
@@ -430,7 +430,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "derives name fields from custom FK columns" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => { "created_by" => "author_id", "updated_by" => "last_editor_id", "store_name" => true } }
         )
         expect(definition.userstamps_creator_name_field).to eq("author_name")
@@ -442,7 +442,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns empty array when userstamps disabled" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }]
+          "fields" => [ { "name" => "title", "type" => "string" } ]
         )
         expect(definition.userstamp_column_names).to eq([])
       end
@@ -450,7 +450,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns FK columns for simple userstamps" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => true }
         )
         expect(definition.userstamp_column_names).to eq(%w[created_by_id updated_by_id])
@@ -459,7 +459,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "includes name columns when store_name is true" do
         definition = described_class.from_hash(
           "name" => "item",
-          "fields" => [{ "name" => "title", "type" => "string" }],
+          "fields" => [ { "name" => "title", "type" => "string" } ],
           "options" => { "userstamps" => { "store_name" => true } }
         )
         expect(definition.userstamp_column_names).to eq(%w[created_by_id updated_by_id created_by_name updated_by_name])
@@ -470,7 +470,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns true for boolean true" do
         definition = described_class.from_hash(
           "name" => "category",
-          "fields" => [{ "name" => "name", "type" => "string" }],
+          "fields" => [ { "name" => "name", "type" => "string" } ],
           "options" => { "tree" => true }
         )
         expect(definition.tree?).to be true
@@ -479,7 +479,7 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
       it "returns true for Hash" do
         definition = described_class.from_hash(
           "name" => "category",
-          "fields" => [{ "name" => "name", "type" => "string" }],
+          "fields" => [ { "name" => "name", "type" => "string" } ],
           "options" => { "tree" => { "parent_field" => "parent_category_id" } }
         )
         expect(definition.tree?).to be true

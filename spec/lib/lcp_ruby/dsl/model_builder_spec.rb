@@ -855,13 +855,13 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
 
       it "sets auditing with only option" do
         builder = described_class.new(:item)
-        builder.instance_eval { auditing only: [:title, :status] }
+        builder.instance_eval { auditing only: [ :title, :status ] }
         expect(builder.to_hash["options"]["auditing"]).to eq({ "only" => %w[title status] })
       end
 
       it "sets auditing with ignore option" do
         builder = described_class.new(:item)
-        builder.instance_eval { auditing ignore: [:updated_at] }
+        builder.instance_eval { auditing ignore: [ :updated_at ] }
         expect(builder.to_hash["options"]["auditing"]).to eq({ "ignore" => %w[updated_at] })
       end
 
@@ -936,7 +936,7 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
       defn = LcpRuby.define_model(:featured_item) do
         field :title, :string
         soft_delete column: :deleted_at
-        auditing only: [:title]
+        auditing only: [ :title ]
         userstamps
         tree
       end
@@ -944,7 +944,7 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
       expect(defn.soft_delete?).to be true
       expect(defn.soft_delete_column).to eq("deleted_at")
       expect(defn.auditing?).to be true
-      expect(defn.auditing_options).to eq({ "only" => ["title"] })
+      expect(defn.auditing_options).to eq({ "only" => [ "title" ] })
       expect(defn.userstamps?).to be true
       expect(defn.tree?).to be true
     end

@@ -2,7 +2,7 @@ define_model :showcase_soft_delete do
   label "Soft Delete Document"
   label_plural "Soft Delete Documents"
 
-  field :title, :string, label: "Title", limit: 200, null: false, transforms: [:strip] do
+  field :title, :string, label: "Title", limit: 200, null: false, transforms: [ :strip ] do
     validates :presence
     validates :length, maximum: 200
   end
