@@ -63,7 +63,7 @@ RSpec.describe "Auto-Search Integration", type: :request do
       article_model.create!(title: "Rails Guide", body: "Getting started", status: "published")
       article_model.create!(title: "Ruby Basics", body: "Introduction", status: "draft")
 
-      get "/articles-auto", params: { q: "Rails" }
+      get "/articles-auto", params: { qs: "Rails" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Rails Guide")
@@ -99,7 +99,7 @@ RSpec.describe "Auto-Search Integration", type: :request do
       article_model.create!(title: "Rails Guide", body: "Getting started", status: "published")
       article_model.create!(title: "Ruby Basics", body: "Introduction", status: "draft")
 
-      get "/articles-default", params: { q: "Rails" }
+      get "/articles-default", params: { qs: "Rails" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Rails Guide")
