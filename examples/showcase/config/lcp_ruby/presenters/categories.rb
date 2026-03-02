@@ -16,6 +16,11 @@ define_presenter :categories do
     column :description, renderer: :truncate, options: { max: 80 }
   end
 
+  search do
+    searchable_fields :name
+    placeholder "Search categories..."
+  end
+
   show do
     section "Category Details", columns: 2 do
       field :name, renderer: :heading
@@ -27,6 +32,8 @@ define_presenter :categories do
 
     association_list "Subcategories", association: :children, link: true,
       empty_message: "No subcategories."
+
+    includes :articles, :children
   end
 
   form do
