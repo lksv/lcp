@@ -83,6 +83,14 @@ module LcpRuby
         raw_hash&.dig("scope")
       end
 
+      def advanced_filter_config
+        search_config["advanced_filter"] || {}
+      end
+
+      def advanced_filter_enabled?
+        search_config["enabled"] && advanced_filter_config["enabled"] == true
+      end
+
       private
 
       def validate!

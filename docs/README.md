@@ -71,6 +71,11 @@ Implemented:
 - [Soft Delete](design/soft_delete.md) — Discard/restore support with `discarded_at` timestamp, cascade discard/undiscard, archive presenters
 - [Auditing](design/auditing.md) — Native change tracking and audit trail
 
+In Progress:
+
+- [Advanced Search & Filter Builder](design/advanced_search.md) — Type-aware quick search, Ransack-based filter builder, custom filter methods, query language (Phase 0–4 implemented, saved filters deferred)
+- [Deep Filter Enhancements](design/recursive_association_field_picker.md) — Recursive association field picker and recursive condition nesting (AND/OR tree)
+
 Proposed:
 - [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments

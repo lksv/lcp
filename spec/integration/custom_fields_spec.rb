@@ -338,7 +338,7 @@ RSpec.describe "Custom Fields Integration", type: :request do
     end
 
     it "includes custom field searchable results" do
-      get "/projects", params: { q: "ruby" }
+      get "/projects", params: { qs: "ruby" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Tagged Project")

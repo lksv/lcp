@@ -230,6 +230,85 @@ RSpec.describe LcpRuby::Dsl::DslLoader, ".load_presenters" do
       end
     end
 
+    it "supports advanced_filter DSL in search block" do
+      Dir.mktmpdir do |dir|
+        File.write(File.join(dir, "af.rb"), <<~RUBY)
+          define_presenter :af_test do
+            model :project
+            slug "af-test"
+
+            search do
+              searchable_fields :title
+              advanced_filter do
+                enabled true
+                max_conditions 15
+                max_association_depth 2
+                default_combinator :and
+                allow_or_groups true
+                query_language true
+                filterable_fields :title, :status, "category.name"
+                field_options :status, operators: %i[eq not_eq in not_in]
+                preset :active,
+                  label: "Active items",
+                  conditions: [
+                    { field: "status", operator: "eq", value: "active" }
+                  ]
+              end
+            end
+          end
+        RUBY
+
+        definitions = described_class.load_presenters(Pathname.new(dir))
+        presenter = definitions["af_test"]
+
+        af = presenter.search_config["advanced_filter"]
+        expect(af).to be_a(Hash)
+        expect(af["enabled"]).to be true
+        expect(af["max_conditions"]).to eq(15)
+        expect(af["max_association_depth"]).to eq(2)
+        expect(af["default_combinator"]).to eq("and")
+        expect(af["allow_or_groups"]).to be true
+        expect(af["query_language"]).to be true
+        expect(af["filterable_fields"]).to eq(%w[title status category.name])
+        expect(af["field_options"]).to eq({ "status" => { "operators" => %w[eq not_eq in not_in] } })
+        expect(af["presets"].length).to eq(1)
+        expect(af["presets"][0]["name"]).to eq("active")
+        expect(af["presets"][0]["label"]).to eq("Active items")
+        expect(af["presets"][0]["conditions"]).to eq([
+          { "field" => "status", "operator" => "eq", "value" => "active" }
+        ])
+      end
+    end
+
+    it "loads advanced_filter with filterable_fields_except and max_nesting_depth" do
+      Dir.mktmpdir do |dir|
+        File.write(File.join(dir, "af_except_test.rb"), <<~RUBY)
+          define_presenter :af_except_test do
+            model :project
+            label "AF Except Test"
+            slug "af-except-test"
+            index do
+              column :title
+            end
+            search do
+              advanced_filter do
+                enabled true
+                max_nesting_depth 3
+                filterable_fields_except :internal_notes, "category.secret_field"
+              end
+            end
+          end
+        RUBY
+
+        definitions = described_class.load_presenters(Pathname.new(dir))
+        presenter = definitions["af_except_test"]
+
+        af = presenter.search_config["advanced_filter"]
+        expect(af["max_nesting_depth"]).to eq(3)
+        expect(af["filterable_fields_except"]).to eq(%w[internal_notes category.secret_field])
+      end
+    end
+
     it "resolves inheritance across separate files" do
       Dir.mktmpdir do |dir|
         File.write(File.join(dir, "parent.rb"), <<~RUBY)

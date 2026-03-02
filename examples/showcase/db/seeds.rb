@@ -5,7 +5,7 @@ puts "Seeding showcase data..."
   feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_userstamps
   showcase_soft_delete_item showcase_soft_delete
   showcase_virtual_field showcase_extensibility permission_config role showcase_permission
-  showcase_attachment custom_field_definition employee_skill project
+  showcase_attachment custom_field_definition employee_skill project showcase_search
   employee skill department showcase_form comment article_tag tag article
   author category showcase_model showcase_field
   group_role_mapping group_membership group
@@ -1034,6 +1034,190 @@ RecipeModel = LcpRuby.registry.model_for("showcase_recipe")
 ].each { |attrs| RecipeModel.create!(attrs) }
 
 puts "  Created #{RecipeModel.count} showcase_recipe records"
+
+# Phase 14: Advanced Search Showcase
+SearchModel = LcpRuby.registry.model_for("showcase_search")
+
+# Grab existing departments, categories, and authors for associations
+all_depts = DeptModel.all.to_a
+all_cats = CategoryModel.all.to_a
+all_authors = AuthorModel.all.to_a
+
+[
+  {
+    title: "Widget Pro X100",
+    description: "High-end widget with advanced features and premium build quality.",
+    quantity: 250, rating: 4.7, price: 299.99,
+    published: true,
+    status: "published", priority: "high",
+    release_date: Date.today - 30,
+    last_reviewed_at: Time.current - 2.days,
+    tracking_id: SecureRandom.uuid,
+    contact_email: "sales@widgets.example.com",
+    contact_phone: "+1 555 100 2000",
+    source_url: "https://widgets.example.com/pro-x100",
+    department_id: all_depts.find { |d| d.name == "Engineering" }&.id,
+    category_id: all_cats.find { |c| c.name == "Technology" }&.id,
+    author_id: all_authors.first&.id
+  },
+  {
+    title: "Budget Gadget Basic",
+    description: "Affordable everyday gadget for casual users.",
+    quantity: 1200, rating: 3.2, price: 19.99,
+    published: true,
+    status: "published", priority: "low",
+    release_date: Date.today - 90,
+    last_reviewed_at: Time.current - 15.days,
+    tracking_id: SecureRandom.uuid,
+    contact_email: "info@gadgets.example.com",
+    source_url: "https://gadgets.example.com/basic",
+    department_id: all_depts.find { |d| d.name == "Frontend" }&.id,
+    category_id: all_cats.find { |c| c.name == "Web Development" }&.id,
+    author_id: all_authors.second&.id
+  },
+  {
+    title: "Enterprise Server Rack",
+    description: "42U server rack with integrated cooling and cable management.",
+    quantity: 15, rating: 4.9, price: 4500.00,
+    published: true,
+    status: "approved", priority: "critical",
+    release_date: Date.today - 7,
+    last_reviewed_at: Time.current - 1.hour,
+    tracking_id: SecureRandom.uuid,
+    contact_email: "enterprise@racks.example.com",
+    contact_phone: "+44 20 7946 0958",
+    department_id: all_depts.find { |d| d.name == "Backend" }&.id,
+    category_id: all_cats.find { |c| c.name == "Enterprise" }&.id,
+    author_id: all_authors.third&.id
+  },
+  {
+    title: "Cloud Monitor Dashboard",
+    description: "Real-time monitoring dashboard for cloud infrastructure.",
+    quantity: 0, rating: 4.1, price: 0.00,
+    published: false,
+    status: "draft", priority: "medium",
+    release_date: Date.today + 30,
+    tracking_id: SecureRandom.uuid,
+    contact_email: "dev@cloud.example.com",
+    department_id: all_depts.find { |d| d.name == "DevOps" }&.id,
+    category_id: all_cats.find { |c| c.name == "Backend" }&.id,
+    author_id: all_authors.fourth&.id
+  },
+  {
+    title: "Mobile SDK v3",
+    description: "Cross-platform mobile SDK with native performance.",
+    quantity: nil, rating: nil, price: 149.00,
+    published: false,
+    status: "review", priority: "high",
+    release_date: Date.today + 14,
+    last_reviewed_at: Time.current - 3.days,
+    tracking_id: SecureRandom.uuid,
+    contact_phone: "+49 30 1234 5678",
+    source_url: "https://sdk.example.com/v3",
+    department_id: all_depts.find { |d| d.name == "React Team" }&.id,
+    category_id: all_cats.find { |c| c.name == "Frontend" }&.id,
+    author_id: all_authors.first&.id
+  },
+  {
+    title: "Security Audit Tool",
+    description: "Automated security scanning and vulnerability reporting.",
+    quantity: 50, rating: 4.5, price: 899.00,
+    published: true,
+    status: "published", priority: "critical",
+    release_date: Date.today - 60,
+    last_reviewed_at: Time.current - 5.days,
+    tracking_id: SecureRandom.uuid,
+    contact_email: "security@tools.example.com",
+    department_id: all_depts.find { |d| d.name == "API Team" }&.id,
+    category_id: all_cats.find { |c| c.name == "Backend" }&.id,
+    author_id: all_authors.last&.id
+  },
+  {
+    title: "Design System Components",
+    description: "Reusable UI component library with accessibility built in.",
+    quantity: 87, rating: 4.3, price: 0.00,
+    published: true,
+    status: "published", priority: "medium",
+    release_date: Date.today - 120,
+    last_reviewed_at: Time.current - 30.days,
+    department_id: all_depts.find { |d| d.name == "UX Design" }&.id,
+    category_id: all_cats.find { |c| c.name == "CSS & Styling" }&.id,
+    author_id: all_authors.second&.id
+  },
+  {
+    title: "Legacy Data Migrator",
+    description: nil,
+    quantity: 3, rating: 2.1, price: 50.00,
+    published: false,
+    status: "archived", priority: "low",
+    release_date: Date.today - 365,
+    tracking_id: SecureRandom.uuid,
+    department_id: all_depts.find { |d| d.name == "Management" }&.id,
+    category_id: all_cats.find { |c| c.name == "Business" }&.id,
+    author_id: all_authors.third&.id
+  },
+  {
+    title: "AI Code Assistant",
+    description: "Machine learning powered code completion and review.",
+    quantity: 0, rating: nil, price: nil,
+    published: false,
+    status: "draft", priority: "high",
+    release_date: nil,
+    tracking_id: nil,
+    contact_email: "ai@assistant.example.com",
+    department_id: all_depts.find { |d| d.name == "Engineering" }&.id,
+    category_id: all_cats.find { |c| c.name == "React Ecosystem" }&.id,
+    author_id: all_authors.fourth&.id
+  },
+  {
+    title: "Analytics Pipeline",
+    description: "Real-time event processing and reporting pipeline with SQL interface.",
+    quantity: 500, rating: 3.8, price: 1200.00,
+    published: true,
+    status: "approved", priority: "medium",
+    release_date: Date.today - 14,
+    last_reviewed_at: Time.current,
+    tracking_id: SecureRandom.uuid,
+    contact_email: "data@pipeline.example.com",
+    contact_phone: "+1 555 999 8888",
+    source_url: "https://pipeline.example.com",
+    department_id: all_depts.find { |d| d.name == "Backend" }&.id,
+    category_id: all_cats.find { |c| c.name == "Science" }&.id,
+    author_id: all_authors.last&.id
+  },
+  {
+    title: "Notification Service",
+    description: "Multi-channel notification delivery: email, SMS, push, and webhooks.",
+    quantity: 10000, rating: 4.6, price: 75.00,
+    published: true,
+    status: "published", priority: "high",
+    release_date: Date.today - 45,
+    last_reviewed_at: Time.current - 10.days,
+    tracking_id: SecureRandom.uuid,
+    contact_email: "notify@service.example.com",
+    contact_phone: "+1 555 777 6666",
+    department_id: all_depts.find { |d| d.name == "Engineering" }&.id,
+    category_id: all_cats.find { |c| c.name == "Technology" }&.id,
+    author_id: all_authors.first&.id
+  },
+  {
+    title: "Form Builder Pro",
+    description: "Drag-and-drop form builder with conditional logic and validation rules.",
+    quantity: 42, rating: 3.9, price: 199.00,
+    published: false,
+    status: "review", priority: "medium",
+    release_date: Date.today + 7,
+    last_reviewed_at: Time.current - 1.day,
+    tracking_id: SecureRandom.uuid,
+    source_url: "https://formbuilder.example.com/pro",
+    department_id: all_depts.find { |d| d.name == "Frontend" }&.id,
+    category_id: all_cats.find { |c| c.name == "Startups" }&.id,
+    author_id: all_authors.second&.id
+  }
+].each do |attrs|
+  SearchModel.create!(attrs)
+end
+puts "  Created #{SearchModel.count} showcase_search records"
 
 # Phase 13: Feature Catalog
 FeatureModel = LcpRuby.registry.model_for("feature")
@@ -2477,6 +2661,53 @@ features = [
     config_example: "```ruby\n# Model DSL\ndefine_model :employee do\n  scope :without_mentor, where: { mentor_id: nil }\nend\n\n# Presenter DSL\nsearch do\n  filter :without_mentor, label: \"No Mentor\", scope: :without_mentor\nend\n```",
     demo_path: "/showcase/employees",
     demo_hint: "Click the \"No Mentor\" filter tab — only employees without an assigned mentor are shown.",
+    status: "stable"
+  },
+
+  # === Advanced Search ===
+  {
+    name: "Advanced Filter Builder",
+    category: "search",
+    description: "Visual filter builder with AND/OR grouping, nested conditions, type-aware operators, and cascading field picker for associations.\n\nSupports all field types: string, text, integer, float, decimal, boolean, date, datetime, enum, uuid, and business types (email, phone, url).",
+    config_example: "```ruby\nsearch do\n  advanced_filter do\n    enabled true\n    max_conditions 20\n    max_nesting_depth 3\n    max_association_depth 2\n    allow_or_groups true\n    query_language true\n\n    filterable_fields :title, :price, :status,\n      \"department.name\", \"category.parent.name\"\n\n    field_options :status, operators: %i[eq not_eq in not_in]\n\n    preset :expensive_published,\n      label: \"Expensive & published\",\n      conditions: [\n        { field: \"published\", operator: \"true\" },\n        { field: \"price\", operator: \"gteq\", value: \"100\" }\n      ]\n  end\nend\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "Click **Filters** to open the advanced filter. Try the cascading field picker — select an association to drill into its fields.",
+    status: "stable"
+  },
+  {
+    name: "Cascading Field Picker",
+    category: "search",
+    description: "When filtering on associations, the field picker cascades: the first select shows direct fields and association names. Selecting an association reveals a second select with that association's fields and sub-associations, up to `max_association_depth`.\n\nThis replaces the flat field dropdown that becomes overwhelming with many associations.",
+    config_example: "```ruby\n# The cascading picker is automatic when association fields are configured:\nadvanced_filter do\n  max_association_depth 2\n  filterable_fields :title,\n    \"department.name\", \"department.code\",\n    \"category.name\",\n    \"category.parent.name\"   # 2-level deep\nend\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "Open Filters → click the field picker → select **Department** or **Category** to see the cascade. Category → Parent shows 2-level nesting.",
+    status: "stable"
+  },
+  {
+    name: "Query Language (QL)",
+    category: "search",
+    description: "Text-based query language as an alternative to the visual filter builder. Supports all operators, AND/OR logic, parentheses for grouping, and dot-path fields for associations.\n\nThe QL can be toggled from the visual builder and round-trips both ways: visual → QL → visual.",
+    config_example: "```\n# Simple conditions\nstatus = 'published' and price >= 100\n\n# OR groups with parentheses\ntitle ~ 'widget' and (status = 'published' or priority in ['high', 'critical'])\n\n# Association fields (dot-path)\ndepartment.name = 'Engineering' and category.parent.name = 'Technology'\n\n# No-value operators\npublished is true and contact_email is present\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "Click **Edit as QL** to switch to query language mode. Type a query and press Apply, or switch back to visual mode to see the parsed result.",
+    status: "stable"
+  },
+  {
+    name: "Filter Presets",
+    category: "search",
+    description: "Pre-configured filter combinations that users can apply with a single click. Defined in the presenter DSL/YAML with a name, label, and list of conditions.\n\nPresets are shown as buttons above the filter builder.",
+    config_example: "```ruby\nadvanced_filter do\n  preset :high_value_open,\n    label: \"High-value open deals\",\n    conditions: [\n      { field: \"stage\", operator: \"not_in\",\n        value: %w[closed_won closed_lost] },\n      { field: \"value\", operator: \"gteq\", value: \"10000\" }\n    ]\n\n  preset :closing_soon,\n    label: \"Closing this month\",\n    conditions: [\n      { field: \"expected_close_date\", operator: \"this_month\" }\n    ]\nend\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "Open Filters and look for the preset buttons: **Expensive & published**, **Recent drafts**, etc.",
+    status: "stable"
+  },
+  {
+    name: "Relative Date Operators",
+    category: "search",
+    description: "Date and datetime fields support relative operators that resolve dynamically: `last_n_days` (with parameter), `this_week`, `this_month`, `this_quarter`, `this_year`.\n\nThese are in addition to standard comparison operators (eq, gt, lt, between).",
+    config_example: "```ruby\n# In query language:\ncreated_at last_n_days 30      # created in last 30 days\nrelease_date this_month         # releasing this month\nlast_reviewed_at this_quarter   # reviewed this quarter\n\n# In visual builder:\n# Select a date field → choose \"Last N days\" operator → enter number\n# Or choose \"This week\", \"This month\", etc. (no value needed)\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "Select **Release Date** or **Created at** in the filter, then browse the operator dropdown to see relative date options.",
     status: "stable"
   }
 ]

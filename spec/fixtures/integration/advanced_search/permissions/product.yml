@@ -1,0 +1,20 @@
+permissions:
+  model: product
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields:
+        readable: all
+        writable: all
+      actions: all
+      scope: all
+      presenters: all
+
+    viewer:
+      crud: [index, show]
+      fields:
+        readable: [name, status, active, sku]
+        writable: []
+      scope: all
+      presenters: [product]

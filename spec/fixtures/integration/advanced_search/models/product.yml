@@ -1,0 +1,72 @@
+model:
+  name: product
+  label: "Product"
+  label_plural: "Products"
+
+  fields:
+    - name: name
+      type: string
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+
+    - name: description
+      type: text
+
+    - name: price
+      type: decimal
+      column_options: { precision: 10, scale: 2 }
+
+    - name: quantity
+      type: integer
+      default: 0
+
+    - name: weight
+      type: float
+
+    - name: active
+      type: boolean
+      default: true
+
+    - name: release_date
+      type: date
+
+    - name: last_ordered_at
+      type: datetime
+
+    - name: status
+      type: enum
+      enum_values:
+        - { value: draft, label: "Draft" }
+        - { value: published, label: "Published" }
+        - { value: archived, label: "Archived" }
+        - { value: out_of_stock, label: "Out of Stock" }
+      default: draft
+
+    - name: sku
+      type: string
+      column_options:
+        limit: 50
+
+  associations:
+    - type: belongs_to
+      name: category
+      target_model: category
+      foreign_key: category_id
+      required: false
+
+  scopes:
+    - name: active_products
+      where: { active: true }
+    - name: published
+      where: { status: "published" }
+    - name: expensive
+      where:
+        price: { gte: 100.0 }
+
+  options:
+    timestamps: true
+    label_method: name
+    custom_fields: true

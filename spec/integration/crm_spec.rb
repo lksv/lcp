@@ -412,7 +412,7 @@ RSpec.describe "CRM App Integration", type: :request do
       deal_model.create!(title: "Enterprise License", stage: "lead", company_id: company.id)
       deal_model.create!(title: "Support Contract", stage: "lead", company_id: company.id)
 
-      get "/deals", params: { q: "Enterprise" }
+      get "/deals", params: { qs: "Enterprise" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Enterprise License")

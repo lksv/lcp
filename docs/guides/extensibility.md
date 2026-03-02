@@ -365,6 +365,62 @@ validations:
       service: requires_approval
 ```
 
+### Custom Filter Methods
+
+Custom filter methods let host apps define complex filtering logic that cannot be expressed as Ransack predicates — multi-table JOINs, subqueries, external service lookups, or authorization-aware filters. They follow a naming convention: `self.filter_{name}(scope, value, evaluator)`.
+
+**Where to define them:** In model extensions (see [Model Extensions](#model-extensions) below), as class methods on the dynamic model.
+
+```ruby
+# config/initializers/lcp_ruby_extensions.rb
+Rails.application.config.after_initialize do
+  LcpRuby::Dynamic::Deal.class_eval do
+    class << self
+      # Simple boolean filter
+      def filter_active(scope, value, evaluator)
+        return scope unless ActiveModel::Type::Boolean.new.cast(value)
+        scope.where(stage: %w[lead qualified proposal])
+      end
+
+      # Complex JOIN-based filter
+      def filter_region(scope, value, evaluator)
+        scope.joins(company: :country)
+             .where(countries: { region: value })
+      end
+
+      # Authorization-aware filter
+      def filter_my_records(scope, value, evaluator)
+        return scope unless ActiveModel::Type::Boolean.new.cast(value)
+        scope.where(owner_id: evaluator.user.id)
+      end
+    end
+  end
+end
+```
+
+**How it works:** Before passing filter params to Ransack, the controller checks each parameter key. If the model has a matching `filter_*` class method, it calls that method and removes the key from Ransack's params. The method must return an `ActiveRecord::Relation` — if it returns anything else, the filter is ignored and a warning is logged.
+
+**Exposing in the UI:** To make custom filters appear in the filter dropdown, declare them in the presenter YAML under `advanced_filter.custom_filters`:
+
+```yaml
+search:
+  advanced_filter:
+    custom_filters:
+      - name: region
+        label: "Region"
+        type: string           # Value input type in the UI
+      - name: my_records
+        label: "My Records"
+        type: boolean
+      - name: active
+        label: "Active Only"
+        type: boolean
+```
+
+When `custom_filters` is declared, these appear as selectable fields in the filter dropdown under a "Custom" group. Without the declaration, `filter_*` methods still work when parameters arrive (e.g., via URL), but they don't appear in the UI.
+
+**Security:** Only methods matching the `filter_` prefix convention are callable. The method must be defined directly on the model class (not inherited from `ActiveRecord::Base`). The return value is validated to be an `ActiveRecord::Relation`.
+
 ### Scopes
 
 Declarative scopes are defined in YAML using `where`, `where_not`, `order`, and `limit`:

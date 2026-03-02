@@ -72,6 +72,14 @@ module LcpRuby
         target_model.present?
       end
 
+      def belongs_to?
+        @type == "belongs_to"
+      end
+
+      def traversable?
+        lcp_model? && !polymorphic && !through?
+      end
+
       def through?
         @through.present?
       end

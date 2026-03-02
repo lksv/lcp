@@ -36,6 +36,15 @@ define_presenter :city do
   search do
     searchable_fields :name
     placeholder "Search cities..."
+
+    advanced_filter do
+      enabled true
+      max_nesting_depth 2
+      allow_or_groups true
+      query_language true
+      filterable_fields :name, :population, "region.name", "region.country.name"
+      field_options :population, operators: %i[eq gt gteq lt lteq between]
+    end
   end
 
   action :create, type: :built_in, on: :collection, label: "New City", icon: "plus"

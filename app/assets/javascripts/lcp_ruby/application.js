@@ -20,6 +20,7 @@
 //= require lcp_ruby/inline_create
 //= require lcp_ruby/cascading_selects
 //= require lcp_ruby/tom_select_init
+//= require lcp_ruby/advanced_filter
 //= require lcp_ruby/tree_select
 //= require lcp_ruby/file_upload
 //= require lcp_ruby/direct_upload

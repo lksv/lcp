@@ -82,6 +82,7 @@ Builds dynamic ActiveRecord models from metadata definitions.
 - **AssociationApplicator** — sets up belongs_to, has_many, has_one with options (foreign_key, class_name, dependent, required)
 - **ScopeApplicator** — generates scopes from `where`, `where_not`, `order`, `limit`, and custom scope definitions
 - **CallbackApplicator** — registers lifecycle callbacks and field_change event triggers that dispatch to the Events system
+- **RansackApplicator** — configures Ransack `ransackable_attributes` and `ransackable_associations` on the model class from metadata; filters by `PermissionEvaluator` at query time via `auth_object`
 - **Registry** — central model store; `register`, `model_for`, `registered?`, `all`, `names`, `clear!`
 
 ### Authorization (`lib/lcp_ruby/authorization/`)
@@ -188,6 +189,19 @@ JSON column value (Array<Hash>)
     → if invalid: errors collected → render form with errors
 ```
 
+### Search (`lib/lcp_ruby/search/`)
+
+Advanced search and filter pipeline that wraps Ransack with LCP metadata for configuration and authorization.
+
+- **QuickSearch** — type-aware text search across `searchable_fields`; checks each field's type (string → `ILIKE`, numeric → exact match, date → range, enum → label match); supports `default_query` escape hatch on models
+- **ParamSanitizer** — sanitizes `?f[...]` filter params; rejects blanks, normalizes booleans, enforces `max_conditions` limit
+- **FilterParamBuilder** — maps LCP operator names to Ransack predicates; resolves relative date operators (`this_week`, `this_month`, etc.) to absolute ranges; constructs Ransack-compatible parameter keys from dot-path field references
+- **OperatorRegistry** — central registry mapping field types to available operators with labels, no-value operators, and multi-value operators
+- **CustomFilterInterceptor** — detects and calls `filter_*` class methods on the model before Ransack; validates return types; removes intercepted keys from Ransack params
+- **FilterMetadataBuilder** — request-time builder that generates JSON metadata for the JS visual filter builder; permission-aware (filters fields/associations by evaluator); resolves custom types to base types; supports explicit `filterable_fields` or auto-detection mode; traverses `belongs_to` associations respecting `max_association_depth`
+
+Note: Ransack model configuration (`ransackable_attributes`, `ransackable_associations`) is set up at boot time by `ModelFactory::RansackApplicator`.
+
 ### Routing (`lib/lcp_ruby/routing/`)
 
 - **PresenterRoutes** — exists but is unused; only static engine routes defined in `config/routes.rb` are active
@@ -206,9 +220,9 @@ JSON column value (Array<Hash>)
 ### ResourcesController (`app/controllers/lcp_ruby/resources_controller.rb`)
 
 - CRUD: `index`, `show`, `new`, `create`, `edit`, `update`, `destroy`, `restore`, `permanently_destroy`
-- Index pipeline: `policy_scope` -> `apply_soft_delete_scope` -> `apply_search` -> `apply_sort` -> paginate (Kaminari)
+- Index pipeline: `policy_scope` -> `apply_soft_delete_scope` -> `apply_advanced_search` -> `apply_sort` -> paginate (Kaminari)
 - Soft delete: `destroy` branches on `soft_delete?` — calls `discard!` instead of `destroy!`; `restore` calls `undiscard!`; `permanently_destroy` calls `destroy!` on discarded records; `set_record` scopes to `kept` when soft delete is enabled
-- Search: predefined_filters (scope-based) + text search (LIKE on searchable_fields)
+- `apply_advanced_search` 7-step pipeline: (1) apply predefined filter scope, (2) sanitize `?f[...]` params via `ParamSanitizer`, (3) build Ransack params via `FilterParamBuilder`, (4) intercept `filter_*` methods via `CustomFilterInterceptor`, (5) apply Ransack query via `RansackApplicator`, (6) apply quick search (`?qs=`) via `QuickSearch`, (7) apply custom field filters
 - `permitted_params`: writable fields + FK fields from belongs_to associations + custom field names (when `custom_data` is writable); excludes JSON columns handled by `process_json_field_params`
 - `process_json_field_params`: processes `json_field:` sections from presenter — parses hash-of-hashes params into array, filters `_remove` flagged items, strips blank items, whitelists allowed field keys, validates model-backed items via `JsonItemWrapper`, assigns cleaned array to JSON column
 

@@ -21,7 +21,8 @@ module LcpRuby
                   :toggle_direction, :current_sort_field, :current_sort_direction,
                   :current_view_group, :sibling_views,
                   :impersonating?, :impersonated_role, :available_roles_for_impersonation,
-                  :breadcrumbs, :compute_list_version_from_records
+                  :breadcrumbs, :compute_list_version_from_records,
+                  :filter_metadata
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
     rescue_from LcpRuby::MetadataError, with: :metadata_error
@@ -139,6 +140,12 @@ module LcpRuby
         user = impersonating? ? impersonated_user : current_user
         Authorization::PermissionEvaluator.new(perm_def, user, @presenter_definition.model)
       end
+    end
+
+    def filter_metadata
+      @filter_metadata ||= Search::FilterMetadataBuilder.new(
+        @presenter_definition, @model_definition, current_evaluator
+      ).build
     end
 
     # -- Impersonation helpers --
@@ -304,45 +311,90 @@ module LcpRuby
 
     # -- Shared search, sort, and defaults --
 
-    def apply_search(scope)
+    def apply_advanced_search(scope)
       search_config = current_presenter.search_config
       return scope unless search_config["enabled"]
 
-      # Apply default scope if configured (e.g., management presenters scoped by target_model)
+      # 1. Apply default scope if configured (e.g., management presenters scoped by target_model)
       if search_config["default_scope"]
         scope_name = search_config["default_scope"]
         scope = scope.send(scope_name) if @model_class.respond_to?(scope_name)
       end
 
+      # 2. Apply predefined filter scope
       if params[:filter].present?
         predefined = search_config["predefined_filters"]&.find { |f| f["name"] == params[:filter] }
         scope_name = predefined&.dig("scope")
         scope = scope.send(scope_name) if scope_name && @model_class.respond_to?(scope_name)
       end
 
-      if params[:q].present?
-        searchable = (search_config["searchable_fields"] || []).select { |f| @model_class.column_names.include?(f.to_s) }
-        conn = @model_class.connection
-        sanitized_q = ActiveRecord::Base.sanitize_sql_like(params[:q])
+      # 3. Sanitize ?f[...] params (reject blank values, enforce max_conditions)
+      raw_filter_params = Search::ParamSanitizer.reject_blanks(params[:f]&.to_unsafe_h)
+      max_conditions = current_presenter.advanced_filter_config["max_conditions"] || 10
+      raw_filter_params = raw_filter_params&.first(max_conditions)&.to_h if raw_filter_params.is_a?(Hash) && raw_filter_params.size > max_conditions
 
-        conditions = searchable.map { |f| "#{conn.quote_column_name(f)} LIKE :q" }.join(" OR ")
+      # 4. Intercept custom filter_* methods (before Ransack)
+      if raw_filter_params.present?
+        scope, remaining_params = Search::CustomFilterInterceptor.apply(
+          scope, raw_filter_params, @model_class, current_evaluator
+        )
+      else
+        remaining_params = {}
+      end
 
-        # Include searchable custom fields
-        if current_model_definition.custom_fields_enabled?
-          cf_searchable = CustomFields::Registry.for_model(current_model_definition.name)
-            .select { |d| d.active && d.searchable }
-          cf_conditions = cf_searchable.map do |d|
-            CustomFields::Query.text_search_condition(current_model_definition.table_name, d.field_name, sanitized_q)
-          end
-          all_conditions = [ conditions, *cf_conditions ].reject(&:blank?)
-          conditions = all_conditions.join(" OR ")
-        end
+      # 5. Ransack search (remaining params after custom filter interception)
+      if remaining_params.present?
+        @ransack_search = @model_class.ransack(remaining_params, auth_object: current_evaluator)
+        scope = scope.merge(@ransack_search.result(distinct: true))
+      end
 
-        scope = scope.where(conditions, q: "%#{sanitized_q}%") if conditions.present?
+      # 6. Quick text search (?qs=, additive, type-aware)
+      searchable_fields = search_config["searchable_fields"]
+      if params[:qs].present? && searchable_fields&.any?
+        scope = Search::QuickSearch.apply(
+          scope, params[:qs], @model_class, current_model_definition,
+          searchable_field_names: searchable_fields
+        )
+      end
+
+      # 7. Custom field filters (?cf[...])
+      if params[:cf].present? && current_model_definition.custom_fields_enabled?
+        scope = apply_custom_field_filters(scope)
       end
 
       scope
     end
+
+    def apply_custom_field_filters(scope)
+      definitions = CustomFields::Registry.for_model(current_model_definition.name)
+      return scope if definitions.empty?
+
+      # Build lookup: field_name -> definition (active + filterable only)
+      filterable_defs = definitions.select { |d| d.active && d.respond_to?(:filterable) && d.filterable }
+      defs_by_name = filterable_defs.index_by(&:field_name)
+
+      # Sort field names by length desc so longer names match first
+      sorted_names = defs_by_name.keys.sort_by { |n| -n.length }
+      table_name = @model_class.table_name
+
+      params[:cf].each do |key, value|
+        next if value.is_a?(String) && value.blank?
+
+        field_name, operator = Search::CustomFieldFilter.parse_cf_key(key, sorted_names)
+        next unless field_name
+
+        defn = defs_by_name[field_name]
+        next unless defn
+        next unless current_evaluator.field_readable?(field_name)
+
+        cast = Search::CustomFieldFilter.cast_for_type(defn.custom_type)
+        scope = Search::CustomFieldFilter.apply(scope, table_name, field_name, operator, value, cast: cast)
+      end
+
+      scope
+    end
+
+    alias_method :apply_search, :apply_advanced_search
 
     def apply_sort(scope)
       sort_config = default_sort_config

@@ -27,7 +27,7 @@
             lcp_debounce: search_config["debounce_ms"] || 300,
             lcp_min_query: search_config["min_query_length"] || 2
           }.compact do %>
-        <%= text_field_tag :q, params[:q],
+        <%= text_field_tag :qs, params[:qs],
             placeholder: search_config["placeholder"] || I18n.t("lcp_ruby.search.placeholder", default: "Search...") %>
         <% if params[:filter].present? %>
           <%= hidden_field_tag :filter, params[:filter] %>
@@ -47,6 +47,10 @@
     </div>
   <% end %>
 
+  <% if current_presenter.advanced_filter_enabled? %>
+    <%= render "lcp_ruby/resources/advanced_filter" %>
+  <% end %>
+
   <% if @records.empty? && current_presenter.index_config["empty_message"] %>
     <div class="lcp-empty-state">
       <p><%= current_presenter.index_config["empty_message"] %></p>
@@ -57,7 +61,7 @@
                      current_model_definition.positioned? &&
                      current_evaluator.can?(:update) &&
                      current_evaluator.field_writable?(current_model_definition.positioning_field) %>
-    <% reorder_disabled = reorderable && (params[:q].present? || (params[:sort].present? && params[:sort] != current_model_definition.positioning_field)) %>
+    <% reorder_disabled = reorderable && (params[:qs].present? || (params[:sort].present? && params[:sort] != current_model_definition.positioning_field)) %>
     <table class="lcp-table"
       <% if reorderable %>
         data-reorder-url="<%= reorder_resource_path(':id') %>"

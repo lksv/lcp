@@ -56,6 +56,22 @@ define_presenter :contact do
   search do
     searchable_fields :first_name, :last_name, :email
     placeholder "Search contacts..."
+
+    advanced_filter do
+      enabled true
+      max_nesting_depth 2
+      max_association_depth 1
+      allow_or_groups true
+      query_language true
+
+      filterable_fields_except :position
+
+      preset :active_contacts,
+        label: "Active contacts",
+        conditions: [
+          { field: "active", operator: "eq", value: "true" }
+        ]
+    end
   end
 
   action :create, type: :built_in, on: :collection, label: "New Contact", icon: "plus"

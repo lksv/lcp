@@ -81,6 +81,14 @@ module LcpRuby
         end
       end
 
+      def resolved_base_type
+        if type_definition
+          type_definition.base_type
+        else
+          type
+        end
+      end
+
       def enum?
         type == "enum"
       end

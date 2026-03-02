@@ -12,5 +12,26 @@ window.LcpI18n = {
   tree_select: {
     expand: <%= I18n.t("lcp_ruby.tree_select.expand").to_json.html_safe %>,
     collapse: <%= I18n.t("lcp_ruby.tree_select.collapse").to_json.html_safe %>
-  }
+  },
+  filter: {
+    toggle: <%= I18n.t("lcp_ruby.advanced_filter.toggle").to_json.html_safe %>,
+    add_filter: <%= I18n.t("lcp_ruby.advanced_filter.add_filter").to_json.html_safe %>,
+    add_or_group: <%= I18n.t("lcp_ruby.advanced_filter.add_or_group").to_json.html_safe %>,
+    add_condition: <%= I18n.t("lcp_ruby.advanced_filter.add_condition").to_json.html_safe %>,
+    remove_group: <%= I18n.t("lcp_ruby.advanced_filter.remove_group").to_json.html_safe %>,
+    apply: <%= I18n.t("lcp_ruby.advanced_filter.apply").to_json.html_safe %>,
+    clear: <%= I18n.t("lcp_ruby.advanced_filter.clear").to_json.html_safe %>,
+    select_field: <%= I18n.t("lcp_ruby.advanced_filter.select_field").to_json.html_safe %>,
+    select_operator: <%= I18n.t("lcp_ruby.advanced_filter.select_operator").to_json.html_safe %>,
+    enter_value: <%= I18n.t("lcp_ruby.advanced_filter.enter_value").to_json.html_safe %>,
+    enter_values: <%= I18n.t("lcp_ruby.advanced_filter.enter_values").to_json.html_safe %>,
+    between_separator: <%= I18n.t("lcp_ruby.advanced_filter.between_separator").to_json.html_safe %>,
+    last_n_days_suffix: <%= I18n.t("lcp_ruby.advanced_filter.last_n_days_suffix").to_json.html_safe %>,
+    active_filters: <%= I18n.t("lcp_ruby.advanced_filter.active_filters").to_json.html_safe %>,
+    group_label: <%= I18n.t("lcp_ruby.advanced_filter.group_label").to_json.html_safe %>,
+    combinator_and: <%= I18n.t("lcp_ruby.advanced_filter.combinator_and").to_json.html_safe %>,
+    combinator_or: <%= I18n.t("lcp_ruby.advanced_filter.combinator_or").to_json.html_safe %>,
+    field_groups_direct: <%= I18n.t("lcp_ruby.advanced_filter.field_groups.direct").to_json.html_safe %>
+  },
+  operators: <%= I18n.t("lcp_ruby.search.operators").to_json.html_safe %>
 };

@@ -235,7 +235,7 @@ RSpec.describe "TODO App Integration", type: :request do
       todo_list_model.create!(title: "Groceries", description: "food shopping")
       todo_list_model.create!(title: "Work Tasks", description: "office stuff")
 
-      get "/lists", params: { q: "Groceries" }
+      get "/lists", params: { qs: "Groceries" }
 
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Groceries")

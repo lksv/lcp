@@ -552,6 +552,7 @@ module LcpRuby
         @auto_search_value = nil
         @debounce_ms_value = nil
         @min_query_length_value = nil
+        @advanced_filter_hash = nil
       end
 
       def enabled(value)
@@ -585,6 +586,12 @@ module LcpRuby
         @filters << filter_hash
       end
 
+      def advanced_filter(&block)
+        builder = AdvancedFilterBuilder.new
+        builder.instance_eval(&block)
+        @advanced_filter_hash = builder.to_hash
+      end
+
       def to_hash
         hash = { "enabled" => @enabled }
         hash["searchable_fields"] = @searchable_fields_list if @searchable_fields_list
@@ -593,7 +600,70 @@ module LcpRuby
         hash["debounce_ms"] = @debounce_ms_value if @debounce_ms_value
         hash["min_query_length"] = @min_query_length_value if @min_query_length_value
         hash["predefined_filters"] = @filters unless @filters.empty?
+        hash["advanced_filter"] = @advanced_filter_hash if @advanced_filter_hash
         hash
+      end
+    end
+
+    class AdvancedFilterBuilder
+      def initialize
+        @hash = { "enabled" => true }
+      end
+
+      def enabled(value)
+        @hash["enabled"] = value
+      end
+
+      def max_conditions(value)
+        @hash["max_conditions"] = value
+      end
+
+      def max_association_depth(value)
+        @hash["max_association_depth"] = value
+      end
+
+      def default_combinator(value)
+        @hash["default_combinator"] = value.to_s
+      end
+
+      def allow_or_groups(value)
+        @hash["allow_or_groups"] = value
+      end
+
+      def query_language(value)
+        @hash["query_language"] = value
+      end
+
+      def max_nesting_depth(value)
+        @hash["max_nesting_depth"] = value
+      end
+
+      def filterable_fields(*fields)
+        @hash["filterable_fields"] = fields.flatten.map(&:to_s)
+      end
+
+      def filterable_fields_except(*fields)
+        @hash["filterable_fields_except"] = fields.flatten.map(&:to_s)
+      end
+
+      def field_options(name, operators: nil)
+        @hash["field_options"] ||= {}
+        opts = {}
+        opts["operators"] = operators.map(&:to_s) if operators
+        @hash["field_options"][name.to_s] = opts
+      end
+
+      def preset(name, label:, conditions:)
+        @hash["presets"] ||= []
+        @hash["presets"] << {
+          "name" => name.to_s,
+          "label" => label,
+          "conditions" => conditions.map { |c| c.transform_keys(&:to_s) }
+        }
+      end
+
+      def to_hash
+        @hash
       end
     end
   end

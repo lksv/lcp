@@ -56,7 +56,7 @@ module LcpRuby
         app.config.assets.precompile += %w[
           lcp_ruby/application.css
           lcp_ruby/application.js
-          lcp_ruby/tom-select.base.min.js
+          lcp_ruby/tom-select.complete.min.js
           lcp_ruby/tom-select.css
           lcp_ruby/activestorage.min.js
         ]

@@ -560,6 +560,7 @@ module LcpRuby
           validate_presenter_model(presenter)
           validate_presenter_fields(presenter)
           validate_presenter_scopes(presenter)
+          validate_presenter_advanced_filter(presenter)
           validate_presenter_actions(presenter)
 
           model_def = loader.model_definitions[presenter.model]
@@ -925,6 +926,121 @@ module LcpRuby
           unless valid_fields.include?(field_name.to_s)
             @warnings << "Presenter '#{presenter.name}', searchable_fields: " \
                          "references unknown field '#{field_name}' on model '#{presenter.model}'"
+          end
+        end
+      end
+
+      def validate_presenter_advanced_filter(presenter)
+        af_config = presenter.advanced_filter_config
+        return if af_config.empty?
+
+        model_def = loader.model_definitions[presenter.model]
+        return unless model_def
+
+        valid_fields = model_def.fields.map(&:name)
+        valid_fields.concat(%w[created_at updated_at]) if model_def.timestamps?
+        assoc_names = model_def.associations.map(&:name).map(&:to_s)
+
+        # Validate mutual exclusion of filterable_fields and filterable_fields_except
+        if af_config.key?("filterable_fields") && af_config.key?("filterable_fields_except")
+          @errors << "Presenter '#{presenter.name}', advanced_filter: " \
+                     "filterable_fields and filterable_fields_except are mutually exclusive"
+        end
+
+        # Validate filterable_fields_except
+        (af_config["filterable_fields_except"] || []).each do |field_path|
+          parts = field_path.to_s.split(".")
+          if parts.size == 1
+            unless valid_fields.include?(parts[0]) || assoc_names.include?(parts[0])
+              @errors << "Presenter '#{presenter.name}', advanced_filter filterable_fields_except: " \
+                         "references unknown field or association '#{field_path}' on model '#{presenter.model}'"
+            end
+          else
+            unless assoc_names.include?(parts[0])
+              @errors << "Presenter '#{presenter.name}', advanced_filter filterable_fields_except: " \
+                         "references unknown association '#{parts[0]}' in path '#{field_path}'"
+            end
+          end
+        end
+
+        # Validate filterable_fields
+        (af_config["filterable_fields"] || []).each do |field_path|
+          parts = field_path.to_s.split(".")
+          if parts.size == 1
+            unless valid_fields.include?(parts[0])
+              @errors << "Presenter '#{presenter.name}', advanced_filter filterable_fields: " \
+                         "references unknown field '#{field_path}' on model '#{presenter.model}'"
+            end
+          else
+            # Association path — validate first segment is a known association
+            unless assoc_names.include?(parts[0])
+              @errors << "Presenter '#{presenter.name}', advanced_filter filterable_fields: " \
+                         "references unknown association '#{parts[0]}' in path '#{field_path}'"
+            end
+          end
+        end
+
+        # Validate field_options reference valid fields
+        (af_config["field_options"] || {}).each_key do |field_name|
+          filterable = af_config["filterable_fields"] || []
+          all_known = valid_fields + filterable.map(&:to_s)
+          unless all_known.include?(field_name.to_s)
+            @warnings << "Presenter '#{presenter.name}', advanced_filter field_options: " \
+                         "references unknown field '#{field_name}'"
+          end
+        end
+
+        # Validate presets
+        (af_config["presets"] || []).each do |preset|
+          preset = preset.transform_keys(&:to_s) if preset.is_a?(Hash)
+          unless preset["name"].present?
+            @errors << "Presenter '#{presenter.name}', advanced_filter presets: " \
+                       "preset is missing required 'name'"
+          end
+        end
+
+        # Validate max_conditions is positive integer
+        if af_config.key?("max_conditions")
+          mc = af_config["max_conditions"]
+          unless mc.is_a?(Integer) && mc > 0
+            @errors << "Presenter '#{presenter.name}', advanced_filter: " \
+                       "max_conditions must be a positive integer, got '#{mc}'"
+          end
+        end
+
+        # Validate max_association_depth is 1-5
+        if af_config.key?("max_association_depth")
+          mad = af_config["max_association_depth"]
+          unless mad.is_a?(Integer) && mad.between?(1, 5)
+            @errors << "Presenter '#{presenter.name}', advanced_filter: " \
+                       "max_association_depth must be between 1 and 5, got '#{mad}'"
+          end
+        end
+
+        # Validate max_nesting_depth is 1-10
+        if af_config.key?("max_nesting_depth")
+          mnd = af_config["max_nesting_depth"]
+          unless mnd.is_a?(Integer) && mnd.between?(1, 10)
+            @errors << "Presenter '#{presenter.name}', advanced_filter: " \
+                       "max_nesting_depth must be between 1 and 10, got '#{mnd}'"
+          end
+        end
+
+        # Validate default_combinator
+        if af_config.key?("default_combinator")
+          dc = af_config["default_combinator"].to_s
+          unless %w[and or].include?(dc)
+            @errors << "Presenter '#{presenter.name}', advanced_filter: " \
+                       "default_combinator must be 'and' or 'or', got '#{dc}'"
+          end
+        end
+
+        # Validate custom_filters don't collide with model field names
+        (af_config["custom_filters"] || []).each do |cf|
+          cf_name = cf.is_a?(Hash) ? cf["name"].to_s : cf.to_s
+          if valid_fields.include?(cf_name)
+            @warnings << "Presenter '#{presenter.name}', advanced_filter custom_filters: " \
+                         "'#{cf_name}' collides with model field name"
           end
         end
       end

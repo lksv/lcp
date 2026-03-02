@@ -93,6 +93,38 @@ define_presenter :deal do
     filter :open, label: "Open", scope: :open_deals
     filter :won, label: "Won", scope: :won
     filter :lost, label: "Lost", scope: :lost
+
+    advanced_filter do
+      enabled true
+      max_conditions 15
+      max_nesting_depth 3
+      max_association_depth 2
+      allow_or_groups true
+      query_language true
+
+      filterable_fields :title, :stage, :value, :priority, :progress,
+                        :expected_close_date, :created_at,
+                        "company.name", "company.industry",
+                        "contact.last_name", "contact.email",
+                        "deal_category.name"
+
+      field_options :stage, operators: %i[eq not_eq in not_in]
+      field_options :value, operators: %i[eq gt gteq lt lteq between present blank]
+
+      preset :high_value_open,
+        label: "High-value open deals",
+        conditions: [
+          { field: "stage", operator: "not_in", value: %w[closed_won closed_lost] },
+          { field: "value", operator: "gteq", value: "10000" }
+        ]
+
+      preset :closing_soon,
+        label: "Closing this month",
+        conditions: [
+          { field: "expected_close_date", operator: "this_month" },
+          { field: "stage", operator: "not_in", value: %w[closed_won closed_lost] }
+        ]
+    end
   end
 
   action :create, type: :built_in, on: :collection, label: "New Deal", icon: "plus"

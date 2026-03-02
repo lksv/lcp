@@ -18,6 +18,7 @@ module LcpRuby
         apply_scopes(model_class)
         apply_soft_delete(model_class)
         apply_tree(model_class)
+        apply_ransack(model_class)
         apply_callbacks(model_class)
         apply_auditing(model_class)
         apply_defaults(model_class)
@@ -91,6 +92,10 @@ module LcpRuby
 
       def apply_tree(_model_class)
         # No-op placeholder — will be implemented by TreeApplicator in tree feature PR
+      end
+
+      def apply_ransack(model_class)
+        RansackApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_callbacks(model_class)

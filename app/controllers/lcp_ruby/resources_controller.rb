@@ -11,7 +11,7 @@ module LcpRuby
       authorize @model_class
       scope = policy_scope(@model_class)
       scope = apply_soft_delete_scope(scope)
-      scope = apply_search(scope)
+      scope = apply_advanced_search(scope)
       scope = apply_sort(scope)
 
       @summaries = compute_summaries(scope) if summary_columns_present?
@@ -165,6 +165,28 @@ module LcpRuby
       @record = @model_class.new(permitted_params)
       authorize @record, :create?
       render json: evaluate_service_conditions(@record)
+    end
+
+    def parse_ql
+      authorize @model_class, :index?
+
+      ql_text = params[:ql].to_s.first(Search::QueryLanguageParser::MAX_INPUT_LENGTH + 1)
+      max_depth = current_presenter.advanced_filter_config["max_nesting_depth"] || 2
+      parser = Search::QueryLanguageParser.new(ql_text, max_nesting_depth: max_depth)
+      tree = parser.parse
+
+      render json: { success: true, tree: tree }
+    rescue Search::QueryLanguageParser::ParseError => e
+      render json: { success: false, error: e.message, position: e.position }
+    end
+
+    def filter_fields
+      authorize @model_class, :index?
+
+      builder = Search::FilterMetadataBuilder.new(current_presenter, current_model_definition, current_evaluator)
+      metadata = builder.build
+
+      render json: { fields: metadata[:fields] }
     end
 
     def reorder
@@ -762,7 +784,7 @@ module LcpRuby
 
     def resolve_loading_strategy(context)
       sort_field = params[:sort] if context == :index
-      search_fields = current_presenter.search_config["searchable_fields"] if context == :index && params[:q].present?
+      search_fields = current_presenter.search_config["searchable_fields"] if context == :index && params[:qs].present?
       Presenter::IncludesResolver.resolve(
         presenter_def: current_presenter,
         model_def: current_model_definition,

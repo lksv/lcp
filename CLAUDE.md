@@ -192,6 +192,7 @@ YAML metadata (config/lcp_ruby/)
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |
 | `Actions` | `lib/lcp_ruby/actions/` | ActionExecutor + ActionRegistry. Host apps define custom actions in `app/actions/` |
 | `Conditions` | `lib/lcp_ruby/condition_evaluator.rb`, `lib/lcp_ruby/condition_service_registry.rb` | ConditionEvaluator (strict: 12 operators, raises ConditionError on unknown operator/missing field), ConditionServiceRegistry. All condition callers (PermissionEvaluator, ActionSet, views) delegate to ConditionEvaluator. Host apps define condition services in `app/condition_services/` |
+| `Search` | `lib/lcp_ruby/search/` | QuickSearch (type-aware text search), ParamSanitizer (filter param cleanup), FilterParamBuilder (LCP operators to Ransack predicates), OperatorRegistry (type-to-operator mapping), CustomFilterInterceptor (filter_* method detection and interception), CustomFieldFilter (JSON column queries with type casting), FilterMetadataBuilder (permission-aware JSON metadata for the visual filter builder), QueryLanguageParser (recursive descent QL parser), QueryLanguageSerializer (condition tree to QL text). Ransack model setup (`ransackable_attributes`, `ransackable_associations`) handled by `ModelFactory::RansackApplicator` at boot |
 | `Attachments` | `lib/lcp_ruby/model_factory/attachment_applicator.rb` | Applies Active Storage macros (has_one_attached/has_many_attached), validations (size, content_type, max_files), and variant config to dynamic models |
 | `Positioning` | `lib/lcp_ruby/model_factory/positioning_applicator.rb` | Applies `positioning` gem macro to positioned models; SchemaManager creates unique indices on scope + position columns (except SQLite) |
 | `Auditing` | `lib/lcp_ruby/auditing/` | Registry (available? flag), ContractValidator (audit model contract checks), AuditWriter (field diffs, JSON/custom field expansion, nested changes), Setup (boot orchestration). AuditingApplicator installs AR callbacks on audited models |
@@ -210,7 +211,7 @@ YAML metadata (config/lcp_ruby/)
 `ResourcesController` (`app/controllers/lcp_ruby/resources_controller.rb`):
 - Standard CRUD (index/show/new/create/edit/update/destroy)
 - `permitted_params` filters by writable fields + association FK fields
-- `apply_search` handles text search + predefined filter scopes
+- `apply_advanced_search` 7-step pipeline: default scope, predefined filter scope, param sanitization, custom filter interception, Ransack query, quick search (`?qs=`), custom field filters (`?cf[...]`)
 - Authorization via Pundit on every action
 
 `CustomFieldsController` (`app/controllers/lcp_ruby/custom_fields_controller.rb`):
@@ -228,9 +229,11 @@ Engine mounts at a configurable path (default `/`). All resources use a slug-bas
 /:lcp_slug/new                 → resources#new
 /:lcp_slug/:id                 → resources#show
 /:lcp_slug/:id/edit            → resources#edit
-/:lcp_slug/custom-fields         → custom_fields#index
-/:lcp_slug/custom-fields/manage  → custom_fields#manage (bulk editor)
-/:lcp_slug/custom-fields/:id     → custom_fields#show
+/:lcp_slug/filter_fields           → resources#filter_fields (GET, JSON filter metadata)
+/:lcp_slug/parse_ql                → resources#parse_ql (POST, QL text → condition tree)
+/:lcp_slug/custom-fields           → custom_fields#index
+/:lcp_slug/custom-fields/manage    → custom_fields#manage (bulk editor)
+/:lcp_slug/custom-fields/:id       → custom_fields#show
 ```
 
 The slug comes from the presenter YAML (e.g., `slug: deals` → `/deals`).
@@ -280,6 +283,55 @@ end
 ```
 
 Log messages must include enough context to identify the source: model/table name, field name, presenter, record ID, or whatever is relevant to the call site. In development and test environments, exceptions must always propagate so bugs are caught early.
+
+## Feature Specification Template
+
+Feature Specifications live in `docs/design/` and describe **planned features at a high level** — the problem, user scenarios, configuration, and general approach. They are not implementation plans (no specific classes, files, or line numbers).
+
+**Template structure:**
+
+```markdown
+# Feature Specification: <Feature Name>
+
+**Status:** Proposed | In Progress | Implemented
+**Date:** <YYYY-MM-DD>
+
+## Problem / Motivation
+
+What frustrates users today? What can't they do? Why does it matter?
+
+## User Scenarios
+
+Concrete "As a user, I want to..." stories showing how the feature will be used in practice.
+
+## Configuration & Behavior
+
+Settings, defaults, edge cases. Include DSL/YAML config examples where relevant.
+Describe the user-facing behavior in enough detail that someone could test it.
+
+## General Implementation Approach
+
+Algorithm, architectural direction, key data flows. High-level description
+of **how** the feature works — no specific classes, files, or line numbers.
+Focus on the "shape" of the solution.
+
+## Decisions
+
+Chosen approach from open questions and high-level architecture decisions
+that were already resolved. Record the decision and brief rationale.
+
+## Open Questions
+
+Unresolved design questions, trade-offs still under consideration,
+areas that need user feedback or prototyping.
+```
+
+**Guidelines:**
+- Write in English
+- Keep it concise — the spec should be readable in 5 minutes
+- DSL/YAML examples should show realistic configuration, not toy examples
+- "General Implementation Approach" describes algorithms and data flows, not code structure
+- Link related specs or design docs where relevant
 
 ## Dependencies
 

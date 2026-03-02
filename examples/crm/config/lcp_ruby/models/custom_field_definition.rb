@@ -46,6 +46,7 @@ define_model :custom_field_definition do
   field :show_in_show, :boolean, default: true
   field :sortable, :boolean, default: false
   field :searchable, :boolean, default: false
+  field :filterable, :boolean, default: false
   field :input_type, :string
   field :renderer, :string
   field :renderer_options, :json

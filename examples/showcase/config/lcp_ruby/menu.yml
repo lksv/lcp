@@ -15,6 +15,7 @@ menu:
         - view_group: showcase_virtual_fields
         - view_group: showcase_recipes
         - separator: true
+        - view_group: showcase_searches
         - view_group: showcase_positioning
         - view_group: showcase_userstamps
         - view_group: showcase_soft_delete

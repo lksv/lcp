@@ -92,6 +92,24 @@ define_presenter :company do
   search do
     searchable_fields :name
     placeholder "Search companies..."
+
+    advanced_filter do
+      enabled true
+      max_nesting_depth 3
+      max_association_depth 2
+      allow_or_groups true
+      query_language true
+
+      filterable_fields_except :street, :address_type
+
+      field_options :industry, operators: %i[eq not_eq in not_in]
+
+      preset :tech_companies,
+        label: "Technology companies",
+        conditions: [
+          { field: "industry", operator: "eq", value: "technology" }
+        ]
+    end
   end
 
   action :create, type: :built_in, on: :collection, label: "New Company", icon: "plus"
