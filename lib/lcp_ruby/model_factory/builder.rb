@@ -85,8 +85,8 @@ module LcpRuby
         ScopeApplicator.new(model_class, model_definition).apply!
       end
 
-      def apply_soft_delete(_model_class)
-        # No-op placeholder — will be implemented by SoftDeleteApplicator in soft_delete feature PR
+      def apply_soft_delete(model_class)
+        SoftDeleteApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_tree(_model_class)

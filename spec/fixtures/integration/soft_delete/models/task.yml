@@ -1,0 +1,25 @@
+model:
+  name: sd_task
+  label: "Task"
+  label_plural: "Tasks"
+
+  fields:
+    - name: title
+      type: string
+      validations:
+        - type: presence
+
+    - name: completed
+      type: boolean
+      default: false
+
+  associations:
+    - type: belongs_to
+      name: sd_project
+      target_model: sd_project
+      foreign_key: sd_project_id
+
+  options:
+    timestamps: true
+    label_method: title
+    soft_delete: true

@@ -31,7 +31,7 @@ module LcpRuby
         opts = base_options(assoc)
         opts[:optional] = !assoc.required
         opts[:polymorphic] = true if assoc.polymorphic
-        opts[:dependent] = assoc.dependent if assoc.dependent
+        opts[:dependent] = assoc.dependent if assoc.dependent && assoc.dependent != :discard
         opts[:counter_cache] = assoc.counter_cache unless assoc.counter_cache.nil?
         opts[:touch] = assoc.touch unless assoc.touch.nil?
         apply_common_options(opts, assoc)
@@ -47,7 +47,7 @@ module LcpRuby
           opts[:through] = assoc.through.to_sym
           opts[:source] = assoc.source.to_sym if assoc.source.present?
         else
-          opts[:dependent] = assoc.dependent if assoc.dependent
+          opts[:dependent] = assoc.dependent if assoc.dependent && assoc.dependent != :discard
           opts[:foreign_key] = assoc.foreign_key if assoc.foreign_key
         end
 
@@ -71,7 +71,7 @@ module LcpRuby
           opts[:through] = assoc.through.to_sym
           opts[:source] = assoc.source.to_sym if assoc.source.present?
         else
-          opts[:dependent] = assoc.dependent if assoc.dependent
+          opts[:dependent] = assoc.dependent if assoc.dependent && assoc.dependent != :discard
           opts[:foreign_key] = assoc.foreign_key if assoc.foreign_key
         end
 

@@ -56,6 +56,7 @@ module LcpRuby
           t.timestamps if timestamps
 
           apply_userstamp_columns_create!(t) if model_definition.userstamps?
+          apply_soft_delete_columns_create!(t) if model_definition.soft_delete?
         end
 
         if model_definition.custom_fields_enabled? && LcpRuby.postgresql?
@@ -127,6 +128,7 @@ module LcpRuby
         end
 
         apply_userstamp_columns_update!(table, connection, existing_columns) if model_definition.userstamps?
+        apply_soft_delete_columns_update!(table, connection, existing_columns) if model_definition.soft_delete?
 
         apply_positioning_constraints!(table) if model_definition.positioned?
       end
@@ -164,6 +166,41 @@ module LcpRuby
               connection.add_column(table, col, :string, null: true)
             end
           end
+        end
+      end
+
+      def apply_soft_delete_columns_create!(t)
+        col = model_definition.soft_delete_column
+        by_type = SoftDeleteApplicator::DISCARDED_BY_TYPE_COL
+        by_id = SoftDeleteApplicator::DISCARDED_BY_ID_COL
+
+        t.datetime col, null: true
+        t.index col
+        t.string by_type, null: true
+        t.bigint by_id, null: true
+        t.index [ by_type, by_id ]
+      end
+
+      def apply_soft_delete_columns_update!(table, connection, existing_columns)
+        col = model_definition.soft_delete_column
+        by_type = SoftDeleteApplicator::DISCARDED_BY_TYPE_COL
+        by_id = SoftDeleteApplicator::DISCARDED_BY_ID_COL
+
+        unless existing_columns.include?(col)
+          connection.add_column(table, col, :datetime, null: true)
+          connection.add_index(table, col) unless connection.index_exists?(table, col)
+        end
+
+        unless existing_columns.include?(by_type)
+          connection.add_column(table, by_type, :string, null: true)
+        end
+
+        unless existing_columns.include?(by_id)
+          connection.add_column(table, by_id, :bigint, null: true)
+        end
+
+        unless connection.index_exists?(table, [ by_type, by_id ])
+          connection.add_index(table, [ by_type, by_id ])
         end
       end
 

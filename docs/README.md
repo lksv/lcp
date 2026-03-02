@@ -44,6 +44,7 @@ Complete attribute reference for every YAML configuration file:
 - [Custom Renderers](guides/custom-renderers.md) — Creating custom renderers for host applications
 - [Attachments](guides/attachments.md) — File upload with Active Storage
 - [Userstamps](guides/userstamps.md) — Automatic created_by / updated_by tracking: setup, name snapshots, presenter display, seeds
+- [Soft Delete](guides/soft-delete.md) — Discard/restore, cascade, archive presenters, permissions
 - [Eager Loading](guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [Custom Fields](guides/custom-fields.md) — Runtime user-defined fields: enabling, defining, sections, permissions, programmatic access
 - [Role Source](guides/role-source.md) — DB-backed role management: setup, validation, cache, testing
@@ -65,10 +66,10 @@ Implemented:
 - [Groups, Roles & Org Structure](design/groups_roles_and_org_structure.md) — Enterprise organizational units, groups, and group-to-role mapping
 - [Model Options Infrastructure](design/model_options_infrastructure.md) — Shared patterns for model-level feature flags (soft_delete, auditing, userstamps, tree)
 - [Userstamps](design/userstamps.md) — Automatic `created_by_id` / `updated_by_id` tracking
+- [Soft Delete](design/soft_delete.md) — Discard/restore support with `discarded_at` timestamp, cascade discard/undiscard, archive presenters
 
 Proposed:
 
-- [Soft Delete](design/soft_delete.md) — Discard/restore support with `discarded_at` timestamp
 - [Auditing](design/auditing.md) — Native change tracking and audit trail
 - [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments

@@ -94,7 +94,7 @@ roles:
 |---|---|
 | **Required** | yes |
 | **Type** | array of strings |
-| **Allowed values** | `index`, `show`, `create`, `update`, `destroy` |
+| **Allowed values** | `index`, `show`, `create`, `update`, `destroy`, `restore`, `permanently_destroy` |
 
 CRUD operations this role can perform. The permission system automatically resolves action aliases:
 
@@ -105,9 +105,14 @@ CRUD operations this role can perform. The permission system automatically resol
 
 You only need to list `create` and `update` — `new` and `edit` are inferred.
 
+The `restore` and `permanently_destroy` values are used with [soft delete](models.md#soft_delete) models. Include them in the CRUD list for roles that should be able to restore discarded records or permanently delete them from archive presenters.
+
 ```yaml
 # Full access
 crud: [index, show, create, update, destroy]
+
+# Full access with soft delete management
+crud: [index, show, create, update, destroy, restore, permanently_destroy]
 
 # Read-only
 crud: [index, show]

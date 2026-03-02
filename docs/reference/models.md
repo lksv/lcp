@@ -797,9 +797,14 @@ The foreign key column name. Specify this when the column name does not follow R
 | **Required** | no |
 | **Default** | none |
 | **Type** | string |
-| **Allowed** | `destroy`, `delete`, `delete_all`, `nullify`, `restrict_with_error`, `restrict_with_exception` |
+| **Allowed** | `destroy`, `delete`, `delete_all`, `nullify`, `restrict_with_error`, `restrict_with_exception`, `discard` |
 
-What happens to associated records when the parent is destroyed. Applicable to all association types.
+What happens to associated records when the parent is destroyed (or discarded). Applicable to all association types.
+
+The `discard` value is special — it is **not** passed to ActiveRecord. Instead, when the parent record is discarded (soft-deleted), the `SoftDeleteApplicator` cascades the discard to child records with `dependent: :discard`. This requires:
+- The parent model must have `soft_delete` enabled
+- The target (child) model must also have `soft_delete` enabled
+- Only valid on `has_many` / `has_one` associations (not `belongs_to`)
 
 #### `required`
 
@@ -1489,7 +1494,18 @@ options:
 |-----|------|---------|-------------|
 | `column` | string | `"discarded_at"` | Name of the datetime column that stores the discard timestamp |
 
-> **Note:** The `soft_delete` option declares intent. The actual Applicator that adds scopes, default scope, and `discard`/`undiscard` methods will be implemented in a separate feature PR.
+When `soft_delete` is enabled, the engine automatically:
+
+- Creates the timestamp column (`discarded_at` by default) plus tracking columns (`discarded_by_type`, `discarded_by_id`)
+- Adds scopes: `kept` (non-discarded), `discarded` (discarded only), `with_discarded` (all records)
+- Adds instance methods: `discard!`, `undiscard!`, `discarded?`, `kept?`, `cascade_discarded?`
+- Changes the controller `destroy` action to soft-delete (sets `discarded_at`) instead of hard-delete
+- Filters discarded records from the default index view (applies `kept` scope)
+- Supports `dependent: :discard` on `has_many` associations for automatic cascade discard/undiscard
+
+The `discard!(by:)` method accepts an optional `by:` parameter to track which record triggered the discard (used for cascade tracking). The `undiscard!` method only restores cascade-discarded children — manually discarded records are left as-is.
+
+See [Soft Delete Guide](../guides/soft-delete.md) for setup and usage examples.
 
 ### `auditing`
 

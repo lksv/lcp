@@ -17,5 +17,16 @@
           method: :delete,
           data: { turbo_confirm: action["confirm_message"] || "Are you sure?" },
           class: "#{css_class} btn-danger", form_class: css_class %>
+  <% when "restore" %>
+    <%= button_to I18n.t("lcp_ruby.actions.restore", default: "Restore"),
+          restore_resource_path(record),
+          method: :post,
+          class: css_class, form_class: css_class %>
+  <% when "permanently_destroy" %>
+    <%= button_to I18n.t("lcp_ruby.actions.permanently_destroy", default: "Permanently Delete"),
+          permanently_destroy_resource_path(record),
+          method: :delete,
+          data: { turbo_confirm: action["confirm_message"] || I18n.t("lcp_ruby.actions.confirm_permanently_destroy", default: "This will permanently delete the record. Are you sure?") },
+          class: "#{css_class} btn-danger", form_class: css_class %>
   <% end %>
 <% end %>

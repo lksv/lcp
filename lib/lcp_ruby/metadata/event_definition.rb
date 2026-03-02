@@ -2,7 +2,7 @@ module LcpRuby
   module Metadata
     class EventDefinition
       VALID_TYPES = %w[lifecycle field_change].freeze
-      LIFECYCLE_EVENTS = %w[after_create after_update before_destroy after_destroy].freeze
+      LIFECYCLE_EVENTS = %w[after_create after_update before_destroy after_destroy after_discard after_undiscard].freeze
 
       attr_reader :name, :type, :field, :condition
 

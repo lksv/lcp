@@ -16,6 +16,7 @@ presenter:
   read_only: false
   embeddable: false
   redirect_after: { create: show, update: show }
+  scope: <soft_delete_scope>
   index: {}
   show: {}
   form: {}
@@ -115,6 +116,41 @@ presenter:
     create: index
     update: edit
 ```
+
+### `scope`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | none (uses `kept` scope when model has `soft_delete`) |
+| **Type** | string |
+| **Allowed values** | `discarded`, `with_discarded` |
+
+Controls the soft delete scope applied to the index query for this presenter. Only meaningful when the referenced model has `soft_delete` enabled.
+
+- **Not set (default)** — the index shows only kept (non-discarded) records
+- `"discarded"` — the index shows only discarded (archived) records
+- `"with_discarded"` — the index shows all records regardless of discard status
+
+Use this to create archive presenters that show discarded records with `restore` and `permanently_destroy` actions:
+
+```yaml
+presenter:
+  name: project_archive
+  model: project
+  label: "Archived Projects"
+  slug: projects-archive
+  scope: discarded
+
+  actions:
+    collection: []
+    single:
+      - { name: show, type: built_in }
+      - { name: restore, type: built_in }
+      - { name: permanently_destroy, type: built_in, confirm: true }
+```
+
+See [Soft Delete Guide](../guides/soft-delete.md) for a complete example.
 
 ## Index Configuration
 
@@ -1740,7 +1776,7 @@ actions:
 
 | Attribute | Type | Description |
 |-----------|------|-------------|
-| `name` | string | Action identifier. For built-in: `show`, `edit`, `destroy`, `create` |
+| `name` | string | Action identifier. For built-in: `show`, `edit`, `destroy`, `create`, `restore`, `permanently_destroy` |
 | `type` | string | `built_in` or `custom` |
 | `label` | string | Display text |
 | `icon` | string | Icon name |
@@ -1752,7 +1788,7 @@ actions:
 
 ### Action Types
 
-- **`built_in`** — standard CRUD actions (`show`, `edit`, `destroy`, `create`). Authorization checked via `PermissionEvaluator.can?`.
+- **`built_in`** — standard CRUD actions (`show`, `edit`, `destroy`, `create`, `restore`, `permanently_destroy`). Authorization checked via `PermissionEvaluator.can?`. The `restore` and `permanently_destroy` actions are used with [soft delete](models.md#soft_delete) archive presenters.
 - **`custom`** — user-defined actions. Authorization checked via `can_execute_action?`. Dispatched to registered action classes. See [Custom Actions](../guides/custom-actions.md).
 
 ### Action Visibility

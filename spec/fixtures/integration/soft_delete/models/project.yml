@@ -1,0 +1,25 @@
+model:
+  name: sd_project
+  label: "Project"
+  label_plural: "Projects"
+
+  fields:
+    - name: title
+      type: string
+      validations:
+        - type: presence
+
+    - name: description
+      type: text
+
+  associations:
+    - type: has_many
+      name: sd_tasks
+      target_model: sd_task
+      foreign_key: sd_project_id
+      dependent: discard
+
+  options:
+    timestamps: true
+    label_method: title
+    soft_delete: true

@@ -35,6 +35,8 @@ module LcpRuby
             define_method(:update?) { @evaluator.can_for_record?(:update, record) }
             define_method(:edit?) { update? }
             define_method(:destroy?) { @evaluator.can_for_record?(:destroy, record) }
+            define_method(:restore?) { @evaluator.can_for_record?(:restore, record) }
+            define_method(:permanently_destroy?) { @evaluator.can_for_record?(:permanently_destroy, record) }
 
             define_method(:permitted_attributes_for_create) { @evaluator.writable_fields.map(&:to_sym) }
             define_method(:permitted_attributes_for_update) { @evaluator.writable_fields.map(&:to_sym) }

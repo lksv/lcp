@@ -72,7 +72,8 @@ Business type system that bundles storage type, transforms, validations, and UI 
 
 Builds dynamic ActiveRecord models from metadata definitions.
 
-- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace and applies the following pipeline in canonical order: enums → validations → transforms → associations → attachments → scopes → soft_delete → tree → callbacks → auditing → defaults → computed → positioning → userstamps → external fields → model extensions → custom fields → label method. Virtual models (`table_name: _virtual`) are skipped entirely — no AR class or DB table. The `soft_delete`, `tree`, and `auditing` steps are currently no-op placeholders — actual Applicators will be implemented in feature-specific PRs
+- **Builder** — orchestrator; creates AR class under `LcpRuby::Dynamic::` namespace and applies the following pipeline in canonical order: enums → validations → transforms → associations → attachments → scopes → soft_delete → tree → callbacks → auditing → defaults → computed → positioning → userstamps → external fields → model extensions → custom fields → label method. Virtual models (`table_name: _virtual`) are skipped entirely — no AR class or DB table. The `tree` and `auditing` steps are currently no-op placeholders — actual Applicators will be implemented in feature-specific PRs
+- **SoftDeleteApplicator** — adds `kept`, `discarded`, `with_discarded` scopes; instance methods `discard!`, `undiscard!`, `discarded?`, `kept?`, `cascade_discarded?`; cascade discard/undiscard via `dependent: :discard` associations; event dispatch (`after_discard`, `after_undiscard`)
 - **PositioningApplicator** — applies the `positioning` gem's `positioned` macro with column and scope configuration; enables automatic position management (insert at end, gap closing on destroy, atomic reorder)
 - **UserstampsApplicator** — adds `before_save` callback that sets `created_by_id` (on new records) and `updated_by_id` (on every save) from `LcpRuby::Current.user`; adds optional `_name` snapshot columns when `store_name: true`; adds `belongs_to` associations pointing to `LcpRuby.configuration.user_class`
 - **SchemaManager** — auto-creates/updates DB tables when `auto_migrate: true` is set in configuration; merges type-level column_options before field-level (field wins); skips virtual models
@@ -88,7 +89,7 @@ Builds dynamic ActiveRecord models from metadata definitions.
 Permission enforcement via Pundit integration.
 
 - **PermissionEvaluator** — resolves user role via configurable `role_method`; provides `can?(action)` with action aliases (edit->update, new->create); `readable_fields`, `writable_fields` for field-level access; `can_execute_action?`, `can_access_presenter?`, `apply_scope` for row-level filtering; `can_for_record?` evaluates record-level rules via `ConditionEvaluator.evaluate` with alias resolution; optional role validation via `Roles::Registry` when `role_source == :model`
-- **PolicyFactory** — generates Pundit policy classes dynamically with `index?`, `show?`, `create?`, `update?`, `destroy?`, `new?`, `edit?` + `permitted_attributes` + `Scope` inner class
+- **PolicyFactory** — generates Pundit policy classes dynamically with `index?`, `show?`, `create?`, `update?`, `destroy?`, `new?`, `edit?`, `restore?`, `permanently_destroy?` + `permitted_attributes` + `Scope` inner class
 - **ScopeBuilder** — row-level filtering with scope types: `field_match`, `association`, `where`, `custom`
 
 ### ConditionEvaluator (`lib/lcp_ruby/condition_evaluator.rb`)
@@ -119,7 +120,7 @@ Event dispatching system for lifecycle and field change hooks.
 - **AsyncHandlerJob** — ActiveJob wrapper for handlers that return `async? == true`
 
 **Event types:**
-- Lifecycle: `after_create`, `after_update`, `before_destroy`, `after_destroy`
+- Lifecycle: `after_create`, `after_update`, `before_destroy`, `after_destroy`, `after_discard`, `after_undiscard`
 - Field change: triggered when a specific field's value changes (configured in model YAML)
 
 ### Actions (`lib/lcp_ruby/actions/`)
@@ -204,8 +205,9 @@ JSON column value (Array<Hash>)
 
 ### ResourcesController (`app/controllers/lcp_ruby/resources_controller.rb`)
 
-- CRUD: `index`, `show`, `new`, `create`, `edit`, `update`, `destroy`
-- Index pipeline: `policy_scope` -> `apply_search` -> `apply_sort` -> paginate (Kaminari)
+- CRUD: `index`, `show`, `new`, `create`, `edit`, `update`, `destroy`, `restore`, `permanently_destroy`
+- Index pipeline: `policy_scope` -> `apply_soft_delete_scope` -> `apply_search` -> `apply_sort` -> paginate (Kaminari)
+- Soft delete: `destroy` branches on `soft_delete?` — calls `discard!` instead of `destroy!`; `restore` calls `undiscard!`; `permanently_destroy` calls `destroy!` on discarded records; `set_record` scopes to `kept` when soft delete is enabled
 - Search: predefined_filters (scope-based) + text search (LIKE on searchable_fields)
 - `permitted_params`: writable fields + FK fields from belongs_to associations + custom field names (when `custom_data` is writable); excludes JSON columns handled by `process_json_field_params`
 - `process_json_field_params`: processes `json_field:` sections from presenter — parses hash-of-hashes params into array, filters `_remove` flagged items, strips blank items, whitelists allowed field keys, validates model-backed items via `JsonItemWrapper`, assigns cleaned array to JSON column
@@ -226,6 +228,8 @@ scope ":lcp_slug" do
   GET  /:id/edit                        → resources#edit
   PATCH/PUT /:id                        → resources#update
   DELETE /:id                           → resources#destroy
+  POST /:id/restore                     → resources#restore
+  DELETE /:id/permanently_destroy       → resources#permanently_destroy
   POST /actions/:action_name            → actions#execute_collection
   POST /:id/actions/:action_name        → actions#execute_single
   POST /batch_actions/:action_name      → actions#execute_batch

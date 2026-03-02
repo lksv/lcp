@@ -29,9 +29,9 @@ module LcpRuby
         end
       end
 
-      VALID_CRUD_ACTIONS = %w[index show create update destroy].freeze
+      VALID_CRUD_ACTIONS = %w[index show create update destroy restore permanently_destroy].freeze
       VALID_CONDITION_OPERATORS = %w[eq not_eq neq in not_in gt gte lt lte present blank matches not_matches].freeze
-      BUILT_IN_ACTION_NAMES = %w[show edit destroy create update].freeze
+      BUILT_IN_ACTION_NAMES = %w[show edit destroy create update restore permanently_destroy].freeze
       VALID_SORT_DIRECTIONS = %w[asc desc].freeze
       NUMERIC_OPERATORS = %w[gt gte lt lte].freeze
       REGEX_OPERATORS   = %w[matches not_matches].freeze
@@ -447,6 +447,29 @@ module LcpRuby
 
         validate_association_foreign_key(model, assoc) if assoc.type == "belongs_to" && !assoc.polymorphic
         validate_through_reference(model, assoc) if assoc.through?
+        validate_dependent_discard(model, assoc) if assoc.dependent == :discard
+      end
+
+      def validate_dependent_discard(model, assoc)
+        if assoc.type == "belongs_to"
+          @errors << "Model '#{model.name}', association '#{assoc.name}': " \
+                     "dependent: :discard is not valid on belongs_to associations"
+          return
+        end
+
+        if assoc.lcp_model?
+          target = loader.model_definitions[assoc.target_model]
+          if target && !target.soft_delete?
+            @errors << "Model '#{model.name}', association '#{assoc.name}': " \
+                       "dependent: :discard requires target model '#{assoc.target_model}' to have soft_delete enabled"
+          end
+        end
+
+        unless model.soft_delete?
+          @warnings << "Model '#{model.name}', association '#{assoc.name}': " \
+                       "dependent: :discard on a model without soft_delete — " \
+                       "cascade discard will only trigger if the parent is discarded"
+        end
       end
 
       def validate_through_reference(model, assoc)

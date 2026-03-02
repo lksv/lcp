@@ -79,6 +79,10 @@ module LcpRuby
         actions_config["batch"] || []
       end
 
+      def scope
+        raw_hash&.dig("scope")
+      end
+
       private
 
       def validate!

@@ -29,8 +29,10 @@ events:
 
 | Type | Trigger | Requires `field` |
 |------|---------|-----------------|
-| `lifecycle` | ActiveRecord callbacks (`after_create`, `after_update`, `before_destroy`, `after_destroy`) | no |
+| `lifecycle` | ActiveRecord callbacks (`after_create`, `after_update`, `before_destroy`, `after_destroy`) or soft delete events (`after_discard`, `after_undiscard`) | no |
 | `field_change` | A specific field's value changes during an update | yes |
+
+The `after_discard` and `after_undiscard` events are dispatched by the [soft delete](soft-delete.md) system when a record is discarded or restored. They fire after cascade discard/undiscard is complete.
 
 ## Creating a Handler
 
