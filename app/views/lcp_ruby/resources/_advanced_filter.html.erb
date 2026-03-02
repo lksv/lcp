@@ -1,0 +1,38 @@
+<% metadata = filter_metadata %>
+<div class="lcp-advanced-filter"
+     data-lcp-filter-metadata="<%= metadata.to_json %>"
+     data-lcp-filter-action="<%= resources_path %>">
+  <div class="lcp-filter-toggle-row">
+    <button type="button" class="btn lcp-filter-toggle-btn">
+      <%= I18n.t("lcp_ruby.advanced_filter.toggle", default: "Filters") %>
+      <% active_count = (params[:f]&.keys || []).size %>
+      <% if active_count > 0 %>
+        <span class="lcp-filter-count"><%= active_count %></span>
+      <% end %>
+    </button>
+  </div>
+
+  <div class="lcp-filter-body" style="<%= 'display:none;' unless params[:f].present? %>">
+    <div class="lcp-filter-rows"></div>
+
+    <div class="lcp-filter-actions-row">
+      <button type="button" class="btn lcp-filter-add-btn">
+        <%= I18n.t("lcp_ruby.advanced_filter.add_filter", default: "+ Add filter") %>
+      </button>
+      <% if metadata.dig(:config, :allow_or_groups) %>
+        <button type="button" class="btn lcp-filter-add-group-btn">
+          <%= I18n.t("lcp_ruby.advanced_filter.add_or_group", default: "+ Add OR group") %>
+        </button>
+      <% end %>
+    </div>
+
+    <div class="lcp-filter-submit-row">
+      <button type="button" class="btn btn-primary lcp-filter-apply-btn">
+        <%= I18n.t("lcp_ruby.advanced_filter.apply", default: "Apply filters") %>
+      </button>
+      <button type="button" class="btn lcp-filter-clear-btn">
+        <%= I18n.t("lcp_ruby.advanced_filter.clear", default: "Clear all") %>
+      </button>
+    </div>
+  </div>
+</div>

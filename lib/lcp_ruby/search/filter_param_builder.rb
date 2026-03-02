@@ -55,12 +55,7 @@ module LcpRuby
           end
         end
 
-        # Return both Ransack params and custom field params
-        if custom_field_params.any?
-          { ransack: result, custom_fields: custom_field_params }
-        else
-          result
-        end
+        { ransack: result, custom_fields: custom_field_params }
       end
 
       # Converts association dot-path to Ransack underscore format.
@@ -76,7 +71,7 @@ module LcpRuby
 
         if OperatorRegistry.relative_date?(operator)
           expand_relative_date(result, ransack_field, operator, value)
-        elsif operator == :between
+        elsif OperatorRegistry.range?(operator)
           expand_between(result, ransack_field, value)
         else
           ransack_key = "#{ransack_field}_#{operator}"
@@ -119,21 +114,7 @@ module LcpRuby
         conditions = {}
 
         (group["conditions"] || []).each do |condition|
-          field = condition["field"]
-          operator = condition["operator"]&.to_sym
-          value = condition["value"]
-          next if field.blank? || operator.blank?
-
-          ransack_field = dot_path_to_ransack(field)
-
-          if OperatorRegistry.relative_date?(operator)
-            expand_relative_date(conditions, ransack_field, operator, value)
-          elsif operator == :between
-            expand_between(conditions, ransack_field, value)
-          else
-            ransack_key = "#{ransack_field}_#{operator}"
-            conditions[ransack_key] = value
-          end
+          merge_condition(conditions, condition["field"], condition["operator"]&.to_sym, condition["value"])
         end
 
         result.merge(conditions)

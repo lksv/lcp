@@ -20,7 +20,8 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
           ]
         }
         result = described_class.build(tree)
-        expect(result).to eq("title_cont" => "Acme")
+        expect(result[:ransack]).to eq("title_cont" => "Acme")
+        expect(result[:custom_fields]).to eq({})
       end
 
       it "converts multiple conditions" do
@@ -31,7 +32,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
           ]
         }
         result = described_class.build(tree)
-        expect(result).to eq("title_cont" => "Acme", "value_gteq" => 10000)
+        expect(result[:ransack]).to eq("title_cont" => "Acme", "value_gteq" => 10000)
       end
 
       it "skips conditions with blank field" do
@@ -40,7 +41,8 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
             { "field" => "", "operator" => "cont", "value" => "Acme" }
           ]
         }
-        expect(described_class.build(tree)).to eq({})
+        result = described_class.build(tree)
+        expect(result[:ransack]).to eq({})
       end
 
       it "skips conditions with blank operator" do
@@ -49,7 +51,8 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
             { "field" => "title", "operator" => "", "value" => "Acme" }
           ]
         }
-        expect(described_class.build(tree)).to eq({})
+        result = described_class.build(tree)
+        expect(result[:ransack]).to eq({})
       end
     end
 
@@ -61,7 +64,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
           ]
         }
         result = described_class.build(tree)
-        expect(result).to eq("company_name_cont" => "Corp")
+        expect(result[:ransack]).to eq("company_name_cont" => "Corp")
       end
 
       it "handles multi-level association paths" do
@@ -71,7 +74,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
           ]
         }
         result = described_class.build(tree)
-        expect(result).to eq("contact_company_country_eq" => "CZ")
+        expect(result[:ransack]).to eq("contact_company_country_eq" => "CZ")
       end
     end
 
@@ -83,7 +86,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
           ]
         }
         result = described_class.build(tree)
-        expect(result).to eq("value_gteq" => 100, "value_lteq" => 500)
+        expect(result[:ransack]).to eq("value_gteq" => 100, "value_lteq" => 500)
       end
 
       it "ignores between with non-array value" do
@@ -93,7 +96,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
           ]
         }
         result = described_class.build(tree)
-        expect(result).to eq({})
+        expect(result[:ransack]).to eq({})
       end
 
       it "ignores between with wrong array size" do
@@ -103,7 +106,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
           ]
         }
         result = described_class.build(tree)
-        expect(result).to eq({})
+        expect(result[:ransack]).to eq({})
       end
     end
 
@@ -120,7 +123,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
             { "field" => "created_at", "operator" => "last_n_days", "value" => 7 }
           ]
         }
-        result = described_class.build(tree)
+        result = described_class.build(tree)[:ransack]
         expect(result).to have_key("created_at_gteq")
         expect(result["created_at_gteq"]).to eq(7.days.ago.beginning_of_day.iso8601)
       end
@@ -131,7 +134,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
             { "field" => "created_at", "operator" => "this_week" }
           ]
         }
-        result = described_class.build(tree)
+        result = described_class.build(tree)[:ransack]
         expect(result["created_at_gteq"]).to eq(Date.current.beginning_of_week.iso8601)
         expect(result["created_at_lteq"]).to eq(Date.current.end_of_week.iso8601)
       end
@@ -142,7 +145,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
             { "field" => "created_at", "operator" => "this_month" }
           ]
         }
-        result = described_class.build(tree)
+        result = described_class.build(tree)[:ransack]
         expect(result["created_at_gteq"]).to eq(Date.new(2024, 6, 1).iso8601)
         expect(result["created_at_lteq"]).to eq(Date.new(2024, 6, 30).iso8601)
       end
@@ -153,7 +156,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
             { "field" => "created_at", "operator" => "this_quarter" }
           ]
         }
-        result = described_class.build(tree)
+        result = described_class.build(tree)[:ransack]
         expect(result["created_at_gteq"]).to eq(Date.new(2024, 4, 1).iso8601)
         expect(result["created_at_lteq"]).to eq(Date.new(2024, 6, 30).iso8601)
       end
@@ -164,7 +167,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
             { "field" => "created_at", "operator" => "this_year" }
           ]
         }
-        result = described_class.build(tree)
+        result = described_class.build(tree)[:ransack]
         expect(result["created_at_gteq"]).to eq(Date.new(2024, 1, 1).iso8601)
         expect(result["created_at_lteq"]).to eq(Date.new(2024, 12, 31).iso8601)
       end
@@ -184,7 +187,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
             }
           ]
         }
-        result = described_class.build(tree)
+        result = described_class.build(tree)[:ransack]
         expect(result).to have_key("g")
         expect(result["g"]["0"]["m"]).to eq("or")
         expect(result["g"]["0"]["stage_eq"]).to eq("prospect") # last write wins for same key
@@ -208,7 +211,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
             }
           ]
         }
-        result = described_class.build(tree)
+        result = described_class.build(tree)[:ransack]
         expect(result["g"]).to have_key("0")
         expect(result["g"]).to have_key("1")
       end

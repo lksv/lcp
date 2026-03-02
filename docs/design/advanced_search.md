@@ -1,6 +1,6 @@
 # Design: Advanced Search & Filter Builder
 
-**Status:** Proposed
+**Status:** In Progress (Phase 0–2 implemented, Phases 3–4 proposed)
 **Date:** 2026-03-01
 
 ## Problem
@@ -1011,13 +1011,13 @@ Boolean values arrive from URL params in many formats: `"t"`, `"true"`, `"1"`, `
 - **Phase 3 combines custom fields + saved filters** because both are storage-layer features (JSON queries, DB model) that build on the core filter infrastructure without needing each other.
 - **Phase 4 (QL) is last** because it has the lowest user impact relative to effort and depends on all other phases being stable.
 
-### Phase 0: Quick Search Improvements + Param Namespace Fix
+### Phase 0: Quick Search Improvements + Param Namespace Fix (**Implemented** — commit `0617933`)
 1. Rename quick search param from `?q=` to `?qs=` in views and controller
 2. Implement type-aware quick search (numeric skip, datetime precision, enum label matching, boolean normalization, empty param rejection)
 3. Add `default_query` model escape hatch for quick search override
 4. Update tests for renamed param and improved type handling
 
-### Phase 1: Ransack Foundation + Custom Filter Methods
+### Phase 1: Ransack Foundation + Custom Filter Methods (**Implemented** — commit `0617933`)
 5. Install Ransack allowlisting on dynamic models (`ransackable_attributes`, `ransackable_associations`, `ransackable_scopes`) using `?f[...]` param namespace
 6. Refactor `apply_search` to `apply_advanced_search` with backward compatibility
 7. Implement `Search::OperatorRegistry` with type-operator mapping (including `between`, relative date operators)
@@ -1026,15 +1026,16 @@ Boolean values arrive from URL params in many formats: `"t"`, `"true"`, `"1"`, `
 10. Extend `PresenterDefinition` to parse `advanced_filter` config
 11. Extend `ConfigurationValidator` for new search keys
 
-### Phase 2: Visual Filter Builder + Association Filtering
-12. Create `_advanced_filter.html.erb` partial
-13. Implement `advanced_filter.js` — dynamic filter rows, field/operator/value selects
-14. Implement value input variants: date picker, enum dropdown (Tom Select), textarea for `in`/`not_in`, numeric input, date range ("between"), no-value operators
+### Phase 2: Visual Filter Builder + Association Filtering (**Implemented**)
+12. Create `_advanced_filter.html.erb` partial with toggle button and filter count badge
+13. Implement `advanced_filter.js` — dynamic filter rows, field/operator/value selects, URL round-trip parsing
+14. Implement value input variants: date picker, enum dropdown (Tom Select), textarea for `in`/`not_in`, numeric input, date range ("between"), no-value operators, parameterized inputs (`last_n_days`)
 15. Integrate Tom Select for field selection and enum/association value selection
-16. Build association field tree from model metadata (depth-limited traversal)
-17. Implement grouped field selector in UI (direct fields, association groups)
-18. Add i18n keys for operator labels and UI strings
-19. Test multi-level association filtering with Ransack
+16. Implement `Search::FilterMetadataBuilder` — permission-aware field/operator/type metadata generation for the JS filter builder, with association traversal, custom type resolution, and field_options overrides
+17. Implement grouped field selector in UI (direct fields, association groups with optgroups)
+18. Add i18n keys for operator labels and UI strings (Rails locale + JS bridge via `i18n.js.erb`)
+19. Add CSS styles for filter builder (rows, groups, between inputs, combinators, count badge)
+20. Unit tests (`filter_metadata_builder_spec.rb`) and integration tests (`advanced_search_spec.rb`)
 
 ### Phase 3: Custom Field Filtering + Saved Filters
 20. Implement `Search::CustomFieldFilter` for JSON column queries

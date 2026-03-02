@@ -20,7 +20,8 @@ module LcpRuby
                   :toggle_direction, :current_sort_field, :current_sort_direction,
                   :current_view_group, :sibling_views,
                   :impersonating?, :impersonated_role, :available_roles_for_impersonation,
-                  :breadcrumbs, :compute_list_version_from_records
+                  :breadcrumbs, :compute_list_version_from_records,
+                  :filter_metadata
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
     rescue_from LcpRuby::MetadataError, with: :metadata_error
@@ -135,6 +136,12 @@ module LcpRuby
         user = impersonating? ? impersonated_user : current_user
         Authorization::PermissionEvaluator.new(perm_def, user, @presenter_definition.model)
       end
+    end
+
+    def filter_metadata
+      @filter_metadata ||= Search::FilterMetadataBuilder.new(
+        @presenter_definition, @model_definition, current_evaluator
+      ).build
     end
 
     # -- Impersonation helpers --

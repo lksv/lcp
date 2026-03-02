@@ -1673,12 +1673,12 @@ Quick search (`?qs=term`) is type-aware. Instead of applying a blanket `LIKE` to
 - **Date/datetime fields** — range match when the term parses as a date, skipped otherwise
 - **Enum fields** — matches against enum display labels (e.g., searching "won" matches `closed_won` if its label contains "won")
 
-Models can override quick search entirely with a `default_query` class method (escape hatch):
+Models can override quick search entirely with a `default_query` class method (escape hatch). The method receives the search term and must return a relation (which is merged with the current scope):
 
 ```ruby
 # Model extension
-def self.default_query(scope, term, evaluator)
-  scope.where("title ILIKE :q OR reference_number = :exact", q: "%#{term}%", exact: term)
+def self.default_query(term)
+  where("title ILIKE :q OR reference_number = :exact", q: "%#{term}%", exact: term)
 end
 ```
 
@@ -1699,7 +1699,7 @@ The `advanced_filter` key controls the visual filter builder that lets users con
 
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `enabled` | boolean | `true` (when `search.enabled`) | Show the "Add Filter" button |
+| `enabled` | boolean | `false` | Show the filter builder. Requires both `search.enabled: true` and `advanced_filter.enabled: true` |
 | `max_conditions` | integer | `20` | Safety limit on filter rows |
 | `max_association_depth` | integer | `3` | Maximum levels of association traversal (e.g., `company.country.name` = depth 2) |
 | `default_combinator` | string | `"and"` | Top-level combinator: `"and"` or `"or"` |
@@ -1774,7 +1774,7 @@ See [Custom Filter Methods](../guides/extensibility.md#custom-filter-methods) fo
 | `enabled` | boolean | `false` | Allow users to save personal filters |
 | `sharing` | boolean | `false` | Allow sharing saved filters with roles |
 
-Saved filters follow the Configuration Source Principle: predefined in YAML (via `presets`), user-created in DB (when `enabled: true`), or provided by the host application. Full saved filter support is planned for Phase 2.
+Saved filters follow the Configuration Source Principle: predefined in YAML (via `presets`), user-created in DB (when `enabled: true`), or provided by the host application. Full saved filter support is planned for Phase 3.
 
 ## Actions Configuration
 

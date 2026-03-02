@@ -1,15 +1,21 @@
 module LcpRuby
   module Search
     class OperatorRegistry
+      NUMERIC_OPERATORS = %i[eq not_eq gt gteq lt lteq between present blank null not_null].freeze
+      # Operators resolved at query time to absolute date ranges (not native Ransack predicates)
+      RELATIVE_DATE_OPERATORS = %i[last_n_days this_week this_month this_quarter this_year].freeze
+
+      TEMPORAL_OPERATORS = (NUMERIC_OPERATORS + RELATIVE_DATE_OPERATORS).freeze
+
       OPERATORS_BY_TYPE = {
         string:   %i[eq not_eq cont not_cont start not_start end not_end in not_in present blank null not_null],
         text:     %i[cont not_cont present blank null not_null],
         integer:  %i[eq not_eq gt gteq lt lteq between in not_in present blank null not_null],
-        float:    %i[eq not_eq gt gteq lt lteq between present blank null not_null],
-        decimal:  %i[eq not_eq gt gteq lt lteq between present blank null not_null],
+        float:    NUMERIC_OPERATORS,
+        decimal:  NUMERIC_OPERATORS,
         boolean:  %i[true not_true false not_false null not_null],
-        date:     %i[eq not_eq gt gteq lt lteq between last_n_days this_week this_month this_quarter this_year present blank null not_null],
-        datetime: %i[eq not_eq gt gteq lt lteq between last_n_days this_week this_month this_quarter this_year present blank null not_null],
+        date:     TEMPORAL_OPERATORS,
+        datetime: TEMPORAL_OPERATORS,
         enum:     %i[eq not_eq in not_in present blank null not_null],
         uuid:     %i[eq not_eq in not_in present blank null not_null]
       }.freeze
@@ -44,9 +50,6 @@ module LcpRuby
 
       # Operators that require a numeric parameter (e.g., "last N days" -> N)
       PARAMETERIZED_OPERATORS = %i[last_n_days].freeze
-
-      # Operators resolved at query time to absolute date ranges (not native Ransack predicates)
-      RELATIVE_DATE_OPERATORS = %i[last_n_days this_week this_month this_quarter this_year].freeze
 
       # Returns the list of operator symbols for a given field type.
       def self.operators_for(field_type)

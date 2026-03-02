@@ -1160,7 +1160,7 @@ search:
     sharing: true    # Allow sharing with roles
 ```
 
-Full saved filter support (Phase 2) and a text-based query language for power users (Phase 3) are planned for future releases. See the [Advanced Search design document](../design/advanced_search.md) for details.
+Full saved filter support (Phase 3) and a text-based query language for power users (Phase 4) are planned for future releases. See the [Advanced Search design document](../design/advanced_search.md) for details.
 
 ---
 

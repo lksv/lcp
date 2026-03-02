@@ -84,7 +84,7 @@ module LcpRuby
       end
 
       def advanced_filter_enabled?
-        search_config["enabled"] && advanced_filter_config.fetch("enabled", search_config["enabled"])
+        search_config["enabled"] && advanced_filter_config["enabled"] == true
       end
 
       private

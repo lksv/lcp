@@ -72,6 +72,10 @@ module LcpRuby
         target_model.present?
       end
 
+      def traversable?
+        lcp_model? && !polymorphic && !through?
+      end
+
       def through?
         @through.present?
       end

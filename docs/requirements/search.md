@@ -41,32 +41,33 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 ## Advanced Filters (Advanced Search)
 
-- [ ] Filter builder — user composes conditions (field + operator + value)
-- [ ] Operators by data type:
-  - [ ] Text: equals, contains, starts_with, ends_with, is_empty, is_not_empty, regex
-  - [ ] Number: =, ≠, >, <, ≥, ≤, between, is_empty
-  - [ ] Date: =, before, after, between, relative (last 7 days, this month...)
-  - [ ] Boolean: is_true, is_false
-  - [ ] Enum / select: in, not_in
+- [x] Filter builder — user composes conditions (field + operator + value) — visual filter builder with `FilterMetadataBuilder` + `advanced_filter.js`
+- [x] Operators by data type:
+  - [x] Text: equals, contains, starts_with, ends_with, is_empty, is_not_empty — via `OperatorRegistry` (no regex)
+  - [x] Number: =, ≠, >, <, ≥, ≤, between, is_empty — via `OperatorRegistry`
+  - [x] Date: =, before, after, between, relative (last 7 days, this month...) — via `OperatorRegistry` + `FilterParamBuilder` relative date expansion
+  - [x] Boolean: is_true, is_false — via `OperatorRegistry`
+  - [x] Enum / select: in, not_in — via `OperatorRegistry` + Tom Select multi-select
   - [ ] Relation: has_any, has_none, has_exactly
-- [ ] Condition combinations (AND / OR / NOT with arbitrary nesting)
-- [ ] Filters across related entities (filter orders by customer name)
+- [x] Condition combinations (AND / OR groups, no arbitrary NOT nesting) — visual OR groups in filter builder
+- [x] Filters across related entities (filter orders by customer name) — dot-path association fields via Ransack
 - [ ] Filters on computed / derived fields
 - [x] Filters by workflow state — predefined filters / scopes
 - [ ] Filters by tags / labels
-- [ ] Relative date filters (today, this week, last month, last N days)
-- [ ] NULL / empty value as filter condition
+- [x] Relative date filters (today, this week, last month, last N days) — `this_week`, `this_month`, `this_quarter`, `this_year`, `last_n_days` operators
+- [x] NULL / empty value as filter condition — `null`, `not_null`, `present`, `blank` operators
 
 ## Saved Filters and Views
 
-- [ ] Save filter by name (saved filter / saved view)
-- [ ] Private filters (per user)
-- [ ] Shared filters (per team / per role)
+- [ ] Save filter by name (saved filter / saved view) — planned Phase 3
+- [ ] Private filters (per user) — planned Phase 3
+- [ ] Shared filters (per team / per role) — planned Phase 3
 - [x] System / default filters defined in metadata — `predefined_filters` in presenter
 - [x] Default filter per view / per role — `default_scope` in presenter
+- [x] Preset filter combinations defined in YAML — `advanced_filter.presets` in presenter
 - [ ] Saved filter ordering and organization (drag & drop, folders)
 - [ ] Notification on saved filter (alert when new record matches filter)
-- [ ] Filter sharing by link (URL contains filter parameters)
+- [x] Filter sharing by link (URL contains filter parameters) — `?f[field_pred]=value` URL params are bookmarkable
 
 ## Facets and Aggregations
 
@@ -132,7 +133,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 - **Diacritics and stemming** — in localized environments this is a must-have from day one. Without it, users can't find anything and will consider the platform broken.
 - **Permission enforcement in results** — search engine indexes everything, but results must pass through the authorization layer. Can be solved by query-time filtering or post-filter, each approach has trade-offs.
-- **Relative date filters** — "last 7 days", "this quarter" — users expect this and it's significantly more useful than entering specific dates.
+- **Relative date filters** — "last 7 days", "this quarter" — users expect this and it's significantly more useful than entering specific dates. Implemented: `last_n_days`, `this_week`, `this_month`, `this_quarter`, `this_year`.
 - **Notification on saved filter** — very powerful feature. User sets up filter "new urgent tickets in my team" and gets notified when a matching record appears. Essentially a watchdog.
 - **Cursor-based pagination** — offset pagination breaks down on large datasets and during concurrent changes (records skip or duplicate). Cursor-based is more robust.
 - **Fallback strategy** — if you use Elasticsearch as search engine, you need a plan B for outages. Degraded search via DB is better than no search.

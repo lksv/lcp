@@ -15,7 +15,7 @@ module LcpRuby
         end
 
         searchable_fields = searchable_field_definitions(model_class, model_definition, searchable_field_names)
-        conditions = build_conditions(query, model_class, model_definition, searchable_fields)
+        conditions = build_conditions(query, model_class, searchable_fields)
 
         # Include searchable custom fields
         if model_definition.custom_fields_enabled?
@@ -45,7 +45,7 @@ module LcpRuby
 
       private_class_method :searchable_field_definitions
 
-      def self.build_conditions(query, model_class, model_definition, field_definitions)
+      def self.build_conditions(query, model_class, field_definitions)
         table = model_class.arel_table
         conditions = []
 
@@ -61,10 +61,10 @@ module LcpRuby
 
       def self.condition_for_field(table, field_def, query, model_class)
         col = table[field_def.name]
-        type = resolved_type(field_def)
+        type = field_def.resolved_base_type.to_s
 
         case type
-        when "string", "text", "email", "phone", "url", "color", "rich_text"
+        when "string", "text"
           col.matches("%#{sanitize_like(query)}%")
         when "integer"
           int_val = Integer(query, exception: false)
@@ -86,13 +86,6 @@ module LcpRuby
       end
 
       private_class_method :condition_for_field
-
-      def self.resolved_type(field_def)
-        # Use the base type for typed fields (e.g., email -> string)
-        field_def.type.to_s
-      end
-
-      private_class_method :resolved_type
 
       def self.sanitize_like(query)
         ActiveRecord::Base.sanitize_sql_like(query)
@@ -132,10 +125,11 @@ module LcpRuby
       def self.enum_condition(col, field_def, query, _model_class)
         return nil unless field_def.enum?
 
+        downcased_query = query.downcase
         matching_values = field_def.enum_value_names.select do |value_name|
           # Match stored value OR humanized display label (case-insensitive)
-          value_name.downcase.include?(query.downcase) ||
-            value_name.humanize.downcase.include?(query.downcase)
+          value_name.downcase.include?(downcased_query) ||
+            value_name.humanize.downcase.include?(downcased_query)
         end
 
         return nil if matching_values.empty?

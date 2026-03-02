@@ -303,6 +303,114 @@ RSpec.describe "Advanced Search Integration", type: :request do
     end
   end
 
+  describe "Advanced filter partial rendering" do
+    it "renders the advanced filter partial when enabled" do
+      stub_current_user(role: "admin")
+      product_model.create!(name: "Test Product")
+
+      get "/products"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-advanced-filter")
+      expect(response.body).to include("data-lcp-filter-metadata")
+      expect(response.body).to include("data-lcp-filter-action")
+    end
+
+    it "does NOT render the advanced filter partial when search is disabled" do
+      stub_current_user(role: "admin")
+      product_model.create!(name: "Test Product")
+
+      # Override the category presenter (search not configured with advanced_filter)
+      category_model.create!(name: "Test Category")
+      get "/categories"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).not_to include("data-lcp-filter-metadata")
+    end
+
+    it "includes filter metadata JSON with expected field structure" do
+      stub_current_user(role: "admin")
+      product_model.create!(name: "Test Product")
+
+      get "/products"
+
+      # Extract metadata JSON from the data attribute
+      metadata_match = response.body.match(/data-lcp-filter-metadata="([^"]*)"/)
+      expect(metadata_match).not_to be_nil
+
+      metadata_json = CGI.unescapeHTML(metadata_match[1])
+      metadata = JSON.parse(metadata_json)
+
+      expect(metadata["fields"]).to be_an(Array)
+      expect(metadata["fields"].length).to be > 0
+
+      # Check a direct field
+      name_field = metadata["fields"].find { |f| f["name"] == "name" }
+      expect(name_field).not_to be_nil
+      expect(name_field["type"]).to eq("string")
+      expect(name_field["operators"]).to be_an(Array)
+      expect(name_field["operators"]).to include("eq", "cont")
+      expect(name_field["group"]).to be_nil
+
+      # Check an enum field
+      status_field = metadata["fields"].find { |f| f["name"] == "status" }
+      expect(status_field).not_to be_nil
+      expect(status_field["type"]).to eq("enum")
+      expect(status_field["enum_values"]).to be_an(Array)
+      expect(status_field["enum_values"].first).to eq(["draft", "Draft"])
+
+      # Check operator labels
+      expect(metadata["operator_labels"]).to be_a(Hash)
+      expect(metadata["operator_labels"]["eq"]).to eq("equals")
+
+      # Check config
+      expect(metadata["config"]["max_conditions"]).to eq(10)
+    end
+
+    it "includes association fields in metadata with correct group" do
+      stub_current_user(role: "admin")
+      product_model.create!(name: "Test Product")
+
+      get "/products"
+
+      metadata_match = response.body.match(/data-lcp-filter-metadata="([^"]*)"/)
+      metadata = JSON.parse(CGI.unescapeHTML(metadata_match[1]))
+
+      category_field = metadata["fields"].find { |f| f["name"] == "category.name" }
+      expect(category_field).not_to be_nil
+      expect(category_field["group"]).to eq("Category")
+      expect(category_field["type"]).to eq("string")
+    end
+
+    it "restricts visible fields in metadata based on viewer permissions" do
+      stub_current_user(role: "viewer")
+      product_model.create!(name: "Test Product")
+
+      get "/products"
+
+      metadata_match = response.body.match(/data-lcp-filter-metadata="([^"]*)"/)
+      metadata = JSON.parse(CGI.unescapeHTML(metadata_match[1]))
+
+      field_names = metadata["fields"].map { |f| f["name"] }
+      expect(field_names).to include("name")
+      expect(field_names).to include("status")
+      # price is not in viewer's readable fields
+      expect(field_names).not_to include("price")
+      # category_id FK is not readable by viewer
+      expect(field_names).not_to include("category.name")
+    end
+
+    it "includes filter count badge when active filters exist" do
+      stub_current_user(role: "admin")
+      product_model.create!(name: "Test Product", status: "published")
+
+      get "/products", params: { f: { status_eq: "published" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("lcp-filter-count")
+    end
+  end
+
   describe "PresenterDefinition convenience methods" do
     it "returns advanced_filter_config" do
       load_integration_metadata!("advanced_search")

@@ -58,6 +58,7 @@ require "lcp_ruby/search/operator_registry"
 require "lcp_ruby/search/quick_search"
 require "lcp_ruby/search/filter_param_builder"
 require "lcp_ruby/search/custom_filter_interceptor"
+require "lcp_ruby/search/filter_metadata_builder"
 
 # Model Factory
 require "lcp_ruby/model_factory/registry"

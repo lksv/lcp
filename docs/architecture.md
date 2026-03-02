@@ -183,6 +183,7 @@ Advanced search and filter pipeline that wraps Ransack with LCP metadata for con
 - **FilterParamBuilder** — maps LCP operator names to Ransack predicates; resolves relative date operators (`this_week`, `this_month`, etc.) to absolute ranges; constructs Ransack-compatible parameter keys from dot-path field references
 - **OperatorRegistry** — central registry mapping field types to available operators with labels, no-value operators, and multi-value operators
 - **CustomFilterInterceptor** — detects and calls `filter_*` class methods on the model before Ransack; validates return types; removes intercepted keys from Ransack params
+- **FilterMetadataBuilder** — request-time builder that generates JSON metadata for the JS visual filter builder; permission-aware (filters fields/associations by evaluator); resolves custom types to base types; supports explicit `filterable_fields` or auto-detection mode; traverses `belongs_to` associations respecting `max_association_depth`
 
 Note: Ransack model configuration (`ransackable_attributes`, `ransackable_associations`) is set up at boot time by `ModelFactory::RansackApplicator`.
 

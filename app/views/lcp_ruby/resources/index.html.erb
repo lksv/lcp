@@ -37,6 +37,10 @@
     </div>
   <% end %>
 
+  <% if current_presenter.advanced_filter_enabled? %>
+    <%= render "lcp_ruby/resources/advanced_filter" %>
+  <% end %>
+
   <% if @records.empty? && current_presenter.index_config["empty_message"] %>
     <div class="lcp-empty-state">
       <p><%= current_presenter.index_config["empty_message"] %></p>
