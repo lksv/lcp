@@ -1,0 +1,38 @@
+presenter:
+  name: project_archive
+  model: sd_project
+  label: "Archived Projects"
+  slug: projects-archive
+  scope: discarded
+
+  index:
+    default_view: table
+    per_page: 25
+    table_columns:
+      - { field: title, sortable: true }
+      - { field: description }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+          - { field: description }
+
+  form:
+    sections:
+      - title: "Project Details"
+        fields:
+          - { field: title }
+          - { field: description }
+
+  search:
+    enabled: true
+    searchable_fields: [title]
+
+  actions:
+    collection: []
+    single:
+      - { name: show, type: built_in }
+      - { name: restore, type: built_in }
+      - { name: permanently_destroy, type: built_in, confirm: true }

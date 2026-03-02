@@ -1,5 +1,16 @@
 en:
   lcp_ruby:
+    flash:
+      created: "%{model} was successfully created."
+      updated: "%{model} was successfully updated."
+      deleted: "%{model} was successfully deleted."
+      archived: "%{model} was successfully archived."
+      restored: "%{model} was successfully restored."
+      permanently_deleted: "%{model} was permanently deleted."
+    actions:
+      restore: "Restore"
+      permanently_destroy: "Permanently Delete"
+      confirm_permanently_destroy: "This will permanently delete the record. Are you sure?"
     select:
       include_blank: "-- Select --"
       no_results: "No results found"

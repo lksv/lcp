@@ -1,0 +1,17 @@
+model:
+  name: sd_note
+  label: "Note"
+  label_plural: "Notes"
+
+  fields:
+    - name: title
+      type: string
+      validations:
+        - type: presence
+
+    - name: body
+      type: text
+
+  options:
+    timestamps: true
+    label_method: title

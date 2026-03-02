@@ -208,7 +208,7 @@
         "target_model": { "type": "string" },
         "class_name": { "type": "string" },
         "foreign_key": { "type": "string" },
-        "dependent": { "type": "string", "enum": ["destroy", "delete", "delete_all", "nullify", "restrict_with_exception", "restrict_with_error"] },
+        "dependent": { "type": "string", "enum": ["destroy", "delete", "delete_all", "nullify", "restrict_with_exception", "restrict_with_error", "discard"] },
         "required": { "type": "boolean" },
         "inverse_of": { "type": "string" },
         "counter_cache": { "type": ["string", "boolean"] },

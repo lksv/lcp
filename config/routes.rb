@@ -43,6 +43,8 @@ LcpRuby::Engine.routes.draw do
     patch  "/:id",       to: "resources#update",  as: :update_resource
     put    "/:id",       to: "resources#update"
     delete "/:id",       to: "resources#destroy", as: :destroy_resource
+    post   "/:id/restore",             to: "resources#restore",                 as: :restore_resource
+    delete "/:id/permanently_destroy", to: "resources#permanently_destroy",     as: :permanently_destroy_resource
     patch  "/:id/reorder",             to: "resources#reorder",                 as: :reorder_resource
     post   "/:id/evaluate_conditions", to: "resources#evaluate_conditions",     as: :evaluate_conditions
     post   "/actions/:action_name",       to: "actions#execute_collection", as: :collection_action

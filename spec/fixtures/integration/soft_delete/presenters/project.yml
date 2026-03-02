@@ -1,0 +1,38 @@
+presenter:
+  name: project
+  model: sd_project
+  label: "Projects"
+  slug: projects
+
+  index:
+    default_view: table
+    per_page: 25
+    table_columns:
+      - { field: title, sortable: true }
+      - { field: description }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+          - { field: description }
+
+  form:
+    sections:
+      - title: "Project Details"
+        fields:
+          - { field: title }
+          - { field: description }
+
+  search:
+    enabled: true
+    searchable_fields: [title]
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

@@ -3,7 +3,7 @@ module LcpRuby
     class ActionSet
       # Action names (including aliases) whose record rules should hide the button.
       # "edit" maps to "update" via alias; "show" is intentionally excluded.
-      RECORD_RULE_ACTION_NAMES = %w[edit update destroy].freeze
+      RECORD_RULE_ACTION_NAMES = %w[edit update destroy restore permanently_destroy].freeze
 
       attr_reader :presenter_definition, :permission_evaluator
 

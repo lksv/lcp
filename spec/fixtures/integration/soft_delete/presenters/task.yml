@@ -1,0 +1,35 @@
+presenter:
+  name: task
+  model: sd_task
+  label: "Tasks"
+  slug: tasks
+
+  index:
+    default_view: table
+    per_page: 25
+    table_columns:
+      - { field: title, sortable: true }
+      - { field: completed }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+          - { field: completed }
+
+  form:
+    sections:
+      - title: "Task Details"
+        fields:
+          - { field: title }
+          - { field: completed, input_type: boolean }
+          - { field: sd_project_id, input_type: association_select }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

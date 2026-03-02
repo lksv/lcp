@@ -5,10 +5,12 @@ module LcpRuby
     include LcpRuby::AssociationOptionsBuilder
 
     before_action :set_record, only: [ :show, :edit, :update, :destroy, :evaluate_conditions, :reorder ]
+    before_action :set_record_with_discarded, only: [ :restore, :permanently_destroy ]
 
     def index
       authorize @model_class
       scope = policy_scope(@model_class)
+      scope = apply_soft_delete_scope(scope)
       scope = apply_search(scope)
       scope = apply_sort(scope)
 
@@ -52,7 +54,9 @@ module LcpRuby
       validate_association_values!(@record)
 
       if @record.errors.none? && @record.save
-        redirect_to resource_path(@record), notice: "#{current_model_definition.label} was successfully created."
+        redirect_to resource_path(@record),
+          notice: I18n.t("lcp_ruby.flash.created", model: current_model_definition.label,
+                         default: "%{model} was successfully created.")
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
         render :new, status: :unprocessable_entity
@@ -75,7 +79,9 @@ module LcpRuby
       validate_association_values!(@record)
 
       if @record.errors.none? && @record.save
-        redirect_to resource_path(@record), notice: "#{current_model_definition.label} was successfully updated."
+        redirect_to resource_path(@record),
+          notice: I18n.t("lcp_ruby.flash.updated", model: current_model_definition.label,
+                         default: "%{model} was successfully updated.")
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
         render :edit, status: :unprocessable_entity
@@ -84,8 +90,33 @@ module LcpRuby
 
     def destroy
       authorize @record
+      if current_model_definition.soft_delete?
+        @record.discard!(by: current_user)
+        redirect_to resources_path,
+          notice: I18n.t("lcp_ruby.flash.archived", model: current_model_definition.label,
+                         default: "%{model} was successfully archived.")
+      else
+        @record.destroy!
+        redirect_to resources_path,
+          notice: I18n.t("lcp_ruby.flash.deleted", model: current_model_definition.label,
+                         default: "%{model} was successfully deleted.")
+      end
+    end
+
+    def restore
+      authorize @record
+      @record.undiscard!
+      redirect_to resources_path,
+        notice: I18n.t("lcp_ruby.flash.restored", model: current_model_definition.label,
+                       default: "%{model} was successfully restored.")
+    end
+
+    def permanently_destroy
+      authorize @record
       @record.destroy!
-      redirect_to resources_path, notice: "#{current_model_definition.label} was successfully deleted."
+      redirect_to resources_path,
+        notice: I18n.t("lcp_ruby.flash.permanently_deleted", model: current_model_definition.label,
+                       default: "%{model} was permanently deleted.")
     end
 
     def select_options
@@ -209,7 +240,26 @@ module LcpRuby
     private
 
     def set_record
+      scope = @model_class
+      scope = scope.kept if current_model_definition.soft_delete?
+      @record = scope.find(params[:id])
+    end
+
+    def set_record_with_discarded
       @record = @model_class.find(params[:id])
+    end
+
+    def apply_soft_delete_scope(scope)
+      return scope unless current_model_definition.soft_delete?
+
+      case current_presenter.scope
+      when "discarded"
+        scope.discarded
+      when "with_discarded"
+        scope.with_discarded
+      else
+        scope.kept
+      end
     end
 
     def purge_removed_attachments!(record)

@@ -1,0 +1,34 @@
+presenter:
+  name: note
+  model: sd_note
+  label: "Notes"
+  slug: notes
+
+  index:
+    default_view: table
+    per_page: 25
+    table_columns:
+      - { field: title, sortable: true }
+      - { field: body }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+          - { field: body }
+
+  form:
+    sections:
+      - title: "Note Details"
+        fields:
+          - { field: title }
+          - { field: body }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }
