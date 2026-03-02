@@ -4,17 +4,18 @@ module LcpRuby
                          reparentable: false, search_active: false)
       return "".html_safe if roots.blank?
 
-      roots.map { |record|
+      roots.each_with_index.map { |record, idx|
         render_tree_row(record, children_map, columns, depth: depth,
           default_expanded: default_expanded, match_ids: match_ids,
-          reparentable: reparentable, search_active: search_active)
+          reparentable: reparentable, search_active: search_active,
+          guides: [], is_last: idx == roots.size - 1)
       }.join.html_safe
     end
 
     private
 
     def render_tree_row(record, children_map, columns, depth:, default_expanded:, match_ids:,
-                        reparentable: false, search_active: false)
+                        reparentable: false, search_active: false, guides: [], is_last: true)
       children = children_map[record.id] || []
       has_children = children.any?
       expanded = tree_expanded?(depth, default_expanded, search_active)
@@ -22,7 +23,6 @@ module LcpRuby
       context_class = (!is_match && match_ids) ? "lcp-tree-ancestor-context" : ""
 
       parent_field = current_model_definition.tree_parent_field
-      indent_px = depth * 24 + 8
 
       row = content_tag(:tr,
         class: "lcp-tree-row #{context_class}".strip,
@@ -49,10 +49,18 @@ module LcpRuby
         columns.each_with_index do |col, idx|
           cell_content = ActiveSupport::SafeBuffer.new
 
-          # First column gets tree indentation and toggle
+          # First column gets tree guide lines and toggle
           if idx == 0
-            spacer = content_tag(:span, "", style: "display:inline-block;width:#{indent_px}px")
-            cell_content << spacer
+            # Guide lines for ancestor levels (vertical pipes or blanks)
+            if depth > 0
+              guides.each do |has_line|
+                cell_content << content_tag(:span, "", class: "lcp-tree-guide#{' lcp-tree-guide-pipe' if has_line}")
+              end
+
+              # Connector at current depth (tee or elbow)
+              connector_class = is_last ? "lcp-tree-guide lcp-tree-guide-elbow" : "lcp-tree-guide lcp-tree-guide-tee"
+              cell_content << content_tag(:span, "", class: connector_class)
+            end
 
             if has_children
               chevron_class = expanded ? "lcp-tree-chevron expanded" : "lcp-tree-chevron"
@@ -78,8 +86,11 @@ module LcpRuby
             cell_content << empty_value_placeholder(value, current_presenter)
           end
 
-          cells << content_tag(:td, cell_content,
-            class: "#{hidden_on_classes(col)} #{'lcp-pinned-left' if col['pinned'] == 'left'}".strip)
+          # First column wraps content in flex node for stretching guide lines
+          td_content = idx == 0 ? content_tag(:div, cell_content, class: "lcp-tree-node") : cell_content
+          td_class = "#{hidden_on_classes(col)} #{'lcp-pinned-left' if col['pinned'] == 'left'}"
+          td_class = "lcp-tree-cell #{td_class}" if idx == 0
+          cells << content_tag(:td, td_content, class: td_class.strip)
         end
 
         # Actions column
@@ -93,11 +104,13 @@ module LcpRuby
       end
 
       # Recursively render children
+      child_guides = guides + [!is_last]
       child_rows = if has_children
-        children.map { |child|
+        children.each_with_index.map { |child, idx|
           render_tree_row(child, children_map, columns, depth: depth + 1,
             default_expanded: default_expanded, match_ids: match_ids,
-            reparentable: reparentable, search_active: search_active)
+            reparentable: reparentable, search_active: search_active,
+            guides: child_guides, is_last: idx == children.size - 1)
         }.join.html_safe
       else
         "".html_safe

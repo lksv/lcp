@@ -558,9 +558,31 @@ th.lcp-drag-column { background: #f8f9fa; }
 
 /* Tree index view */
 .lcp-tree-table .lcp-tree-row { transition: background-color 0.15s; }
-.lcp-tree-chevron { background: none; border: none; cursor: pointer; padding: 0 4px; font-size: 0.7em; color: #6c757d; transition: transform 0.2s; display: inline-block; width: 20px; text-align: center; }
+
+/* Tree cell: first column holds the tree structure */
+.lcp-tree-cell { padding-top: 0 !important; padding-bottom: 0 !important; padding-left: 8px !important; overflow: visible; }
+.lcp-tree-node { display: flex; align-items: center; min-height: calc(1.5em + 1.2rem); }
+
+/* Tree guide: fixed-width slot for each depth level */
+.lcp-tree-guide { flex-shrink: 0; width: 24px; align-self: stretch; position: relative; }
+
+/* Vertical pipe │ — continues through full row height */
+.lcp-tree-guide-pipe::before { content: ''; position: absolute; left: 11px; top: -1px; bottom: -1px; width: 1px; background: #ced4da; }
+
+/* Tee connector ├── (non-last child) */
+.lcp-tree-guide-tee::before { content: ''; position: absolute; left: 11px; top: -1px; bottom: -1px; width: 1px; background: #ced4da; }
+.lcp-tree-guide-tee::after { content: ''; position: absolute; left: 11px; top: 50%; width: 13px; height: 1px; background: #ced4da; }
+
+/* Elbow connector └── (last child) */
+.lcp-tree-guide-elbow::before { content: ''; position: absolute; left: 11px; top: -1px; height: calc(50% + 1px); width: 1px; background: #ced4da; }
+.lcp-tree-guide-elbow::after { content: ''; position: absolute; left: 11px; top: 50%; width: 13px; height: 1px; background: #ced4da; }
+
+/* Chevron toggle */
+.lcp-tree-chevron { background: none; border: none; cursor: pointer; padding: 0 4px; font-size: 0.7em; color: #6c757d; transition: transform 0.2s; display: inline-block; width: 20px; text-align: center; flex-shrink: 0; }
 .lcp-tree-chevron.expanded { transform: rotate(90deg); }
-.lcp-tree-leaf-spacer { display: inline-block; width: 20px; }
+.lcp-tree-leaf-spacer { display: inline-block; width: 20px; flex-shrink: 0; }
+
+/* Ancestor context (search results) */
 .lcp-tree-ancestor-context { opacity: 0.5; }
 .lcp-tree-ancestor-context .lcp-actions { visibility: hidden; }
 .lcp-tree-drop-before { border-top: 2px solid #0d6efd; }
