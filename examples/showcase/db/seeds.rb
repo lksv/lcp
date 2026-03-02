@@ -10,9 +10,8 @@ puts "Seeding showcase data..."
   author category showcase_model showcase_field
   group_role_mapping group_membership group
 ].each do |model_name|
+  next unless LcpRuby.registry.registered?(model_name)
   LcpRuby.registry.model_for(model_name).delete_all
-rescue LcpRuby::Registry::ModelNotFoundError
-  nil
 end
 puts "  Cleared existing seed data"
 
