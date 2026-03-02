@@ -1,0 +1,8 @@
+view_group:
+  model: showcase_soft_delete_item
+  primary: showcase_soft_delete_items
+  navigation: false
+  views:
+    - presenter: showcase_soft_delete_items
+      label: "Items"
+      icon: list

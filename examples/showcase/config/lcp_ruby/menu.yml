@@ -17,6 +17,7 @@ menu:
         - separator: true
         - view_group: showcase_positioning
         - view_group: showcase_userstamps
+        - view_group: showcase_soft_delete
 
     - label: "Blog"
       icon: file-text

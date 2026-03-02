@@ -3,6 +3,7 @@ puts "Seeding showcase data..."
 # Clear existing data so seeds are re-runnable (children before parents)
 %w[
   feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_userstamps
+  showcase_soft_delete_item showcase_soft_delete
   showcase_virtual_field showcase_extensibility permission_config role showcase_permission
   showcase_attachment custom_field_definition employee_skill project
   employee skill department showcase_form comment article_tag tag article
@@ -2508,5 +2509,57 @@ LcpRuby::Current.user = admin_user
 LcpRuby::Current.user = nil
 
 puts "  Created #{UserstampsModel.count} tracked documents (userstamps showcase)"
+
+# Phase: Soft Delete Showcase
+SoftDeleteModel = LcpRuby.registry.model_for("showcase_soft_delete")
+SoftDeleteItemModel = LcpRuby.registry.model_for("showcase_soft_delete_item")
+
+LcpRuby::Current.user = admin_user
+
+docs = [
+  { title: "Q1 Planning Document", content: "Strategic objectives and OKRs for Q1. Focus areas: platform stability, developer experience, onboarding.", status: "active", priority: "high" },
+  { title: "Release Notes v2.4", content: "New features: soft delete, userstamps, cascade discard. Bug fixes: permission cache, scope builder.", status: "active", priority: "normal" },
+  { title: "Security Audit Findings", content: "Penetration test results and remediation plan. All critical findings addressed.", status: "active", priority: "high" },
+  { title: "Legacy API Migration Plan", content: "Timeline for deprecating v1 endpoints and migrating consumers to v2.", status: "draft", priority: "normal" },
+  { title: "Team Retrospective Notes", content: "What went well: deployment automation. What to improve: test coverage for edge cases.", status: "draft", priority: "low" },
+  { title: "Outdated Design Spec", content: "Initial wireframes for the dashboard. Superseded by the revised spec.", status: "archived", priority: "low" }
+].map { |attrs| SoftDeleteModel.create!(attrs) }
+
+# Add child items to some documents
+items_data = {
+  0 => [
+    { name: "Define OKRs", notes: "Align with company goals" },
+    { name: "Assign team leads", notes: "One lead per initiative" },
+    { name: "Set milestone dates", notes: "Monthly checkpoints" }
+  ],
+  1 => [
+    { name: "Write changelog", notes: "User-facing summary" },
+    { name: "Update docs", notes: "Reference guides and examples" }
+  ],
+  2 => [
+    { name: "Fix XSS in search", notes: "Input sanitization added" },
+    { name: "Patch SQL injection", notes: "Parameterized queries" },
+    { name: "Enable CSP headers", notes: "Report-only mode first" },
+    { name: "Rotate API keys", notes: "All environments" }
+  ],
+  3 => [
+    { name: "Inventory v1 consumers", notes: "Check analytics for active users" },
+    { name: "Build compatibility layer", notes: "Translate v1 requests to v2" }
+  ]
+}
+
+items_data.each do |doc_index, items|
+  items.each do |item_attrs|
+    SoftDeleteItemModel.create!(item_attrs.merge(showcase_soft_delete_id: docs[doc_index].id))
+  end
+end
+
+# Discard 2 documents to pre-populate the archive
+docs[4].discard!  # Team Retrospective Notes
+docs[5].discard!  # Outdated Design Spec
+
+LcpRuby::Current.user = nil
+
+puts "  Created #{SoftDeleteModel.kept.count} active + #{SoftDeleteModel.discarded.count} archived soft delete documents with #{SoftDeleteItemModel.count} items"
 
 puts "Seeding complete!"
