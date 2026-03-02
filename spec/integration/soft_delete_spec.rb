@@ -81,7 +81,7 @@ RSpec.describe "Soft Delete Integration", type: :request do
   end
 
   describe "GET /projects-archive (archive presenter with scope: discarded)" do
-    it "shows only discarded projects" do
+    it "shows only discarded projects on index" do
       kept = project_model.create!(title: "Kept Project")
       discarded = project_model.create!(title: "Discarded Project")
       discarded.discard!
@@ -91,6 +91,24 @@ RSpec.describe "Soft Delete Integration", type: :request do
       expect(response).to have_http_status(:ok)
       expect(response.body).to include("Discarded Project")
       expect(response.body).not_to include("Kept Project")
+    end
+
+    it "shows a discarded record on the archive show page" do
+      project = project_model.create!(title: "Archived Project")
+      project.discard!
+
+      get "/projects-archive/#{project.id}"
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Archived Project")
+    end
+
+    it "returns RecordNotFound for a kept record on the archive presenter" do
+      project = project_model.create!(title: "Active Project")
+
+      get "/projects-archive/#{project.id}"
+
+      expect(response).to have_http_status(:not_found)
     end
   end
 
