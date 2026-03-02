@@ -23,7 +23,7 @@ module LcpRuby
         "scope" => nil # Scope refs handled specially
       }.freeze
 
-      NO_VALUE_OPERATORS = %w[null not_null present blank true false].freeze
+      NO_VALUE_OPERATORS = OperatorRegistry::NO_VALUE_OPERATORS.map(&:to_s).freeze
 
       # Serialize a condition tree to QL text.
       # @param tree [Hash] { "combinator", "conditions", "groups" }

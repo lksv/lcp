@@ -20,23 +20,8 @@ module LcpRuby
         uuid:     %i[eq not_eq in not_in present blank null not_null]
       }.freeze
 
-      OPERATOR_LABELS = {
-        eq: "equals", not_eq: "not equals",
-        cont: "contains", not_cont: "not contains",
-        start: "starts with", not_start: "does not start with",
-        end: "ends with", not_end: "does not end with",
-        gt: "greater than", gteq: "greater or equal",
-        lt: "less than", lteq: "less or equal",
-        between: "is between",
-        in: "is one of", not_in: "is not one of",
-        present: "is present", blank: "is blank",
-        null: "is null", not_null: "is not null",
-        true: "is true", not_true: "is not true",
-        false: "is false", not_false: "is not false",
-        last_n_days: "in the last N days",
-        this_week: "this week", this_month: "this month",
-        this_quarter: "this quarter", this_year: "this year"
-      }.freeze
+      # Union of all operators across all types (used for validation and metadata)
+      ALL_OPERATORS = OPERATORS_BY_TYPE.values.flatten.uniq.freeze
 
       # Operators that require no value input
       NO_VALUE_OPERATORS = %i[present blank null not_null true not_true false not_false
@@ -60,7 +45,7 @@ module LcpRuby
       def self.label_for(operator)
         I18n.t(
           "lcp_ruby.search.operators.#{operator}",
-          default: OPERATOR_LABELS[operator.to_sym] || operator.to_s.humanize
+          default: operator.to_s.humanize
         )
       end
 

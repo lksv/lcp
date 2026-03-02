@@ -43,8 +43,20 @@ module LcpRuby
       # Sorted by length desc so "not null" matches before "not"
       SORTED_IS_VALUES = IS_VALUES.keys.sort_by { |k| -k.length }.freeze
 
+      WHITESPACE_RE = /\s/
+      IDENTIFIER_CHAR_RE = /[a-zA-Z0-9_]/
+      DIGIT_RE = /[0-9]/
+
+      MAX_INPUT_LENGTH = 2000
+
       def initialize(input)
         @input = input.to_s
+        if @input.length > MAX_INPUT_LENGTH
+          raise ParseError.new(
+            "Query too long (#{@input.length} characters, maximum is #{MAX_INPUT_LENGTH})",
+            position: 0
+          )
+        end
         @pos = 0
       end
 
@@ -167,7 +179,7 @@ module LcpRuby
       end
 
       def identifier_char?(ch)
-        ch =~ /[a-zA-Z0-9_]/
+        ch.match?(IDENTIFIER_CHAR_RE)
       end
 
       def parse_operator_and_value
@@ -291,14 +303,14 @@ module LcpRuby
       def parse_number_or_unquoted
         start = @pos
         # Try to read a number (integer or decimal, possibly negative)
-        if peek_char == "-" || peek_char =~ /[0-9]/
+        if peek_char == "-" || peek_char&.match?(DIGIT_RE)
           advance if peek_char == "-"
-          while !eof? && peek_char =~ /[0-9]/
+          while !eof? && peek_char&.match?(DIGIT_RE)
             advance
           end
           if !eof? && peek_char == "."
             advance
-            while !eof? && peek_char =~ /[0-9]/
+            while !eof? && peek_char&.match?(DIGIT_RE)
               advance
             end
           end
@@ -336,7 +348,7 @@ module LcpRuby
       end
 
       def skip_whitespace
-        advance while !eof? && @input[@pos] =~ /\s/
+        advance while !eof? && @input[@pos].match?(WHITESPACE_RE)
       end
 
       def peek_char
@@ -388,19 +400,15 @@ module LcpRuby
           groups = []
 
           parts.each do |part|
-            normalized = normalize_tree(part)
             if part.is_a?(Hash) && part.key?("field")
               conditions << part
             elsif part.is_a?(Hash) && part["combinator"] == "or"
               # OR group becomes a sub-group
               or_conditions = extract_conditions(part)
               groups << { "combinator" => "or", "conditions" => or_conditions }
-            elsif part.is_a?(Hash) && part["combinator"] == "and"
-              # Nested AND: flatten into top-level
-              inner = normalize_tree(part)
-              conditions.concat(inner["conditions"])
-              groups.concat(inner["groups"])
             else
+              # Nested AND or other: normalize and flatten
+              normalized = normalize_tree(part)
               conditions.concat(normalized["conditions"])
               groups.concat(normalized["groups"])
             end
@@ -408,14 +416,9 @@ module LcpRuby
 
           { "combinator" => "and", "conditions" => conditions, "groups" => groups }
         else
-          # OR combinator
+          # OR combinator: wrap in a group
           or_conditions = extract_conditions(node)
-          if or_conditions.all? { |c| c.is_a?(Hash) && c.key?("field") }
-            # Simple OR of conditions: wrap in a group
-            { "combinator" => "and", "conditions" => [], "groups" => [ { "combinator" => "or", "conditions" => or_conditions } ] }
-          else
-            { "combinator" => "and", "conditions" => [], "groups" => [ { "combinator" => "or", "conditions" => or_conditions } ] }
-          end
+          { "combinator" => "and", "conditions" => [], "groups" => [ { "combinator" => "or", "conditions" => or_conditions } ] }
         end
       end
 

@@ -60,29 +60,40 @@ module LcpRuby
         # @return [Arel::Nodes::SqlLiteral] SQL sort expression
         def sort_expression(table_name, field_name, direction, cast: nil)
           validate_field_name!(field_name)
-          conn = ActiveRecord::Base.connection
-          quoted_table = conn.quote_table_name(table_name)
           dir = direction.to_s.downcase == "desc" ? "DESC" : "ASC"
 
-          expr = if LcpRuby.postgresql?
-            "#{quoted_table}.custom_data ->> #{conn.quote(field_name)}"
-          else
-            "JSON_EXTRACT(#{quoted_table}.custom_data, #{conn.quote("$.#{field_name}")})"
-          end
-
+          expr = json_extract_expr(table_name, field_name)
           expr = apply_cast(expr, cast) if cast
 
           Arel.sql("#{expr} #{dir}")
         end
 
-        private
+        # Build a DB-portable JSON extraction expression for custom_data column.
+        # @param table_name [String] the database table name
+        # @param field_name [String] the custom field name (key within custom_data)
+        # @return [String] SQL expression fragment
+        def json_extract_expr(table_name, field_name)
+          conn = ActiveRecord::Base.connection
+          quoted_table = conn.quote_table_name(table_name)
 
+          if LcpRuby.postgresql?
+            "#{quoted_table}.custom_data ->> #{conn.quote(field_name)}"
+          else
+            "JSON_EXTRACT(#{quoted_table}.custom_data, #{conn.quote("$.#{field_name}")})"
+          end
+        end
+
+        # Validate that a custom field name is safe for use in SQL expressions.
         def validate_field_name!(field_name)
           unless field_name.to_s.match?(VALID_FIELD_NAME)
             raise ArgumentError, "Invalid custom field name: #{field_name.inspect}"
           end
         end
 
+        # Apply a type cast to a SQL expression.
+        # @param expr [String] SQL expression
+        # @param cast [Symbol] one of :integer, :decimal, :float, :date
+        # @return [String] cast expression
         def apply_cast(expr, cast)
           case cast
           when :integer

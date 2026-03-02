@@ -87,7 +87,7 @@ module LcpRuby
 
         # Association fields (depth 1): belongs_to label_method
         model_definition.associations.each do |assoc|
-          next unless assoc.type == "belongs_to"
+          next unless assoc.belongs_to?
           next unless assoc.traversable?
           next unless evaluator.field_readable?(assoc.foreign_key)
 
@@ -132,7 +132,7 @@ module LcpRuby
           return unless assoc.traversable?
 
           # Check FK readability for belongs_to at each level
-          if assoc.type == "belongs_to" && current_model_def == model_definition
+          if assoc.belongs_to? && current_model_def == model_definition
             return unless evaluator.field_readable?(assoc.foreign_key)
           end
 
@@ -164,15 +164,7 @@ module LcpRuby
         }
 
         if field_def.enum?
-          descriptor[:enum_values] = field_def.enum_values.map do |ev|
-            if ev.is_a?(Hash)
-              value = (ev["value"] || ev[:value]).to_s
-              label = (ev["label"] || ev[:label] || value.humanize).to_s
-              [ value, label ]
-            else
-              [ ev.to_s, ev.to_s.humanize ]
-            end
-          end
+          descriptor[:enum_values] = format_enum_values(field_def.enum_values)
         end
 
         descriptor
@@ -192,8 +184,7 @@ module LcpRuby
       end
 
       def build_operator_labels
-        all_operators = OperatorRegistry::OPERATORS_BY_TYPE.values.flatten.uniq
-        all_operators.each_with_object({}) do |op, hash|
+        OperatorRegistry::ALL_OPERATORS.each_with_object({}) do |op, hash|
           hash[op.to_s] = OperatorRegistry.label_for(op)
         end
       end
@@ -215,18 +206,8 @@ module LcpRuby
       end
 
       def custom_field_descriptor(defn, group)
-        custom_type = defn.custom_type.to_s
-        base_type = custom_type == "text" ? "text" : (custom_type == "enum" ? "enum" : custom_type)
-        # Map custom types to operator registry types
-        operator_type = case base_type
-        when "string", "text" then base_type.to_sym
-        when "integer", "float", "decimal" then base_type.to_sym
-        when "boolean" then :boolean
-        when "date", "datetime" then base_type.to_sym
-        when "enum" then :enum
-        else :string
-        end
-
+        base_type = defn.custom_type.to_s
+        operator_type = OperatorRegistry::OPERATORS_BY_TYPE.key?(base_type.to_sym) ? base_type.to_sym : :string
         operators = OperatorRegistry.operators_for(operator_type)
 
         descriptor = {
@@ -239,18 +220,22 @@ module LcpRuby
         }
 
         if base_type == "enum" && defn.enum_values.present?
-          descriptor[:enum_values] = Array(defn.enum_values).map do |ev|
-            if ev.is_a?(Hash)
-              value = (ev["value"] || ev[:value]).to_s
-              label = (ev["label"] || ev[:label] || value.humanize).to_s
-              [ value, label ]
-            else
-              [ ev.to_s, ev.to_s.humanize ]
-            end
-          end
+          descriptor[:enum_values] = format_enum_values(defn.enum_values)
         end
 
         descriptor
+      end
+
+      def format_enum_values(raw_values)
+        Array(raw_values).map do |ev|
+          if ev.is_a?(Hash)
+            value = (ev["value"] || ev[:value]).to_s
+            label = (ev["label"] || ev[:label] || value.humanize).to_s
+            [ value, label ]
+          else
+            [ ev.to_s, ev.to_s.humanize ]
+          end
+        end
       end
 
       def load_model_definition(model_name)

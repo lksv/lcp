@@ -316,8 +316,10 @@ module LcpRuby
         scope = scope.send(scope_name) if scope_name && @model_class.respond_to?(scope_name)
       end
 
-      # 3. Sanitize ?f[...] params (reject blank values)
+      # 3. Sanitize ?f[...] params (reject blank values, enforce max_conditions)
       raw_filter_params = Search::ParamSanitizer.reject_blanks(params[:f]&.to_unsafe_h)
+      max_conditions = current_presenter.advanced_filter_config["max_conditions"] || 10
+      raw_filter_params = raw_filter_params&.first(max_conditions)&.to_h if raw_filter_params.is_a?(Hash) && raw_filter_params.size > max_conditions
 
       # 4. Intercept custom filter_* methods (before Ransack)
       if raw_filter_params.present?
@@ -366,7 +368,7 @@ module LcpRuby
       params[:cf].each do |key, value|
         next if value.is_a?(String) && value.blank?
 
-        field_name, operator = parse_cf_key(key, sorted_names)
+        field_name, operator = Search::CustomFieldFilter.parse_cf_key(key, sorted_names)
         next unless field_name
 
         defn = defs_by_name[field_name]
@@ -378,18 +380,6 @@ module LcpRuby
       end
 
       scope
-    end
-
-    def parse_cf_key(key, sorted_field_names)
-      key = key.to_s
-      sorted_field_names.each do |name|
-        prefix = "#{name}_"
-        if key.start_with?(prefix)
-          operator = key[prefix.length..]
-          return [ name, operator ] if operator.present?
-        end
-      end
-      nil
     end
 
     alias_method :apply_search, :apply_advanced_search

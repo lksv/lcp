@@ -1,11 +1,7 @@
 module LcpRuby
   module Search
     class CustomFieldFilter
-      VALID_OPERATORS = %i[
-        eq not_eq cont not_cont start not_start end not_end
-        gt gteq lt lteq between in not_in
-        present blank null not_null true false
-      ].freeze
+      VALID_OPERATORS = OperatorRegistry::OPERATORS_BY_TYPE.values.flatten.uniq.freeze
 
       CAST_MAP = {
         "integer" => :integer,
@@ -26,7 +22,7 @@ module LcpRuby
         # @param cast [Symbol, nil] type cast (:integer, :decimal, :date)
         # @return [ActiveRecord::Relation]
         def apply(scope, table_name, field_name, operator, value, cast: nil)
-          CustomFields::Query.send(:validate_field_name!, field_name)
+          CustomFields::Query.validate_field_name!(field_name)
           operator = operator.to_sym
 
           unless VALID_OPERATORS.include?(operator)
@@ -50,21 +46,31 @@ module LcpRuby
           CAST_MAP[custom_type.to_s]
         end
 
+        # Parse a composite cf key into [field_name, operator].
+        # Keys arrive as "field_name_operator" (e.g., "priority_eq").
+        # @param key [String] the composite key
+        # @param sorted_field_names [Array<String>] field names sorted by length desc
+        # @return [Array(String, String), nil] [field_name, operator] or nil
+        def parse_cf_key(key, sorted_field_names)
+          key = key.to_s
+          sorted_field_names.each do |name|
+            prefix = "#{name}_"
+            if key.start_with?(prefix)
+              operator = key[prefix.length..]
+              return [ name, operator ] if operator.present?
+            end
+          end
+          nil
+        end
+
         private
 
         def json_extract_expr(table_name, field_name)
-          conn = ActiveRecord::Base.connection
-          quoted_table = conn.quote_table_name(table_name)
-
-          if LcpRuby.postgresql?
-            "#{quoted_table}.custom_data ->> #{conn.quote(field_name)}"
-          else
-            "JSON_EXTRACT(#{quoted_table}.custom_data, #{conn.quote("$.#{field_name}")})"
-          end
+          CustomFields::Query.json_extract_expr(table_name, field_name)
         end
 
         def apply_cast(expr, cast)
-          CustomFields::Query.send(:apply_cast, expr, cast)
+          CustomFields::Query.apply_cast(expr, cast)
         end
 
         def build_condition(cast_expr, raw_expr, operator, value)

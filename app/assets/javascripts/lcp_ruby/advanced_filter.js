@@ -727,36 +727,23 @@
   function encodeCondition(params, prefix, condition) {
     if (!condition.field || !condition.operator) return;
 
-    // Custom field conditions use cf[field_operator] instead of f[field_operator]
+    // Determine the param key format: cf[field_op] or prefix[field_op]
     var cfMatch = condition.field.match(/^cf\[([^\]]+)\]$/);
+    var fieldBase, makeKey;
     if (cfMatch) {
-      var cfBase = cfMatch[1];
-      var cfKey = "cf[" + cfBase + "_" + condition.operator + "]";
-
-      if (Array.isArray(condition.value)) {
-        if (condition.value.length === 2 && condition.operator === "between") {
-          params["cf[" + cfBase + "_gteq]"] = condition.value[0];
-          params["cf[" + cfBase + "_lteq]"] = condition.value[1];
-          return;
-        }
-        condition.value.forEach(function(v) {
-          if (!params[cfKey + "[]"]) params[cfKey + "[]"] = [];
-          if (!Array.isArray(params[cfKey + "[]"])) params[cfKey + "[]"] = [params[cfKey + "[]"]];
-          params[cfKey + "[]"].push(v);
-        });
-      } else {
-        params[cfKey] = condition.value;
-      }
-      return;
+      fieldBase = cfMatch[1];
+      makeKey = function(op) { return "cf[" + fieldBase + "_" + op + "]"; };
+    } else {
+      fieldBase = condition.field.replace(/\./g, "_");
+      makeKey = function(op) { return prefix + "[" + fieldBase + "_" + op + "]"; };
     }
 
-    var ransackField = condition.field.replace(/\./g, "_");
-    var key = prefix + "[" + ransackField + "_" + condition.operator + "]";
+    var key = makeKey(condition.operator);
 
     if (Array.isArray(condition.value)) {
       if (condition.value.length === 2 && condition.operator === "between") {
-        params[prefix + "[" + ransackField + "_gteq]"] = condition.value[0];
-        params[prefix + "[" + ransackField + "_lteq]"] = condition.value[1];
+        params[makeKey("gteq")] = condition.value[0];
+        params[makeKey("lteq")] = condition.value[1];
         return;
       }
       condition.value.forEach(function(v) {
@@ -868,12 +855,11 @@
     return "'" + v.toString().replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
   }
 
-  function parseQlToState(qlText, parseQlUrl, state, onSuccess) {
+  function postQl(parseQlUrl, qlText, onSuccess, onError) {
     var xhr = new XMLHttpRequest();
     xhr.open("POST", parseQlUrl, true);
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 
-    // Get CSRF token
     var csrfMeta = document.querySelector('meta[name="csrf-token"]');
     if (csrfMeta) {
       xhr.setRequestHeader("X-CSRF-Token", csrfMeta.getAttribute("content"));
@@ -883,14 +869,22 @@
       if (xhr.status === 200) {
         var result = JSON.parse(xhr.responseText);
         if (result.success && result.tree) {
-          state.conditions = result.tree.conditions || [];
-          state.groups = result.tree.groups || [];
-          if (onSuccess) onSuccess();
+          onSuccess(result.tree);
+        } else if (onError) {
+          onError(result.error || t("filter.ql_parse_error", "Invalid query syntax"));
         }
       }
     };
 
     xhr.send("ql=" + encodeURIComponent(qlText));
+  }
+
+  function parseQlToState(qlText, parseQlUrl, state, onSuccess) {
+    postQl(parseQlUrl, qlText, function(tree) {
+      state.conditions = tree.conditions || [];
+      state.groups = tree.groups || [];
+      if (onSuccess) onSuccess();
+    });
   }
 
   function applyFromQl(container, actionUrl, state, metadata) {
@@ -907,30 +901,14 @@
       return;
     }
 
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", parseQlUrl, true);
-    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-
-    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    if (csrfMeta) {
-      xhr.setRequestHeader("X-CSRF-Token", csrfMeta.getAttribute("content"));
-    }
-
-    xhr.onload = function() {
-      if (xhr.status === 200) {
-        var result = JSON.parse(xhr.responseText);
-        if (result.success && result.tree) {
-          state.conditions = result.tree.conditions || [];
-          state.groups = result.tree.groups || [];
-          applyFilters(actionUrl, state);
-        } else if (!result.success) {
-          errorDiv.textContent = result.error || t("filter.ql_parse_error", "Invalid query syntax");
-          errorDiv.style.display = "";
-        }
-      }
-    };
-
-    xhr.send("ql=" + encodeURIComponent(textarea.value));
+    postQl(parseQlUrl, textarea.value, function(tree) {
+      state.conditions = tree.conditions || [];
+      state.groups = tree.groups || [];
+      applyFilters(actionUrl, state);
+    }, function(errorMsg) {
+      errorDiv.textContent = errorMsg;
+      errorDiv.style.display = "";
+    });
   }
 
   // Initialize on DOM ready

@@ -25,18 +25,16 @@ module LcpRuby
       end
 
       def define_ransackable_associations
-        model_def_name = @model_definition.name
+        lcp_assocs = @model_definition.associations.select(&:lcp_model?).freeze
+        all_assoc_names = lcp_assocs.map { |a| a.name.to_s }.freeze
 
         @model_class.define_singleton_method(:ransackable_associations) do |auth_object = nil|
-          model_def = LcpRuby.loader.model_definition(model_def_name)
-          lcp_assocs = model_def.associations.select(&:lcp_model?)
-
           if auth_object.is_a?(LcpRuby::Authorization::PermissionEvaluator)
             lcp_assocs
               .select { |a| a.foreign_key.nil? || auth_object.field_readable?(a.foreign_key) }
               .map { |a| a.name.to_s }
           else
-            lcp_assocs.map { |a| a.name.to_s }
+            all_assoc_names
           end
         end
       end

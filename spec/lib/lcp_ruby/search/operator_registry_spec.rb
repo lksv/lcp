@@ -82,7 +82,7 @@ RSpec.describe LcpRuby::Search::OperatorRegistry do
 
     it "uses i18n override when available" do
       allow(I18n).to receive(:t)
-        .with("lcp_ruby.search.operators.eq", default: "equals")
+        .with("lcp_ruby.search.operators.eq", default: "Eq")
         .and_return("is equal to")
 
       expect(described_class.label_for(:eq)).to eq("is equal to")

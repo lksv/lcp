@@ -1008,8 +1008,9 @@ Boolean values arrive from URL params in many formats: `"t"`, `"true"`, `"1"`, `
 **Phase rationale:**
 - **Phase 0 first** because the `?q` → `?qs` rename is a prerequisite for introducing Ransack params without breaking existing search. Quick search improvements are low-risk and immediately useful.
 - **Phases 1+2 merged association filtering** because it is deeply coupled with the Ransack foundation (`ransackable_associations`) and with the UI (grouped field selector). Shipping it as a separate phase would deliver an incomplete feature.
-- **Phase 3 combines custom fields + saved filters** because both are storage-layer features (JSON queries, DB model) that build on the core filter infrastructure without needing each other.
-- **Phase 4 (QL) is last** because it has the lowest user impact relative to effort and depends on all other phases being stable.
+- **Phase 3 custom field filtering** extends the filter builder to JSON column queries — a self-contained addition that builds on the core filter infrastructure.
+- **Phase 4 (QL)** adds the text query language — it depends on all filter phases being stable.
+- **Phase 5 (Saved Filters) is deferred** because the current `SavedFilter` model design needs rethinking (e.g., `target_model` should be an association, `scope` needs more sharing granularity). Will be implemented separately after all other phases.
 
 ### Phase 0: Quick Search Improvements + Param Namespace Fix (**Implemented** — commit `0617933`)
 1. Rename quick search param from `?q=` to `?qs=` in views and controller
@@ -1037,21 +1038,33 @@ Boolean values arrive from URL params in many formats: `"t"`, `"true"`, `"1"`, `
 19. Add CSS styles for filter builder (rows, groups, between inputs, combinators, count badge)
 20. Unit tests (`filter_metadata_builder_spec.rb`) and integration tests (`advanced_search_spec.rb`)
 
-### Phase 3: Custom Field Filtering + Saved Filters
+### Phase 3: Custom Field Filtering
 20. Implement `Search::CustomFieldFilter` for JSON column queries
 21. Add `filterable` attribute to `CustomFieldDefinition`
 22. Integrate custom fields into the filter dropdown
-23. Create `SavedFilter` model + generator
-24. Add save/load/delete UI in filter builder
-25. Implement YAML presets loading
-26. Add sharing/scoping by role
 
 ### Phase 4: Query Language
-27. Implement `Search::QueryLanguageParser` (recursive descent)
-28. Implement `Search::QueryLanguageSerializer` (AST → text)
-29. Add QL toggle in filter UI with bidirectional conversion
-30. Add relative date functions to QL (`{today}`, `{this_month}`, etc.)
-31. Error display for QL parse failures
+23. Implement `Search::QueryLanguageParser` (recursive descent)
+24. Implement `Search::QueryLanguageSerializer` (AST → text)
+25. Add QL toggle in filter UI with bidirectional conversion
+26. Add relative date functions to QL (`{today}`, `{this_month}`, etc.)
+27. Error display for QL parse failures
+
+### Phase 5: Saved Filters (deferred)
+
+**Status:** Deferred — will be implemented separately after all other phases are complete.
+
+**Reason:** The current `SavedFilter` model design needs rethinking before implementation:
+- `target_model` is a plain string field but should be an association (polymorphic or FK-based) for referential integrity and querying.
+- The `scope` field (personal/role/global) conflates visibility with ownership semantics — it needs to support more granular sharing types (e.g., team-level, group-level).
+- Integration with the Configuration Source Principle (YAML presets + DB records + host API) requires a proper contract/registry pattern that deserves its own design iteration.
+
+When ready, this phase will include:
+28. Redesign `SavedFilter` model (associations, scope types, sharing granularity)
+29. Create `SavedFilter` model + generator
+30. Add save/load/delete UI in filter builder
+31. Implement YAML presets loading
+32. Add sharing/scoping (role, group, team, global)
 
 ## Test Plan
 

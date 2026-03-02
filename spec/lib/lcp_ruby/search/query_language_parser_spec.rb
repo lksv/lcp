@@ -318,5 +318,19 @@ RSpec.describe LcpRuby::Search::QueryLanguageParser do
         LcpRuby::Search::QueryLanguageParser::ParseError, /Expected.*after 'is'/
       )
     end
+
+    it "raises ParseError for input exceeding maximum length" do
+      long_input = "a" * (described_class::MAX_INPUT_LENGTH + 1)
+      expect { parse(long_input) }.to raise_error(
+        LcpRuby::Search::QueryLanguageParser::ParseError, /Query too long/
+      )
+    end
+
+    it "accepts input at the maximum length" do
+      # Build a valid query that is exactly at the limit
+      input = "name = '#{"a" * (described_class::MAX_INPUT_LENGTH - 10)}'"
+      # Should not raise a length error (may raise a different parse error if malformed)
+      expect { parse(input) }.not_to raise_error
+    end
   end
 end

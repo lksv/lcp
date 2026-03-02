@@ -139,7 +139,7 @@ module LcpRuby
     def parse_ql
       authorize @model_class, :index?
 
-      ql_text = params[:ql].to_s
+      ql_text = params[:ql].to_s.first(Search::QueryLanguageParser::MAX_INPUT_LENGTH + 1)
       parser = Search::QueryLanguageParser.new(ql_text)
       tree = parser.parse
 
