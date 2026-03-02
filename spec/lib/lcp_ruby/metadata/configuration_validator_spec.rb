@@ -3726,6 +3726,138 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       )
     end
 
+    it "accepts userstamps with store_name option" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              userstamps:
+                store_name: true
+        YAML
+      )
+
+      result = v.validate
+      userstamps_errors = result.errors.select { |e| e.include?("userstamps") }
+      expect(userstamps_errors).to be_empty
+    end
+
+    it "errors when userstamps creator column conflicts with defined field" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+              - { name: created_by_id, type: integer }
+            options:
+              userstamps: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/userstamps column 'created_by_id' conflicts/)
+      )
+    end
+
+    it "errors when userstamps updater column conflicts with defined field" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+              - { name: updated_by_id, type: integer }
+            options:
+              userstamps: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/userstamps column 'updated_by_id' conflicts/)
+      )
+    end
+
+    it "errors when userstamps custom column conflicts with defined field" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+              - { name: author_id, type: integer }
+            options:
+              userstamps:
+                created_by: author_id
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/userstamps column 'author_id' conflicts/)
+      )
+    end
+
+    it "errors when userstamps name column conflicts with defined field" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+              - { name: created_by_name, type: string }
+            options:
+              userstamps:
+                store_name: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/userstamps name column 'created_by_name' conflicts/)
+      )
+    end
+
+    it "warns when userstamps enabled without timestamps" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              timestamps: false
+              userstamps: true
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/userstamps enabled without timestamps/)
+      )
+    end
+
+    it "does not warn about timestamps when timestamps are enabled" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+            options:
+              userstamps: true
+        YAML
+      )
+
+      result = v.validate
+      timestamp_warnings = result.warnings.select { |w| w.include?("userstamps enabled without timestamps") }
+      expect(timestamp_warnings).to be_empty
+    end
+
     it "accepts tree: true" do
       v = with_metadata(
         models: [ <<~YAML ]

@@ -1386,7 +1386,7 @@ options:
   label_method: title
   soft_delete: true                    # or { column: deleted_at }
   auditing: true                       # or { only: [title, status], ... }
-  userstamps: true                     # or { created_by: author_id, updated_by: editor_id }
+  userstamps: true                     # or { created_by: author_id, updated_by: editor_id, store_name: true }
   tree: true                           # or { parent_field: parent_category_id, ... }
 ```
 
@@ -1512,30 +1512,38 @@ options:
 | **Default** | `false` (disabled) |
 | **Type** | `true` or Hash |
 
-Enables automatic user tracking — stores the ID of the user who created and last updated each record.
+Enables automatic user tracking — stores the ID of the user who created and last updated each record via a `before_save` callback that reads from `LcpRuby::Current.user`.
 
-**Simple form** — uses default columns `created_by` and `updated_by`:
+**Simple form** — uses default columns `created_by_id` and `updated_by_id`:
 
 ```yaml
 options:
   userstamps: true
 ```
 
-**Hash form** — custom column names:
+**Hash form** — custom column names and name snapshots:
 
 ```yaml
 options:
   userstamps:
     created_by: author_id
     updated_by: editor_id
+    store_name: true
 ```
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
-| `created_by` | string | `"created_by"` | Column name for the creating user's ID |
-| `updated_by` | string | `"updated_by"` | Column name for the last updating user's ID |
+| `created_by` | string | `"created_by_id"` | Column name for the creating user's FK |
+| `updated_by` | string | `"updated_by_id"` | Column name for the last updating user's FK |
+| `store_name` | boolean | `false` | Add denormalized `_name` snapshot columns (e.g., `created_by_name`, `updated_by_name`) |
 
-> **Note:** The `userstamps` option declares intent. The actual Applicator that sets callbacks will be implemented in a separate feature PR.
+The applicator automatically:
+- Adds `bigint` columns (nullable, indexed) for creator and updater FK
+- Adds `string` columns for name snapshots when `store_name: true`
+- Adds `belongs_to` associations pointing to `LcpRuby.configuration.user_class`
+- Sets `created_by_id` only on `new_record?`, `updated_by_id` on every save
+- Writes `nil` when `LcpRuby::Current.user` is not set (seeds, jobs, console)
+- `update_columns` bypasses the callback by design (same as Rails timestamps)
 
 ### `tree`
 

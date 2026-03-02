@@ -96,7 +96,11 @@ See [Multiple Roles](permissions.md#multiple-roles) for merge semantics when a u
 | **Type** | `String` |
 | **Default** | `"User"` |
 
-Class name of your application's user model. Used for resolving the user class when needed by the authorization system.
+Class name of your application's user model. Used by:
+- **Authorization** — resolving the user class for permission evaluation
+- **Userstamps** — `belongs_to` associations on `created_by` / `updated_by` FK columns point to this class
+
+The user model must respond to `id` and `name` (the latter is used for `store_name` snapshots).
 
 ### `mount_path`
 

@@ -890,6 +890,24 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
           "updated_by" => "editor_id"
         })
       end
+
+      it "sets userstamps with store_name option" do
+        builder = described_class.new(:item)
+        builder.instance_eval { userstamps store_name: true }
+        expect(builder.to_hash["options"]["userstamps"]).to eq({
+          "store_name" => true
+        })
+      end
+
+      it "sets userstamps with all options" do
+        builder = described_class.new(:item)
+        builder.instance_eval { userstamps created_by: :author_id, updated_by: :editor_id, store_name: true }
+        expect(builder.to_hash["options"]["userstamps"]).to eq({
+          "created_by" => "author_id",
+          "updated_by" => "editor_id",
+          "store_name" => true
+        })
+      end
     end
 
     describe "tree" do

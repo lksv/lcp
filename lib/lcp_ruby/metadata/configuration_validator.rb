@@ -370,7 +370,26 @@ module LcpRuby
       end
 
       def validate_userstamps(model)
-        validate_boolean_or_hash_option(model, "userstamps", allowed_keys: %w[created_by updated_by])
+        opts = validate_boolean_or_hash_option(model, "userstamps", allowed_keys: %w[created_by updated_by store_name])
+        return unless opts
+
+        [ model.userstamps_creator_field, model.userstamps_updater_field ].each do |col|
+          if model.field(col)
+            @errors << "Model '#{model.name}': userstamps column '#{col}' conflicts with an explicitly defined field"
+          end
+        end
+
+        if model.userstamps_store_name?
+          [ model.userstamps_creator_name_field, model.userstamps_updater_name_field ].each do |col|
+            if model.field(col)
+              @errors << "Model '#{model.name}': userstamps name column '#{col}' conflicts with an explicitly defined field"
+            end
+          end
+        end
+
+        unless model.timestamps?
+          @warnings << "Model '#{model.name}': userstamps enabled without timestamps — consider enabling timestamps too"
+        end
       end
 
       def validate_tree(model)
@@ -526,7 +545,8 @@ module LcpRuby
         collection_id_fields = model_def.associations
           .select { |a| a.through? }
           .map { |a| "#{a.name.to_s.singularize}_ids" }
-        all_valid = valid_fields + fk_fields + collection_id_fields + %w[created_at updated_at id]
+        userstamp_fields = model_def.userstamp_column_names
+        all_valid = valid_fields + fk_fields + collection_id_fields + userstamp_fields + %w[created_at updated_at id]
 
         # Check table columns
         presenter.table_columns.each do |col|

@@ -358,6 +358,112 @@ RSpec.describe LcpRuby::Metadata::ModelDefinition do
         expect(definition.userstamps?).to be true
         expect(definition.userstamps_options).to eq({ "created_by" => "author_id" })
       end
+
+      it "returns false when absent" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }]
+        )
+        expect(definition.userstamps?).to be false
+      end
+    end
+
+    describe "userstamps accessors" do
+      it "returns default creator and updater fields" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => true }
+        )
+        expect(definition.userstamps_creator_field).to eq("created_by_id")
+        expect(definition.userstamps_updater_field).to eq("updated_by_id")
+      end
+
+      it "returns custom creator and updater fields" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => { "created_by" => "author_id", "updated_by" => "editor_id" } }
+        )
+        expect(definition.userstamps_creator_field).to eq("author_id")
+        expect(definition.userstamps_updater_field).to eq("editor_id")
+      end
+
+      it "returns false for store_name? by default" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => true }
+        )
+        expect(definition.userstamps_store_name?).to be false
+      end
+
+      it "returns true for store_name? when enabled" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => { "store_name" => true } }
+        )
+        expect(definition.userstamps_store_name?).to be true
+      end
+
+      it "returns nil for name fields when store_name is false" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => true }
+        )
+        expect(definition.userstamps_creator_name_field).to be_nil
+        expect(definition.userstamps_updater_name_field).to be_nil
+      end
+
+      it "derives name fields from default FK columns" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => { "store_name" => true } }
+        )
+        expect(definition.userstamps_creator_name_field).to eq("created_by_name")
+        expect(definition.userstamps_updater_name_field).to eq("updated_by_name")
+      end
+
+      it "derives name fields from custom FK columns" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => { "created_by" => "author_id", "updated_by" => "last_editor_id", "store_name" => true } }
+        )
+        expect(definition.userstamps_creator_name_field).to eq("author_name")
+        expect(definition.userstamps_updater_name_field).to eq("last_editor_name")
+      end
+    end
+
+    describe "#userstamp_column_names" do
+      it "returns empty array when userstamps disabled" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }]
+        )
+        expect(definition.userstamp_column_names).to eq([])
+      end
+
+      it "returns FK columns for simple userstamps" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => true }
+        )
+        expect(definition.userstamp_column_names).to eq(%w[created_by_id updated_by_id])
+      end
+
+      it "includes name columns when store_name is true" do
+        definition = described_class.from_hash(
+          "name" => "item",
+          "fields" => [{ "name" => "title", "type" => "string" }],
+          "options" => { "userstamps" => { "store_name" => true } }
+        )
+        expect(definition.userstamp_column_names).to eq(%w[created_by_id updated_by_id created_by_name updated_by_name])
+      end
     end
 
     describe "#tree?" do

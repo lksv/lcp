@@ -2,8 +2,8 @@ puts "Seeding showcase data..."
 
 # Clear existing data so seeds are re-runnable (children before parents)
 %w[
-  feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_virtual_field
-  showcase_extensibility permission_config role showcase_permission
+  feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_userstamps
+  showcase_virtual_field showcase_extensibility permission_config role showcase_permission
   showcase_attachment custom_field_definition employee_skill project
   employee skill department showcase_form comment article_tag tag article
   author category showcase_model showcase_field
@@ -2391,5 +2391,30 @@ features = [
 
 features.each { |attrs| FeatureModel.create!(attrs) }
 puts "  Created #{FeatureModel.count} feature catalog entries"
+
+# Phase: Userstamps Showcase
+UserstampsModel = LcpRuby.registry.model_for("showcase_userstamps")
+
+# Simulate different users creating/updating documents
+admin_user = if LcpRuby.configuration.authentication == :built_in
+  LcpRuby::User.find_by(email: "admin@example.com")
+end
+
+LcpRuby::Current.user = admin_user
+
+[
+  { title: "Architecture Decision Record: Microservices", content: "After evaluating monolith vs microservices, we decided to adopt a modular monolith.", status: "published", priority: "high" },
+  { title: "API Versioning Strategy", content: "Use URL path versioning (v1, v2) for public APIs and header versioning for internal.", status: "published", priority: "normal" },
+  { title: "Database Migration Guidelines", content: "All migrations must be reversible. No data migrations in schema migrations.", status: "review", priority: "high" },
+  { title: "Frontend Component Library", content: "Evaluate Radix UI, shadcn/ui, and Headless UI for the design system.", status: "draft", priority: "normal" },
+  { title: "Deployment Runbook: Production", content: "Step-by-step guide for production deployments including rollback procedures.", status: "published", priority: "high" },
+  { title: "Code Review Checklist", content: "Security, performance, testing, documentation, and naming conventions.", status: "review", priority: "normal" },
+  { title: "Incident Response Plan", content: "Escalation paths, communication templates, and post-mortem process.", status: "draft", priority: "low" },
+  { title: "Technical Debt Register", content: "Tracked items: legacy auth module, N+1 in reports, missing indexes.", status: "archived", priority: "low" }
+].each { |attrs| UserstampsModel.create!(attrs) }
+
+LcpRuby::Current.user = nil
+
+puts "  Created #{UserstampsModel.count} tracked documents (userstamps showcase)"
 
 puts "Seeding complete!"

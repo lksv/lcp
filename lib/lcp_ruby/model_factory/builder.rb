@@ -113,8 +113,8 @@ module LcpRuby
         PositioningApplicator.new(model_class, model_definition).apply!
       end
 
-      def apply_userstamps(_model_class)
-        # No-op placeholder — will be implemented by UserstampsApplicator in userstamps feature PR
+      def apply_userstamps(model_class)
+        UserstampsApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_external_fields(model_class)
