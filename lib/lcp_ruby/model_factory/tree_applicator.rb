@@ -163,7 +163,8 @@ module LcpRuby
 
           # Self-reference check
           if pid == id
-            errors.add(parent_field, "cannot reference itself")
+            errors.add(parent_field, :self_reference,
+              message: I18n.t("lcp_ruby.errors.tree.self_reference", default: "cannot reference itself"))
             return
           end
 
@@ -174,12 +175,15 @@ module LcpRuby
 
           while current_id.present?
             if visited.include?(current_id)
-              errors.add(parent_field, "would create a cycle in the tree")
+              errors.add(parent_field, :cycle,
+                message: I18n.t("lcp_ruby.errors.tree.cycle", default: "would create a cycle in the tree"))
               return
             end
 
             if depth_count > max_depth
-              errors.add(parent_field, "would exceed maximum tree depth of #{max_depth}")
+              errors.add(parent_field, :too_deep,
+                message: I18n.t("lcp_ruby.errors.tree.too_deep", default: "would exceed maximum tree depth of %{max_depth}",
+                  max_depth: max_depth))
               return
             end
 
@@ -215,10 +219,7 @@ module LcpRuby
         position_field = @model_definition.tree_position_field
 
         # Set positioning config on the model definition so PositioningApplicator picks it up
-        @model_definition.instance_variable_set(
-          :@positioning_config,
-          { "field" => position_field, "scope" => [parent_field] }
-        )
+        @model_definition.positioning_config = { "field" => position_field, "scope" => [ parent_field ] }
       end
 
       def resolve_dependent

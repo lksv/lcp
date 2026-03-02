@@ -3,7 +3,8 @@ module LcpRuby
     class ModelDefinition
       attr_reader :name, :label, :label_plural, :table_name, :fields,
                   :validations, :associations, :scopes, :events, :options,
-                  :display_templates, :positioning_config, :raw_hash
+                  :display_templates, :raw_hash
+      attr_accessor :positioning_config
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -123,7 +124,7 @@ module LcpRuby
       end
 
       def tree_options
-        boolean_or_hash_option("tree").last
+        @tree_options ||= boolean_or_hash_option("tree").last
       end
 
       def tree_parent_field

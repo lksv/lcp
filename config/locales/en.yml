@@ -47,6 +47,10 @@ en:
       copied: "Copied!"
       copy_value: "Copy value"
     errors:
+      tree:
+        self_reference: "cannot reference itself"
+        cycle: "would create a cycle in the tree"
+        too_deep: "would exceed maximum tree depth of %{max_depth}"
       not_found: "Page not found"
       not_found_message: "The page you requested could not be found."
       record_not_found_message: "The record you requested could not be found."

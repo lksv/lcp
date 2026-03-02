@@ -298,10 +298,7 @@ module LcpRuby
 
       @records = scope.page(params[:page]).per(current_presenter.per_page)
 
-      @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
-      @fk_map = @column_set.fk_association_map(current_model_definition)
-      @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
-      @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
+      setup_index_view_objects
     end
 
     def load_tree_index(scope)
@@ -319,7 +316,7 @@ module LcpRuby
 
         # Load all records to build complete tree with ancestor context
         all_records = scope.to_a
-        @tree_records, @children_map, @roots = build_filtered_tree(all_records, @match_ids, parent_field)
+        @children_map, @roots = build_filtered_tree(all_records, @match_ids, parent_field)
       else
         # Load all records (no pagination for tree view)
         sorted = apply_sort(scope)
@@ -332,6 +329,15 @@ module LcpRuby
 
       @tree_version = compute_tree_version if current_presenter.reparentable?
 
+      # Precompute subtree IDs from in-memory children_map (avoids N+1 CTE queries per row)
+      if current_presenter.reparentable?
+        @subtree_ids_map = precompute_subtree_ids(@children_map)
+      end
+
+      setup_index_view_objects
+    end
+
+    def setup_index_view_objects
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
       @fk_map = @column_set.fk_association_map(current_model_definition)
       @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
@@ -367,7 +373,24 @@ module LcpRuby
       children_map = display_records.group_by { |r| r[parent_field] }
       roots = children_map[nil] || []
 
-      [display_records, children_map, roots]
+      [ children_map, roots ]
+    end
+
+    # Build a Hash { record_id => "id1,id2,..." } of subtree IDs from the in-memory children_map.
+    # This replaces per-row `record.subtree_ids` calls that each fire a recursive CTE query.
+    def precompute_subtree_ids(children_map)
+      result = {}
+      collect_subtree = ->(record_id) do
+        ids = [ record_id ]
+        (children_map[record_id] || []).each { |child| ids.concat(collect_subtree.call(child.id)) }
+        ids
+      end
+      children_map.each_value do |records|
+        records.each do |record|
+          result[record.id] = collect_subtree.call(record.id).join(",") unless result.key?(record.id)
+        end
+      end
+      result
     end
 
     def compute_tree_version
@@ -971,11 +994,7 @@ module LcpRuby
     end
 
     def authorize_parent_field_writable!
-      parent_field = current_model_definition.tree_parent_field
-      unless current_evaluator.field_writable?(parent_field)
-        raise Pundit::NotAuthorizedError,
-          "Not allowed to write tree parent field '#{parent_field}'"
-      end
+      authorize_field_writable!(current_model_definition.tree_parent_field, "tree parent")
     end
 
     def parse_parent_id_param
@@ -996,10 +1015,13 @@ module LcpRuby
     end
 
     def authorize_position_field!
-      field = current_model_definition.positioning_field
+      authorize_field_writable!(current_model_definition.positioning_field, "positioning")
+    end
+
+    def authorize_field_writable!(field, label = field)
       unless current_evaluator.field_writable?(field)
         raise Pundit::NotAuthorizedError,
-          "Not allowed to write positioning field '#{field}'"
+          "Not allowed to write #{label} field '#{field}'"
       end
     end
 

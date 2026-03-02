@@ -4,6 +4,7 @@
   function initTreeReparent(table) {
     var dragRow = null;
     var dragSubtreeIds = [];
+    var currentDropTarget = null;
 
     table.querySelectorAll('[data-reparent-url]').forEach(function(row) {
       var handle = row.querySelector('.lcp-drag-handle');
@@ -24,7 +25,7 @@
         dragRow = null;
         dragSubtreeIds = [];
         row.classList.remove('lcp-dragging');
-        clearAllDropIndicators(table);
+        clearDropIndicator();
       });
     });
 
@@ -39,25 +40,23 @@
 
         // Prevent dropping on self or descendants (cycle prevention)
         if (dragSubtreeIds.indexOf(targetId) !== -1) {
-          clearAllDropIndicators(table);
+          clearDropIndicator();
           targetRow.classList.add('lcp-tree-drop-invalid');
+          currentDropTarget = targetRow;
           return;
         }
 
-        clearAllDropIndicators(table);
+        clearDropIndicator();
 
-        // Determine drop zone: top 25% = before, middle 50% = child, bottom 25% = after
-        var rect = targetRow.getBoundingClientRect();
-        var y = e.clientY - rect.top;
-        var h = rect.height;
-
-        if (y < h * 0.25) {
+        var zone = getDropZone(e, targetRow);
+        if (zone === 'before') {
           targetRow.classList.add('lcp-tree-drop-before');
-        } else if (y > h * 0.75) {
+        } else if (zone === 'after') {
           targetRow.classList.add('lcp-tree-drop-after');
         } else {
           targetRow.classList.add('lcp-tree-drop-child');
         }
+        currentDropTarget = targetRow;
       });
 
       targetRow.addEventListener('dragleave', function() {
@@ -71,24 +70,12 @@
 
         var targetId = targetRow.getAttribute('data-record-id');
         if (dragSubtreeIds.indexOf(targetId) !== -1) {
-          clearAllDropIndicators(table);
+          clearDropIndicator();
           return;
         }
 
-        var rect = targetRow.getBoundingClientRect();
-        var y = e.clientY - rect.top;
-        var h = rect.height;
-        var dropZone;
-
-        if (y < h * 0.25) {
-          dropZone = 'before';
-        } else if (y > h * 0.75) {
-          dropZone = 'after';
-        } else {
-          dropZone = 'child';
-        }
-
-        clearAllDropIndicators(table);
+        var dropZone = getDropZone(e, targetRow);
+        clearDropIndicator();
         executeReparent(dragRow, targetRow, dropZone, table);
       });
     });
@@ -111,13 +98,28 @@
         executeReparent(dragRow, null, 'root', table);
       });
     }
+
+    function clearDropIndicator() {
+      if (currentDropTarget) {
+        currentDropTarget.classList.remove('lcp-tree-drop-before', 'lcp-tree-drop-child',
+          'lcp-tree-drop-after', 'lcp-tree-drop-invalid');
+        currentDropTarget = null;
+      }
+    }
   }
 
-  function clearAllDropIndicators(table) {
-    table.querySelectorAll('.lcp-tree-drop-before, .lcp-tree-drop-child, .lcp-tree-drop-after, .lcp-tree-drop-invalid').forEach(function(el) {
-      el.classList.remove('lcp-tree-drop-before', 'lcp-tree-drop-child',
-        'lcp-tree-drop-after', 'lcp-tree-drop-invalid');
-    });
+  // Determine drop zone: top 25% = before, middle 50% = child, bottom 25% = after
+  function getDropZone(e, targetRow) {
+    var rect = targetRow.getBoundingClientRect();
+    var y = e.clientY - rect.top;
+    var h = rect.height;
+
+    if (y < h * 0.25) {
+      return 'before';
+    } else if (y > h * 0.75) {
+      return 'after';
+    }
+    return 'child';
   }
 
   function executeReparent(dragRow, targetRow, dropZone, table) {

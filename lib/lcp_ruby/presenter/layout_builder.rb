@@ -182,24 +182,10 @@ module LcpRuby
       end
 
       # Find a belongs_to association for a FK field name.
-      # Checks metadata associations first, then synthesizes one for tree models.
+      # Delegates to ModelDefinition#belongs_to_fk_map which already handles
+      # both explicit associations and tree-generated parent associations.
       def find_association_for_fk(field_name)
-        field_str = field_name.to_s
-
-        # Check explicit metadata associations
-        assoc = model_definition.associations.find { |a| a.foreign_key == field_str }
-        return assoc if assoc
-
-        # Synthesize association for tree-generated parent FK
-        if model_definition.tree? && field_str == model_definition.tree_parent_field
-          Metadata::AssociationDefinition.new(
-            type: "belongs_to",
-            name: model_definition.tree_parent_name,
-            target_model: model_definition.name,
-            foreign_key: field_str,
-            required: false
-          )
-        end
+        model_definition.belongs_to_fk_map[field_name.to_s]
       end
 
       def normalize_json_field_section(section)

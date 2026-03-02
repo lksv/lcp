@@ -59,21 +59,26 @@
 
   function applyVisibility(table) {
     var rows = table.querySelectorAll('tr[data-record-id]');
-    // Build parent expanded map
+
+    // Build maps from data attributes once (avoids repeated querySelector per parent walk)
     var expandedMap = {};
+    var parentMap = {};
     rows.forEach(function(row) {
-      expandedMap[row.getAttribute('data-record-id')] = row.getAttribute('data-expanded') === 'true';
+      var id = row.getAttribute('data-record-id');
+      expandedMap[id] = row.getAttribute('data-expanded') === 'true';
+      parentMap[id] = row.getAttribute('data-parent-id') || null;
     });
 
     rows.forEach(function(row) {
-      var parentId = row.getAttribute('data-parent-id');
+      var id = row.getAttribute('data-record-id');
+      var parentId = parentMap[id];
       if (!parentId) {
         // Root row — always visible
         row.style.display = '';
         return;
       }
 
-      // Walk up the parent chain — if any ancestor is collapsed, hide this row
+      // Walk up the parent chain using the pre-built map
       var visible = true;
       var currentParentId = parentId;
       while (currentParentId) {
@@ -81,8 +86,7 @@
           visible = false;
           break;
         }
-        var parentRow = table.querySelector('tr[data-record-id="' + currentParentId + '"]');
-        currentParentId = parentRow ? parentRow.getAttribute('data-parent-id') : null;
+        currentParentId = parentMap[currentParentId] || null;
       }
 
       row.style.display = visible ? '' : 'none';

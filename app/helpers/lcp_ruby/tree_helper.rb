@@ -34,7 +34,7 @@ module LcpRuby
           expanded: expanded,
           **(reparentable && !search_active ? {
             reparent_url: reparent_resource_path(record),
-            subtree_ids: (record.respond_to?(:subtree_ids) ? record.subtree_ids.join(",") : record.id.to_s)
+            subtree_ids: (@subtree_ids_map && @subtree_ids_map[record.id]) || record.id.to_s
           } : {})
         }.compact
       ) do
@@ -68,6 +68,8 @@ module LcpRuby
 
           if col["link_to"] == "show"
             cell_content << link_to(render_display_value(value, col["renderer"], col["options"], nil, record: record), resource_path(record))
+          elsif col["partial"]
+            cell_content << render(partial: col["partial"], locals: { value: value, record: record, options: col["options"] || {} })
           elsif col["renderer"]
             cell_content << render_display_value(value, col["renderer"], col["options"], nil, record: record)
           elsif value.is_a?(Array)
@@ -92,7 +94,6 @@ module LcpRuby
 
       # Recursively render children
       child_rows = if has_children
-        child_style = expanded ? "" : "display:none"
         children.map { |child|
           render_tree_row(child, children_map, columns, depth: depth + 1,
             default_expanded: default_expanded, match_ids: match_ids,
