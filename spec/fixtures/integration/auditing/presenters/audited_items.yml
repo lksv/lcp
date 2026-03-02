@@ -1,0 +1,41 @@
+presenter:
+  name: audited_items
+  model: audited_item
+  label: "Audited Items"
+  slug: audited-items
+
+  index:
+    default_view: table
+    per_page: 25
+    table_columns:
+      - { field: title, sortable: true }
+      - { field: amount }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: title }
+          - { field: description }
+          - { field: amount }
+          - { field: config_data, renderer: json }
+
+  form:
+    sections:
+      - title: "Details"
+        fields:
+          - { field: title }
+          - { field: description }
+          - { field: amount }
+
+  search:
+    enabled: true
+    searchable_fields: [title]
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

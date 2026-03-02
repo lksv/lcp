@@ -38,11 +38,14 @@ module LcpRuby
             enrich_association_list_section(s)
           when "json_items_list"
             normalize_json_field_section(s)
+          when "audit_history"
+            s
           else
             normalize_section(s)
           end
         end
-        append_custom_field_sections(result, context: :show)
+        result = append_custom_field_sections(result, context: :show)
+        append_audit_history_section(result)
       end
 
       private
@@ -306,6 +309,20 @@ module LcpRuby
                   "field '#{field_name}' not found on model '#{target_model_name}'"
         Rails.logger.warn(message)
         raise LcpRuby::MetadataError, message if Rails.env.local?
+      end
+
+      # Auto-append an audit_history section if the model has auditing enabled
+      # and the presenter doesn't already include one.
+      def append_audit_history_section(sections)
+        return sections unless model_definition.auditing? && Auditing::Registry.available?
+        return sections if sections.any? { |s| s["type"] == "audit_history" }
+
+        sections << {
+          "type" => "audit_history",
+          "title" => I18n.t("lcp_ruby.audit_history.title", default: "Change History")
+        }
+
+        sections
       end
 
       # Enrich a list of field configs with FieldDefinitions from a target model.

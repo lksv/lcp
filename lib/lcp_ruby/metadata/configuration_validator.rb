@@ -362,10 +362,34 @@ module LcpRuby
           model, "auditing",
           allowed_keys: %w[only ignore track_associations track_attachments expand_custom_fields expand_json_fields]
         )
+        return unless model.auditing?
         return unless opts.is_a?(Hash) && opts.any?
 
         if opts.key?("only") && opts.key?("ignore")
           @errors << "Model '#{model.name}': auditing.only and auditing.ignore are mutually exclusive"
+        end
+
+        # Validate only/ignore field references
+        field_names = model.fields.map(&:name)
+        %w[only ignore].each do |key|
+          next unless opts.key?(key)
+
+          unknown = Array(opts[key]).map(&:to_s) - field_names
+          if unknown.any?
+            @warnings << "Model '#{model.name}': auditing.#{key} references unknown fields: #{unknown.join(', ')}"
+          end
+        end
+
+        # Validate expand_json_fields references JSON-type fields
+        if opts.key?("expand_json_fields")
+          Array(opts["expand_json_fields"]).each do |field_name|
+            field = model.field(field_name.to_s)
+            if field.nil?
+              @warnings << "Model '#{model.name}': auditing.expand_json_fields references unknown field '#{field_name}'"
+            elsif !%w[json jsonb].include?(field.type)
+              @warnings << "Model '#{model.name}': auditing.expand_json_fields field '#{field_name}' is type '#{field.type}', expected 'json'"
+            end
+          end
         end
       end
 

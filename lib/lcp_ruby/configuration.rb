@@ -24,7 +24,8 @@ module LcpRuby
                   :group_method, :group_model, :group_model_fields,
                   :group_membership_model, :group_membership_fields,
                   :group_role_mapping_model, :group_role_mapping_fields,
-                  :group_adapter
+                  :group_adapter,
+                  :audit_model, :audit_model_fields
 
     def menu_mode=(value)
       @menu_mode = value&.to_sym
@@ -109,6 +110,18 @@ module LcpRuby
       @group_role_mapping_fields = { group: "group_id", role: "role_name" }
       @group_adapter = nil
       @role_resolution_strategy = :merged
+
+      # Audit model defaults
+      @audit_model = "audit_log"
+      @audit_model_fields = {
+        auditable_type: "auditable_type",
+        auditable_id: "auditable_id",
+        action: "action",
+        changes_data: "changes_data",
+        user_id: "user_id",
+        user_snapshot: "user_snapshot",
+        metadata: "metadata"
+      }
 
       # Authentication defaults
       @authentication = :external

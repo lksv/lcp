@@ -1,0 +1,66 @@
+<%
+  audit_entries = record.respond_to?(:audit_history) ? record.audit_history(limit: 20) : []
+%>
+
+<% if audit_entries.empty? %>
+  <p class="lcp-empty-message"><%= I18n.t("lcp_ruby.audit_history.no_changes", default: "No changes recorded.") %></p>
+<% else %>
+  <div class="lcp-audit-history">
+    <% audit_entries.each do |entry| %>
+      <div class="lcp-audit-entry">
+        <div class="lcp-audit-entry-header">
+          <span class="lcp-audit-action lcp-audit-action--<%= entry.action %>">
+            <%= I18n.t("lcp_ruby.audit_history.#{entry.action}", default: entry.action.humanize) %>
+          </span>
+          <% user_snap = entry.respond_to?(:user_snapshot) ? entry.user_snapshot : nil %>
+          <% if user_snap.is_a?(Hash) && (user_snap["name"] || user_snap["email"]) %>
+            <span class="lcp-audit-user">
+              <%= I18n.t("lcp_ruby.audit_history.by", user: user_snap["name"] || user_snap["email"], default: "by %{user}") %>
+            </span>
+          <% end %>
+          <span class="lcp-audit-timestamp">
+            <%= entry.respond_to?(:created_at) && entry.created_at ? l(entry.created_at, format: :long) : "" %>
+          </span>
+        </div>
+
+        <% changes = entry.respond_to?(:changes_data) ? (entry.changes_data || {}) : {} %>
+        <% if changes.any? %>
+          <details class="lcp-audit-changes">
+            <summary><%= I18n.t("lcp_ruby.audit_history.show_changes", default: "Show changes") %> (<%= changes.size %>)</summary>
+            <table class="lcp-audit-diff-table">
+              <thead>
+                <tr>
+                  <th><%= I18n.t("lcp_ruby.audit_history.field_changed", default: "Field") %></th>
+                  <th><%= I18n.t("lcp_ruby.audit_history.from_value", default: "Was") %></th>
+                  <th><%= I18n.t("lcp_ruby.audit_history.to_value", default: "Changed to") %></th>
+                </tr>
+              </thead>
+              <tbody>
+                <% changes.each do |field_name, diff| %>
+                  <tr>
+                    <td class="lcp-audit-field-name"><%= field_name.to_s.humanize %></td>
+                    <% if diff.is_a?(Array) && diff.size == 2 %>
+                      <td class="lcp-audit-old-value"><%= diff[0].nil? ? "—" : diff[0] %></td>
+                      <td class="lcp-audit-new-value"><%= diff[1].nil? ? "—" : diff[1] %></td>
+                    <% else %>
+                      <%# Nested association changes (arrays of hashes) %>
+                      <td colspan="2" class="lcp-audit-nested-change">
+                        <% if diff.is_a?(Array) %>
+                          <% diff.each do |item| %>
+                            <div class="lcp-audit-nested-item"><%= item.is_a?(Hash) ? item.to_json : item %></div>
+                          <% end %>
+                        <% else %>
+                          <%= diff %>
+                        <% end %>
+                      </td>
+                    <% end %>
+                  </tr>
+                <% end %>
+              </tbody>
+            </table>
+          </details>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

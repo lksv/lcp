@@ -36,6 +36,8 @@ module LcpRuby
         return
       end
 
+      LcpRuby::Current.request_id = request.request_id
+
       case LcpRuby.configuration.authentication
       when :none
         # No auth needed — current_user returns default OpenStruct

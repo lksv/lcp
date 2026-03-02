@@ -1,0 +1,9 @@
+view_group:
+  model: audit_log
+  primary: audit_logs
+  navigation:
+    menu: main
+    position: 95
+  views:
+    - presenter: audit_logs
+      label: "Audit Logs"

@@ -37,6 +37,9 @@
       <% elsif section["type"] == "json_items_list" %>
         <%= render "lcp_ruby/resources/json_items_list",
                    section: section, record: @record %>
+      <% elsif section["type"] == "audit_history" %>
+        <%= render "lcp_ruby/resources/audit_history",
+                   section: section, record: @record %>
       <% else %>
         <div class="lcp-fields lcp-grid" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;"
              <%= "data-responsive-mobile=\"#{section.dig('responsive', 'mobile', 'columns')}\"" if section.dig('responsive', 'mobile', 'columns') %>

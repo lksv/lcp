@@ -105,8 +105,8 @@ module LcpRuby
         ComputedApplicator.new(model_class, model_definition).apply!
       end
 
-      def apply_auditing(_model_class)
-        # No-op placeholder — will be implemented by AuditingApplicator in auditing feature PR
+      def apply_auditing(model_class)
+        AuditingApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_positioning(model_class)

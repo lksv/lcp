@@ -1,0 +1,12 @@
+permissions:
+  model: audit_log
+
+  roles:
+    admin:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+
+  default_role: admin

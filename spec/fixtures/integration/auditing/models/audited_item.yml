@@ -1,0 +1,24 @@
+model:
+  name: audited_item
+  label: "Audited Item"
+  label_plural: "Audited Items"
+
+  fields:
+    - name: title
+      type: string
+      validations:
+        - type: presence
+
+    - name: description
+      type: text
+
+    - name: amount
+      type: integer
+
+    - name: config_data
+      type: json
+
+  options:
+    timestamps: true
+    auditing: true
+    label_method: title

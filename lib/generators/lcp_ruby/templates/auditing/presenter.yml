@@ -1,0 +1,43 @@
+presenter:
+  name: audit_logs
+  model: audit_log
+  label: "Audit Logs"
+  slug: audit-logs
+  icon: clock
+
+  index:
+    default_view: table
+    default_sort: { field: created_at, direction: desc }
+    per_page: 50
+    row_click: show
+    empty_message: "No audit log entries yet."
+    table_columns:
+      - { field: auditable_type, width: "15%", sortable: true }
+      - { field: auditable_id, width: "10%" }
+      - { field: action, width: "10%", sortable: true }
+      - { field: user_snapshot, width: "20%", renderer: json }
+      - { field: created_at, width: "20%", renderer: datetime, sortable: true }
+
+  show:
+    layout:
+      - section: "Audit Entry"
+        columns: 2
+        fields:
+          - { field: auditable_type }
+          - { field: auditable_id }
+          - { field: action }
+          - { field: user_id }
+          - { field: user_snapshot, renderer: json }
+          - { field: created_at, renderer: datetime }
+          - { field: changes_data, renderer: json, col_span: 2 }
+          - { field: metadata, renderer: json, col_span: 2 }
+
+  search:
+    enabled: true
+    searchable_fields: [auditable_type, action]
+    placeholder: "Search audit logs..."
+
+  actions:
+    collection: []
+    single:
+      - { name: show, type: built_in, icon: eye }

@@ -69,6 +69,7 @@ require "lcp_ruby/model_factory/attachment_applicator"
 require "lcp_ruby/model_factory/positioning_applicator"
 require "lcp_ruby/model_factory/userstamps_applicator"
 require "lcp_ruby/model_factory/soft_delete_applicator"
+require "lcp_ruby/model_factory/auditing_applicator"
 require "lcp_ruby/model_factory/builder"
 
 # JSON Item Wrapper (for model-backed JSON field items)
@@ -97,6 +98,12 @@ require "lcp_ruby/permissions/change_handler"
 require "lcp_ruby/permissions/definition_validator"
 require "lcp_ruby/permissions/source_resolver"
 require "lcp_ruby/permissions/setup"
+
+# Auditing
+require "lcp_ruby/auditing/registry"
+require "lcp_ruby/auditing/contract_validator"
+require "lcp_ruby/auditing/audit_writer"
+require "lcp_ruby/auditing/setup"
 
 # Groups
 require "lcp_ruby/groups/contract"
@@ -246,6 +253,8 @@ module LcpRuby
       Roles::Registry.clear!
       Permissions::Registry.clear!
       Groups::Registry.clear!
+      Auditing::Registry.clear!
+      Auditing::AuditWriter.clear_cache!
 
       # Remove dynamic constants to avoid "already initialized" warnings
       Dynamic.constants.each do |const|

@@ -1,0 +1,12 @@
+model:
+  name: unaudited_item
+  label: "Unaudited Item"
+  label_plural: "Unaudited Items"
+
+  fields:
+    - name: name
+      type: string
+
+  options:
+    timestamps: true
+    label_method: name

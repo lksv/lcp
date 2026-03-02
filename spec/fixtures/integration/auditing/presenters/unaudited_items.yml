@@ -1,0 +1,31 @@
+presenter:
+  name: unaudited_items
+  model: unaudited_item
+  label: "Unaudited Items"
+  slug: unaudited-items
+
+  index:
+    default_view: table
+    per_page: 25
+    table_columns:
+      - { field: name }
+
+  show:
+    layout:
+      - section: "Details"
+        fields:
+          - { field: name }
+
+  form:
+    sections:
+      - title: "Details"
+        fields:
+          - { field: name }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

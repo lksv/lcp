@@ -65,6 +65,16 @@ module LcpRuby
 
           update_columns(attrs)
 
+          # Audit the discard action
+          if model_def.auditing? && Auditing::Registry.available?
+            Auditing::AuditWriter.log(
+              action: :discard,
+              record: self,
+              options: model_def.auditing_options,
+              model_definition: model_def
+            )
+          end
+
           # Cascade discard to dependent: :discard children
           cascade_discard!(by: self)
 
@@ -79,6 +89,16 @@ module LcpRuby
           cascade_undiscard!
 
           update_columns(col => nil, by_type_col => nil, by_id_col => nil)
+
+          # Audit the undiscard action
+          if model_def.auditing? && Auditing::Registry.available?
+            Auditing::AuditWriter.log(
+              action: :undiscard,
+              record: self,
+              options: model_def.auditing_options,
+              model_definition: model_def
+            )
+          end
 
           # Dispatch after_undiscard event
           Events::Dispatcher.dispatch(event_name: "after_undiscard", record: self)
