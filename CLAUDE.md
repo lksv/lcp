@@ -50,6 +50,7 @@ Key namespaces:
 - `lcp_ruby.search.*` — search placeholder and submit
 - `lcp_ruby.errors.*` — error pages (not_found, etc.)
 - `lcp_ruby.empty_value` — placeholder for nil/empty values in display
+- `lcp_ruby.audit_history.*` — audit history section (title, action labels, change labels)
 
 The fallback (`default:`) is always the humanized key name so the app works without a locale file.
 
@@ -68,6 +69,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Groups Reference](docs/reference/groups.md) — Organizational groups: YAML, DB, host adapter, role mapping
 - [Permissions Reference](docs/reference/permissions.md) — Complete permission YAML reference
 - [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
+- [Auditing Reference](docs/reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
@@ -82,6 +84,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Attachments Guide](docs/guides/attachments.md) — File upload with Active Storage
 - [Userstamps Guide](docs/guides/userstamps.md) — Automatic created_by / updated_by tracking: setup, name snapshots, presenter display
 - [Soft Delete Guide](docs/guides/soft-delete.md) — Discard/restore, cascade, archive presenters, permissions
+- [Auditing Guide](docs/guides/auditing.md) — Change tracking: setup, field filtering, JSON expansion, custom writer, show page integration
 - [Eager Loading Guide](docs/guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [View Groups Guide](docs/guides/view-groups.md) — Multi-view navigation and view switcher setup
 - [Menu Guide](docs/guides/menu.md) — Custom navigation menus: dropdowns, sidebar, combined layouts, badges
@@ -161,6 +164,8 @@ YAML metadata (config/lcp_ruby/)
                                 ↓
               Groups::Setup.apply!(loader) → YAML/DB/host loader, registry, change handler (if group_source != :none)
                                 ↓
+              Auditing::Setup.apply!(loader) → contract validation, registry mark_available! (if any model has auditing: true)
+                                ↓
               ConditionServiceRegistry.discover! → condition services from app/condition_services/
               Services::Registry.discover! → data providers from app/lcp_services/data_providers/
               Display::RendererRegistry.register_built_ins! → 26 built-in renderers + badge renderers
@@ -176,7 +181,7 @@ YAML metadata (config/lcp_ruby/)
 |--------|----------|---------|
 | `Metadata` | `lib/lcp_ruby/metadata/` | Parses YAML into definition objects (ModelDefinition, PresenterDefinition, etc.) |
 | `Types` | `lib/lcp_ruby/types/` | TypeRegistry, TypeDefinition, ServiceRegistry, built-in types (email, phone, url, color), transforms (strip, downcase, normalize_url, normalize_phone) |
-| `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator, PositioningApplicator, UserstampsApplicator, SoftDeleteApplicator. Pipeline includes placeholder steps for tree, auditing (no-op until feature PRs) |
+| `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator, PositioningApplicator, UserstampsApplicator, SoftDeleteApplicator, AuditingApplicator. Pipeline includes placeholder step for tree (no-op until feature PR) |
 | `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections + normalize_json_field_section for json_field: sources + sub-section enrichment), ColumnSet (visible columns), ActionSet (visible actions with record_rules integration via action_permitted_for_record?), IncludesResolver (auto-detects and applies eager loading from presenter metadata), FieldValueResolver (dot-path, template, FK, and simple field resolution with permission checks) |
 | `CustomFields` | `lib/lcp_ruby/custom_fields/` | Registry (per-model definition cache), Applicator (dynamic accessors + validations + defaults + stale cleanup), ContractValidator (boot-time model contract checks), Query (DB-portable JSON queries with field name validation), DefinitionChangeHandler (cache invalidation), Setup (shared boot logic with contract validation), Utils (env-aware JSON/numeric parsing) |
 | `Roles` | `lib/lcp_ruby/roles/` | Registry (thread-safe role name cache), ContractValidator (boot-time model contract checks), ChangeHandler (after_commit cache invalidation), Setup (boot orchestration). Only active when `role_source == :model` |
@@ -189,6 +194,7 @@ YAML metadata (config/lcp_ruby/)
 | `Conditions` | `lib/lcp_ruby/condition_evaluator.rb`, `lib/lcp_ruby/condition_service_registry.rb` | ConditionEvaluator (strict: 12 operators, raises ConditionError on unknown operator/missing field), ConditionServiceRegistry. All condition callers (PermissionEvaluator, ActionSet, views) delegate to ConditionEvaluator. Host apps define condition services in `app/condition_services/` |
 | `Attachments` | `lib/lcp_ruby/model_factory/attachment_applicator.rb` | Applies Active Storage macros (has_one_attached/has_many_attached), validations (size, content_type, max_files), and variant config to dynamic models |
 | `Positioning` | `lib/lcp_ruby/model_factory/positioning_applicator.rb` | Applies `positioning` gem macro to positioned models; SchemaManager creates unique indices on scope + position columns (except SQLite) |
+| `Auditing` | `lib/lcp_ruby/auditing/` | Registry (available? flag), ContractValidator (audit model contract checks), AuditWriter (field diffs, JSON/custom field expansion, nested changes), Setup (boot orchestration). AuditingApplicator installs AR callbacks on audited models |
 | `UserSnapshot` | `lib/lcp_ruby/user_snapshot.rb` | Captures `{id, email, name, role}` from user objects; used by auditing and userstamps |
 | `BulkUpdater` | `lib/lcp_ruby/bulk_updater.rb` | `tracked_update_all` wrapper with yield hook for post-update callbacks (auditing, events) |
 | `JsonItemWrapper` | `lib/lcp_ruby/json_item_wrapper.rb` | ActiveModel wrapper for JSON hash items; dynamic getter/setter per field from ModelDefinition; type coercion (integer, float, boolean); `validate_with_model_rules!` (presence, length, numericality, format); `to_hash` for persistence. Used by `json_field:` + `target_model:` nested sections |

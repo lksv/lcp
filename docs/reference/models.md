@@ -1542,14 +1542,14 @@ options:
 |-----|------|---------|-------------|
 | `only` | array of strings | all fields | Track only these fields. Mutually exclusive with `ignore`. |
 | `ignore` | array of strings | none | Track all fields except these. Mutually exclusive with `only`. |
-| `track_associations` | boolean | `false` | Include association changes in audit trail |
-| `track_attachments` | boolean | `false` | Include attachment changes in audit trail |
-| `expand_custom_fields` | boolean | `false` | Expand `custom_data` JSON into individual field changes |
-| `expand_json_fields` | array of strings | `[]` | JSON columns to expand into individual key changes |
+| `track_associations` | boolean | `true` | Include nested_attributes child changes in parent audit entry |
+| `track_attachments` | boolean | `false` | Include attachment changes in audit trail (reserved, not yet implemented) |
+| `expand_custom_fields` | boolean | `true` | Expand `custom_data` JSON into individual `cf:` prefixed field changes |
+| `expand_json_fields` | array of strings | `[]` | JSON columns to expand into dot-path key changes |
 
 > **Note:** `only` and `ignore` are mutually exclusive — specifying both causes a validation error.
 
-> **Note:** The `auditing` option declares intent. The actual Applicator and AuditWriter integration will be implemented in a separate feature PR.
+See [Auditing Reference](auditing.md) for the audit log model contract, changes data format, and configuration options. See [Auditing Guide](../guides/auditing.md) for setup and usage examples.
 
 ### `userstamps`
 

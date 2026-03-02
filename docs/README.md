@@ -21,6 +21,7 @@ Complete attribute reference for every YAML configuration file:
 - [Groups](reference/groups.md) — Organizational groups: YAML, DB, host adapter, role mapping, resolution strategies
 - [Permissions](reference/permissions.md) — Roles, CRUD, field access, scopes, record rules
 - [Condition Operators](reference/condition-operators.md) — Shared operator reference for `visible_when`, `record_rules`, etc.
+- [Auditing](reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading](reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Engine Configuration](reference/engine-configuration.md) — `LcpRuby.configure` options
 
@@ -45,6 +46,7 @@ Complete attribute reference for every YAML configuration file:
 - [Attachments](guides/attachments.md) — File upload with Active Storage
 - [Userstamps](guides/userstamps.md) — Automatic created_by / updated_by tracking: setup, name snapshots, presenter display, seeds
 - [Soft Delete](guides/soft-delete.md) — Discard/restore, cascade, archive presenters, permissions
+- [Auditing](guides/auditing.md) — Change tracking: setup, field filtering, JSON expansion, custom writer, show page integration
 - [Eager Loading](guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
 - [Custom Fields](guides/custom-fields.md) — Runtime user-defined fields: enabling, defining, sections, permissions, programmatic access
 - [Role Source](guides/role-source.md) — DB-backed role management: setup, validation, cache, testing
@@ -67,10 +69,9 @@ Implemented:
 - [Model Options Infrastructure](design/model_options_infrastructure.md) — Shared patterns for model-level feature flags (soft_delete, auditing, userstamps, tree)
 - [Userstamps](design/userstamps.md) — Automatic `created_by_id` / `updated_by_id` tracking
 - [Soft Delete](design/soft_delete.md) — Discard/restore support with `discarded_at` timestamp, cascade discard/undiscard, archive presenters
+- [Auditing](design/auditing.md) — Native change tracking and audit trail
 
 Proposed:
-
-- [Auditing](design/auditing.md) — Native change tracking and audit trail
 - [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments
 - [Multiselect and Batch Actions](design/multiselect_and_batch_actions.md) — Checkbox selection and bulk operations on index pages

@@ -1,6 +1,6 @@
 # Design: Auditing (Change History)
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2026-02-22
 
 > **Infrastructure:** This document references [Model Options Infrastructure](model_options_infrastructure.md) for shared patterns: `boolean_or_hash_option` helper (§3), `validate_boolean_or_hash_option` (§4), `create_log_table` helper (§7), `LcpRuby::UserSnapshot` (§8), canonical Builder pipeline ordering (§1), `update_columns` bypass contract (§2), positioning audit strategy (§2), cross-feature interaction matrix (§9), and error handling conventions (§10). See also [Multiselect and Batch Actions](multiselect_and_batch_actions.md) for bulk operation audit implications.

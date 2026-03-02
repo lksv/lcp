@@ -331,12 +331,20 @@ presenter:
 
 | | |
 |---|---|
-| **Type** | Object responding to `#write` or `nil` |
+| **Type** | Object responding to `#log` or `nil` |
 | **Default** | `nil` |
 
-Custom audit writer for models with `auditing: true`. When set, the auditing system delegates change persistence to this object instead of the default writer.
+Custom audit writer for models with `auditing: true`. When set, the auditing system delegates change persistence to this object instead of writing to the built-in audit log model.
 
-The object must respond to `#write(model_name:, record_id:, action:, changes:, user:, metadata:)`.
+The object must respond to `#log(action:, record:, changes:, user:, metadata:)`:
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `action` | Symbol | `:create`, `:update`, `:destroy`, `:discard`, `:undiscard` |
+| `record` | ActiveRecord::Base | The changed record instance |
+| `changes` | Hash | Field-level diffs: `{ "field" => [old, new] }` |
+| `user` | Object or nil | Current user from `LcpRuby::Current.user` |
+| `metadata` | Hash or nil | `{ "request_id" => "..." }` when available |
 
 ```ruby
 LcpRuby.configure do |config|
@@ -344,7 +352,39 @@ LcpRuby.configure do |config|
 end
 ```
 
-> **Note:** The audit writer integration is infrastructure-only. The actual auditing system that calls `audit_writer.write` will be implemented in the auditing feature PR.
+See [Auditing Guide](../guides/auditing.md) for setup and usage examples.
+
+### `audit_model`
+
+| | |
+|---|---|
+| **Type** | `String` |
+| **Default** | `"audit_log"` |
+
+Name of the LCP Ruby model that stores audit entries. Only used with the built-in audit writer (when `audit_writer` is `nil`). The model must satisfy the [audit model contract](auditing.md#audit-log-model-contract).
+
+### `audit_model_fields`
+
+| | |
+|---|---|
+| **Type** | `Hash` |
+| **Default** | `{ auditable_type: "auditable_type", auditable_id: "auditable_id", action: "action", changes_data: "changes_data", user_id: "user_id", user_snapshot: "user_snapshot", metadata: "metadata" }` |
+
+Maps the audit model contract's logical fields to actual field names on your audit log model. Use this when your audit model has different column names than the defaults.
+
+```ruby
+LcpRuby.configure do |config|
+  config.audit_model_fields = {
+    auditable_type: "entity_type",
+    auditable_id: "entity_id",
+    action: "operation",
+    changes_data: "diff",
+    user_id: "actor_id",
+    user_snapshot: "actor_snapshot",
+    metadata: "meta"
+  }
+end
+```
 
 ### `attachment_allowed_content_types`
 
