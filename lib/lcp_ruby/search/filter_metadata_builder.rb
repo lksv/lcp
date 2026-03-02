@@ -24,7 +24,8 @@ module LcpRuby
           config: {
             max_conditions: advanced_filter_config["max_conditions"] || 10,
             default_combinator: advanced_filter_config["default_combinator"] || "and",
-            allow_or_groups: advanced_filter_config.fetch("allow_or_groups", true)
+            allow_or_groups: advanced_filter_config.fetch("allow_or_groups", true),
+            query_language: advanced_filter_config.fetch("query_language", false)
           }
         }
       end
@@ -218,13 +219,13 @@ module LcpRuby
         base_type = custom_type == "text" ? "text" : (custom_type == "enum" ? "enum" : custom_type)
         # Map custom types to operator registry types
         operator_type = case base_type
-                        when "string", "text" then base_type.to_sym
-                        when "integer", "float", "decimal" then base_type.to_sym
-                        when "boolean" then :boolean
-                        when "date", "datetime" then base_type.to_sym
-                        when "enum" then :enum
-                        else :string
-                        end
+        when "string", "text" then base_type.to_sym
+        when "integer", "float", "decimal" then base_type.to_sym
+        when "boolean" then :boolean
+        when "date", "datetime" then base_type.to_sym
+        when "enum" then :enum
+        else :string
+        end
 
         operators = OperatorRegistry.operators_for(operator_type)
 
@@ -242,9 +243,9 @@ module LcpRuby
             if ev.is_a?(Hash)
               value = (ev["value"] || ev[:value]).to_s
               label = (ev["label"] || ev[:label] || value.humanize).to_s
-              [value, label]
+              [ value, label ]
             else
-              [ev.to_s, ev.to_s.humanize]
+              [ ev.to_s, ev.to_s.humanize ]
             end
           end
         end

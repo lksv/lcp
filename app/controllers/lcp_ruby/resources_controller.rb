@@ -136,6 +136,18 @@ module LcpRuby
       render json: evaluate_service_conditions(@record)
     end
 
+    def parse_ql
+      authorize @model_class, :index?
+
+      ql_text = params[:ql].to_s
+      parser = Search::QueryLanguageParser.new(ql_text)
+      tree = parser.parse
+
+      render json: { success: true, tree: tree }
+    rescue Search::QueryLanguageParser::ParseError => e
+      render json: { success: false, error: e.message, position: e.position }
+    end
+
     def reorder
       unless current_model_definition.positioned?
         head :not_found

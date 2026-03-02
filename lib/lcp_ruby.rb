@@ -60,6 +60,8 @@ require "lcp_ruby/search/filter_param_builder"
 require "lcp_ruby/search/custom_filter_interceptor"
 require "lcp_ruby/search/filter_metadata_builder"
 require "lcp_ruby/search/custom_field_filter"
+require "lcp_ruby/search/query_language_parser"
+require "lcp_ruby/search/query_language_serializer"
 
 # Model Factory
 require "lcp_ruby/model_factory/registry"

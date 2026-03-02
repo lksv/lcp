@@ -519,6 +519,11 @@ pre.lcp-code-block { display: block; padding: 0.75em 1em; overflow-x: auto; whit
 .lcp-filter-actions-row { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
 .lcp-filter-actions-row .btn { font-size: 0.85rem; padding: 0.3rem 0.6rem; }
 .lcp-filter-submit-row { display: flex; gap: 0.5rem; padding-top: 0.75rem; border-top: 1px solid #dee2e6; }
+.lcp-ql-section { margin-bottom: 0.75rem; }
+.lcp-ql-input { width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; font-family: monospace; font-size: 0.85rem; resize: vertical; }
+.lcp-ql-input:focus { border-color: #86b7fe; outline: none; box-shadow: 0 0 0 0.2rem rgba(13,110,253,0.25); }
+.lcp-ql-error { color: #dc3545; font-size: 0.85rem; margin-top: 0.35rem; padding: 0.35rem 0.5rem; background: #f8d7da; border-radius: 4px; }
+.lcp-ql-help { font-size: 0.75rem; color: #6c757d; margin-top: 0.35rem; }
 
 /* Index drag-and-drop reordering */
 .lcp-drag-column { width: 2rem; text-align: center; padding: 0.4rem 0.25rem !important; }

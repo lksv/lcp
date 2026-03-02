@@ -1,7 +1,8 @@
 <% metadata = filter_metadata %>
 <div class="lcp-advanced-filter"
      data-lcp-filter-metadata="<%= metadata.to_json %>"
-     data-lcp-filter-action="<%= resources_path %>">
+     data-lcp-filter-action="<%= resources_path %>"
+     data-lcp-parse-ql-url="<%= parse_ql_path %>">
   <div class="lcp-filter-toggle-row">
     <button type="button" class="btn lcp-filter-toggle-btn">
       <%= I18n.t("lcp_ruby.advanced_filter.toggle", default: "Filters") %>
@@ -26,6 +27,16 @@
       <% end %>
     </div>
 
+    <div class="lcp-ql-section" style="display:none;">
+      <textarea class="lcp-ql-input"
+                placeholder="<%= I18n.t("lcp_ruby.advanced_filter.ql_placeholder", default: "e.g. status = 'published' and price >= 100") %>"
+                rows="3"></textarea>
+      <div class="lcp-ql-error" style="display:none;"></div>
+      <div class="lcp-ql-help">
+        <%= I18n.t("lcp_ruby.advanced_filter.ql_help", default: "Operators: = != > >= < <= ~ !~ ^ $ in not in is null/present/blank/true/false. Use 'and'/'or' and parentheses for grouping.") %>
+      </div>
+    </div>
+
     <div class="lcp-filter-submit-row">
       <button type="button" class="btn btn-primary lcp-filter-apply-btn">
         <%= I18n.t("lcp_ruby.advanced_filter.apply", default: "Apply filters") %>
@@ -33,6 +44,11 @@
       <button type="button" class="btn lcp-filter-clear-btn">
         <%= I18n.t("lcp_ruby.advanced_filter.clear", default: "Clear all") %>
       </button>
+      <% if metadata.dig(:config, :query_language) %>
+        <button type="button" class="btn lcp-ql-toggle-btn">
+          <%= I18n.t("lcp_ruby.advanced_filter.ql_toggle", default: "Edit as QL") %>
+        </button>
+      <% end %>
     </div>
   </div>
 </div>

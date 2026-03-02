@@ -31,6 +31,7 @@ LcpRuby::Engine.routes.draw do
       delete "/:id",       to: "custom_fields#destroy", as: :destroy
     end
 
+    post   "/parse_ql",  to: "resources#parse_ql", as: :parse_ql
     get    "/",          to: "resources#index",   as: :resources
     get    "/select_options",      to: "resources#select_options",      as: :select_options
     get    "/inline_create_form",  to: "resources#inline_create_form",  as: :inline_create_form

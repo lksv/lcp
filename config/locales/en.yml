@@ -78,6 +78,11 @@ en:
       group_label: "OR"
       combinator_and: "AND"
       combinator_or: "OR"
+      ql_toggle: "Edit as QL"
+      ql_toggle_visual: "Visual mode"
+      ql_placeholder: "e.g. status = 'published' and price >= 100"
+      ql_help: "Operators: = != > >= < <= ~ !~ ^ $ in not in is null/present/blank/true/false. Use 'and'/'or' and parentheses for grouping."
+      ql_parse_error: "Invalid query syntax"
       field_groups:
         direct: "Fields"
         custom_fields: "Custom Fields"

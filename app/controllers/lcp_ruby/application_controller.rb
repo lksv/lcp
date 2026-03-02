@@ -386,7 +386,7 @@ module LcpRuby
         prefix = "#{name}_"
         if key.start_with?(prefix)
           operator = key[prefix.length..]
-          return [name, operator] if operator.present?
+          return [ name, operator ] if operator.present?
         end
       end
       nil

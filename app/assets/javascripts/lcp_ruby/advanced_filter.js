@@ -80,13 +80,52 @@
 
     // Apply filters
     container.querySelector(".lcp-filter-apply-btn").addEventListener("click", function() {
-      applyFilters(actionUrl, state);
+      if (qlMode) {
+        applyFromQl(container, actionUrl, state, metadata);
+      } else {
+        applyFilters(actionUrl, state);
+      }
     });
 
     // Clear filters
     container.querySelector(".lcp-filter-clear-btn").addEventListener("click", function() {
       clearFilters(actionUrl);
     });
+
+    // QL toggle
+    var qlMode = false;
+    var qlToggleBtn = container.querySelector(".lcp-ql-toggle-btn");
+    if (qlToggleBtn) {
+      qlToggleBtn.addEventListener("click", function() {
+        qlMode = !qlMode;
+        var qlSection = container.querySelector(".lcp-ql-section");
+        var visualRows = container.querySelector(".lcp-filter-rows");
+        var actionsRow = container.querySelector(".lcp-filter-actions-row");
+
+        if (qlMode) {
+          qlSection.style.display = "";
+          visualRows.style.display = "none";
+          actionsRow.style.display = "none";
+          qlToggleBtn.textContent = t("filter.ql_toggle_visual", "Visual mode");
+          // Serialize current state to QL
+          var qlText = serializeToQl(state, metadata);
+          qlSection.querySelector(".lcp-ql-input").value = qlText;
+        } else {
+          // Parse QL back to state
+          var textarea = qlSection.querySelector(".lcp-ql-input");
+          var parseQlUrl = container.dataset.lcpParseQlUrl;
+          if (textarea.value.trim()) {
+            parseQlToState(textarea.value, parseQlUrl, state, function() {
+              renderFilterRows(rowsContainer, state, metadata);
+            });
+          }
+          qlSection.style.display = "none";
+          visualRows.style.display = "";
+          actionsRow.style.display = "";
+          qlToggleBtn.textContent = t("filter.ql_toggle", "Edit as QL");
+        }
+      });
+    }
   }
 
   function parseCurrentFiltersFromUrl(metadata) {
@@ -763,6 +802,135 @@
         selects[i].tomselect.destroy();
       }
     }
+  }
+
+  // QL serialization: state -> QL text
+  var QL_OP_MAP = {
+    eq: "=", not_eq: "!=", gt: ">", gteq: ">=", lt: "<", lteq: "<=",
+    cont: "~", not_cont: "!~", start: "^", end: "$",
+    "in": "in", not_in: "not in",
+    "null": "is null", not_null: "is not null",
+    present: "is present", blank: "is blank",
+    "true": "is true", "false": "is false"
+  };
+
+  var QL_NO_VALUE = ["null", "not_null", "present", "blank", "true", "false"];
+
+  function serializeToQl(state, metadata) {
+    var parts = [];
+
+    state.conditions.forEach(function(c) {
+      var s = serializeConditionToQl(c);
+      if (s) parts.push(s);
+    });
+
+    state.groups.forEach(function(g) {
+      var groupParts = [];
+      (g.conditions || []).forEach(function(c) {
+        var s = serializeConditionToQl(c);
+        if (s) groupParts.push(s);
+      });
+      if (groupParts.length > 0) {
+        parts.push("(" + groupParts.join(" or ") + ")");
+      }
+    });
+
+    return parts.join(" and ");
+  }
+
+  function serializeConditionToQl(c) {
+    if (!c.field || !c.operator) return null;
+
+    var field = c.field;
+    // Strip cf[...] wrapper for QL representation
+    var cfMatch = field.match(/^cf\[([^\]]+)\]$/);
+    if (cfMatch) field = "cf_" + cfMatch[1];
+
+    var qlOp = QL_OP_MAP[c.operator];
+    if (!qlOp) return null;
+
+    if (QL_NO_VALUE.indexOf(c.operator) !== -1) {
+      return field + " " + qlOp;
+    }
+
+    if (c.operator === "in" || c.operator === "not_in") {
+      var vals = Array.isArray(c.value) ? c.value : [c.value];
+      var formatted = vals.map(function(v) { return formatQlValue(v); });
+      return field + " " + qlOp + " [" + formatted.join(", ") + "]";
+    }
+
+    return field + " " + qlOp + " " + formatQlValue(c.value);
+  }
+
+  function formatQlValue(v) {
+    if (v === null || v === undefined || v === "") return "''";
+    if (typeof v === "string" && v.match(/^-?\d+(\.\d+)?$/)) return v;
+    return "'" + v.toString().replace(/\\/g, "\\\\").replace(/'/g, "\\'") + "'";
+  }
+
+  function parseQlToState(qlText, parseQlUrl, state, onSuccess) {
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", parseQlUrl, true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    // Get CSRF token
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMeta) {
+      xhr.setRequestHeader("X-CSRF-Token", csrfMeta.getAttribute("content"));
+    }
+
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        var result = JSON.parse(xhr.responseText);
+        if (result.success && result.tree) {
+          state.conditions = result.tree.conditions || [];
+          state.groups = result.tree.groups || [];
+          if (onSuccess) onSuccess();
+        }
+      }
+    };
+
+    xhr.send("ql=" + encodeURIComponent(qlText));
+  }
+
+  function applyFromQl(container, actionUrl, state, metadata) {
+    var qlSection = container.querySelector(".lcp-ql-section");
+    var textarea = qlSection.querySelector(".lcp-ql-input");
+    var errorDiv = qlSection.querySelector(".lcp-ql-error");
+    var parseQlUrl = container.dataset.lcpParseQlUrl;
+
+    errorDiv.style.display = "none";
+    errorDiv.textContent = "";
+
+    if (!textarea.value.trim()) {
+      clearFilters(actionUrl);
+      return;
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", parseQlUrl, true);
+    xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+
+    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
+    if (csrfMeta) {
+      xhr.setRequestHeader("X-CSRF-Token", csrfMeta.getAttribute("content"));
+    }
+
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        var result = JSON.parse(xhr.responseText);
+        if (result.success && result.tree) {
+          state.conditions = result.tree.conditions || [];
+          state.groups = result.tree.groups || [];
+          applyFilters(actionUrl, state);
+        } else if (!result.success) {
+          errorDiv.textContent = result.error || t("filter.ql_parse_error", "Invalid query syntax");
+          errorDiv.style.display = "";
+        }
+      }
+    };
+
+    xhr.send("ql=" + encodeURIComponent(textarea.value));
   }
 
   // Initialize on DOM ready

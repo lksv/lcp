@@ -545,6 +545,52 @@ RSpec.describe "Advanced Search Integration", type: :request do
     end
   end
 
+  describe "Query Language parse_ql endpoint" do
+    before do
+      stub_current_user(role: "admin")
+    end
+
+    it "parses valid QL and returns tree" do
+      post "/products/parse_ql", params: { ql: "status = 'published' and price >= 100" }
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json["success"]).to be true
+      expect(json["tree"]["conditions"].size).to eq(2)
+      expect(json["tree"]["conditions"][0]["field"]).to eq("status")
+      expect(json["tree"]["conditions"][0]["operator"]).to eq("eq")
+      expect(json["tree"]["conditions"][1]["field"]).to eq("price")
+      expect(json["tree"]["conditions"][1]["operator"]).to eq("gteq")
+    end
+
+    it "parses QL with OR group" do
+      post "/products/parse_ql", params: { ql: "(status = 'draft' or status = 'review')" }
+
+      json = JSON.parse(response.body)
+      expect(json["success"]).to be true
+      expect(json["tree"]["groups"].size).to eq(1)
+      expect(json["tree"]["groups"][0]["combinator"]).to eq("or")
+    end
+
+    it "returns error for invalid QL" do
+      post "/products/parse_ql", params: { ql: "name BADOP 'value'" }
+
+      expect(response).to have_http_status(:ok)
+      json = JSON.parse(response.body)
+      expect(json["success"]).to be false
+      expect(json["error"]).to be_present
+      expect(json["position"]).to be_a(Integer)
+    end
+
+    it "handles empty QL" do
+      post "/products/parse_ql", params: { ql: "" }
+
+      json = JSON.parse(response.body)
+      expect(json["success"]).to be true
+      expect(json["tree"]["conditions"]).to eq([])
+    end
+  end
+
   describe "PresenterDefinition convenience methods" do
     it "returns advanced_filter_config" do
       load_integration_metadata!("advanced_search")
