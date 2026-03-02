@@ -57,13 +57,18 @@ module LcpRuby
       end
 
       def build_explicit_fields
-        advanced_filter_config["filterable_fields"].filter_map do |field_path|
+        fields = advanced_filter_config["filterable_fields"].filter_map do |field_path|
           if field_path.include?(".")
             build_association_field(field_path)
           else
             build_direct_field(field_path)
           end
         end
+
+        # Custom fields (filterable + active + readable)
+        fields.concat(build_custom_field_entries)
+
+        fields
       end
 
       def build_auto_detected_fields
@@ -97,6 +102,9 @@ module LcpRuby
           dot_path = "#{assoc.name}.#{label_field}"
           fields << field_descriptor(dot_path, target_field_def, assoc.name.humanize)
         end
+
+        # Custom fields (filterable + active + readable)
+        fields.concat(build_custom_field_entries)
 
         fields
       end
@@ -187,6 +195,61 @@ module LcpRuby
         all_operators.each_with_object({}) do |op, hash|
           hash[op.to_s] = OperatorRegistry.label_for(op)
         end
+      end
+
+      def build_custom_field_entries
+        return [] unless model_definition.custom_fields_enabled?
+        return [] unless CustomFields::Registry.available?
+
+        definitions = CustomFields::Registry.for_model(model_definition.name)
+        custom_fields_group = I18n.t("lcp_ruby.advanced_filter.field_groups.custom_fields", default: "Custom Fields")
+
+        definitions.filter_map do |defn|
+          next unless defn.active
+          next unless defn.respond_to?(:filterable) && defn.filterable
+          next unless evaluator.field_readable?(defn.field_name)
+
+          custom_field_descriptor(defn, custom_fields_group)
+        end
+      end
+
+      def custom_field_descriptor(defn, group)
+        custom_type = defn.custom_type.to_s
+        base_type = custom_type == "text" ? "text" : (custom_type == "enum" ? "enum" : custom_type)
+        # Map custom types to operator registry types
+        operator_type = case base_type
+                        when "string", "text" then base_type.to_sym
+                        when "integer", "float", "decimal" then base_type.to_sym
+                        when "boolean" then :boolean
+                        when "date", "datetime" then base_type.to_sym
+                        when "enum" then :enum
+                        else :string
+                        end
+
+        operators = OperatorRegistry.operators_for(operator_type)
+
+        descriptor = {
+          name: "cf[#{defn.field_name}]",
+          label: defn.label,
+          type: base_type,
+          group: group,
+          operators: operators.map(&:to_s),
+          custom_field: true
+        }
+
+        if base_type == "enum" && defn.enum_values.present?
+          descriptor[:enum_values] = Array(defn.enum_values).map do |ev|
+            if ev.is_a?(Hash)
+              value = (ev["value"] || ev[:value]).to_s
+              label = (ev["label"] || ev[:label] || value.humanize).to_s
+              [value, label]
+            else
+              [ev.to_s, ev.to_s.humanize]
+            end
+          end
+        end
+
+        descriptor
       end
 
       def load_model_definition(model_name)

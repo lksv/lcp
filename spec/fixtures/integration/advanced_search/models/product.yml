@@ -69,3 +69,4 @@ model:
   options:
     timestamps: true
     label_method: name
+    custom_fields: true

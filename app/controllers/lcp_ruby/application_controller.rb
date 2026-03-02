@@ -343,9 +343,53 @@ module LcpRuby
         )
       end
 
-      # 7. Custom field filters (?cf[...]) — placeholder for Phase 3
+      # 7. Custom field filters (?cf[...])
+      if params[:cf].present? && current_model_definition.custom_fields_enabled?
+        scope = apply_custom_field_filters(scope)
+      end
 
       scope
+    end
+
+    def apply_custom_field_filters(scope)
+      definitions = CustomFields::Registry.for_model(current_model_definition.name)
+      return scope if definitions.empty?
+
+      # Build lookup: field_name -> definition (active + filterable only)
+      filterable_defs = definitions.select { |d| d.active && d.respond_to?(:filterable) && d.filterable }
+      defs_by_name = filterable_defs.index_by(&:field_name)
+
+      # Sort field names by length desc so longer names match first
+      sorted_names = defs_by_name.keys.sort_by { |n| -n.length }
+      table_name = @model_class.table_name
+
+      params[:cf].each do |key, value|
+        next if value.is_a?(String) && value.blank?
+
+        field_name, operator = parse_cf_key(key, sorted_names)
+        next unless field_name
+
+        defn = defs_by_name[field_name]
+        next unless defn
+        next unless current_evaluator.field_readable?(field_name)
+
+        cast = Search::CustomFieldFilter.cast_for_type(defn.custom_type)
+        scope = Search::CustomFieldFilter.apply(scope, table_name, field_name, operator, value, cast: cast)
+      end
+
+      scope
+    end
+
+    def parse_cf_key(key, sorted_field_names)
+      key = key.to_s
+      sorted_field_names.each do |name|
+        prefix = "#{name}_"
+        if key.start_with?(prefix)
+          operator = key[prefix.length..]
+          return [name, operator] if operator.present?
+        end
+      end
+      nil
     end
 
     alias_method :apply_search, :apply_advanced_search

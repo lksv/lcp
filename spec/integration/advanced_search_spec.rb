@@ -411,6 +411,140 @@ RSpec.describe "Advanced Search Integration", type: :request do
     end
   end
 
+  describe "Custom field filtering with ?cf[...] params" do
+    before do
+      stub_current_user(role: "admin")
+
+      # Create custom field definitions for product model
+      cfd_model = LcpRuby.registry.model_for("custom_field_definition")
+      cfd_model.delete_all
+
+      cfd_model.create!(
+        target_model: "product",
+        field_name: "color",
+        custom_type: "string",
+        label: "Color",
+        active: true,
+        filterable: true,
+        position: 0
+      )
+
+      cfd_model.create!(
+        target_model: "product",
+        field_name: "priority",
+        custom_type: "integer",
+        label: "Priority",
+        active: true,
+        filterable: true,
+        position: 1
+      )
+
+      cfd_model.create!(
+        target_model: "product",
+        field_name: "tier",
+        custom_type: "enum",
+        label: "Tier",
+        active: true,
+        filterable: true,
+        position: 2,
+        enum_values: [
+          { "value" => "basic", "label" => "Basic" },
+          { "value" => "premium", "label" => "Premium" }
+        ]
+      )
+
+      cfd_model.create!(
+        target_model: "product",
+        field_name: "internal_notes",
+        custom_type: "text",
+        label: "Internal Notes",
+        active: true,
+        filterable: false,
+        position: 3
+      )
+
+      LcpRuby::CustomFields::Registry.mark_available!
+      LcpRuby::CustomFields::Registry.reload!("product")
+    end
+
+    it "filters by custom field eq" do
+      product_model.create!(name: "Red Product", custom_data: { "color" => "red" })
+      product_model.create!(name: "Blue Product", custom_data: { "color" => "blue" })
+
+      get "/products", params: { cf: { color_eq: "red" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Red Product")
+      expect(response.body).not_to include("Blue Product")
+    end
+
+    it "filters by custom field cont" do
+      product_model.create!(name: "Product A", custom_data: { "color" => "dark red" })
+      product_model.create!(name: "Product B", custom_data: { "color" => "blue" })
+
+      get "/products", params: { cf: { color_cont: "red" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Product A")
+      expect(response.body).not_to include("Product B")
+    end
+
+    it "filters by integer custom field with comparison" do
+      product_model.create!(name: "High Priority", custom_data: { "priority" => "10" })
+      product_model.create!(name: "Low Priority", custom_data: { "priority" => "1" })
+
+      get "/products", params: { cf: { priority_gteq: "5" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("High Priority")
+      expect(response.body).not_to include("Low Priority")
+    end
+
+    it "ignores non-filterable custom fields" do
+      product_model.create!(name: "With Notes", custom_data: { "internal_notes" => "secret" })
+      product_model.create!(name: "Without Notes", custom_data: {})
+
+      get "/products", params: { cf: { internal_notes_eq: "secret" } }
+
+      expect(response).to have_http_status(:ok)
+      # Filter should be ignored since field is not filterable
+      expect(response.body).to include("With Notes")
+      expect(response.body).to include("Without Notes")
+    end
+
+    it "combines Ransack filters with custom field filters" do
+      product_model.create!(name: "Published Red", status: "published", custom_data: { "color" => "red" })
+      product_model.create!(name: "Published Blue", status: "published", custom_data: { "color" => "blue" })
+      product_model.create!(name: "Draft Red", status: "draft", custom_data: { "color" => "red" })
+
+      get "/products", params: { f: { status_eq: "published" }, cf: { color_eq: "red" } }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("Published Red")
+      expect(response.body).not_to include("Published Blue")
+      expect(response.body).not_to include("Draft Red")
+    end
+
+    it "includes custom fields in filter metadata JSON" do
+      product_model.create!(name: "Test Product")
+
+      get "/products"
+
+      metadata_match = response.body.match(/data-lcp-filter-metadata="([^"]*)"/)
+      metadata = JSON.parse(CGI.unescapeHTML(metadata_match[1]))
+
+      cf_fields = metadata["fields"].select { |f| f["custom_field"] }
+      cf_names = cf_fields.map { |f| f["name"] }
+      expect(cf_names).to include("cf[color]", "cf[priority]", "cf[tier]")
+      # non-filterable field should not appear
+      expect(cf_names).not_to include("cf[internal_notes]")
+
+      tier_field = cf_fields.find { |f| f["name"] == "cf[tier]" }
+      expect(tier_field["enum_values"]).to eq([["basic", "Basic"], ["premium", "Premium"]])
+      expect(tier_field["group"]).to eq("Custom Fields")
+    end
+  end
+
   describe "PresenterDefinition convenience methods" do
     it "returns advanced_filter_config" do
       load_integration_metadata!("advanced_search")

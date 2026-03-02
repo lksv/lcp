@@ -485,6 +485,150 @@ RSpec.describe LcpRuby::Search::FilterMetadataBuilder do
     end
   end
 
+  describe "custom fields in metadata" do
+    let(:presenter_hash) do
+      {
+        "name" => "product",
+        "model" => "product",
+        "slug" => "products",
+        "search" => {
+          "enabled" => true,
+          "advanced_filter" => {
+            "enabled" => true
+          }
+        }
+      }
+    end
+
+    let(:product_model_with_cf_hash) do
+      hash = product_model_hash.dup
+      hash["options"] = (hash["options"] || {}).merge("custom_fields" => true)
+      hash
+    end
+
+    let(:model_def_with_cf) { LcpRuby::Metadata::ModelDefinition.from_hash(product_model_with_cf_hash) }
+    let(:presenter_definition) { LcpRuby::Metadata::PresenterDefinition.from_hash(presenter_hash) }
+
+    let(:cf_string_def) do
+      OpenStruct.new(
+        field_name: "company_name",
+        custom_type: "string",
+        label: "Company Name",
+        active: true,
+        filterable: true,
+        enum_values: nil
+      )
+    end
+
+    let(:cf_enum_def) do
+      OpenStruct.new(
+        field_name: "priority",
+        custom_type: "enum",
+        label: "Priority",
+        active: true,
+        filterable: true,
+        enum_values: [
+          { "value" => "low", "label" => "Low" },
+          { "value" => "high", "label" => "High" }
+        ]
+      )
+    end
+
+    let(:cf_not_filterable) do
+      OpenStruct.new(
+        field_name: "notes",
+        custom_type: "text",
+        label: "Notes",
+        active: true,
+        filterable: false,
+        enum_values: nil
+      )
+    end
+
+    let(:cf_inactive) do
+      OpenStruct.new(
+        field_name: "old_field",
+        custom_type: "string",
+        label: "Old Field",
+        active: false,
+        filterable: true,
+        enum_values: nil
+      )
+    end
+
+    before do
+      allow(LcpRuby::CustomFields::Registry).to receive(:available?).and_return(true)
+      allow(LcpRuby::CustomFields::Registry).to receive(:for_model).with("product")
+        .and_return([cf_string_def, cf_enum_def, cf_not_filterable, cf_inactive])
+      allow(LcpRuby.loader).to receive(:model_definition).with("product").and_return(model_def_with_cf)
+    end
+
+    it "includes filterable custom fields with cf[...] name format" do
+      builder = described_class.new(presenter_definition, model_def_with_cf, admin_evaluator)
+      result = builder.build
+
+      cf_fields = result[:fields].select { |f| f[:custom_field] }
+      expect(cf_fields.map { |f| f[:name] }).to eq(["cf[company_name]", "cf[priority]"])
+    end
+
+    it "sets Custom Fields group label" do
+      builder = described_class.new(presenter_definition, model_def_with_cf, admin_evaluator)
+      result = builder.build
+
+      cf_field = result[:fields].find { |f| f[:name] == "cf[company_name]" }
+      expect(cf_field[:group]).to eq("Custom Fields")
+    end
+
+    it "includes custom_field: true flag" do
+      builder = described_class.new(presenter_definition, model_def_with_cf, admin_evaluator)
+      result = builder.build
+
+      cf_field = result[:fields].find { |f| f[:name] == "cf[company_name]" }
+      expect(cf_field[:custom_field]).to be true
+    end
+
+    it "excludes non-filterable custom fields" do
+      builder = described_class.new(presenter_definition, model_def_with_cf, admin_evaluator)
+      result = builder.build
+
+      names = result[:fields].map { |f| f[:name] }
+      expect(names).not_to include("cf[notes]")
+    end
+
+    it "excludes inactive custom fields" do
+      builder = described_class.new(presenter_definition, model_def_with_cf, admin_evaluator)
+      result = builder.build
+
+      names = result[:fields].map { |f| f[:name] }
+      expect(names).not_to include("cf[old_field]")
+    end
+
+    it "includes enum_values for enum custom fields" do
+      builder = described_class.new(presenter_definition, model_def_with_cf, admin_evaluator)
+      result = builder.build
+
+      cf_enum = result[:fields].find { |f| f[:name] == "cf[priority]" }
+      expect(cf_enum[:enum_values]).to eq([["low", "Low"], ["high", "High"]])
+    end
+
+    it "assigns correct operators for string custom fields" do
+      builder = described_class.new(presenter_definition, model_def_with_cf, admin_evaluator)
+      result = builder.build
+
+      cf_string = result[:fields].find { |f| f[:name] == "cf[company_name]" }
+      expect(cf_string[:operators]).to include("eq", "cont", "start")
+    end
+
+    it "excludes custom fields not readable by viewer" do
+      builder = described_class.new(presenter_definition, model_def_with_cf, viewer_evaluator)
+      result = builder.build
+
+      cf_names = result[:fields].select { |f| f[:custom_field] }.map { |f| f[:name] }
+      # viewer cannot read company_name or priority (not in readable fields)
+      expect(cf_names).to be_empty
+    end
+  end
+
   describe "presets passthrough" do
     let(:presenter_hash) do
       {

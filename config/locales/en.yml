@@ -80,6 +80,7 @@ en:
       combinator_or: "OR"
       field_groups:
         direct: "Fields"
+        custom_fields: "Custom Fields"
     auth:
       title: "Authentication"
       account_deactivated: "Your account has been deactivated. Please contact an administrator."

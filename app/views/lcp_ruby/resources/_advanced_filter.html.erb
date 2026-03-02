@@ -5,14 +5,14 @@
   <div class="lcp-filter-toggle-row">
     <button type="button" class="btn lcp-filter-toggle-btn">
       <%= I18n.t("lcp_ruby.advanced_filter.toggle", default: "Filters") %>
-      <% active_count = (params[:f]&.keys || []).size %>
+      <% active_count = (params[:f]&.keys || []).size + (params[:cf]&.keys || []).size %>
       <% if active_count > 0 %>
         <span class="lcp-filter-count"><%= active_count %></span>
       <% end %>
     </button>
   </div>
 
-  <div class="lcp-filter-body" style="<%= 'display:none;' unless params[:f].present? %>">
+  <div class="lcp-filter-body" style="<%= 'display:none;' unless params[:f].present? || params[:cf].present? %>">
     <div class="lcp-filter-rows"></div>
 
     <div class="lcp-filter-actions-row">

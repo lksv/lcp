@@ -98,7 +98,26 @@
     // Sort field names by length desc so "category.name" matches before "name"
     var sortedFieldNames = fieldNames.slice().sort(function(a, b) { return b.length - a.length; });
 
+    // Collect cf[...] field names for parsing
+    var cfFieldNames = metadata.fields
+      .filter(function(f) { return f.custom_field && f.name.indexOf("cf[") === 0; })
+      .map(function(f) { return f.name; });
+    var cfBaseNames = cfFieldNames.map(function(n) {
+      return n.substring(3, n.length - 1); // strip "cf[" and "]"
+    }).sort(function(a, b) { return b.length - a.length; });
+
     params.forEach(function(value, key) {
+      // Match cf[key]=value (custom field filters)
+      var cfMatch = key.match(/^cf\[([^\]]+)\]$/);
+      if (cfMatch) {
+        var cfKey = cfMatch[1];
+        var cfParsed = parseCfKey(cfKey, cfBaseNames);
+        if (cfParsed) {
+          conditions.push({ field: "cf[" + cfParsed.field + "]", operator: cfParsed.operator, value: value });
+        }
+        return;
+      }
+
       // Match f[key]=value or f[g][idx][key]=value
       var topMatch = key.match(/^f\[([^\]]+)\]$/);
       if (topMatch) {
@@ -163,6 +182,20 @@
       if (ransackKey.length > suffix.length && ransackKey.slice(-suffix.length) === suffix) {
         var field = ransackKey.slice(0, -suffix.length).replace(/_/g, ".");
         return { field: field, operator: op };
+      }
+    }
+    return null;
+  }
+
+  function parseCfKey(cfKey, sortedBaseNames) {
+    for (var i = 0; i < sortedBaseNames.length; i++) {
+      var baseName = sortedBaseNames[i];
+      var prefix = baseName + "_";
+      if (cfKey.indexOf(prefix) === 0) {
+        var operatorSuffix = cfKey.substring(prefix.length);
+        if (KNOWN_OPERATORS.indexOf(operatorSuffix) !== -1) {
+          return { field: baseName, operator: operatorSuffix };
+        }
       }
     }
     return null;
@@ -654,6 +687,30 @@
 
   function encodeCondition(params, prefix, condition) {
     if (!condition.field || !condition.operator) return;
+
+    // Custom field conditions use cf[field_operator] instead of f[field_operator]
+    var cfMatch = condition.field.match(/^cf\[([^\]]+)\]$/);
+    if (cfMatch) {
+      var cfBase = cfMatch[1];
+      var cfKey = "cf[" + cfBase + "_" + condition.operator + "]";
+
+      if (Array.isArray(condition.value)) {
+        if (condition.value.length === 2 && condition.operator === "between") {
+          params["cf[" + cfBase + "_gteq]"] = condition.value[0];
+          params["cf[" + cfBase + "_lteq]"] = condition.value[1];
+          return;
+        }
+        condition.value.forEach(function(v) {
+          if (!params[cfKey + "[]"]) params[cfKey + "[]"] = [];
+          if (!Array.isArray(params[cfKey + "[]"])) params[cfKey + "[]"] = [params[cfKey + "[]"]];
+          params[cfKey + "[]"].push(v);
+        });
+      } else {
+        params[cfKey] = condition.value;
+      }
+      return;
+    }
+
     var ransackField = condition.field.replace(/\./g, "_");
     var key = prefix + "[" + ransackField + "_" + condition.operator + "]";
 
