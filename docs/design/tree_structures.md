@@ -345,6 +345,7 @@ presenter:
   index:
     tree_view: true                  # enables tree index layout
     default_expanded: 1              # expand root level by default (0 = collapsed, :all = expand everything)
+    reparentable: true               # enable drag-and-drop reparenting (default: false)
     table_columns:
       - { field: name, link_to: show }
       - { field: description }
@@ -365,6 +366,7 @@ define_presenter :categories do
   index do
     tree_view true
     default_expanded 1
+    reparentable true             # enable drag-and-drop reparenting (default: false)
 
     column :name, link_to: :show
     column :description
@@ -379,14 +381,124 @@ When `tree_view: true` is set on the index config:
 1. **Data loading** — controller loads all records (no pagination) and builds an in-memory tree. For large datasets, this is bounded by `max_depth` and the inherent size of business trees (typically < 1000 nodes).
 2. **Rendering** — records are rendered as nested `<tbody>` groups. Each row has an indentation level based on its depth. Non-leaf rows have an expand/collapse toggle.
 3. **Column rendering** — the first `table_column` is indented by `depth * indent_size` and prefixed with expand/collapse chevron (for non-leaf) or bullet (for leaf). Remaining columns render normally.
-4. **Search/filter** — when a search query is active, the tree view falls back to a flat table (searching a tree subset doesn't produce a meaningful tree). A `data-tree-flat="true"` attribute disables tree indentation.
+4. **Search/filter — filtered tree** — when a search query or filter is active, the tree view shows a **filtered tree** instead of a flat table. Matching records are displayed normally; their ancestors up to root are included for context but rendered in a dimmed style (CSS class `lcp-tree-ancestor-context`). Non-matching nodes that are not ancestors of any match are hidden. The filtered tree is automatically fully expanded so all matches are visible. See [Filtered Tree Behavior](#filtered-tree-behavior) for details.
 5. **Sorting** — user-initiated column sorting (clicking headers) switches to flat table mode temporarily. Tree view only makes sense in the natural tree order.
 
 #### Validation
 
 `ConfigurationValidator` checks:
 - `tree_view: true` requires the model to have `tree` config — error if model is not a tree
+- `reparentable: true` requires `tree_view: true` on the same index config — error otherwise
+- `reparentable: true` requires the model to have `tree` config — error if model is not a tree
 - `tree_view: true` and pagination — warning, pagination is ignored in tree view mode (all records loaded)
+
+#### Filtered Tree Behavior
+
+When a search query (`?qs=...`) or advanced filter is active on a tree index, the view shows a **filtered tree** that preserves hierarchical context instead of falling back to a flat table.
+
+**Algorithm:**
+
+1. Execute the standard search/filter pipeline (Ransack, QuickSearch, custom filters) → produces `match_ids` (set of matching record IDs)
+2. Load **all** records for the model (same as unfiltered tree view — the full tree is already in memory)
+3. Build the in-memory tree as usual
+4. For each matching record, collect its ancestor IDs up to root (walk the in-memory tree — no CTE needed)
+5. Compute `display_ids = match_ids ∪ ancestor_ids_of_all_matches`
+6. Render the tree, but only include nodes whose ID is in `display_ids`
+7. Nodes in `match_ids` get normal styling; nodes in `display_ids - match_ids` (context ancestors) get CSS class `lcp-tree-ancestor-context`
+8. The filtered tree is automatically fully expanded (override `default_expanded`)
+
+**Visual example:**
+
+```
+Search: "keyboard"
+
+Full tree:                          Filtered tree:
+Electronics                         Electronics           ← ancestor, dimmed
+├── Input Devices                   └── Input Devices     ← ancestor, dimmed
+│   ├── Keyboards                       ├── Keyboards ✓   ← match, normal
+│   ├── Mice                            └── Gaming KB ✓   ← match, normal
+│   └── Gaming KB                   Accessories           ← ancestor, dimmed
+├── Monitors                        └── Keyboard Cases ✓  ← match, normal
+└── Audio
+Accessories
+├── Cases
+├── Keyboard Cases
+└── Cables
+```
+
+**CSS styling for context ancestors:**
+
+```css
+.lcp-tree-row.lcp-tree-ancestor-context {
+  opacity: 0.5;
+  font-weight: 300;
+}
+
+.lcp-tree-row.lcp-tree-ancestor-context .lcp-actions-column {
+  visibility: hidden;  /* hide action buttons on context rows */
+}
+```
+
+Context ancestor rows are visually dimmed to make it clear they are not matches. Action buttons (show, edit, delete) are hidden on context rows because the user is browsing search results, not the full tree.
+
+**Edge cases:**
+
+- **Match is a root node** — displayed normally, no ancestors needed
+- **Match's ancestor is also a match** — displayed with normal styling (match wins over ancestor-context)
+- **No matches** — empty state shown (same as flat table with no results)
+- **All records match** — full tree displayed with normal styling on every node
+- **Drag-and-drop during search** — disabled. Reparenting in a partial tree would be confusing and error-prone. The `reparentable` drag handles are hidden when any filter is active.
+
+**Controller changes:**
+
+```ruby
+# In resources_controller.rb, tree index action
+def load_tree_index_data
+  all_records = @model_class.all.includes(:parent)  # full tree always loaded
+
+  if search_active?
+    match_ids = apply_advanced_search(@model_class).pluck(:id).to_set
+    tree_data = build_filtered_tree(all_records, match_ids)
+  else
+    tree_data = build_full_tree(all_records)
+  end
+
+  @tree_roots = tree_data[:roots]
+  @match_ids = tree_data[:match_ids] || nil  # nil = no filter, show all normally
+end
+
+def build_filtered_tree(all_records, match_ids)
+  # Build in-memory lookup
+  records_by_id = all_records.index_by(&:id)
+  parent_field = current_model_definition.tree_parent_field
+
+  # Collect ancestor IDs for all matches
+  ancestor_ids = Set.new
+  match_ids.each do |mid|
+    current = records_by_id[mid]
+    while current
+      pid = current.send(parent_field)
+      break if pid.nil? || ancestor_ids.include?(pid)
+      ancestor_ids << pid
+      current = records_by_id[pid]
+    end
+  end
+
+  display_ids = match_ids | ancestor_ids
+
+  # Filter tree roots to only include displayed nodes
+  # (build_tree helper already exists — filter its output)
+  { roots: build_tree_from_subset(all_records, display_ids), match_ids: match_ids }
+end
+```
+
+**View rendering (filtered mode):**
+
+```erb
+<tr class="lcp-tree-row <%= 'lcp-tree-ancestor-context' if @match_ids && !@match_ids.include?(record.id) %>"
+    data-record-id="<%= record.id %>"
+    ...>
+```
 
 #### View Structure
 
@@ -710,24 +822,33 @@ async function handleDrop(draggedId, parentId, position, treeVersion) {
 
 #### Presenter Configuration for Reparenting
 
-Reparenting is enabled when **all** conditions are met:
+Reparenting must be **explicitly enabled** in the presenter via `reparentable: true`. This is a deliberate opt-in because reparenting is a destructive structural operation — the configurator should enable it consciously.
 
-1. Model has `tree` config
-2. Presenter has `tree_view: true` on index config
-3. User has `update` permission on the model
-4. User has write access to `parent_id` field
+When enabled, drag handles appear only if **all** conditions are met:
 
-No separate `reparentable: true` flag is needed — drag-and-drop reparenting is an inherent capability of tree index views. If the user has permission to change `parent_id`, drag handles appear.
-
-However, reparenting can be **explicitly disabled** in the presenter:
+1. Presenter has `reparentable: true` on index config
+2. Model has `tree` config
+3. Presenter has `tree_view: true` on index config
+4. User has `update` permission on the model
+5. User has write access to `parent_id` field
 
 ```yaml
 index:
   tree_view: true
-  reparentable: false          # disable drag-and-drop reparenting even for users with parent_id write access
+  reparentable: true             # explicitly enable drag-and-drop reparenting
 ```
 
-Default: `reparentable: true` when `tree_view: true`.
+```ruby
+# DSL equivalent
+index do
+  tree_view true
+  reparentable true
+end
+```
+
+Default: `reparentable: false`. Without this flag, the tree is view-only (expand/collapse still works).
+
+**Validation:** `reparentable: true` requires `tree_view: true` on the same presenter and `tree` config on the model — otherwise `ConfigurationValidator` reports an error.
 
 #### Interaction with `reorderable: true`
 
@@ -751,13 +872,13 @@ For **unordered trees** (no `reorderable`), only reparenting is available — dr
 **View rendering:**
 
 ```erb
-<% reparentable = current_presenter.index_config.fetch("reparentable", true) &&
+<% reparentable = current_presenter.index_config.fetch("reparentable", false) &&
                   current_model_definition.tree? &&
                   current_evaluator.can?(:update) &&
                   current_evaluator.field_writable?(current_model_definition.tree_parent_field) %>
 ```
 
-When `reparentable` is false, tree rows have no drag handles. The tree is view-only (expand/collapse still works).
+When `reparentable` resolves to false (default), tree rows have no drag handles. The tree is view-only (expand/collapse still works).
 
 **Permission YAML example:**
 
@@ -1322,7 +1443,7 @@ This is a minor convenience improvement, not a requirement.
 | `lib/lcp_ruby/schemas/model.json` | Add `tree` to model options schema |
 | `lib/lcp_ruby/schemas/presenter.json` | Add `tree_view`, `default_expanded`, `reparentable` to index config schema |
 | `app/helpers/lcp_ruby/form_helper.rb` | Optional: auto-detect `parent_field` from tree config in `render_tree_select` |
-| `app/controllers/lcp_ruby/resources_controller.rb` | Add `reparent` action, `compute_tree_version`, tree index data loading |
+| `app/controllers/lcp_ruby/resources_controller.rb` | Add `reparent` action, `compute_tree_version`, tree index data loading, `build_filtered_tree` for search |
 | `config/routes.rb` | Add `reparent` member route |
 | `app/views/lcp_ruby/resources/_tree_index.html.erb` | **New** — tree index partial with indented rows, expand/collapse, drag handles |
 | `app/views/lcp_ruby/resources/index.html.erb` | Conditional render: `_tree_index` when `tree_view: true`, existing table otherwise |
@@ -1515,7 +1636,7 @@ presenter:
     tree_view: true
     default_expanded: 2              # expand 2 levels deep by default
     reorderable: true                # drag-and-drop sibling reorder
-    # reparentable: true             # default when tree_view: true
+    reparentable: true               # enable drag-and-drop reparenting (default: false)
     table_columns:
       - { field: icon, renderer: icon, width: "40px" }
       - { field: name, link_to: show }
@@ -1585,6 +1706,7 @@ define_presenter :departments do
     tree_view true
     default_expanded :all         # expand entire tree
     reorderable true
+    reparentable true             # enable drag-and-drop reparenting
 
     column :name, link_to: :show
     column :code
@@ -1662,7 +1784,7 @@ end
 
 15. **Builder** — `apply_tree` runs in correct pipeline position; model has associations, scopes, and methods when tree enabled; model has none when tree not enabled
 
-16. **ConfigurationValidator — tree** — accepts `true`; accepts valid Hash; rejects unknown keys; error on missing parent_field; error on non-integer parent_field; error on non-nullable parent_field; error on invalid dependent value; error on `dependent: :discard` without `soft_delete`; error on `ordered: true` without position field; error on conflicting manual associations; warning on explicit positioning conflict
+16. **ConfigurationValidator — tree** — accepts `true`; accepts valid Hash; rejects unknown keys; error on missing parent_field; error on non-integer parent_field; error on non-nullable parent_field; error on invalid dependent value; error on `dependent: :discard` without `soft_delete`; error on `ordered: true` without position field; error on conflicting manual associations; warning on explicit positioning conflict; error on `reparentable: true` without `tree_view: true`; error on `reparentable: true` when model has no tree config
 
 17. **DSL** — `tree` method produces correct hash; `tree true` produces `true`; `tree ordered: true, max_depth: 5` produces correct Hash; round-trip YAML → DSL → YAML
 
@@ -1686,7 +1808,7 @@ end
 
 26. **Tree index — default_expanded** — `default_expanded: 0` renders all nodes collapsed; `default_expanded: 1` expands root level only; `default_expanded: :all` expands entire tree
 
-27. **Tree index — search fallback** — when search query is present, tree view falls back to flat table; when search is cleared, tree view restores
+27. **Tree index — filtered tree on search** — when search query is present, tree view shows only matching records + their ancestors; ancestor-context nodes have `lcp-tree-ancestor-context` CSS class; matching nodes have normal styling; filtered tree is fully expanded; when search is cleared, full tree restores; drag-and-drop handles are hidden during search
 
 28. **Reparent endpoint — basic** — `PATCH /categories/:id/reparent` with `parent_id: X` changes the node's parent; response includes updated `tree_version`; node appears under new parent in subsequent GET
 
@@ -1702,17 +1824,17 @@ end
 
 34. **Reparent endpoint — permission denied** — user without write access to `parent_id` gets 403; user with write access succeeds
 
-35. **Tree index — drag handles visibility** — drag handles rendered for users with `update` + `field_writable?(parent_id)`; not rendered for read-only roles; not rendered when `reparentable: false` in presenter
+35. **Tree index — drag handles visibility** — drag handles rendered only when presenter has `reparentable: true` AND user has `update` + `field_writable?(parent_id)`; not rendered for read-only roles; not rendered when `reparentable` is omitted (default false)
 
-36. **Tree index — reparentable: false** — presenter with `tree_view: true, reparentable: false` renders tree without drag handles even for admin users
+36. **Tree index — reparentable default** — presenter with `tree_view: true` without explicit `reparentable: true` renders tree without drag handles for all users including admin; adding `reparentable: true` enables drag handles for authorized users
 
 ### Fixture Requirements
 
 - New integration fixture set: `spec/fixtures/integration/tree_structured/`
 - Tree model with `tree: true` (category or similar)
 - Ordered tree model with `tree: { ordered: true }` (menu_item or similar)
-- Presenter with `tree_view: true` and `reorderable: true`
-- Presenter with `tree_view: true, reparentable: false` (read-only tree)
+- Presenter with `tree_view: true`, `reorderable: true`, and `reparentable: true`
+- Presenter with `tree_view: true` without `reparentable` (default read-only tree)
 - Permissions with field-level control over `parent_id` and `position`
 
 ## Open Questions
