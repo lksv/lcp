@@ -9,3 +9,6 @@ view_group:
     - presenter: company_short
       label: "Short"
       icon: list
+    - presenter: company_archive
+      label: "Archived"
+      icon: archive

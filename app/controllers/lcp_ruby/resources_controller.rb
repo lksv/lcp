@@ -240,8 +240,7 @@ module LcpRuby
     private
 
     def set_record
-      scope = @model_class
-      scope = scope.kept if current_model_definition.soft_delete?
+      scope = apply_soft_delete_scope(@model_class)
       @record = scope.find(params[:id])
     end
 

@@ -57,6 +57,8 @@ define_model :deal do
   on_field_change :on_stage_change, field: :stage,
     condition: { field: :stage, operator: :not_in, value: %w[lead] }
 
+  soft_delete
+
   timestamps true
   label_method :title
 end

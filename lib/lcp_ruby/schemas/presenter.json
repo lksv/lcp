@@ -12,6 +12,7 @@
     "icon": { "type": "string" },
     "read_only": { "type": "boolean" },
     "embeddable": { "type": "boolean" },
+    "scope": { "type": "string", "enum": ["discarded", "with_discarded"] },
     "index": { "$ref": "#/$defs/index_config" },
     "show": { "$ref": "#/$defs/show_config" },
     "form": { "$ref": "#/$defs/form_config" },
