@@ -89,7 +89,7 @@ RSpec.describe "JSON Field with Target Model", type: :request do
       }
 
       # The item has blank instruction which violates presence validation
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
 
     it "updates a recipe with valid items" do

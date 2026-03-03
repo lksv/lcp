@@ -170,7 +170,7 @@ RSpec.describe "JSON Field Inline Mode", type: :request do
       }
 
       # Max exceeded: record fails validation, re-renders form with error
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("too many items")
     ensure
       json_section&.delete("max")

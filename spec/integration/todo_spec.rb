@@ -84,7 +84,7 @@ RSpec.describe "TODO App Integration", type: :request do
       it "returns validation error when title is blank" do
         post "/lists", params: { record: { title: "", description: "No title" } }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(response.body).to include("error")
       end
     end
@@ -190,7 +190,7 @@ RSpec.describe "TODO App Integration", type: :request do
       it "returns validation error when title is blank" do
         post "/items", params: { record: { title: "", todo_list_id: list.id } }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
 

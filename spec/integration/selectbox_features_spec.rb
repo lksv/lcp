@@ -40,7 +40,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
         record: { title: "Bad Deal", company_id: 999999, stage: "lead" }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("not allowed")
     end
 
@@ -66,7 +66,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
         record: { company_id: 999999 }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("not allowed")
     end
 
@@ -113,7 +113,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
       post "/deals", params: {
         record: { title: "Bad", company_id: 999999, stage: "lead" }
       }
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include(I18n.t("lcp_ruby.form.errors.contains_not_allowed"))
     end
   end
@@ -337,7 +337,7 @@ RSpec.describe "Selectbox Features (Phase 1)", type: :request do
         inline_record: { name: "", industry: "technology" }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       data = JSON.parse(response.body)
       expect(data["errors"]).to be_an(Array)
       expect(data["errors"].any? { |e| e.include?("Name") || e.include?("blank") }).to be true

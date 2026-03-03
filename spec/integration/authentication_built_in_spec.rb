@@ -118,7 +118,7 @@ RSpec.describe "Authentication built-in mode", type: :request do
         user: { email: "test@example.com", password: "wrong" }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 

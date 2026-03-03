@@ -87,7 +87,7 @@ RSpec.describe "Custom Fields Integration", type: :request do
           }
         }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it "ignores target_model tampering via params" do
@@ -314,7 +314,7 @@ RSpec.describe "Custom Fields Integration", type: :request do
         }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
   end
 
@@ -508,7 +508,7 @@ RSpec.describe "Custom Fields Integration", type: :request do
           }
         }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it "preserves user input on validation error" do
@@ -524,7 +524,7 @@ RSpec.describe "Custom Fields Integration", type: :request do
           }
         }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         # The edited label should be preserved in the re-rendered form, not reverted to DB state
         expect(response.body).to include("Edited Label")
         # The original DB record should NOT have been changed (transaction rolled back)
@@ -645,7 +645,7 @@ RSpec.describe "Custom Fields Integration", type: :request do
           }
         }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
         expect(cfd_model.find_by(id: to_remove.id)).to be_present
       end
     end

@@ -68,7 +68,7 @@ RSpec.describe "Tree Reparent", type: :request do
         headers: { "Accept" => "application/json" },
         as: :json
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       json = JSON.parse(response.body)
       expect(json["errors"]).to be_present
 
@@ -84,7 +84,7 @@ RSpec.describe "Tree Reparent", type: :request do
         headers: { "Accept" => "application/json" },
         as: :json
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       json = JSON.parse(response.body)
       expect(json["errors"]).to be_present
     end

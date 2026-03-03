@@ -122,7 +122,7 @@ RSpec.describe "File Attachments", type: :request do
       }
 
       # Should re-render the form with errors
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("too large")
     end
   end
@@ -136,7 +136,7 @@ RSpec.describe "File Attachments", type: :request do
         record: { title: "Wrong Type", photo: text_file }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("invalid content type")
     end
   end
@@ -151,7 +151,7 @@ RSpec.describe "File Attachments", type: :request do
         record: { title: "Too Many", files: files }
       }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
       expect(response.body).to include("too many files")
     end
   end

@@ -62,7 +62,7 @@ module LcpRuby
             default: "%{model} was successfully created.")
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
@@ -87,7 +87,7 @@ module LcpRuby
             default: "%{model} was successfully updated.")
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 
@@ -246,7 +246,7 @@ module LcpRuby
           tree_version: compute_tree_version
         }
       else
-        render json: { errors: @record.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: @record.errors.full_messages }, status: :unprocessable_content
       end
     end
 
@@ -294,7 +294,7 @@ module LcpRuby
         label_method = resolve_inline_label_method(target_model_def, params[:label_method])
         render json: { id: record.id, label: resolve_label(record, label_method) }, status: :created
       else
-        render json: { errors: record.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: record.errors.full_messages }, status: :unprocessable_content
       end
     end
 

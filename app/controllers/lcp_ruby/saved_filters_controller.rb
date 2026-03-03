@@ -34,14 +34,14 @@ module LcpRuby
       # Enforce limits
       limit_error = check_limits(record)
       if limit_error
-        render json: { error: limit_error }, status: :unprocessable_entity
+        render json: { error: limit_error }, status: :unprocessable_content
         return
       end
 
       if record.save
         render json: serialize_filter(record), status: :created
       else
-        render json: { errors: record.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: record.errors.full_messages }, status: :unprocessable_content
       end
     end
 
@@ -60,7 +60,7 @@ module LcpRuby
       if @saved_filter.save
         render json: serialize_filter(@saved_filter)
       else
-        render json: { errors: @saved_filter.errors.full_messages }, status: :unprocessable_entity
+        render json: { errors: @saved_filter.errors.full_messages }, status: :unprocessable_content
       end
     end
 

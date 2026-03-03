@@ -34,7 +34,7 @@ module LcpRuby
           devise.stretches = Rails.env.test? ? 1 : 12
 
           # Turbo-compatible HTTP status codes
-          devise.responder.error_status = :unprocessable_entity
+          devise.responder.error_status = :unprocessable_content
           devise.responder.redirect_status = :see_other
 
           # ORM

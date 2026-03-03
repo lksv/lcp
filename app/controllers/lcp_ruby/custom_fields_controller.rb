@@ -50,7 +50,7 @@ module LcpRuby
         redirect_to custom_fields_show_path, notice: "Custom field was successfully created."
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
-        render :new, status: :unprocessable_entity
+        render :new, status: :unprocessable_content
       end
     end
 
@@ -69,7 +69,7 @@ module LcpRuby
         redirect_to custom_fields_show_path, notice: "Custom field was successfully updated."
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
-        render :edit, status: :unprocessable_entity
+        render :edit, status: :unprocessable_content
       end
     end
 
@@ -154,7 +154,7 @@ module LcpRuby
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
         @manage_field_options = build_manage_field_options
         flash.now[:alert] = errors.join("; ")
-        render "lcp_ruby/custom_fields/manage", status: :unprocessable_entity
+        render "lcp_ruby/custom_fields/manage", status: :unprocessable_content
       else
         redirect_to custom_fields_index_path, notice: "Custom fields updated successfully."
       end

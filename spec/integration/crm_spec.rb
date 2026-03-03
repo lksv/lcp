@@ -55,7 +55,7 @@ RSpec.describe "CRM App Integration", type: :request do
       it "validates required name" do
         post "/companies", params: { record: { name: "", industry: "finance" } }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
 

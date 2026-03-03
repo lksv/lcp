@@ -274,7 +274,7 @@ RSpec.describe "Engine Features Integration", type: :request do
     it "validates presence on title" do
       post "/dsl-records", params: { record: { title: "", body: "No title" } }
 
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
 
     it "applies default value for active field" do
@@ -295,7 +295,7 @@ RSpec.describe "Engine Features Integration", type: :request do
           record: { name: "Format Fail", code: "INVALID CODE!" }
         }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it "accepts valid code format" do
@@ -317,7 +317,7 @@ RSpec.describe "Engine Features Integration", type: :request do
           record: { name: "Unique Name", code: "unique-2" }
         }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
     end
 
@@ -327,7 +327,7 @@ RSpec.describe "Engine Features Integration", type: :request do
           record: { name: "Active No Amount", code: "active-no-amt", status: "active", amount: "" }
         }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it "allows blank amount when status is draft" do
@@ -347,7 +347,7 @@ RSpec.describe "Engine Features Integration", type: :request do
           record: { name: "Compare Fail", code: "compare-fail", min_value: 100, max_value: 50 }
         }
 
-        expect(response).to have_http_status(:unprocessable_entity)
+        expect(response).to have_http_status(:unprocessable_content)
       end
 
       it "accepts when min_value < max_value" do

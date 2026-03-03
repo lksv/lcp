@@ -88,7 +88,7 @@ module LcpRuby
           format.json { render json: { success: true, message: result.message, data: result.data } }
         else
           format.html { redirect_back(fallback_location: fallback, alert: result.message) }
-          format.json { render json: { success: false, message: result.message, errors: result.errors }, status: :unprocessable_entity }
+          format.json { render json: { success: false, message: result.message, errors: result.errors }, status: :unprocessable_content }
         end
       end
     end

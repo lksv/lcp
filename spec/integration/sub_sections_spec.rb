@@ -133,7 +133,7 @@ RSpec.describe "Sub-sections in Nested Rows", type: :request do
       }
 
       # street and city have presence validations
-      expect(response).to have_http_status(:unprocessable_entity)
+      expect(response).to have_http_status(:unprocessable_content)
     end
 
     it "updates a member with sub-section fields" do
