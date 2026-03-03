@@ -71,6 +71,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
 - [Auditing Reference](docs/reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
+- [Tree Structures Reference](docs/reference/tree-structures.md) — Declarative tree hierarchies: model options, traversal, reparenting, tree index view
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
 - [Presenter DSL Reference](docs/reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenters (with inheritance)
@@ -86,6 +87,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Soft Delete Guide](docs/guides/soft-delete.md) — Discard/restore, cascade, archive presenters, permissions
 - [Auditing Guide](docs/guides/auditing.md) — Change tracking: setup, field filtering, JSON expansion, custom writer, show page integration
 - [Eager Loading Guide](docs/guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
+- [Tree Structures Guide](docs/guides/tree-structures.md) — Declarative tree hierarchies: setup, tree index view, drag-and-drop reparenting, search
 - [View Groups Guide](docs/guides/view-groups.md) — Multi-view navigation and view switcher setup
 - [Menu Guide](docs/guides/menu.md) — Custom navigation menus: dropdowns, sidebar, combined layouts, badges
 - [Custom Fields Guide](docs/guides/custom-fields.md) — Runtime user-defined fields: enabling, defining, sections, permissions
@@ -184,7 +186,7 @@ YAML metadata (config/lcp_ruby/)
 |--------|----------|---------|
 | `Metadata` | `lib/lcp_ruby/metadata/` | Parses YAML into definition objects (ModelDefinition, PresenterDefinition, etc.) |
 | `Types` | `lib/lcp_ruby/types/` | TypeRegistry, TypeDefinition, ServiceRegistry, built-in types (email, phone, url, color), transforms (strip, downcase, normalize_url, normalize_phone) |
-| `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator, PositioningApplicator, UserstampsApplicator, SoftDeleteApplicator, AuditingApplicator. Pipeline includes placeholder step for tree (no-op until feature PR) |
+| `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, ScopeApplicator, PositioningApplicator, UserstampsApplicator, SoftDeleteApplicator, AuditingApplicator, TreeApplicator (self-referential associations, traversal methods, cycle detection, positioning integration) |
 | `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections + normalize_json_field_section for json_field: sources + sub-section enrichment), ColumnSet (visible columns), ActionSet (visible actions with record_rules integration via action_permitted_for_record?), IncludesResolver (auto-detects and applies eager loading from presenter metadata), FieldValueResolver (dot-path, template, FK, and simple field resolution with permission checks) |
 | `CustomFields` | `lib/lcp_ruby/custom_fields/` | Registry (per-model definition cache), Applicator (dynamic accessors + validations + defaults + stale cleanup), ContractValidator (boot-time model contract checks), Query (DB-portable JSON queries with field name validation), DefinitionChangeHandler (cache invalidation), Setup (shared boot logic with contract validation), Utils (env-aware JSON/numeric parsing) |
 | `Roles` | `lib/lcp_ruby/roles/` | Registry (thread-safe role name cache), ContractValidator (boot-time model contract checks), ChangeHandler (after_commit cache invalidation), Setup (boot orchestration). Only active when `role_source == :model` |

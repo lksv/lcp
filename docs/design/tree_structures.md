@@ -1,6 +1,6 @@
 # Design: Tree Structures
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2026-02-22
 
 > **Note:** This feature depends on [Model Options Infrastructure](model_options_infrastructure.md) for `boolean_or_hash_option` helper (§3), `validate_boolean_or_hash_option` validator (§4), Builder pipeline ordering (§1), cross-feature interaction matrix (§9), and error handling conventions (§10). See also [Record Positioning](record_positioning.md) for the `positioning` gem integration that tree ordering builds on, [Soft Delete](soft_delete.md) for `dependent: :discard` cascade behavior on tree associations, and [Auditing](auditing.md) for reparenting audit trail.

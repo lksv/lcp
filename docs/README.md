@@ -23,6 +23,7 @@ Complete attribute reference for every YAML configuration file:
 - [Condition Operators](reference/condition-operators.md) — Shared operator reference for `visible_when`, `record_rules`, etc.
 - [Auditing](reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading](reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
+- [Tree Structures](reference/tree-structures.md) — Declarative tree hierarchies: model options, traversal, reparenting, tree index view
 - [Engine Configuration](reference/engine-configuration.md) — `LcpRuby.configure` options
 
 ## DSL Reference
@@ -48,6 +49,7 @@ Complete attribute reference for every YAML configuration file:
 - [Soft Delete](guides/soft-delete.md) — Discard/restore, cascade, archive presenters, permissions
 - [Auditing](guides/auditing.md) — Change tracking: setup, field filtering, JSON expansion, custom writer, show page integration
 - [Eager Loading](guides/eager-loading.md) — N+1 prevention, strict_loading, manual overrides
+- [Tree Structures](guides/tree-structures.md) — Declarative tree hierarchies: setup, tree index view, drag-and-drop reparenting, search
 - [Custom Fields](guides/custom-fields.md) — Runtime user-defined fields: enabling, defining, sections, permissions, programmatic access
 - [Role Source](guides/role-source.md) — DB-backed role management: setup, validation, cache, testing
 - [Permission Source](guides/permission-source.md) — DB-backed permission management: runtime editing, JSON definitions, testing
@@ -70,6 +72,7 @@ Implemented:
 - [Userstamps](design/userstamps.md) — Automatic `created_by_id` / `updated_by_id` tracking
 - [Soft Delete](design/soft_delete.md) — Discard/restore support with `discarded_at` timestamp, cascade discard/undiscard, archive presenters
 - [Auditing](design/auditing.md) — Native change tracking and audit trail
+- [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
 
 In Progress:
 
@@ -77,7 +80,6 @@ In Progress:
 - [Deep Filter Enhancements](design/recursive_association_field_picker.md) — Recursive association field picker and recursive condition nesting (AND/OR tree)
 
 Proposed:
-- [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments
 - [Multiselect and Batch Actions](design/multiselect_and_batch_actions.md) — Checkbox selection and bulk operations on index pages
 - [Array Field Type](design/array_field_type.md) — Native array fields with typed items and array-specific operators

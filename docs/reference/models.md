@@ -1613,19 +1613,33 @@ options:
 options:
   tree:
     parent_field: parent_category_id
+    parent_name: parent_category
     children_name: subcategories
-    depth_column: depth
-    counter_cache: true
+    dependent: nullify
+    max_depth: 5
+    ordered: true
+    position_field: position
 ```
 
 | Key | Type | Default | Description |
 |-----|------|---------|-------------|
 | `parent_field` | string | `"parent_id"` | Foreign key column for the parent record |
+| `parent_name` | string | `"parent"` | Name of the `belongs_to` parent association |
 | `children_name` | string | `"children"` | Name of the `has_many` children association |
-| `depth_column` | string | none | Column to store computed depth (for efficient queries) |
-| `counter_cache` | boolean | `false` | Maintain a counter of direct children |
+| `dependent` | string | `"destroy"` | What happens to children when parent is deleted. Values: `destroy`, `nullify`, `restrict_with_exception`, `restrict_with_error`, `discard` (requires soft_delete) |
+| `max_depth` | integer | `10` | Maximum allowed tree depth. Enforced by cycle detection validation |
+| `ordered` | boolean | `false` | Enable position-based ordering of siblings. Automatically configures `positioning` scoped to parent |
+| `position_field` | string | `"position"` | Column name for sibling ordering (only used when `ordered: true`) |
 
-> **Note:** The `tree` option declares intent. The actual Applicator that sets up the self-referencing associations and tree traversal methods will be implemented in a separate feature PR.
+The `TreeApplicator` automatically:
+- Creates `belongs_to` / `has_many` self-referential associations
+- Adds `roots` and `leaves` scopes
+- Adds traversal instance methods: `root?`, `leaf?`, `ancestors`, `descendants`, `subtree`, `subtree_ids`, `siblings`, `depth`, `path`, `root`
+- Adds cycle detection validation (prevents self-reference, circular chains, and max_depth violations)
+- Adds a database index on the parent field
+- When `ordered: true`, configures `positioning` scoped to the parent field (unless the model already has explicit positioning)
+
+See [Tree Structures Reference](tree-structures.md) for full details on scopes, methods, and presenter integration.
 
 ## Complete Example
 

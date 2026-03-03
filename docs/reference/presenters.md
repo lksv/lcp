@@ -333,6 +333,63 @@ index:
 
 See [Record Positioning](../design/record_positioning.md) for the full design.
 
+### `tree_view`
+
+| | |
+|---|---|
+| **Default** | `false` |
+| **Type** | boolean |
+
+Enables tree index rendering for models with `tree` enabled. Instead of a flat paginated table, records are displayed in a hierarchical tree with expand/collapse controls, connecting guide lines, and indentation. All records are loaded (no pagination).
+
+The model must have `options.tree` enabled, otherwise `ConfigurationValidator` raises an error.
+
+```yaml
+index:
+  tree_view: true
+  table_columns:
+    - { field: name, width: "40%", link_to: show }
+    - { field: "parent.name", label: "Parent" }
+```
+
+### `default_expanded`
+
+| | |
+|---|---|
+| **Default** | `0` |
+| **Type** | integer or `"all"` |
+
+Controls how many tree levels are expanded by default when the tree index loads. `0` collapses everything (only roots visible), `1` shows roots and their direct children, `"all"` expands the entire tree. Only meaningful when `tree_view: true`.
+
+During search/filter, all matched nodes and their ancestors are always expanded regardless of this setting.
+
+```yaml
+index:
+  tree_view: true
+  default_expanded: 1    # expand one level
+  # default_expanded: "all"  # expand everything
+```
+
+### `reparentable`
+
+| | |
+|---|---|
+| **Default** | `false` |
+| **Type** | boolean |
+
+Enables drag-and-drop reparenting on the tree index. Rows get a drag handle, and users can drag nodes to change their parent. Dropping on the root drop zone makes a node a root. Cycle detection prevents invalid drops (dropping a parent onto its descendant).
+
+Requires `tree_view: true` and model `tree` to be enabled. The user must have `update` CRUD permission and write access to the parent field. Uses optimistic locking via tree version hash to prevent conflicts.
+
+```yaml
+index:
+  tree_view: true
+  default_expanded: 1
+  reparentable: true
+```
+
+See [Tree Structures Reference](tree-structures.md) for full reparenting endpoint details.
+
 ### `table_columns`
 
 | | |
