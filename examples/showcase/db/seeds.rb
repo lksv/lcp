@@ -1223,6 +1223,7 @@ puts "  Created #{SearchModel.count} showcase_search records"
 if LcpRuby.registry.registered?("saved_filter")
   SavedFilterModel = LcpRuby.registry.model_for("saved_filter")
 
+  # --- Saved filters for showcase-search (inline display) ---
   [
     {
       name: "Published & Expensive",
@@ -1238,8 +1239,11 @@ if LcpRuby.registry.registered?("saved_filter")
       ql_text: "published is true and price >= 100",
       visibility: "personal",
       pinned: true,
+      default_filter: true,
       owner_id: 1,
-      position: 1
+      position: 1,
+      icon: "dollar-sign",
+      color: "green"
     },
     {
       name: "Critical Priority",
@@ -1253,8 +1257,11 @@ if LcpRuby.registry.registered?("saved_filter")
       },
       ql_text: "priority in ['high', 'critical']",
       visibility: "personal",
+      pinned: true,
       owner_id: 1,
-      position: 2
+      position: 2,
+      icon: "alert-triangle",
+      color: "red"
     },
     {
       name: "Recent Drafts",
@@ -1270,7 +1277,9 @@ if LcpRuby.registry.registered?("saved_filter")
       ql_text: "status = 'draft' and created_at last_n_days 30",
       visibility: "personal",
       owner_id: 1,
-      position: 3
+      position: 3,
+      icon: "edit",
+      color: "gray"
     },
     {
       name: "All Published",
@@ -1286,7 +1295,9 @@ if LcpRuby.registry.registered?("saved_filter")
       visibility: "global",
       pinned: true,
       owner_id: 1,
-      position: 4
+      position: 4,
+      icon: "globe",
+      color: "green"
     },
     {
       name: "Admin: In Review",
@@ -1302,7 +1313,81 @@ if LcpRuby.registry.registered?("saved_filter")
       visibility: "role",
       target_role: "admin",
       owner_id: 1,
-      position: 5
+      position: 5,
+      icon: "shield",
+      color: "orange"
+    },
+    {
+      name: "Engineering: High-Value Items",
+      description: "Expensive items for engineering team review",
+      target_presenter: "showcase-search",
+      condition_tree: {
+        logic: "and",
+        conditions: [
+          { field: "price", operator: "gteq", value: "200" },
+          { field: "status", operator: "not_eq", value: "archived" }
+        ]
+      },
+      ql_text: "price >= 200 and status != 'archived'",
+      visibility: "group",
+      target_group: "engineering",
+      pinned: true,
+      owner_id: 1,
+      position: 6,
+      icon: "cpu",
+      color: "purple"
+    },
+    # --- Saved filters for articles (dropdown display) ---
+    {
+      name: "Published Articles",
+      description: "All articles with published status",
+      target_presenter: "articles",
+      condition_tree: {
+        logic: "and",
+        conditions: [
+          { field: "status", operator: "eq", value: "published" }
+        ]
+      },
+      ql_text: "status = 'published'",
+      visibility: "global",
+      pinned: true,
+      owner_id: 1,
+      position: 1,
+      icon: "check-circle",
+      color: "green"
+    },
+    {
+      name: "My Draft Articles",
+      description: "Draft articles (personal filter)",
+      target_presenter: "articles",
+      condition_tree: {
+        logic: "and",
+        conditions: [
+          { field: "status", operator: "eq", value: "draft" }
+        ]
+      },
+      ql_text: "status = 'draft'",
+      visibility: "personal",
+      owner_id: 1,
+      position: 2,
+      icon: "file"
+    },
+    {
+      name: "Long Articles",
+      description: "Articles with more than 500 words",
+      target_presenter: "articles",
+      condition_tree: {
+        logic: "and",
+        conditions: [
+          { field: "word_count", operator: "gteq", value: "500" }
+        ]
+      },
+      ql_text: "word_count >= 500",
+      visibility: "personal",
+      pinned: true,
+      owner_id: 1,
+      position: 3,
+      icon: "book"
     }
   ].each { |attrs| SavedFilterModel.create!(attrs) }
 
@@ -2826,7 +2911,34 @@ features = [
     description: "Saved filters support four visibility levels:\n\n- **personal** — only the owner can see and use the filter\n- **role** — visible to all users with the specified role\n- **group** — visible to members of the specified group\n- **global** — visible to all users\n\nOwnership rules and record_rules enforce who can create, edit, and delete filters at each visibility level.",
     config_example: "```yaml\n# Saved filter record examples:\n- name: \"My Quick Filter\"\n  visibility: personal\n  owner_id: 42\n\n- name: \"Admin Dashboard\"\n  visibility: role\n  target_role: admin\n  owner_id: 1\n\n- name: \"Team Backlog\"\n  visibility: group\n  target_group: engineering\n  owner_id: 5\n\n- name: \"All Open Items\"\n  visibility: global\n  owner_id: 1\n```",
     demo_path: "/showcase/showcase-search",
-    demo_hint: "Check the saved filters — some are personal, one is global (All Published), and one is role-scoped (Admin: In Review).",
+    demo_hint: "Check the saved filters — some are personal, one is global (All Published), one is role-scoped (Admin: In Review), and one is group-scoped (Engineering: High-Value Items).",
+    status: "stable"
+  },
+  {
+    name: "Saved Filter Display Modes",
+    category: "search",
+    description: "Saved filters support two display modes:\n\n- **inline** — pinned filters appear as buttons alongside predefined filters, remaining filters in a \"Saved...\" overflow dropdown grouped by visibility\n- **dropdown** — single \"Saved Filters\" button with a grouped dropdown menu listing all available filters\n\nChoose inline for quick access to frequently used filters, or dropdown to save toolbar space.",
+    config_example: "```ruby\n# Inline display (default) — pinned buttons + overflow dropdown\nsaved_filters do\n  enabled true\n  display :inline\n  max_visible_pinned 5\nend\n\n# Dropdown display — single button with grouped menu\nsaved_filters do\n  enabled true\n  display :dropdown\n  max_visible_pinned 3\nend\n```",
+    demo_path: "/showcase/articles",
+    demo_hint: "Articles uses **dropdown** display — look for the \"Saved Filters\" button. Compare with Advanced Search which uses **inline** display with pinned filter buttons.",
+    status: "stable"
+  },
+  {
+    name: "Saved Filter Default",
+    category: "search",
+    description: "A saved filter can be marked as the default for its presenter. When a user navigates to the index page without any explicit filter params, the default filter auto-applies.\n\nDefault priority: personal > group > role > global. A visual indicator shows when a default filter is active, and users can clear it with one click.",
+    config_example: "```ruby\n# Presenter DSL — enable default filter support\nsaved_filters do\n  enabled true\n  allow_default true   # default: true\nend\n```\n\n```ruby\n# Saved filter record with default_filter: true\nSavedFilter.create!(\n  name: \"My Active Items\",\n  target_presenter: \"deals\",\n  condition_tree: { ... },\n  visibility: \"personal\",\n  default_filter: true,\n  owner_id: current_user.id\n)\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "The \"Published & Expensive\" filter is set as default — notice it auto-applies when you first visit the page with no filters.",
+    status: "stable"
+  },
+  {
+    name: "Saved Filter Pinning",
+    category: "search",
+    description: "Pinned filters get prominent placement in the toolbar for one-click access. In inline mode, pinned filters appear as buttons directly in the filter bar. The `max_visible_pinned` setting controls how many are shown before overflow.\n\nPinning can be disabled per-presenter with `allow_pinning: false`.",
+    config_example: "```ruby\nsaved_filters do\n  enabled true\n  display :inline\n  allow_pinning true       # default: true\n  max_visible_pinned 5     # default: 5\nend\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "Notice the pinned filter buttons in the toolbar — \"Published & Expensive\", \"Critical Priority\", \"All Published\", and \"Engineering: High-Value Items\" appear as direct buttons.",
     status: "stable"
   }
 ]

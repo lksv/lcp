@@ -949,6 +949,7 @@ SavedFilter.create!(
   visibility: "global",
   owner_id: owner_id,
   pinned: true,
+  default_filter: true,
   position: 1,
   icon: "trending-up",
   color: "green"

@@ -33,3 +33,8 @@ menu:
         - view_group: countries
         - view_group: regions
         - view_group: cities
+
+    - label: "Settings"
+      icon: settings
+      children:
+        - view_group: saved_filters

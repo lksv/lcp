@@ -39,6 +39,12 @@ define_model :saved_filter do
   field :pinned, :boolean, label: "Pinned", default: false
   field :default_filter, :boolean, label: "Default Filter", default: false
 
+  scope :personal_only, where: { visibility: "personal" }
+  scope :global_only, where: { visibility: "global" }
+  scope :role_only, where: { visibility: "role" }
+  scope :pinned_only, where: { pinned: true }
+
   timestamps true
+  userstamps
   label_method :name
 end

@@ -87,6 +87,26 @@ define_presenter :articles do
     filter :all, label: "All", default: true
     filter :published, label: "Published", scope: :published
     filter :drafts, label: "Drafts", scope: :drafts
+
+    advanced_filter do
+      enabled true
+      max_conditions 10
+      max_nesting_depth 2
+      max_association_depth 1
+      allow_or_groups true
+      query_language true
+
+      filterable_fields :title, :status, :word_count, :created_at,
+        "category.name", "author.name"
+
+      field_options :status, operators: %i[eq not_eq in not_in present blank]
+
+      saved_filters do
+        enabled true
+        display :dropdown
+        max_visible_pinned 3
+      end
+    end
   end
 
   action :create, type: :built_in, on: :collection, label: "New Article"
