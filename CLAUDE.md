@@ -100,6 +100,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
 - [View Slots Guide](docs/guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
+- [Host Application Guide](docs/guides/host-application.md) — Creating a new host application from scratch: scaffold, models, presenters, permissions, groups, seeds
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views
 - [Examples](docs/examples.md) — TODO and CRM app walkthroughs
 
