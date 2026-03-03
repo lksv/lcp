@@ -102,10 +102,6 @@ options:
 fields:
   name:        { type: string, null: false }
   code:        { type: string, null: false }   # e.g. "ENG-BE"
-  level:
-    type: enum
-    values: [business_unit, division, team]
-    null: false
   description: { type: text }
   budget:      { type: decimal, precision: 12, scale: 2 }
   active:      { type: boolean, default: true }
@@ -117,7 +113,14 @@ associations:
   has_many: job_postings
 ```
 
-**Features exercised:** tree structure (3-level org chart: BU → Division → Team), enum level, soft delete, auditing, custom fields, userstamps, decimal field, boolean default, self-referential (tree parent), cross-model FK (head → Employee).
+The **level semantics** (Business Unit, Division, Team) are derived from tree depth, not stored as a field:
+- Depth 1 (root nodes) = Business Unit
+- Depth 2 = Division
+- Depth 3 = Team
+
+Display labels are handled via i18n: `lcp_ruby.models.organization_unit.depth_labels.1: "Business Unit"`, etc. A custom renderer or presenter template can show the depth-derived label alongside the name.
+
+**Features exercised:** tree structure (3-level org chart: BU → Division → Team), soft delete, auditing, custom fields, userstamps, decimal field, boolean default, self-referential (tree parent), cross-model FK (head → Employee).
 
 ---
 
@@ -837,7 +840,7 @@ fields:
 
 | # | Model | Tree | SoftDel | Audit | CustFld | Usrstmp | Position | Attach | JSON | RichTxt | CompFld | Enums | Virtual | Groups |
 |---|-------|------|---------|-------|---------|---------|----------|--------|------|---------|---------|-------|---------|--------|
-| 1 | OrganizationUnit | X | X | X | X | X | | | | | | 2 | | |
+| 1 | OrganizationUnit | X | X | X | X | X | | | | | | 0 | | |
 | 2 | Position | X | X | | | | X | | | | | 1 | | |
 | 3 | Employee | | X | X | X | X | | X(2) | X(2) | X | X | 4 | | |
 | 4 | LeaveType | | | | | | X | | | | | 0 | | |
@@ -860,7 +863,7 @@ fields:
 | 21 | Group | | | X | | X | | | | | | 1 | | X |
 | 22 | GroupMembership | | | | | X | | | | | | 1 | | X |
 | 23 | Dashboard | | | | | | | | X(2) | | | 0 | X | |
-| **Total** | | **3** | **8** | **11** | **3** | **17** | **3** | **8** | **6** | **5** | **3** | **34** | **1** | **2** |
+| **Total** | | **3** | **8** | **11** | **3** | **17** | **3** | **8** | **6** | **5** | **3** | **32** | **1** | **2** |
 
 ---
 
@@ -1305,11 +1308,10 @@ cs:
       organization_unit:
         one: "Organizační jednotka"
         other: "Organizační jednotky"
-        enums:
-          level:
-            business_unit: "Obchodní jednotka"
-            division: "Divize"
-            team: "Tým"
+        depth_labels:
+          1: "Obchodní jednotka"
+          2: "Divize"
+          3: "Tým"
       leave_request:
         one: "Žádost o dovolenou"
         other: "Žádosti o dovolenou"
@@ -1363,12 +1365,16 @@ The demo includes the "View as Role X" toolbar feature, allowing authorized user
 
 12. **500 employees in seed data** — realistic scale for demonstrating pagination, search performance, and data distribution. Organization structure: 4 Business Units → 10 Divisions → 25 Teams.
 
+13. **Seed data via Faker** — use `db/seeds.rb` with the Faker gem for realistic names, emails, phone numbers, addresses, and dates. Organization structure, positions, leave types, skills, and other reference data are hardcoded (not random). Faker provides natural variation without maintaining a large static dataset.
+
+14. **Placeholder photos** — use generated avatar images (e.g., DiceBear Avatars API or similar deterministic avatar service seeded by employee name) for employee photos. This makes the demo visually compelling with realistic profile pictures without bundling large image files.
+
+15. **OrganizationUnit levels from tree depth** — no `level` field. The semantic level (Business Unit, Division, Team) is derived from tree depth (1, 2, 3). Display labels via i18n depth_labels. This avoids redundancy with the tree structure and is cleaner.
+
+16. **Dashboard virtual model is ready** — the platform already supports `table_name: _virtual` (metadata only, no AR class or DB table). No implementation timing concern.
+
 ---
 
 ## 12. Open Questions
 
-1. **Seed data generator approach** — use `db/seeds.rb` with Faker gem, or a structured seed YAML/JSON? Faker gives realistic names/emails but is non-deterministic. A structured seed file ensures reproducible demos.
-
-2. **Employee photos in seeds** — use placeholder avatar images (e.g., UI Faces, DiceBear avatars), or skip photos in seed data? Photos make the demo much more visually compelling but add complexity.
-
-3. **Dashboard implementation timing** — the virtual model feature may not be fully available yet. Should the Dashboard be a stretch goal, or should it be implemented as a regular (empty) model with a custom controller?
+_(None remaining — all resolved in Decisions.)_
