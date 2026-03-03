@@ -102,8 +102,8 @@ module LcpRuby
 
           if model_definition.soft_delete?
             excluded << model_definition.soft_delete_column
-            excluded << SoftDeleteApplicator::DISCARDED_BY_TYPE_COL
-            excluded << SoftDeleteApplicator::DISCARDED_BY_ID_COL
+            excluded << ModelFactory::SoftDeleteApplicator::DISCARDED_BY_TYPE_COL
+            excluded << ModelFactory::SoftDeleteApplicator::DISCARDED_BY_ID_COL
           end
 
           changes = changes.except(*excluded)
