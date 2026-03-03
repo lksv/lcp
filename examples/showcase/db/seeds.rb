@@ -1,6 +1,8 @@
 puts "Seeding showcase data..."
 
 # Clear existing data so seeds are re-runnable (children before parents)
+# Also reset auto-increment counters so IDs start from 1 (demo_path links use hardcoded IDs)
+connection = ActiveRecord::Base.connection
 %w[
   saved_filter feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_userstamps
   showcase_soft_delete_item showcase_soft_delete
@@ -11,7 +13,9 @@ puts "Seeding showcase data..."
   group_role_mapping group_membership group
 ].each do |model_name|
   next unless LcpRuby.registry.registered?(model_name)
-  LcpRuby.registry.model_for(model_name).delete_all
+  model = LcpRuby.registry.model_for(model_name)
+  model.delete_all
+  connection.execute("DELETE FROM sqlite_sequence WHERE name='#{model.table_name}'") if connection.adapter_name == "SQLite"
 end
 puts "  Cleared existing seed data"
 
