@@ -89,7 +89,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
         tree = {
           "combinator" => "and",
           "children" => [
-            { "field" => "value", "operator" => "between", "value" => [100, 500] }
+            { "field" => "value", "operator" => "between", "value" => [ 100, 500 ] }
           ]
         }
         result = described_class.build(tree)
@@ -111,7 +111,7 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
         tree = {
           "combinator" => "and",
           "children" => [
-            { "field" => "value", "operator" => "between", "value" => [100] }
+            { "field" => "value", "operator" => "between", "value" => [ 100 ] }
           ]
         }
         result = described_class.build(tree)

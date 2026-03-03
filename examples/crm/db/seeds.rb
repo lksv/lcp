@@ -740,8 +740,8 @@ massive = Company.create!(
   website: "https://massive.example.com", phone: "+1-555-1500"
 )
 
-all_companies = [acme, globex, initech, wayne, stark, umbrella, oscorp, lexcorp,
-                 cyberdyne, tyrell, soylent, aperture, weyland, ingen, massive]
+all_companies = [ acme, globex, initech, wayne, stark, umbrella, oscorp, lexcorp,
+                 cyberdyne, tyrell, soylent, aperture, weyland, ingen, massive ]
 
 # ============================================================================
 # CONTACTS (30 total, 2 per company)
@@ -792,9 +792,9 @@ henry = Contact.create!(first_name: "Henry", last_name: "Wu", email: "henry@inge
 walter = Contact.create!(first_name: "Walter", last_name: "Bishop", email: "walter@massive.example.com", phone: "+1-555-1501", position: "Chief Scientist", company: massive)
 olivia = Contact.create!(first_name: "Olivia", last_name: "Dunham", email: "olivia@massive.example.com", phone: "+1-555-1502", position: "VP Security", company: massive)
 
-all_contacts = [john, sarah, jane, marcus, bob, peter, alice, bruce, tony, pepper,
+all_contacts = [ john, sarah, jane, marcus, bob, peter, alice, bruce, tony, pepper,
                 albert, jill, norman, gwen, lex, mercy, miles, kate, eldon, rachael,
-                sol, frank, cave, caroline, karl, ellen, john_h, henry, walter, olivia]
+                sol, frank, cave, caroline, karl, ellen, john_h, henry, walter, olivia ]
 
 # ============================================================================
 # DEALS (42 total)

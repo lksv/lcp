@@ -300,7 +300,6 @@ module LcpRuby
 
     private
 
-<<<<<<< HEAD
     def load_flat_index(scope)
       scope = apply_advanced_search(scope)
       scope = apply_sort(scope)

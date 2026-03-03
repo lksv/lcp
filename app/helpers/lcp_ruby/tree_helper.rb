@@ -104,7 +104,7 @@ module LcpRuby
       end
 
       # Recursively render children
-      child_guides = guides + [!is_last]
+      child_guides = guides + [ !is_last ]
       child_rows = if has_children
         children.each_with_index.map { |child, idx|
           render_tree_row(child, children_map, columns, depth: depth + 1,

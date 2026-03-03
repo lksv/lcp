@@ -93,7 +93,7 @@ module LcpRuby
         end
 
         # Association fields (recursive traversal)
-        traverse_associations(model_definition, [], fields, depth: 1, visited: Set.new([model_definition.name]), parent_model_name: nil)
+        traverse_associations(model_definition, [], fields, depth: 1, visited: Set.new([ model_definition.name ]), parent_model_name: nil)
 
         # Custom fields (filterable + active + readable)
         fields.concat(build_custom_field_entries)
@@ -146,7 +146,7 @@ module LcpRuby
           target_def = load_model_definition(assoc.target_model)
           next unless target_def
 
-          assoc_path = path_parts + [assoc.name]
+          assoc_path = path_parts + [ assoc.name ]
           group_label = assoc_path.map { |p| p.to_s.humanize }.join(" > ")
 
           # Add filterable fields from this association
@@ -159,12 +159,12 @@ module LcpRuby
               next if inverse_assoc && field_def.name == inverse_assoc.foreign_key
             end
 
-            dot_path = (assoc_path + [field_def.name]).join(".")
+            dot_path = (assoc_path + [ field_def.name ]).join(".")
             fields << field_descriptor(dot_path, field_def, group_label)
           end
 
           # Recurse into sub-associations
-          new_visited = visited + [assoc.target_model]
+          new_visited = visited + [ assoc.target_model ]
           traverse_associations(target_def, assoc_path, fields, depth: depth + 1, visited: new_visited, parent_model_name: current_model_def.name)
         end
       end

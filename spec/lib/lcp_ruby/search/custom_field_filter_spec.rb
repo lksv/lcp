@@ -35,7 +35,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "color" => "blue" })
 
         scope = described_class.apply(product_model.all, table_name, "color", :eq, "red")
-        expect(scope.map(&:name)).to eq(["A"])
+        expect(scope.map(&:name)).to eq([ "A" ])
       end
     end
 
@@ -59,7 +59,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "desc" => "goodbye" })
 
         scope = described_class.apply(product_model.all, table_name, "desc", :cont, "world")
-        expect(scope.map(&:name)).to eq(["A"])
+        expect(scope.map(&:name)).to eq([ "A" ])
       end
     end
 
@@ -82,7 +82,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "code" => "XYZ-789" })
 
         scope = described_class.apply(product_model.all, table_name, "code", :start, "ABC")
-        expect(scope.map(&:name)).to eq(["A"])
+        expect(scope.map(&:name)).to eq([ "A" ])
       end
     end
 
@@ -92,7 +92,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "code" => "XYZ-789" })
 
         scope = described_class.apply(product_model.all, table_name, "code", :end, "789")
-        expect(scope.map(&:name)).to eq(["B"])
+        expect(scope.map(&:name)).to eq([ "B" ])
       end
     end
 
@@ -103,7 +103,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "C", custom_data: { "qty" => "5" })
 
         scope = described_class.apply(product_model.all, table_name, "qty", :gt, "10", cast: :integer)
-        expect(scope.map(&:name)).to eq(["B"])
+        expect(scope.map(&:name)).to eq([ "B" ])
       end
 
       it "filters with gteq" do
@@ -112,7 +112,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
 
         scope = described_class.apply(product_model.all, table_name, "qty", :gteq, "10", cast: :integer)
         names = scope.map(&:name).sort
-        expect(names).to eq(["A", "B"])
+        expect(names).to eq([ "A", "B" ])
       end
 
       it "filters with lt" do
@@ -120,7 +120,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "qty" => "20" })
 
         scope = described_class.apply(product_model.all, table_name, "qty", :lt, "15", cast: :integer)
-        expect(scope.map(&:name)).to eq(["A"])
+        expect(scope.map(&:name)).to eq([ "A" ])
       end
 
       it "filters with lteq" do
@@ -128,7 +128,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "qty" => "20" })
 
         scope = described_class.apply(product_model.all, table_name, "qty", :lteq, "10", cast: :integer)
-        expect(scope.map(&:name)).to eq(["A"])
+        expect(scope.map(&:name)).to eq([ "A" ])
       end
     end
 
@@ -138,8 +138,8 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "qty" => "15" })
         create_product(name: "C", custom_data: { "qty" => "25" })
 
-        scope = described_class.apply(product_model.all, table_name, "qty", :between, ["10", "20"], cast: :integer)
-        expect(scope.map(&:name)).to eq(["B"])
+        scope = described_class.apply(product_model.all, table_name, "qty", :between, [ "10", "20" ], cast: :integer)
+        expect(scope.map(&:name)).to eq([ "B" ])
       end
     end
 
@@ -149,9 +149,9 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "color" => "blue" })
         create_product(name: "C", custom_data: { "color" => "green" })
 
-        scope = described_class.apply(product_model.all, table_name, "color", :in, ["red", "green"])
+        scope = described_class.apply(product_model.all, table_name, "color", :in, [ "red", "green" ])
         names = scope.map(&:name).sort
-        expect(names).to eq(["A", "C"])
+        expect(names).to eq([ "A", "C" ])
       end
     end
 
@@ -161,7 +161,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "color" => "blue" })
         create_product(name: "C", custom_data: {})
 
-        scope = described_class.apply(product_model.all, table_name, "color", :not_in, ["red"])
+        scope = described_class.apply(product_model.all, table_name, "color", :not_in, [ "red" ])
         names = scope.map(&:name).sort
         expect(names).to include("B", "C")
         expect(names).not_to include("A")
@@ -175,7 +175,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "C", custom_data: {})
 
         scope = described_class.apply(product_model.all, table_name, "color", :present, nil)
-        expect(scope.map(&:name)).to eq(["A"])
+        expect(scope.map(&:name)).to eq([ "A" ])
       end
     end
 
@@ -198,7 +198,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: {})
 
         scope = described_class.apply(product_model.all, table_name, "color", :null, nil)
-        expect(scope.map(&:name)).to eq(["B"])
+        expect(scope.map(&:name)).to eq([ "B" ])
       end
     end
 
@@ -208,7 +208,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: {})
 
         scope = described_class.apply(product_model.all, table_name, "color", :not_null, nil)
-        expect(scope.map(&:name)).to eq(["A"])
+        expect(scope.map(&:name)).to eq([ "A" ])
       end
     end
 
@@ -218,7 +218,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
         create_product(name: "B", custom_data: { "vip" => "false" })
 
         scope = described_class.apply(product_model.all, table_name, "vip", :true, nil)
-        expect(scope.map(&:name)).to eq(["A"])
+        expect(scope.map(&:name)).to eq([ "A" ])
       end
     end
 
@@ -247,7 +247,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
       create_product(name: "A", custom_data: { "color" => "red" })
 
       scope = described_class.apply(product_model.all, table_name, "color", :unknown_op, "x")
-      expect(scope.map(&:name)).to eq(["A"])
+      expect(scope.map(&:name)).to eq([ "A" ])
     end
   end
 
@@ -279,7 +279,7 @@ RSpec.describe LcpRuby::Search::CustomFieldFilter do
       create_product(name: "B", custom_data: { "code" => "normal" })
 
       scope = described_class.apply(product_model.all, table_name, "code", :cont, "100%")
-      expect(scope.map(&:name)).to eq(["A"])
+      expect(scope.map(&:name)).to eq([ "A" ])
     end
   end
 end

@@ -121,7 +121,7 @@ module LcpRuby
         end
 
         @model_class.define_method(:subtree_ids) do
-          [id] + descendants.pluck(:id)
+          [ id ] + descendants.pluck(:id)
         end
 
         @model_class.define_method(:siblings) do
@@ -138,7 +138,7 @@ module LcpRuby
           return self.class.where(id: id) if root?
 
           ancestor_list = ancestors.to_a
-          ordered = ancestor_list.reverse + [self]
+          ordered = ancestor_list.reverse + [ self ]
           self.class.where(id: ordered.map(&:id)).order(
             Arel.sql("CASE #{ordered.each_with_index.map { |r, i| "WHEN id = #{self.class.connection.quote(r.id)} THEN #{i}" }.join(' ')} END")
           )
@@ -169,7 +169,7 @@ module LcpRuby
           end
 
           # Walk the ancestor chain to detect cycles and enforce max_depth
-          visited = Set.new([id])
+          visited = Set.new([ id ])
           current_id = pid
           depth_count = 1
 

@@ -144,21 +144,21 @@ RSpec.describe LcpRuby::Search::QueryLanguageParser do
     it "parses in operator with list" do
       result = parse("status in ['draft', 'review']")
       expect(leaf_conditions(result)).to contain_exactly(
-        a_hash_including("field" => "status", "operator" => "in", "value" => ["draft", "review"])
+        a_hash_including("field" => "status", "operator" => "in", "value" => [ "draft", "review" ])
       )
     end
 
     it "parses not in operator" do
       result = parse("status not in ['archived']")
       expect(leaf_conditions(result)).to contain_exactly(
-        a_hash_including("field" => "status", "operator" => "not_in", "value" => ["archived"])
+        a_hash_including("field" => "status", "operator" => "not_in", "value" => [ "archived" ])
       )
     end
 
     it "parses mixed numeric and string values in list" do
       result = parse("id in [1, 2, 3]")
       expect(leaf_conditions(result)).to contain_exactly(
-        a_hash_including("field" => "id", "operator" => "in", "value" => ["1", "2", "3"])
+        a_hash_including("field" => "id", "operator" => "in", "value" => [ "1", "2", "3" ])
       )
     end
   end

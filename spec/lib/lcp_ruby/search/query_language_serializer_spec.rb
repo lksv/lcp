@@ -7,146 +7,146 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
 
   describe "simple conditions" do
     it "serializes equals with string" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "status", "operator" => "eq", "value" => "published" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "status", "operator" => "eq", "value" => "published" } ] }
       expect(serialize(tree)).to eq("status = 'published'")
     end
 
     it "serializes equals with numeric value" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "price", "operator" => "eq", "value" => "100" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "price", "operator" => "eq", "value" => "100" } ] }
       expect(serialize(tree)).to eq("price = 100")
     end
 
     it "serializes not equals" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "status", "operator" => "not_eq", "value" => "draft" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "status", "operator" => "not_eq", "value" => "draft" } ] }
       expect(serialize(tree)).to eq("status != 'draft'")
     end
 
     it "serializes greater than" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "price", "operator" => "gt", "value" => "100" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "price", "operator" => "gt", "value" => "100" } ] }
       expect(serialize(tree)).to eq("price > 100")
     end
 
     it "serializes greater than or equal" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "price", "operator" => "gteq", "value" => "100" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "price", "operator" => "gteq", "value" => "100" } ] }
       expect(serialize(tree)).to eq("price >= 100")
     end
 
     it "serializes less than" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "price", "operator" => "lt", "value" => "50" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "price", "operator" => "lt", "value" => "50" } ] }
       expect(serialize(tree)).to eq("price < 50")
     end
 
     it "serializes less than or equal" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "price", "operator" => "lteq", "value" => "50" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "price", "operator" => "lteq", "value" => "50" } ] }
       expect(serialize(tree)).to eq("price <= 50")
     end
 
     it "serializes contains" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "cont", "value" => "Acme" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "cont", "value" => "Acme" } ] }
       expect(serialize(tree)).to eq("name ~ 'Acme'")
     end
 
     it "serializes not contains" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "not_cont", "value" => "test" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "not_cont", "value" => "test" } ] }
       expect(serialize(tree)).to eq("name !~ 'test'")
     end
 
     it "serializes starts with" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "start", "value" => "Acme" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "start", "value" => "Acme" } ] }
       expect(serialize(tree)).to eq("name ^ 'Acme'")
     end
 
     it "serializes ends with" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "end", "value" => "Corp" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "end", "value" => "Corp" } ] }
       expect(serialize(tree)).to eq("name $ 'Corp'")
     end
 
     it "serializes not starts with" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "not_start", "value" => "test" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "not_start", "value" => "test" } ] }
       expect(serialize(tree)).to eq("name !^ 'test'")
     end
 
     it "serializes not ends with" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "not_end", "value" => "Corp" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "not_end", "value" => "Corp" } ] }
       expect(serialize(tree)).to eq("name !$ 'Corp'")
     end
   end
 
   describe "no-value operators" do
     it "serializes is null" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "notes", "operator" => "null" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "notes", "operator" => "null" } ] }
       expect(serialize(tree)).to eq("notes is null")
     end
 
     it "serializes is not null" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "notes", "operator" => "not_null" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "notes", "operator" => "not_null" } ] }
       expect(serialize(tree)).to eq("notes is not null")
     end
 
     it "serializes is present" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "present" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "present" } ] }
       expect(serialize(tree)).to eq("name is present")
     end
 
     it "serializes is blank" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "blank" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "blank" } ] }
       expect(serialize(tree)).to eq("name is blank")
     end
 
     it "serializes is true" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "active", "operator" => "true" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "active", "operator" => "true" } ] }
       expect(serialize(tree)).to eq("active is true")
     end
 
     it "serializes is false" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "active", "operator" => "false" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "active", "operator" => "false" } ] }
       expect(serialize(tree)).to eq("active is false")
     end
 
     it "serializes is not true" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "active", "operator" => "not_true" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "active", "operator" => "not_true" } ] }
       expect(serialize(tree)).to eq("active is not true")
     end
 
     it "serializes is not false" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "active", "operator" => "not_false" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "active", "operator" => "not_false" } ] }
       expect(serialize(tree)).to eq("active is not false")
     end
 
     it "serializes is this_week" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "created_at", "operator" => "this_week" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "created_at", "operator" => "this_week" } ] }
       expect(serialize(tree)).to eq("created_at is this_week")
     end
 
     it "serializes is this_month" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "created_at", "operator" => "this_month" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "created_at", "operator" => "this_month" } ] }
       expect(serialize(tree)).to eq("created_at is this_month")
     end
 
     it "serializes is this_quarter" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "created_at", "operator" => "this_quarter" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "created_at", "operator" => "this_quarter" } ] }
       expect(serialize(tree)).to eq("created_at is this_quarter")
     end
 
     it "serializes is this_year" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "created_at", "operator" => "this_year" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "created_at", "operator" => "this_year" } ] }
       expect(serialize(tree)).to eq("created_at is this_year")
     end
   end
 
   describe "list values" do
     it "serializes in with list" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "status", "operator" => "in", "value" => ["draft", "review"] }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "status", "operator" => "in", "value" => [ "draft", "review" ] } ] }
       expect(serialize(tree)).to eq("status in ['draft', 'review']")
     end
 
     it "serializes not in with list" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "status", "operator" => "not_in", "value" => ["archived"] }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "status", "operator" => "not_in", "value" => [ "archived" ] } ] }
       expect(serialize(tree)).to eq("status not in ['archived']")
     end
 
     it "serializes numeric values in list unquoted" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "id", "operator" => "in", "value" => ["1", "2"] }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "id", "operator" => "in", "value" => [ "1", "2" ] } ] }
       expect(serialize(tree)).to eq("id in [1, 2]")
     end
   end
@@ -223,19 +223,19 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
 
   describe "scope references" do
     it "serializes scope references" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "@open_deals", "operator" => "scope" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "@open_deals", "operator" => "scope" } ] }
       expect(serialize(tree)).to eq("@open_deals")
     end
   end
 
   describe "relative dates" do
     it "preserves relative date markers" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "created_at", "operator" => "gteq", "value" => "{7.days.ago}" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "created_at", "operator" => "gteq", "value" => "{7.days.ago}" } ] }
       expect(serialize(tree)).to eq("created_at >= {7.days.ago}")
     end
 
     it "serializes in with relative date" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "created_at", "operator" => "in", "value" => "{this_month}" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "created_at", "operator" => "in", "value" => "{this_month}" } ] }
       expect(serialize(tree)).to eq("created_at in {this_month}")
     end
   end
@@ -250,7 +250,7 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
     end
 
     it "handles string with single quote" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "eq", "value" => "O'Brien" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "eq", "value" => "O'Brien" } ] }
       expect(serialize(tree)).to eq("name = 'O\\'Brien'")
     end
   end
@@ -279,7 +279,7 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
     let(:parser) { LcpRuby::Search::QueryLanguageParser }
 
     it "round-trips simple eq condition" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "eq", "value" => "test" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "eq", "value" => "test" } ] }
       ql = serialize(tree)
       parsed = parser.new(ql).parse
       expect(parsed["children"].first["field"]).to eq("name")
@@ -301,14 +301,14 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
     end
 
     it "round-trips is null operator" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "notes", "operator" => "null" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "notes", "operator" => "null" } ] }
       ql = serialize(tree)
       parsed = parser.new(ql).parse
       expect(parsed["children"].first["operator"]).to eq("null")
     end
 
     it "round-trips not_start operator (!^)" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "not_start", "value" => "test" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "not_start", "value" => "test" } ] }
       ql = serialize(tree)
       expect(ql).to eq("name !^ 'test'")
       parsed = parser.new(ql).parse
@@ -317,7 +317,7 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
     end
 
     it "round-trips not_end operator (!$)" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "name", "operator" => "not_end", "value" => "Corp" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "name", "operator" => "not_end", "value" => "Corp" } ] }
       ql = serialize(tree)
       expect(ql).to eq("name !$ 'Corp'")
       parsed = parser.new(ql).parse
@@ -326,7 +326,7 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
     end
 
     it "round-trips is not true" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "active", "operator" => "not_true" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "active", "operator" => "not_true" } ] }
       ql = serialize(tree)
       expect(ql).to eq("active is not true")
       parsed = parser.new(ql).parse
@@ -334,7 +334,7 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
     end
 
     it "round-trips is not false" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "active", "operator" => "not_false" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "active", "operator" => "not_false" } ] }
       ql = serialize(tree)
       expect(ql).to eq("active is not false")
       parsed = parser.new(ql).parse
@@ -342,7 +342,7 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
     end
 
     it "round-trips is this_week" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "created_at", "operator" => "this_week" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "created_at", "operator" => "this_week" } ] }
       ql = serialize(tree)
       expect(ql).to eq("created_at is this_week")
       parsed = parser.new(ql).parse
@@ -350,7 +350,7 @@ RSpec.describe LcpRuby::Search::QueryLanguageSerializer do
     end
 
     it "round-trips is this_month" do
-      tree = { "combinator" => "and", "children" => [{ "field" => "created_at", "operator" => "this_month" }] }
+      tree = { "combinator" => "and", "children" => [ { "field" => "created_at", "operator" => "this_month" } ] }
       ql = serialize(tree)
       parsed = parser.new(ql).parse
       expect(parsed["children"].first["operator"]).to eq("this_month")

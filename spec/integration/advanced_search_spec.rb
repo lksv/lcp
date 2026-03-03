@@ -363,7 +363,7 @@ RSpec.describe "Advanced Search Integration", type: :request do
       load_integration_metadata!("advanced_search")
       model = LcpRuby.registry.model_for("product")
       perm_def = LcpRuby.loader.permission_definition("product")
-      user = OpenStruct.new(id: 1, lcp_role: ["viewer"])
+      user = OpenStruct.new(id: 1, lcp_role: [ "viewer" ])
       evaluator = LcpRuby::Authorization::PermissionEvaluator.new(perm_def, user, "product")
 
       attrs = model.ransackable_attributes(evaluator)
@@ -432,7 +432,7 @@ RSpec.describe "Advanced Search Integration", type: :request do
       expect(status_field).not_to be_nil
       expect(status_field["type"]).to eq("enum")
       expect(status_field["enum_values"]).to be_an(Array)
-      expect(status_field["enum_values"].first).to eq(["draft", "Draft"])
+      expect(status_field["enum_values"].first).to eq([ "draft", "Draft" ])
 
       # Check operator labels
       expect(metadata["operator_labels"]).to be_a(Hash)
@@ -665,7 +665,7 @@ RSpec.describe "Advanced Search Integration", type: :request do
       expect(cf_names).not_to include("cf[internal_notes]")
 
       tier_field = cf_fields.find { |f| f["name"] == "cf[tier]" }
-      expect(tier_field["enum_values"]).to eq([["basic", "Basic"], ["premium", "Premium"]])
+      expect(tier_field["enum_values"]).to eq([ [ "basic", "Basic" ], [ "premium", "Premium" ] ])
       expect(tier_field["group"]).to eq("Custom Fields")
     end
   end

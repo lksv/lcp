@@ -38,7 +38,7 @@ RSpec.describe LcpRuby::Search::QuickSearch do
         model_class.create!(title: "Beta Project")
 
         result = described_class.apply(model_class.all, "Alpha", model_class, model_definition)
-        expect(result.pluck(:title)).to eq(["Alpha Project"])
+        expect(result.pluck(:title)).to eq([ "Alpha Project" ])
       end
 
       it "is case-insensitive for LIKE" do
@@ -158,7 +158,7 @@ RSpec.describe LcpRuby::Search::QuickSearch do
         model_class.create!(title: "Other")
 
         result = described_class.apply(model_class.all, "anything", model_class, model_definition)
-        expect(result.pluck(:title)).to eq(["Custom"])
+        expect(result.pluck(:title)).to eq([ "Custom" ])
       end
     end
 

@@ -143,7 +143,7 @@ RSpec.describe LcpRuby::ModelFactory::TreeApplicator do
       root2 = model_class.create!(name: "Root 2")
       model_class.create!(name: "Child", parent_id: root1.id)
 
-      expect(model_class.roots.pluck(:id)).to match_array([root1.id, root2.id])
+      expect(model_class.roots.pluck(:id)).to match_array([ root1.id, root2.id ])
     end
 
     it "leaves scope returns only leaf nodes" do
@@ -151,7 +151,7 @@ RSpec.describe LcpRuby::ModelFactory::TreeApplicator do
       child = model_class.create!(name: "Child", parent_id: root.id)
       grandchild = model_class.create!(name: "Grandchild", parent_id: child.id)
 
-      expect(model_class.leaves.pluck(:id)).to match_array([grandchild.id])
+      expect(model_class.leaves.pluck(:id)).to match_array([ grandchild.id ])
     end
   end
 
@@ -210,17 +210,17 @@ RSpec.describe LcpRuby::ModelFactory::TreeApplicator do
 
       it "returns nearest-first ancestors" do
         ancestor_names = grandchild.ancestors.pluck(:name)
-        expect(ancestor_names).to eq(["Child", "Root"])
+        expect(ancestor_names).to eq([ "Child", "Root" ])
       end
 
       it "returns single parent for direct child" do
-        expect(child.ancestors.pluck(:name)).to eq(["Root"])
+        expect(child.ancestors.pluck(:name)).to eq([ "Root" ])
       end
     end
 
     describe "#descendants" do
       it "returns all descendants" do
-        expect(root.descendants.pluck(:id)).to match_array([child.id, grandchild.id])
+        expect(root.descendants.pluck(:id)).to match_array([ child.id, grandchild.id ])
       end
 
       it "returns empty relation for leaf" do
@@ -230,20 +230,20 @@ RSpec.describe LcpRuby::ModelFactory::TreeApplicator do
 
     describe "#subtree" do
       it "includes self and all descendants" do
-        expect(root.subtree.pluck(:id)).to match_array([root.id, child.id, grandchild.id])
+        expect(root.subtree.pluck(:id)).to match_array([ root.id, child.id, grandchild.id ])
       end
     end
 
     describe "#subtree_ids" do
       it "returns array of self + descendant IDs" do
-        expect(root.subtree_ids).to match_array([root.id, child.id, grandchild.id])
+        expect(root.subtree_ids).to match_array([ root.id, child.id, grandchild.id ])
       end
     end
 
     describe "#siblings" do
       it "returns nodes with same parent excluding self" do
         sibling = model_class.create!(name: "Sibling", parent_id: root.id)
-        expect(child.siblings.pluck(:id)).to eq([sibling.id])
+        expect(child.siblings.pluck(:id)).to eq([ sibling.id ])
       end
 
       it "returns empty for only child" do
@@ -268,11 +268,11 @@ RSpec.describe LcpRuby::ModelFactory::TreeApplicator do
     describe "#path" do
       it "returns root-to-self path" do
         path_names = grandchild.path.pluck(:name)
-        expect(path_names).to eq(["Root", "Child", "Grandchild"])
+        expect(path_names).to eq([ "Root", "Child", "Grandchild" ])
       end
 
       it "returns just self for root" do
-        expect(root.path.pluck(:name)).to eq(["Root"])
+        expect(root.path.pluck(:name)).to eq([ "Root" ])
       end
     end
 

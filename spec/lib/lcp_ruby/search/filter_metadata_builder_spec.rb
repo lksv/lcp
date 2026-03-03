@@ -68,8 +68,8 @@ RSpec.describe LcpRuby::Search::FilterMetadataBuilder do
 
   let(:permission_definition) { LcpRuby::Metadata::PermissionDefinition.from_hash(permission_hash) }
 
-  let(:admin_user) { OpenStruct.new(id: 1, lcp_role: ["admin"]) }
-  let(:viewer_user) { OpenStruct.new(id: 2, lcp_role: ["viewer"]) }
+  let(:admin_user) { OpenStruct.new(id: 1, lcp_role: [ "admin" ]) }
+  let(:viewer_user) { OpenStruct.new(id: 2, lcp_role: [ "viewer" ]) }
 
   let(:admin_evaluator) { LcpRuby::Authorization::PermissionEvaluator.new(permission_definition, admin_user, "product") }
   let(:viewer_evaluator) { LcpRuby::Authorization::PermissionEvaluator.new(permission_definition, viewer_user, "product") }
@@ -130,7 +130,7 @@ RSpec.describe LcpRuby::Search::FilterMetadataBuilder do
       result = builder.build
 
       status_field = result[:fields].find { |f| f[:name] == "status" }
-      expect(status_field[:enum_values]).to eq([["draft", "Draft"], ["published", "Published"]])
+      expect(status_field[:enum_values]).to eq([ [ "draft", "Draft" ], [ "published", "Published" ] ])
     end
 
     it "sets correct types for fields" do
@@ -309,7 +309,7 @@ RSpec.describe LcpRuby::Search::FilterMetadataBuilder do
   describe "custom type resolution" do
     before do
       LcpRuby::Types::TypeRegistry.register("email", LcpRuby::Types::TypeDefinition.new(
-        name: "email", base_type: "string", transforms: ["strip", "downcase"]
+        name: "email", base_type: "string", transforms: [ "strip", "downcase" ]
       ))
     end
 
@@ -559,7 +559,7 @@ RSpec.describe LcpRuby::Search::FilterMetadataBuilder do
     before do
       allow(LcpRuby::CustomFields::Registry).to receive(:available?).and_return(true)
       allow(LcpRuby::CustomFields::Registry).to receive(:for_model).with("product")
-        .and_return([cf_string_def, cf_enum_def, cf_not_filterable, cf_inactive])
+        .and_return([ cf_string_def, cf_enum_def, cf_not_filterable, cf_inactive ])
       allow(LcpRuby.loader).to receive(:model_definition).with("product").and_return(model_def_with_cf)
     end
 
@@ -568,7 +568,7 @@ RSpec.describe LcpRuby::Search::FilterMetadataBuilder do
       result = builder.build
 
       cf_fields = result[:fields].select { |f| f[:custom_field] }
-      expect(cf_fields.map { |f| f[:name] }).to eq(["cf[company_name]", "cf[priority]"])
+      expect(cf_fields.map { |f| f[:name] }).to eq([ "cf[company_name]", "cf[priority]" ])
     end
 
     it "sets Custom Fields group label" do
@@ -608,7 +608,7 @@ RSpec.describe LcpRuby::Search::FilterMetadataBuilder do
       result = builder.build
 
       cf_enum = result[:fields].find { |f| f[:name] == "cf[priority]" }
-      expect(cf_enum[:enum_values]).to eq([["low", "Low"], ["high", "High"]])
+      expect(cf_enum[:enum_values]).to eq([ [ "low", "Low" ], [ "high", "High" ] ])
     end
 
     it "assigns correct operators for string custom fields" do
@@ -640,7 +640,7 @@ RSpec.describe LcpRuby::Search::FilterMetadataBuilder do
           "advanced_filter" => {
             "enabled" => true,
             "presets" => [
-              { "name" => "expensive", "label" => "Expensive", "conditions" => [{ "field" => "price", "operator" => "gteq", "value" => 100 }] }
+              { "name" => "expensive", "label" => "Expensive", "conditions" => [ { "field" => "price", "operator" => "gteq", "value" => 100 } ] }
             ]
           }
         }
