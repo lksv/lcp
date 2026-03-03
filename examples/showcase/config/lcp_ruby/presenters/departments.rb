@@ -5,24 +5,12 @@ define_presenter :departments do
   icon "building"
 
   index do
-<<<<<<< HEAD
-    default_sort :name, :asc
-    per_page 25
-=======
->>>>>>> ddb43eb (feat: implement tree structures with tree index view, filtered search, and drag-and-drop reparenting)
     tree_view true
     default_expanded 2
     reparentable true
 
-<<<<<<< HEAD
-    column :name, link_to: :show, sortable: true
-    column :code, sortable: true
-
-    includes :parent
-=======
     column :name, link_to: :show
     column :code
->>>>>>> ddb43eb (feat: implement tree structures with tree index view, filtered search, and drag-and-drop reparenting)
   end
 
   show do
