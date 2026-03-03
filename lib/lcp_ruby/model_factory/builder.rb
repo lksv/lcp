@@ -42,6 +42,9 @@ module LcpRuby
         klass = Class.new(ActiveRecord::Base)
         class_name = model_definition.name.camelize
 
+        # Remove previous definition to avoid "already initialized constant" warnings
+        LcpRuby::Dynamic.send(:remove_const, class_name) if LcpRuby::Dynamic.const_defined?(class_name, false)
+
         # Register under LcpRuby::Dynamic namespace
         LcpRuby::Dynamic.const_set(class_name, klass)
         klass
