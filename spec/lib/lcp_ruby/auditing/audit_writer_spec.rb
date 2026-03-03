@@ -90,6 +90,30 @@ RSpec.describe LcpRuby::Auditing::AuditWriter do
       result = described_class.send(:filter_fields, changes, { "ignore" => [ "amount" ] }, model_def)
       expect(result.keys).to eq([ "title" ])
     end
+
+    context "with soft_delete enabled" do
+      let(:soft_delete_model_def) do
+        LcpRuby::Metadata::ModelDefinition.from_hash({
+          "name" => "soft_delete_record",
+          "fields" => [
+            { "name" => "title", "type" => "string" },
+            { "name" => "amount", "type" => "integer" }
+          ],
+          "options" => { "timestamps" => true, "auditing" => true, "soft_delete" => true }
+        })
+      end
+
+      it "excludes soft delete columns (discarded_at, discarded_by_type, discarded_by_id)" do
+        changes = {
+          "title" => [ nil, "Foo" ],
+          "discarded_at" => [ nil, Time.now ],
+          "discarded_by_type" => [ nil, "User" ],
+          "discarded_by_id" => [ nil, 1 ]
+        }
+        result = described_class.send(:filter_fields, changes, default_options, soft_delete_model_def)
+        expect(result.keys).to eq([ "title" ])
+      end
+    end
   end
 
   describe "expand_custom_data! (private)" do
