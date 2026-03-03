@@ -1,0 +1,47 @@
+permissions:
+  model: document
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    hr_manager:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    manager:
+      crud: [index, show]
+      fields:
+        readable: [title, category, description, file, valid_from, valid_until]
+        writable: []
+      actions: { allowed: [] }
+      scope:
+        type: association
+        field: employee.organization_unit_id
+        user_field: organization_unit_id
+      presenters: all
+
+    employee:
+      crud: [index, show]
+      fields:
+        readable: [title, category, description, file, valid_from, valid_until]
+        writable: []
+      actions: { allowed: [] }
+      scope:
+        type: field_match
+        field: employee_id
+        user_field: employee_id
+      presenters: all
+
+  default_role: employee
+
+  field_overrides:
+    confidential:
+      readable_by: [admin, hr_manager]

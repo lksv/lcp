@@ -1,0 +1,53 @@
+permissions:
+  model: expense_claim
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    hr_manager:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions:
+        allowed: [approve, reject]
+      scope: all
+      presenters: all
+
+    manager:
+      crud: [index, show, update]
+      fields:
+        readable: all
+        writable: [rejection_note]
+      actions:
+        allowed: [approve, reject]
+      scope:
+        type: association
+        field: employee.organization_unit_id
+        user_field: organization_unit_id
+      presenters: all
+
+    employee:
+      crud: [index, show, create, update, destroy]
+      fields:
+        readable: all
+        writable: [title, description, amount, currency, category, receipt, expense_date, items]
+      actions:
+        allowed: [submit]
+      scope:
+        type: field_match
+        field: employee_id
+        user_field: employee_id
+      presenters: all
+
+  default_role: employee
+
+  record_rules:
+    - name: approved_readonly
+      condition: { field: status, operator: in, value: [approved, rejected, reimbursed] }
+      effect:
+        deny_crud: [update, destroy]
+        except_roles: [admin]

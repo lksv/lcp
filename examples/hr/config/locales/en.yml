@@ -1,0 +1,732 @@
+en:
+  lcp_ruby:
+    models:
+      employee:
+        one: "Employee"
+        other: "Employees"
+        fields:
+          first_name: "First Name"
+          last_name: "Last Name"
+          full_name: "Full Name"
+          personal_email: "Personal Email"
+          work_email: "Work Email"
+          phone: "Phone"
+          date_of_birth: "Date of Birth"
+          hire_date: "Hire Date"
+          termination_date: "Termination Date"
+          status: "Status"
+          employment_type: "Employment Type"
+          gender: "Gender"
+          salary: "Salary"
+          currency: "Currency"
+          photo: "Photo"
+          cv: "CV"
+          address: "Address"
+          emergency_contact: "Emergency Contact"
+          notes: "Notes"
+          organization_unit_id: "Organization Unit"
+          position_id: "Position"
+          manager_id: "Manager"
+          created_by_name: "Created By"
+          updated_by_name: "Updated By"
+        enums:
+          status:
+            active: "Active"
+            on_leave: "On Leave"
+            suspended: "Suspended"
+            terminated: "Terminated"
+          employment_type:
+            full_time: "Full Time"
+            part_time: "Part Time"
+            contract: "Contract"
+            intern: "Intern"
+          gender:
+            male: "Male"
+            female: "Female"
+            other: "Other"
+            prefer_not_to_say: "Prefer Not to Say"
+          currency:
+            CZK: "CZK"
+            EUR: "EUR"
+            USD: "USD"
+            GBP: "GBP"
+      organization_unit:
+        one: "Organization Unit"
+        other: "Organization Units"
+        fields:
+          name: "Name"
+          code: "Code"
+          description: "Description"
+          budget: "Budget"
+          active: "Active"
+          head_id: "Head"
+          parent_id: "Parent Unit"
+        depth_labels:
+          "1": "Business Unit"
+          "2": "Division"
+          "3": "Team"
+      position:
+        one: "Position"
+        other: "Positions"
+        fields:
+          title: "Title"
+          code: "Code"
+          level: "Level"
+          min_salary: "Minimum Salary"
+          max_salary: "Maximum Salary"
+          active: "Active"
+          parent_id: "Parent Position"
+      leave_type:
+        one: "Leave Type"
+        other: "Leave Types"
+        fields:
+          name: "Name"
+          code: "Code"
+          color: "Color"
+          default_days: "Default Days"
+          requires_approval: "Requires Approval"
+          requires_document: "Requires Document"
+          active: "Active"
+      leave_request:
+        one: "Leave Request"
+        other: "Leave Requests"
+        fields:
+          start_date: "Start Date"
+          end_date: "End Date"
+          days_count: "Days"
+          status: "Status"
+          reason: "Reason"
+          rejection_note: "Rejection Note"
+          approved_by_id: "Approved By"
+          approved_at: "Approved At"
+          attachment: "Attachment"
+          employee_id: "Employee"
+          leave_type_id: "Leave Type"
+        enums:
+          status:
+            draft: "Draft"
+            pending: "Pending"
+            approved: "Approved"
+            rejected: "Rejected"
+            cancelled: "Cancelled"
+      leave_balance:
+        one: "Leave Balance"
+        other: "Leave Balances"
+        fields:
+          year: "Year"
+          total_days: "Total Days"
+          used_days: "Used Days"
+          remaining: "Remaining"
+          employee_id: "Employee"
+          leave_type_id: "Leave Type"
+      performance_review:
+        one: "Performance Review"
+        other: "Performance Reviews"
+        fields:
+          review_period: "Review Period"
+          year: "Year"
+          status: "Status"
+          self_rating: "Self Rating"
+          manager_rating: "Manager Rating"
+          overall_rating: "Overall Rating"
+          self_comments: "Self Comments"
+          manager_comments: "Manager Comments"
+          goals_summary: "Goals Summary"
+          strengths: "Strengths"
+          improvements: "Areas for Improvement"
+          completed_at: "Completed At"
+          employee_id: "Employee"
+          reviewer_id: "Reviewer"
+        enums:
+          review_period:
+            q1: "Q1"
+            q2: "Q2"
+            q3: "Q3"
+            q4: "Q4"
+            annual: "Annual"
+          status:
+            draft: "Draft"
+            self_review: "Self Review"
+            manager_review: "Manager Review"
+            completed: "Completed"
+            acknowledged: "Acknowledged"
+      goal:
+        one: "Goal"
+        other: "Goals"
+        fields:
+          title: "Title"
+          description: "Description"
+          status: "Status"
+          priority: "Priority"
+          due_date: "Due Date"
+          progress: "Progress"
+          weight: "Weight"
+          employee_id: "Employee"
+          performance_review_id: "Performance Review"
+        enums:
+          status:
+            not_started: "Not Started"
+            in_progress: "In Progress"
+            completed: "Completed"
+            cancelled: "Cancelled"
+          priority:
+            low: "Low"
+            medium: "Medium"
+            high: "High"
+            critical: "Critical"
+      skill:
+        one: "Skill"
+        other: "Skills"
+        fields:
+          name: "Name"
+          description: "Description"
+          category: "Category"
+          parent_id: "Parent Skill"
+        enums:
+          category:
+            technical: "Technical"
+            soft: "Soft"
+            language: "Language"
+            certification: "Certification"
+      employee_skill:
+        one: "Employee Skill"
+        other: "Employee Skills"
+        fields:
+          proficiency: "Proficiency"
+          certified: "Certified"
+          certified_at: "Certified At"
+          expires_at: "Expires At"
+          certificate: "Certificate"
+          employee_id: "Employee"
+          skill_id: "Skill"
+        enums:
+          proficiency:
+            beginner: "Beginner"
+            intermediate: "Intermediate"
+            advanced: "Advanced"
+            expert: "Expert"
+      asset:
+        one: "Asset"
+        other: "Assets"
+        fields:
+          name: "Name"
+          asset_tag: "Asset Tag"
+          asset_uuid: "Asset UUID"
+          category: "Category"
+          brand: "Brand"
+          product_model: "Model"
+          serial_number: "Serial Number"
+          purchase_date: "Purchase Date"
+          purchase_price: "Purchase Price"
+          warranty_until: "Warranty Until"
+          status: "Status"
+          photo: "Photo"
+          notes: "Notes"
+        enums:
+          category:
+            laptop: "Laptop"
+            phone: "Phone"
+            monitor: "Monitor"
+            desk: "Desk"
+            chair: "Chair"
+            vehicle: "Vehicle"
+            access_card: "Access Card"
+            other: "Other"
+          status:
+            available: "Available"
+            assigned: "Assigned"
+            in_repair: "In Repair"
+            retired: "Retired"
+      asset_assignment:
+        one: "Asset Assignment"
+        other: "Asset Assignments"
+        fields:
+          assigned_at: "Assigned At"
+          returned_at: "Returned At"
+          condition_on_assign: "Condition on Assign"
+          condition_on_return: "Condition on Return"
+          notes: "Notes"
+          asset_id: "Asset"
+          employee_id: "Employee"
+        enums:
+          condition_on_assign:
+            new: "New"
+            good: "Good"
+            fair: "Fair"
+            poor: "Poor"
+          condition_on_return:
+            good: "Good"
+            fair: "Fair"
+            poor: "Poor"
+            damaged: "Damaged"
+      document:
+        one: "Document"
+        other: "Documents"
+        fields:
+          title: "Title"
+          category: "Category"
+          description: "Description"
+          file: "File"
+          confidential: "Confidential"
+          valid_from: "Valid From"
+          valid_until: "Valid Until"
+          employee_id: "Employee"
+        enums:
+          category:
+            contract: "Contract"
+            amendment: "Amendment"
+            certificate: "Certificate"
+            id_document: "ID Document"
+            tax_form: "Tax Form"
+            review: "Review"
+            other: "Other"
+      training_course:
+        one: "Training Course"
+        other: "Training Courses"
+        fields:
+          title: "Title"
+          description: "Description"
+          category: "Category"
+          format: "Format"
+          duration_hours: "Duration (hours)"
+          max_participants: "Max Participants"
+          instructor: "Instructor"
+          location: "Location"
+          url: "URL"
+          starts_at: "Starts At"
+          ends_at: "Ends At"
+          active: "Active"
+        enums:
+          category:
+            onboarding: "Onboarding"
+            technical: "Technical"
+            compliance: "Compliance"
+            leadership: "Leadership"
+            safety: "Safety"
+            other: "Other"
+          format:
+            in_person: "In Person"
+            online: "Online"
+            hybrid: "Hybrid"
+      training_enrollment:
+        one: "Training Enrollment"
+        other: "Training Enrollments"
+        fields:
+          status: "Status"
+          completed_at: "Completed At"
+          score: "Score"
+          feedback: "Feedback"
+          certificate: "Certificate"
+          employee_id: "Employee"
+          training_course_id: "Training Course"
+        enums:
+          status:
+            enrolled: "Enrolled"
+            completed: "Completed"
+            cancelled: "Cancelled"
+            no_show: "No Show"
+      job_posting:
+        one: "Job Posting"
+        other: "Job Postings"
+        fields:
+          title: "Title"
+          description: "Description"
+          status: "Status"
+          employment_type: "Employment Type"
+          location: "Location"
+          remote_option: "Remote Option"
+          salary_min: "Minimum Salary"
+          salary_max: "Maximum Salary"
+          currency: "Currency"
+          headcount: "Headcount"
+          published_at: "Published At"
+          closes_at: "Closes At"
+          organization_unit_id: "Organization Unit"
+          position_id: "Position"
+          hiring_manager_id: "Hiring Manager"
+        enums:
+          status:
+            draft: "Draft"
+            open: "Open"
+            on_hold: "On Hold"
+            closed: "Closed"
+            filled: "Filled"
+          employment_type:
+            full_time: "Full Time"
+            part_time: "Part Time"
+            contract: "Contract"
+            intern: "Intern"
+          remote_option:
+            on_site: "On Site"
+            hybrid: "Hybrid"
+            remote: "Remote"
+          currency:
+            CZK: "CZK"
+            EUR: "EUR"
+            USD: "USD"
+            GBP: "GBP"
+      candidate:
+        one: "Candidate"
+        other: "Candidates"
+        fields:
+          first_name: "First Name"
+          last_name: "Last Name"
+          full_name: "Full Name"
+          email: "Email"
+          phone: "Phone"
+          status: "Status"
+          source: "Source"
+          resume: "Resume"
+          cover_letter: "Cover Letter"
+          rating: "Rating"
+          notes: "Notes"
+          rejection_reason: "Rejection Reason"
+          job_posting_id: "Job Posting"
+        enums:
+          status:
+            applied: "Applied"
+            screening: "Screening"
+            interviewing: "Interviewing"
+            offer: "Offer"
+            hired: "Hired"
+            rejected: "Rejected"
+            withdrawn: "Withdrawn"
+          source:
+            website: "Website"
+            referral: "Referral"
+            linkedin: "LinkedIn"
+            agency: "Agency"
+            job_board: "Job Board"
+            other: "Other"
+      interview:
+        one: "Interview"
+        other: "Interviews"
+        fields:
+          interview_type: "Interview Type"
+          scheduled_at: "Scheduled At"
+          duration_minutes: "Duration (min)"
+          location: "Location"
+          meeting_url: "Meeting URL"
+          status: "Status"
+          rating: "Rating"
+          feedback: "Feedback"
+          recommendation: "Recommendation"
+          notes: "Notes"
+          candidate_id: "Candidate"
+          interviewer_id: "Interviewer"
+        enums:
+          interview_type:
+            phone_screen: "Phone Screen"
+            technical: "Technical"
+            behavioral: "Behavioral"
+            panel: "Panel"
+            final: "Final"
+          status:
+            scheduled: "Scheduled"
+            completed: "Completed"
+            cancelled: "Cancelled"
+            no_show: "No Show"
+          recommendation:
+            strong_yes: "Strong Yes"
+            "yes": "Yes"
+            neutral: "Neutral"
+            "no": "No"
+            strong_no: "Strong No"
+      expense_claim:
+        one: "Expense Claim"
+        other: "Expense Claims"
+        fields:
+          title: "Title"
+          description: "Description"
+          amount: "Amount"
+          currency: "Currency"
+          category: "Category"
+          status: "Status"
+          receipt: "Receipt"
+          expense_date: "Expense Date"
+          approved_by_id: "Approved By"
+          approved_at: "Approved At"
+          rejection_note: "Rejection Note"
+          items: "Line Items"
+          employee_id: "Employee"
+        enums:
+          currency:
+            CZK: "CZK"
+            EUR: "EUR"
+            USD: "USD"
+            GBP: "GBP"
+          category:
+            travel: "Travel"
+            meals: "Meals"
+            accommodation: "Accommodation"
+            equipment: "Equipment"
+            education: "Education"
+            other: "Other"
+          status:
+            draft: "Draft"
+            submitted: "Submitted"
+            approved: "Approved"
+            rejected: "Rejected"
+            reimbursed: "Reimbursed"
+      announcement:
+        one: "Announcement"
+        other: "Announcements"
+        fields:
+          title: "Title"
+          body: "Body"
+          priority: "Priority"
+          published: "Published"
+          published_at: "Published At"
+          expires_at: "Expires At"
+          pinned: "Pinned"
+          organization_unit_id: "Organization Unit"
+        enums:
+          priority:
+            normal: "Normal"
+            important: "Important"
+            urgent: "Urgent"
+      group:
+        one: "Group"
+        other: "Groups"
+        fields:
+          name: "Name"
+          code: "Code"
+          description: "Description"
+          group_type: "Group Type"
+          active: "Active"
+        enums:
+          group_type:
+            committee: "Committee"
+            project: "Project"
+            interest: "Interest"
+            cross_functional: "Cross-functional"
+            temporary: "Temporary"
+      group_membership:
+        one: "Group Membership"
+        other: "Group Memberships"
+        fields:
+          role_in_group: "Role in Group"
+          joined_at: "Joined At"
+          left_at: "Left At"
+          active: "Active"
+          group_id: "Group"
+          employee_id: "Employee"
+        enums:
+          role_in_group:
+            member: "Member"
+            lead: "Lead"
+            admin: "Admin"
+      dashboard:
+        one: "Dashboard"
+        other: "Dashboards"
+        fields:
+          total_headcount: "Total Headcount"
+          active_employees: "Active Employees"
+          open_positions: "Open Positions"
+          pending_leave_requests: "Pending Leave Requests"
+          pending_expense_claims: "Pending Expense Claims"
+          avg_tenure_years: "Average Tenure (years)"
+          turnover_rate_ytd: "Turnover Rate YTD"
+          upcoming_trainings: "Upcoming Trainings"
+          headcount_by_unit: "Headcount by Unit"
+          leave_utilization: "Leave Utilization"
+      custom_field_definition:
+        one: "Custom Field Definition"
+        other: "Custom Field Definitions"
+        fields:
+          field_name: "Field Name"
+          field_type: "Field Type"
+          target_model: "Target Model"
+          required: "Required"
+          default_value: "Default Value"
+          display_order: "Display Order"
+          options: "Options"
+          active: "Active"
+    presenters:
+      employee:
+        sections:
+          overview: "Overview"
+          employment: "Employment"
+          skills: "Skills"
+          emergency_contact: "Emergency Contact"
+          audit_history: "Audit History"
+          personal: "Personal"
+          contact: "Contact"
+          notes: "Notes"
+        association_lists:
+          leave_balances: "Leave Balances"
+          leave_requests: "Leave Requests"
+          performance_reviews: "Performance Reviews"
+          goals: "Goals"
+          asset_assignments: "Asset Assignments"
+          documents: "Documents"
+      employee_directory:
+        sections: {}
+      employee_archive:
+        sections:
+          employee_information: "Employee Information"
+      organization_unit:
+        sections:
+          unit_details: "Unit Details"
+        association_lists:
+          employees: "Employees"
+          sub_units: "Sub-Units"
+      position:
+        sections:
+          position_details: "Position Details"
+        association_lists:
+          employees: "Employees"
+      leave_type:
+        sections:
+          leave_type_details: "Leave Type Details"
+      leave_request:
+        sections:
+          request_details: "Request Details"
+          leave_request: "Leave Request"
+          audit_history: "Audit History"
+      leave_balance:
+        sections:
+          balance_details: "Balance Details"
+          leave_balance: "Leave Balance"
+      performance_review:
+        sections:
+          review_details: "Review Details"
+          self_review: "Self Review"
+          manager_review: "Manager Review"
+          summary: "Summary"
+          general: "General"
+        association_lists:
+          goals: "Goals"
+      goal:
+        sections:
+          goal_details: "Goal Details"
+      skill:
+        sections:
+          skill_details: "Skill Details"
+        association_lists:
+          sub_skills: "Sub-Skills"
+          employee_skills: "Employee Skills"
+      employee_skill:
+        sections:
+          skill_assignment: "Skill Assignment"
+      asset:
+        sections:
+          asset_details: "Asset Details"
+          audit_history: "Audit History"
+        association_lists:
+          assignment_history: "Assignment History"
+      asset_assignment:
+        sections:
+          assignment_details: "Assignment Details"
+      document:
+        sections:
+          document_details: "Document Details"
+      training_course:
+        sections:
+          course_details: "Course Details"
+        association_lists:
+          enrollments: "Enrollments"
+      training_enrollment:
+        sections:
+          enrollment_details: "Enrollment Details"
+      job_posting:
+        sections:
+          posting_details: "Posting Details"
+        association_lists:
+          candidates: "Candidates"
+      candidate:
+        sections:
+          candidate_details: "Candidate Details"
+        association_lists:
+          interviews: "Interviews"
+      interview:
+        sections:
+          interview_details: "Interview Details"
+      expense_claim:
+        sections:
+          claim_details: "Claim Details"
+          line_items: "Line Items"
+          audit_history: "Audit History"
+      announcement:
+        sections:
+          announcement_details: "Announcement Details"
+      group:
+        sections:
+          group_details: "Group Details"
+        association_lists:
+          members: "Members"
+      dashboard:
+        sections:
+          overview: "Overview"
+    menu:
+      dashboard: "Dashboard"
+      people: "People"
+      time_and_leave: "Time & Leave"
+      performance: "Performance"
+      recruitment: "Recruitment"
+      assets: "Assets"
+      finance: "Finance"
+      training: "Training"
+      documents: "Documents"
+      communication: "Communication"
+      admin: "Admin"
+    actions:
+      approve: "Approve"
+      reject: "Reject"
+      submit: "Submit"
+      cancel: "Cancel"
+      advance: "Advance Stage"
+      hire: "Hire"
+      assign_asset: "Assign"
+      return_asset: "Return"
+      complete_interview: "Complete Interview"
+      reject_candidate: "Reject"
+      new_employee: "New Employee"
+      new_unit: "New Unit"
+      new_position: "New Position"
+      new_leave_type: "New Leave Type"
+      new_request: "New Request"
+      new_balance: "New Balance"
+      new_review: "New Review"
+      new_goal: "New Goal"
+      new_skill: "New Skill"
+      new_skill_assignment: "New Skill Assignment"
+      new_asset: "New Asset"
+      new_assignment: "New Assignment"
+      new_document: "New Document"
+      new_course: "New Course"
+      new_enrollment: "New Enrollment"
+      new_posting: "New Posting"
+      new_candidate: "New Candidate"
+      new_interview: "New Interview"
+      new_claim: "New Claim"
+      new_announcement: "New Announcement"
+      new_group: "New Group"
+    filters:
+      all: "All"
+      active: "Active"
+      on_leave: "On Leave"
+      terminated: "Terminated"
+      pending: "Pending"
+      approved: "Approved"
+      open: "Open"
+      draft: "Draft"
+      available: "Available"
+      assigned: "Assigned"
+      in_repair: "In Repair"
+      in_progress: "In Progress"
+      completed: "Completed"
+      published: "Published"
+      upcoming: "Upcoming"
+      enrolled: "Enrolled"
+      new_hires: "New Hires (Last 90 Days)"
+      high_salary: "High Salary"
+    address:
+      street: "Street"
+      city: "City"
+      zip: "ZIP"
+      country: "Country"
+    emergency_contact:
+      name: "Contact Name"
+      phone: "Contact Phone"
+      relationship: "Relationship"

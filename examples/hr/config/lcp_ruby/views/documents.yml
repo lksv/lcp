@@ -1,0 +1,10 @@
+view_group:
+  model: document
+  primary: document
+  navigation: false
+  breadcrumb:
+    relation: employee
+  views:
+    - presenter: document
+      label: "Documents"
+      icon: file-text

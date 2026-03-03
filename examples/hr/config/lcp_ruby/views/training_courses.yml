@@ -1,0 +1,8 @@
+view_group:
+  model: training_course
+  primary: training_course
+  navigation: false
+  views:
+    - presenter: training_course
+      label: "Training Courses"
+      icon: book-open

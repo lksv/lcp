@@ -1,0 +1,8 @@
+view_group:
+  model: interview
+  primary: interview
+  navigation: false
+  breadcrumb:
+    relation: candidate
+  views:
+    - presenter: interview

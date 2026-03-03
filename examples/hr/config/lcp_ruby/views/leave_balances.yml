@@ -1,0 +1,10 @@
+view_group:
+  model: leave_balance
+  primary: leave_balance
+  navigation: false
+  breadcrumb:
+    relation: employee
+  views:
+    - presenter: leave_balance
+      label: "Leave Balances"
+      icon: bar-chart-2

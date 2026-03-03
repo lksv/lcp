@@ -1,0 +1,10 @@
+view_group:
+  model: expense_claim
+  primary: expense_claim
+  navigation: false
+  breadcrumb:
+    relation: employee
+  views:
+    - presenter: expense_claim
+      label: "Expense Claims"
+      icon: credit-card

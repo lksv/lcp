@@ -1,0 +1,10 @@
+view_group:
+  model: goal
+  primary: goal
+  navigation: false
+  breadcrumb:
+    relation: employee
+  views:
+    - presenter: goal
+      label: "Goals"
+      icon: target

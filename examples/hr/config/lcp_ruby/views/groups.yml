@@ -1,0 +1,8 @@
+view_group:
+  model: group
+  primary: group
+  navigation: false
+  views:
+    - presenter: group
+      label: "Groups"
+      icon: users

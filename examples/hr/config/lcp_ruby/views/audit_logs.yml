@@ -1,0 +1,8 @@
+view_group:
+  model: audit_log
+  primary: audit_logs
+  navigation: false
+  views:
+    - presenter: audit_logs
+      label: "Audit Logs"
+      icon: clock

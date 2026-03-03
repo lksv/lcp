@@ -1,0 +1,43 @@
+permissions:
+  model: asset
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy, restore]
+      fields: { readable: all, writable: all }
+      actions:
+        allowed: [assign_asset, return_asset]
+      scope: all
+      presenters: all
+
+    hr_manager:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    manager:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+
+    employee:
+      crud: [index, show]
+      fields:
+        readable: [name, asset_tag, category, brand, model_name, status, photo]
+        writable: []
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+
+  default_role: employee
+
+  record_rules:
+    - name: assigned_no_destroy
+      condition: { field: status, operator: not_eq, value: available }
+      effect:
+        deny_crud: [destroy]
+        except_roles: [admin]

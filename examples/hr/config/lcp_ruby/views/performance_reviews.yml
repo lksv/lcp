@@ -1,0 +1,10 @@
+view_group:
+  model: performance_review
+  primary: performance_review
+  navigation: false
+  breadcrumb:
+    relation: employee
+  views:
+    - presenter: performance_review
+      label: "Performance Reviews"
+      icon: clipboard

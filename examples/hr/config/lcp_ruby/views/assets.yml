@@ -1,0 +1,8 @@
+view_group:
+  model: asset
+  primary: asset
+  navigation: false
+  views:
+    - presenter: asset
+      label: "Assets"
+      icon: box

@@ -1,0 +1,10 @@
+view_group:
+  model: asset_assignment
+  primary: asset_assignment
+  navigation: false
+  breadcrumb:
+    relation: asset
+  views:
+    - presenter: asset_assignment
+      label: "Asset Assignments"
+      icon: link

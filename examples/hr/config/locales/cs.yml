@@ -1,0 +1,496 @@
+cs:
+  lcp_ruby:
+    models:
+      employee:
+        one: "Zaměstnanec"
+        other: "Zaměstnanci"
+        fields:
+          first_name: "Jméno"
+          last_name: "Příjmení"
+          full_name: "Celé jméno"
+          personal_email: "Osobní email"
+          work_email: "Pracovní email"
+          phone: "Telefon"
+          date_of_birth: "Datum narození"
+          hire_date: "Datum nástupu"
+          termination_date: "Datum ukončení"
+          status: "Stav"
+          employment_type: "Typ úvazku"
+          gender: "Pohlaví"
+          salary: "Plat"
+          currency: "Měna"
+          photo: "Fotografie"
+          cv: "Životopis"
+          address: "Adresa"
+          emergency_contact: "Nouzový kontakt"
+          notes: "Poznámky"
+          organization_unit_id: "Organizační jednotka"
+          position_id: "Pozice"
+          manager_id: "Nadřízený"
+        enums:
+          status:
+            active: "Aktivní"
+            on_leave: "Na dovolené"
+            suspended: "Pozastavený"
+            terminated: "Ukončený"
+          employment_type:
+            full_time: "Plný úvazek"
+            part_time: "Částečný úvazek"
+            contract: "Kontrakt"
+            intern: "Stáž"
+          gender:
+            male: "Muž"
+            female: "Žena"
+            other: "Jiné"
+            prefer_not_to_say: "Nechci uvádět"
+      organization_unit:
+        one: "Organizační jednotka"
+        other: "Organizační jednotky"
+        fields:
+          name: "Název"
+          code: "Kód"
+          description: "Popis"
+          budget: "Rozpočet"
+          active: "Aktivní"
+          head_id: "Vedoucí"
+          parent_id: "Nadřazená jednotka"
+        depth_labels:
+          "1": "Obchodní jednotka"
+          "2": "Divize"
+          "3": "Tým"
+      position:
+        one: "Pozice"
+        other: "Pozice"
+        fields:
+          title: "Název"
+          code: "Kód"
+          level: "Úroveň"
+          min_salary: "Minimální plat"
+          max_salary: "Maximální plat"
+          active: "Aktivní"
+      leave_type:
+        one: "Typ dovolené"
+        other: "Typy dovolené"
+        fields:
+          name: "Název"
+          code: "Kód"
+          color: "Barva"
+          default_days: "Výchozí dny"
+          requires_approval: "Vyžaduje schválení"
+          requires_document: "Vyžaduje doklad"
+          active: "Aktivní"
+      leave_request:
+        one: "Žádost o dovolenou"
+        other: "Žádosti o dovolenou"
+        fields:
+          start_date: "Datum od"
+          end_date: "Datum do"
+          days_count: "Počet dní"
+          status: "Stav"
+          reason: "Důvod"
+          rejection_note: "Důvod zamítnutí"
+          approved_by_id: "Schválil"
+          approved_at: "Schváleno dne"
+          attachment: "Příloha"
+        enums:
+          status:
+            draft: "Koncept"
+            pending: "Čeká na schválení"
+            approved: "Schváleno"
+            rejected: "Zamítnuto"
+            cancelled: "Zrušeno"
+      leave_balance:
+        one: "Zůstatek dovolené"
+        other: "Zůstatky dovolené"
+        fields:
+          year: "Rok"
+          total_days: "Celkem dní"
+          used_days: "Čerpáno"
+          remaining: "Zbývá"
+      performance_review:
+        one: "Hodnocení výkonu"
+        other: "Hodnocení výkonu"
+        fields:
+          review_period: "Období hodnocení"
+          year: "Rok"
+          status: "Stav"
+          self_rating: "Sebehodnocení"
+          manager_rating: "Hodnocení nadřízeného"
+          overall_rating: "Celkové hodnocení"
+        enums:
+          status:
+            draft: "Koncept"
+            self_review: "Sebehodnocení"
+            manager_review: "Hodnocení nadřízeného"
+            completed: "Dokončeno"
+            acknowledged: "Potvrzeno"
+      goal:
+        one: "Cíl"
+        other: "Cíle"
+        fields:
+          title: "Název"
+          description: "Popis"
+          status: "Stav"
+          priority: "Priorita"
+          due_date: "Termín"
+          progress: "Pokrok"
+          weight: "Váha"
+        enums:
+          status:
+            not_started: "Nezahájeno"
+            in_progress: "Probíhá"
+            completed: "Dokončeno"
+            cancelled: "Zrušeno"
+          priority:
+            low: "Nízká"
+            medium: "Střední"
+            high: "Vysoká"
+            critical: "Kritická"
+      skill:
+        one: "Dovednost"
+        other: "Dovednosti"
+        fields:
+          name: "Název"
+          description: "Popis"
+          category: "Kategorie"
+        enums:
+          category:
+            technical: "Technická"
+            soft: "Měkká"
+            language: "Jazyková"
+            certification: "Certifikace"
+      employee_skill:
+        one: "Dovednost zaměstnance"
+        other: "Dovednosti zaměstnanců"
+        fields:
+          proficiency: "Úroveň"
+          certified: "Certifikováno"
+          certified_at: "Datum certifikace"
+          expires_at: "Platnost do"
+        enums:
+          proficiency:
+            beginner: "Začátečník"
+            intermediate: "Středně pokročilý"
+            advanced: "Pokročilý"
+            expert: "Expert"
+      asset:
+        one: "Majetek"
+        other: "Majetek"
+        fields:
+          name: "Název"
+          asset_tag: "Evidenční číslo"
+          category: "Kategorie"
+          brand: "Značka"
+          product_model: "Model"
+          serial_number: "Sériové číslo"
+          purchase_date: "Datum nákupu"
+          purchase_price: "Nákupní cena"
+          warranty_until: "Záruka do"
+          status: "Stav"
+          notes: "Poznámky"
+        enums:
+          category:
+            laptop: "Notebook"
+            phone: "Telefon"
+            monitor: "Monitor"
+            desk: "Stůl"
+            chair: "Židle"
+            vehicle: "Vozidlo"
+            access_card: "Přístupová karta"
+            other: "Ostatní"
+          status:
+            available: "Dostupný"
+            assigned: "Přidělený"
+            in_repair: "V opravě"
+            retired: "Vyřazený"
+      asset_assignment:
+        one: "Přidělení majetku"
+        other: "Přidělení majetku"
+        fields:
+          assigned_at: "Přiděleno dne"
+          returned_at: "Vráceno dne"
+          condition_on_assign: "Stav při přidělení"
+          condition_on_return: "Stav při vrácení"
+          notes: "Poznámky"
+      document:
+        one: "Dokument"
+        other: "Dokumenty"
+        fields:
+          title: "Název"
+          category: "Kategorie"
+          description: "Popis"
+          file: "Soubor"
+          confidential: "Důvěrné"
+          valid_from: "Platný od"
+          valid_until: "Platný do"
+        enums:
+          category:
+            contract: "Smlouva"
+            amendment: "Dodatek"
+            certificate: "Certifikát"
+            id_document: "Doklad totožnosti"
+            tax_form: "Daňový formulář"
+            review: "Hodnocení"
+            other: "Ostatní"
+      training_course:
+        one: "Školení"
+        other: "Školení"
+        fields:
+          title: "Název"
+          description: "Popis"
+          category: "Kategorie"
+          format: "Formát"
+          duration_hours: "Délka (hodiny)"
+          max_participants: "Max. účastníků"
+          instructor: "Lektor"
+          location: "Místo"
+          url: "URL"
+          starts_at: "Začátek"
+          ends_at: "Konec"
+          active: "Aktivní"
+        enums:
+          category:
+            onboarding: "Adaptace"
+            technical: "Technické"
+            compliance: "Compliance"
+            leadership: "Vedení"
+            safety: "Bezpečnost"
+            other: "Ostatní"
+          format:
+            in_person: "Prezenčně"
+            online: "Online"
+            hybrid: "Hybridně"
+      training_enrollment:
+        one: "Zápis na školení"
+        other: "Zápisy na školení"
+        fields:
+          status: "Stav"
+          completed_at: "Dokončeno dne"
+          score: "Skóre"
+          feedback: "Zpětná vazba"
+          certificate: "Certifikát"
+        enums:
+          status:
+            enrolled: "Zapsán"
+            completed: "Dokončeno"
+            cancelled: "Zrušeno"
+            no_show: "Nedostavil se"
+      job_posting:
+        one: "Pracovní nabídka"
+        other: "Pracovní nabídky"
+        fields:
+          title: "Název"
+          description: "Popis"
+          status: "Stav"
+          employment_type: "Typ úvazku"
+          location: "Místo"
+          remote_option: "Vzdálená práce"
+          salary_min: "Minimální plat"
+          salary_max: "Maximální plat"
+          headcount: "Počet míst"
+          published_at: "Zveřejněno"
+          closes_at: "Uzávěrka"
+        enums:
+          status:
+            draft: "Koncept"
+            open: "Otevřená"
+            on_hold: "Pozastavená"
+            closed: "Uzavřená"
+            filled: "Obsazená"
+          employment_type:
+            full_time: "Plný úvazek"
+            part_time: "Částečný úvazek"
+            contract: "Kontrakt"
+            intern: "Stáž"
+          remote_option:
+            on_site: "Na pracovišti"
+            hybrid: "Hybridně"
+            remote: "Vzdáleně"
+      candidate:
+        one: "Kandidát"
+        other: "Kandidáti"
+        fields:
+          first_name: "Jméno"
+          last_name: "Příjmení"
+          full_name: "Celé jméno"
+          email: "Email"
+          phone: "Telefon"
+          status: "Stav"
+          source: "Zdroj"
+          resume: "Životopis"
+          cover_letter: "Motivační dopis"
+          rating: "Hodnocení"
+          notes: "Poznámky"
+          rejection_reason: "Důvod zamítnutí"
+        enums:
+          status:
+            applied: "Přihlášen"
+            screening: "Předvýběr"
+            interviewing: "Pohovor"
+            offer: "Nabídka"
+            hired: "Přijat"
+            rejected: "Zamítnut"
+            withdrawn: "Odstoupil"
+          source:
+            website: "Web"
+            referral: "Doporučení"
+            linkedin: "LinkedIn"
+            agency: "Agentura"
+            job_board: "Pracovní portál"
+            other: "Ostatní"
+      interview:
+        one: "Pohovor"
+        other: "Pohovory"
+        fields:
+          interview_type: "Typ pohovoru"
+          scheduled_at: "Naplánováno na"
+          duration_minutes: "Délka (min)"
+          location: "Místo"
+          meeting_url: "Odkaz na schůzku"
+          status: "Stav"
+          rating: "Hodnocení"
+          feedback: "Zpětná vazba"
+          recommendation: "Doporučení"
+          notes: "Poznámky"
+        enums:
+          interview_type:
+            phone_screen: "Telefonický předvýběr"
+            technical: "Technický"
+            behavioral: "Behaviorální"
+            panel: "Panel"
+            final: "Závěrečný"
+          status:
+            scheduled: "Naplánováno"
+            completed: "Dokončeno"
+            cancelled: "Zrušeno"
+            no_show: "Nedostavil se"
+          recommendation:
+            strong_yes: "Rozhodně ano"
+            "yes": "Ano"
+            neutral: "Neutrální"
+            "no": "Ne"
+            strong_no: "Rozhodně ne"
+      expense_claim:
+        one: "Výdajový nárok"
+        other: "Výdajové nároky"
+        fields:
+          title: "Název"
+          description: "Popis"
+          amount: "Částka"
+          currency: "Měna"
+          category: "Kategorie"
+          status: "Stav"
+          receipt: "Doklad"
+          expense_date: "Datum výdaje"
+          approved_by_id: "Schválil"
+          approved_at: "Schváleno dne"
+          rejection_note: "Důvod zamítnutí"
+          items: "Položky"
+        enums:
+          category:
+            travel: "Cestovné"
+            meals: "Stravné"
+            accommodation: "Ubytování"
+            equipment: "Vybavení"
+            education: "Vzdělávání"
+            other: "Ostatní"
+          status:
+            draft: "Koncept"
+            submitted: "Odesláno"
+            approved: "Schváleno"
+            rejected: "Zamítnuto"
+            reimbursed: "Proplaceno"
+      announcement:
+        one: "Oznámení"
+        other: "Oznámení"
+        fields:
+          title: "Název"
+          body: "Obsah"
+          priority: "Priorita"
+          published: "Zveřejněno"
+          published_at: "Zveřejněno dne"
+          expires_at: "Platnost do"
+          pinned: "Připnuto"
+        enums:
+          priority:
+            normal: "Normální"
+            important: "Důležité"
+            urgent: "Naléhavé"
+      group:
+        one: "Skupina"
+        other: "Skupiny"
+        fields:
+          name: "Název"
+          code: "Kód"
+          description: "Popis"
+          group_type: "Typ skupiny"
+          active: "Aktivní"
+        enums:
+          group_type:
+            committee: "Komise"
+            project: "Projekt"
+            interest: "Zájmová"
+            cross_functional: "Mezioborová"
+            temporary: "Dočasná"
+      group_membership:
+        one: "Členství ve skupině"
+        other: "Členství ve skupinách"
+        fields:
+          role_in_group: "Role ve skupině"
+          joined_at: "Vstup"
+          left_at: "Odchod"
+          active: "Aktivní"
+        enums:
+          role_in_group:
+            member: "Člen"
+            lead: "Vedoucí"
+            admin: "Správce"
+      dashboard:
+        one: "Přehled"
+        other: "Přehledy"
+        fields:
+          total_headcount: "Celkový počet zaměstnanců"
+          active_employees: "Aktivní zaměstnanci"
+          open_positions: "Otevřené pozice"
+          pending_leave_requests: "Čekající žádosti o dovolenou"
+          pending_expense_claims: "Čekající výdajové nároky"
+          avg_tenure_years: "Průměrná délka zaměstnání (roky)"
+          turnover_rate_ytd: "Fluktuace od začátku roku"
+          upcoming_trainings: "Nadcházející školení"
+    menu:
+      dashboard: "Přehled"
+      people: "Lidé"
+      time_and_leave: "Čas a dovolená"
+      performance: "Výkon"
+      recruitment: "Nábor"
+      assets: "Majetek"
+      finance: "Finance"
+      training: "Školení"
+      documents: "Dokumenty"
+      communication: "Komunikace"
+      admin: "Správa"
+    actions:
+      approve: "Schválit"
+      reject: "Zamítnout"
+      submit: "Odeslat"
+      cancel: "Zrušit"
+      advance: "Posunout fázi"
+      hire: "Přijmout"
+      assign_asset: "Přidělit"
+      return_asset: "Vrátit"
+      complete_interview: "Dokončit pohovor"
+      reject_candidate: "Zamítnout"
+    filters:
+      all: "Vše"
+      active: "Aktivní"
+      on_leave: "Na dovolené"
+      terminated: "Ukončení"
+      pending: "Čekající"
+      approved: "Schválené"
+      open: "Otevřené"
+      draft: "Koncepty"
+      available: "Dostupné"
+      assigned: "Přidělené"
+      in_progress: "Probíhající"
+      completed: "Dokončené"
+      published: "Zveřejněné"

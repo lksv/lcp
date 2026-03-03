@@ -1,0 +1,8 @@
+view_group:
+  model: leave_type
+  primary: leave_type
+  navigation: false
+  views:
+    - presenter: leave_type
+      label: "Leave Types"
+      icon: calendar

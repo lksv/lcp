@@ -1,0 +1,10 @@
+view_group:
+  model: training_enrollment
+  primary: training_enrollment
+  navigation: false
+  breadcrumb:
+    relation: training_course
+  views:
+    - presenter: training_enrollment
+      label: "Training Enrollments"
+      icon: bookmark

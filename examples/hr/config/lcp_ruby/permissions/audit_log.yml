@@ -1,0 +1,30 @@
+permissions:
+  model: audit_log
+
+  roles:
+    admin:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+    hr_manager:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+    manager:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+    employee:
+      crud: []
+      fields: { readable: [], writable: [] }
+      actions: { allowed: [] }
+      scope: all
+      presenters: all
+
+  default_role: employee

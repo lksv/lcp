@@ -1,0 +1,14 @@
+view_group:
+  model: employee
+  primary: employee
+  navigation: false
+  views:
+    - presenter: employee
+      label: "Management"
+      icon: users
+    - presenter: employee_directory
+      label: "Directory"
+      icon: book
+    - presenter: employee_archive
+      label: "Archive"
+      icon: archive

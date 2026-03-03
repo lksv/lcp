@@ -1,0 +1,42 @@
+permissions:
+  model: job_posting
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy, restore]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    hr_manager:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    manager:
+      crud: [index, show, create, update]
+      fields:
+        readable: all
+        writable: [title, description, employment_type, location, remote_option, headcount]
+      actions: { allowed: [] }
+      scope:
+        type: association
+        field: organization_unit_id
+        user_field: organization_unit_id
+      presenters: all
+
+    employee:
+      crud: [index, show]
+      fields:
+        readable: [title, description, status, employment_type, location, remote_option, closes_at]
+        writable: []
+      actions: { allowed: [] }
+      scope:
+        type: where
+        conditions: { status: open }
+      presenters: all
+
+  default_role: employee

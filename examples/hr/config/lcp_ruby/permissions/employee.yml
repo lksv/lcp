@@ -1,0 +1,55 @@
+permissions:
+  model: employee
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy, restore, permanently_destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    hr_manager:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: [employee, employee_directory]
+
+    manager:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope:
+        type: association
+        field: organization_unit_id
+        user_field: organization_unit_id
+      presenters: [employee, employee_directory]
+
+    employee:
+      crud: [index, show]
+      fields:
+        readable: [first_name, last_name, full_name, work_email, phone, status, organization_unit_id, position_id, hire_date, employment_type, photo]
+        writable: []
+      actions: { allowed: [] }
+      scope: all
+      presenters: [employee_directory]
+
+  default_role: employee
+
+  field_overrides:
+    salary:
+      writable_by: [admin, hr_manager]
+      readable_by: [admin, hr_manager]
+      masked_for: [manager]
+    personal_email:
+      readable_by: [admin, hr_manager, employee]
+    date_of_birth:
+      readable_by: [admin, hr_manager]
+
+  record_rules:
+    - name: terminated_readonly
+      condition: { field: status, operator: eq, value: terminated }
+      effect:
+        deny_crud: [update, destroy]
+        except_roles: [admin, hr_manager]

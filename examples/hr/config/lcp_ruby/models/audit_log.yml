@@ -1,0 +1,57 @@
+model:
+  name: audit_log
+  label: "Audit Log"
+  label_plural: "Audit Logs"
+
+  fields:
+    - name: auditable_type
+      type: string
+      validations:
+        - type: presence
+
+    - name: auditable_id
+      type: integer
+      validations:
+        - type: presence
+
+    - name: action
+      type: string
+      validations:
+        - type: presence
+
+    - name: changes_data
+      type: json
+      default: {}
+
+    - name: user_id
+      type: integer
+
+    - name: user_snapshot
+      type: json
+
+    - name: metadata
+      type: json
+
+    - name: created_at
+      type: datetime
+
+  scopes:
+    - name: for_record
+      where: {}
+      order: { created_at: desc }
+
+    - name: by_user
+      where: {}
+      order: { created_at: desc }
+
+    - name: recent
+      order: { created_at: desc }
+
+  indexes:
+    - columns: [auditable_type, auditable_id, created_at]
+    - columns: [user_id, created_at]
+    - columns: [created_at]
+
+  options:
+    timestamps: false
+    label_method: action

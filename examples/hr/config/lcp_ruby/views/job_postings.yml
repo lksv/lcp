@@ -1,0 +1,6 @@
+view_group:
+  model: job_posting
+  primary: job_posting
+  navigation: false
+  views:
+    - presenter: job_posting

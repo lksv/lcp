@@ -1,0 +1,8 @@
+view_group:
+  model: candidate
+  primary: candidate
+  navigation: false
+  breadcrumb:
+    relation: job_posting
+  views:
+    - presenter: candidate

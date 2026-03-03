@@ -1,0 +1,8 @@
+view_group:
+  model: skill
+  primary: skill
+  navigation: false
+  views:
+    - presenter: skill
+      label: "Skills"
+      icon: award

@@ -1,0 +1,84 @@
+menu:
+  sidebar_menu:
+    - label: "Dashboard"
+      icon: layout-dashboard
+      view_group: dashboard
+
+    - label: "People"
+      icon: users
+      badge:
+        provider: headcount_text
+        renderer: text_badge
+      children:
+        - view_group: employees
+        - view_group: organization_units
+        - view_group: positions
+        - separator: true
+        - view_group: groups
+
+    - label: "Time & Leave"
+      icon: calendar
+      badge:
+        provider: pending_leaves_count
+        renderer: count_badge
+      children:
+        - view_group: leave_requests
+        - view_group: leave_types
+        - view_group: leave_balances
+
+    - label: "Performance"
+      icon: award
+      children:
+        - view_group: performance_reviews
+        - view_group: goals
+        - separator: true
+        - view_group: skills
+        - view_group: employee_skills
+
+    - label: "Recruitment"
+      icon: user-plus
+      badge:
+        provider: open_positions_count
+        renderer: count_badge
+      children:
+        - view_group: job_postings
+        - view_group: candidates
+        - view_group: interviews
+
+    - label: "Assets"
+      icon: box
+      children:
+        - view_group: assets
+        - view_group: asset_assignments
+
+    - label: "Finance"
+      icon: credit-card
+      badge:
+        provider: pending_expenses_count
+        renderer: count_badge
+      children:
+        - view_group: expense_claims
+
+    - label: "Training"
+      icon: book-open
+      children:
+        - view_group: training_courses
+        - view_group: training_enrollments
+
+    - label: "Documents"
+      icon: file-text
+      children:
+        - view_group: documents
+
+    - label: "Communication"
+      icon: megaphone
+      children:
+        - view_group: announcements
+
+    - label: "Admin"
+      icon: settings
+      position: bottom
+      visible_when:
+        role: [admin]
+      children:
+        - view_group: dashboard

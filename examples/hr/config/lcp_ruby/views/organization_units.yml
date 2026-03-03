@@ -1,0 +1,8 @@
+view_group:
+  model: organization_unit
+  primary: organization_unit
+  navigation: false
+  views:
+    - presenter: organization_unit
+      label: "Organization Units"
+      icon: git-branch

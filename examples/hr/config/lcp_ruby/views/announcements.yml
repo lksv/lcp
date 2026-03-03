@@ -1,0 +1,8 @@
+view_group:
+  model: announcement
+  primary: announcement
+  navigation: false
+  views:
+    - presenter: announcement
+      label: "Announcements"
+      icon: megaphone

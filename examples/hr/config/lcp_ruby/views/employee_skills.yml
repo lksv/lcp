@@ -1,0 +1,10 @@
+view_group:
+  model: employee_skill
+  primary: employee_skill
+  navigation: false
+  breadcrumb:
+    relation: employee
+  views:
+    - presenter: employee_skill
+      label: "Employee Skills"
+      icon: star

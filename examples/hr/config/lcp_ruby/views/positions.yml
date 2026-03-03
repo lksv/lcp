@@ -1,0 +1,8 @@
+view_group:
+  model: position
+  primary: position
+  navigation: false
+  views:
+    - presenter: position
+      label: "Positions"
+      icon: briefcase
