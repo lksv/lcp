@@ -57,7 +57,10 @@
         "partial": { "type": "string" },
         "hidden_on": { "$ref": "#/$defs/hidden_on" },
         "pinned": { "type": "string", "enum": ["left", "right"] },
-        "summary": { "type": "string", "enum": ["sum", "avg", "count"] }
+        "summary": { "type": "string", "enum": ["sum", "avg", "count"] },
+        "copyable": { "type": "boolean" },
+        "visible_when": { "$ref": "#/$defs/condition" },
+        "disable_when": { "$ref": "#/$defs/condition" }
       },
       "required": ["field"],
       "additionalProperties": false
@@ -74,7 +77,10 @@
         "partial": { "type": "string" },
         "col_span": { "type": "integer", "minimum": 1 },
         "copyable": { "type": "boolean" },
+        "hint": { "type": "string" },
         "hidden_on": { "$ref": "#/$defs/hidden_on" },
+        "visible_when": { "$ref": "#/$defs/condition" },
+        "disable_when": { "$ref": "#/$defs/condition" },
         "type": { "type": "string", "enum": ["divider", "info"] },
         "text": { "type": "string" }
       },
@@ -110,11 +116,11 @@
     },
 
     "show_section": {
-      "description": "Section in show layout. Regular section (has 'section' + optional 'fields') or association_list (type: association_list).",
+      "description": "Section in show layout. Regular section, association_list, json_items_list, or audit_history.",
       "type": "object",
       "properties": {
         "section": { "type": "string" },
-        "type": { "type": "string", "enum": ["association_list"] },
+        "type": { "type": "string", "enum": ["association_list", "json_items_list", "audit_history"] },
         "columns": { "type": "integer", "minimum": 1 },
         "description": { "type": "string" },
         "responsive": { "type": "object" },
@@ -124,7 +130,13 @@
           "type": "array",
           "items": { "$ref": "#/$defs/show_field" }
         },
+        "sub_sections": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sub_section" }
+        },
         "association": { "type": "string" },
+        "json_field": { "type": "string" },
+        "target_model": { "type": "string" },
         "display_template": { "type": "string" },
         "link": { "type": "boolean" },
         "sort": { "type": "object" },
@@ -153,7 +165,13 @@
           "type": "array",
           "items": { "$ref": "#/$defs/form_field" }
         },
+        "sub_sections": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/sub_section" }
+        },
         "association": { "type": "string" },
+        "json_field": { "type": "string" },
+        "target_model": { "type": "string" },
         "allow_add": { "type": "boolean" },
         "allow_remove": { "type": "boolean" },
         "min": { "type": "integer" },
@@ -161,6 +179,25 @@
         "add_label": { "type": "string" },
         "empty_message": { "type": "string" },
         "sortable": {}
+      },
+      "required": ["title"],
+      "additionalProperties": false
+    },
+
+    "sub_section": {
+      "description": "Sub-section within nested_fields or json_items_list, grouping fields under a title.",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "columns": { "type": "integer", "minimum": 1 },
+        "collapsible": { "type": "boolean" },
+        "collapsed": { "type": "boolean" },
+        "visible_when": { "$ref": "#/$defs/condition" },
+        "disable_when": { "$ref": "#/$defs/condition" },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/form_field" }
+        }
       },
       "required": ["title"],
       "additionalProperties": false
@@ -357,6 +394,26 @@
             },
             "required": ["name"]
           }
+        },
+        "saved_filters": { "$ref": "#/$defs/saved_filters_config" }
+      },
+      "additionalProperties": false
+    },
+
+    "saved_filters_config": {
+      "type": "object",
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "display": { "type": "string", "enum": ["inline", "dropdown", "sidebar"] },
+        "max_per_user": { "type": "integer", "minimum": 1 },
+        "max_per_role": { "type": "integer", "minimum": 1 },
+        "max_global": { "type": "integer", "minimum": 1 },
+        "max_visible_pinned": { "type": "integer", "minimum": 1 },
+        "allow_pinning": { "type": "boolean" },
+        "allow_default": { "type": "boolean" },
+        "visibility_options": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["personal", "role", "global", "group"] }
         }
       },
       "additionalProperties": false

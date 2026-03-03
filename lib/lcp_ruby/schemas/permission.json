@@ -97,6 +97,7 @@
             },
             "field": { "type": "string" },
             "value": { "type": "string" },
+            "user_field": { "type": "string" },
             "method": { "type": "string" },
             "conditions": { "type": "object" }
           },

@@ -51,6 +51,10 @@
           "additionalProperties": false
         }
       ]
+    },
+    "indexes": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/index" }
     }
   },
   "required": ["name"],
@@ -244,13 +248,48 @@
       "type": "object",
       "properties": {
         "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["custom"] },
+        "type": { "type": "string", "enum": ["custom", "parameterized"] },
         "where": { "type": "object" },
         "where_not": { "type": "object" },
         "order": { "type": "object" },
-        "limit": { "type": "integer" }
+        "limit": { "type": "integer" },
+        "parameters": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/scope_parameter" }
+        }
       },
       "required": ["name"],
+      "additionalProperties": false
+    },
+
+    "scope_parameter": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["integer", "float", "string", "enum", "date", "datetime", "boolean", "model_select"] },
+        "label": { "type": "string" },
+        "required": { "type": "boolean" },
+        "default": {},
+        "values": { "type": "array", "items": { "type": "string" } },
+        "model": { "type": "string" },
+        "min": { "type": "number" },
+        "max": { "type": "number" }
+      },
+      "required": ["name", "type"],
+      "additionalProperties": false
+    },
+
+    "index": {
+      "type": "object",
+      "properties": {
+        "columns": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "unique": { "type": "boolean" },
+        "name": { "type": "string" }
+      },
+      "required": ["columns"],
       "additionalProperties": false
     },
 

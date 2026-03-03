@@ -129,6 +129,39 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
       expect(validator.validate_model(model)).to be_empty
     end
 
+    it "accepts scope with type: parameterized and parameters" do
+      model = build_model(scopes: [ {
+        name: "above_value",
+        type: "parameterized",
+        parameters: [
+          { name: "min_value", type: "float", required: true, min: 0 },
+          { name: "status", type: "enum", values: %w[active inactive], default: "active" }
+        ]
+      } ])
+      expect(validator.validate_model(model)).to be_empty
+    end
+
+    it "catches invalid parameterized scope parameter type" do
+      raw = LcpRuby::HashUtils.stringify_deep(
+        name: "test",
+        scopes: [ {
+          name: "above_value",
+          type: "parameterized",
+          parameters: [ { name: "val", type: "decimal" } ]
+        } ]
+      )
+      errors = validator.send(:validate, :model, raw, context_name: "Model 'test'")
+      expect(errors).to include(a_string_matching(/invalid value 'decimal'/))
+    end
+
+    it "accepts model with indexes" do
+      model = build_model(indexes: [
+        { columns: %w[status created_at] },
+        { columns: %w[email], unique: true, name: "idx_email" }
+      ])
+      expect(validator.validate_model(model)).to be_empty
+    end
+
     it "catches unknown scope attribute" do
       model = build_model(scopes: [ { name: "active", bogus: true } ])
       errors = validator.validate_model(model)
@@ -261,6 +294,20 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
     it "accepts scope as object with type" do
       perm = build_permission(roles: {
         owner: { crud: %w[index show], scope: { type: "field_match", field: "owner_id", value: "current_user_id" } }
+      })
+      expect(validator.validate_permission(perm)).to be_empty
+    end
+
+    it "accepts association scope with user_field" do
+      perm = build_permission(roles: {
+        manager: {
+          crud: %w[index show],
+          scope: {
+            type: "association",
+            field: "organization_unit_id",
+            user_field: "organization_unit_id"
+          }
+        }
       })
       expect(validator.validate_permission(perm)).to be_empty
     end
@@ -808,6 +855,128 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
               limit: 10,
               empty_message: "No items"
             } ]
+          }
+        )
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+    end
+
+    context "with json_items_list section" do
+      it "is valid" do
+        presenter = build_presenter(
+          show: {
+            layout: [ {
+              section: "Address History",
+              type: "json_items_list",
+              json_field: "addresses",
+              target_model: "address",
+              columns: 2,
+              empty_message: "No addresses",
+              fields: [ { field: "street" }, { field: "city" } ]
+            } ]
+          }
+        )
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+    end
+
+    context "with audit_history section" do
+      it "is valid" do
+        presenter = build_presenter(
+          show: {
+            layout: [ {
+              section: "Change History",
+              type: "audit_history"
+            } ]
+          }
+        )
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+    end
+
+    context "with visible_when on show field" do
+      it "is valid" do
+        presenter = build_presenter(
+          show: {
+            layout: [ {
+              section: "Details",
+              fields: [
+                { field: "termination_date", visible_when: { field: "status", operator: "eq", value: "terminated" } }
+              ]
+            } ]
+          }
+        )
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+    end
+
+    context "with hint on show field" do
+      it "is valid" do
+        presenter = build_presenter(
+          show: {
+            layout: [ {
+              section: "Details",
+              fields: [ { field: "notes", hint: "Internal notes only" } ]
+            } ]
+          }
+        )
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+    end
+
+    context "with visible_when and copyable on table column" do
+      it "is valid" do
+        presenter = build_presenter(
+          index: {
+            table_columns: [
+              { field: "email", copyable: true, visible_when: { field: "status", operator: "eq", value: "active" } }
+            ]
+          }
+        )
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+    end
+
+    context "with nested_fields using json_field and sub_sections" do
+      it "is valid" do
+        presenter = build_presenter(
+          form: {
+            sections: [ {
+              title: "Addresses",
+              type: "nested_fields",
+              json_field: "addresses",
+              target_model: "address",
+              allow_add: true,
+              allow_remove: true,
+              sub_sections: [ {
+                title: "Street Address",
+                columns: 2,
+                fields: [ { field: "street" }, { field: "city" } ]
+              } ]
+            } ]
+          }
+        )
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+    end
+
+    context "with saved_filters in advanced_filter" do
+      it "is valid" do
+        presenter = build_presenter(
+          search: {
+            enabled: true,
+            advanced_filter: {
+              enabled: true,
+              saved_filters: {
+                enabled: true,
+                display: "inline",
+                max_visible_pinned: 5,
+                max_per_user: 50,
+                allow_pinning: true,
+                allow_default: true,
+                visibility_options: %w[personal role global]
+              }
+            }
           }
         )
         expect(validator.validate_presenter(presenter)).to be_empty

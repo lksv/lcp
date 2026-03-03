@@ -4080,6 +4080,50 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
   end
 
+  # --- Tree-generated associations ---
+
+  context "tree-generated associations" do
+    let(:metadata_path) { "" }
+
+    it "recognizes tree-generated children association in presenter validation" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+              - { name: parent_id, type: integer }
+            options:
+              tree: true
+        YAML
+        presenters: [ <<~YAML ],
+          presenter:
+            name: category
+            model: category
+            show:
+              layout:
+                - section: Sub-Categories
+                  type: association_list
+                  association: children
+                  display_template: "{name}"
+        YAML
+        permissions: [ <<~YAML ]
+          permissions:
+            model: category
+            roles:
+              admin:
+                crud: [index, show, create, update, destroy]
+                fields: { readable: all, writable: all }
+                scope: all
+        YAML
+      )
+
+      result = v.validate
+      assoc_errors = result.errors.select { |e| e.include?("children") }
+      expect(assoc_errors).to be_empty
+    end
+  end
+
   # --- Sub-section validations ---
 
   context "sub-sections" do

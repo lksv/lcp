@@ -124,7 +124,15 @@ module LcpRuby
         definition = loader.model_definitions[model_name]
         return [] unless definition
 
-        definition.associations.map(&:name)
+        names = definition.associations.map(&:name)
+
+        # Include tree-generated associations (parent/children) that exist at runtime
+        if definition.tree?
+          names << definition.tree_parent_name unless names.include?(definition.tree_parent_name)
+          names << definition.tree_children_name unless names.include?(definition.tree_children_name)
+        end
+
+        names
       end
 
       # --- Model validations ---
