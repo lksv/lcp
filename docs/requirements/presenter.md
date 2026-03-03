@@ -5,7 +5,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 ## View Definitions from Metadata
 
 - [x] Views defined purely in metadata (without writing templates) — YAML + DSL presenters
-- [~] Multiple view types per entity (list, detail, form, card, kanban, calendar, timeline, tree, map...) — list, detail, form supported; kanban/calendar/timeline/tree/map not implemented
+- [~] Multiple view types per entity (list, detail, form, card, kanban, calendar, timeline, tree, map...) — list, detail, form, tree supported; kanban/calendar/timeline/card/map not implemented
 - [x] Multiple variants of one view type per entity (e.g., "compact list" vs. "detailed list") — view groups
 - [x] View per role (different view for admin vs. regular user) — presenter-level role permissions
 - [ ] View per context (embedded vs. standalone, modal vs. full-page)
@@ -20,11 +20,11 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 - [x] Column widths (fixed, auto, user-adjustable) — `width` in presenter
 - [ ] Column freezing (freeze first N columns on horizontal scroll)
 - [x] Row actions (inline buttons per record) — ActionSet single actions
-- [ ] Bulk selection and bulk actions
+- [~] Bulk selection and bulk actions — backend API implemented (batch_actions route, `ActionsController#execute_batch`, `BaseAction` with `records`), multiselect checkbox UI not yet
 - [ ] Inline editing directly in table
 - [~] Row highlighting by condition (background color, icon — e.g., overdue = red) — badge renderer with color_map
 - [ ] Row grouping (group by field — with collapse/expand)
-- [ ] Summary row (SUM, COUNT, AVG at column bottom)
+- [~] Summary row (SUM, COUNT, AVG at column bottom) — metadata schema supports `summary: sum|avg|count` on columns, rendering not yet implemented
 - [x] Virtual scrolling / pagination (configurable: paging vs. infinite scroll) — Kaminari pagination
 - [ ] Exports (CSV, XLSX, PDF) respecting current filter and sorting
 
@@ -32,7 +32,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 - [x] Layout defined from metadata (sections, columns, tabs) — LayoutBuilder with form/show sections
 - [x] Related record display (embedded list, inline cards) — association lists on show page
-- [ ] Timeline / change history on detail
+- [x] Timeline / change history on detail — `audit_history` section type on show page with field-level diffs
 - [ ] Workflow state with visualization (current position in process)
 - [x] Quick actions on detail (approve, reject, edit... by permission and state) — ActionSet
 - [ ] Record navigation (previous / next in list context)
@@ -57,12 +57,12 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 - [x] Available filter definition from metadata per view — `search` config in presenter
 - [x] Quick filter (search bar with full-text across selected fields) — text search on searchable fields
-- [ ] Advanced filter builder (user composes conditions: field + operator + value)
-- [ ] Operators by data type (text: contains, starts_with; number: =, >, <, between; date: before, after, range...)
-- [ ] Filters across related entities (filter orders by customer name)
-- [ ] Saved / named filters (per user and shared per team)
+- [x] Advanced filter builder (user composes conditions: field + operator + value) — visual filter builder with `FilterMetadataBuilder` + `advanced_filter.js`
+- [x] Operators by data type (text: contains, starts_with; number: =, >, <, between; date: before, after, range...) — `OperatorRegistry` with type-aware operator sets
+- [x] Filters across related entities (filter orders by customer name) — dot-path association fields via Ransack
+- [x] Saved / named filters (per user and shared per team) — `SavedFiltersController` + generator + visibility levels (personal/role/group/global)
 - [x] Default filter per view / per role — `default_scope` in presenter
-- [ ] AND / OR condition combinations in advanced filter
+- [x] AND / OR condition combinations in advanced filter — nested AND/OR groups with configurable `max_nesting_depth`
 - [x] Filtering by workflow state — predefined filters with scopes
 - [ ] Filtering by tags / labels
 - [x] Active filters visually displayed (chips / badges with removal option) — predefined filter dropdown
@@ -114,16 +114,16 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 - [~] Conditional formatting (red if negative, green if positive) — badge renderer with color_map, limited
 - [x] Truncation with tooltip for long texts — truncate renderer
 - [x] Value linking (clicking FK value → navigate to related record detail) — internal_link renderer
-- [ ] Copy-to-clipboard on values
-- [ ] Empty value display (empty vs. "—" vs. "N/A" — configurable)
+- [x] Copy-to-clipboard on values — `copy_url` toolbar button + `copy_value` on field values
+- [x] Empty value display (empty vs. "—" vs. "N/A" — configurable) — `empty_value_placeholder` helper, configurable per presenter and globally
 - [x] Sensitive data masking in UI (by role) — field masking in permissions
 
 ## Layout System
 
 - [x] Grid layout (column definition, gaps) — responsive columns per section
 - [ ] Responsive breakpoints (how layout changes on mobile / tablet / desktop)
-- [x] Sections with collapsible / accordion behavior — `collapsible: true` on sections
-- [x] Tabs for content organization — tabbed form/show sections
+- [~] Sections with collapsible / accordion behavior — `collapsible: true` on form sections; show page sections do not support collapsible
+- [~] Tabs for content organization — tabs work on form layout; show page does not support tabs
 - [ ] Splitter / resizable panels
 - [ ] Sticky header / sidebar
 - [ ] Full-screen mode for individual views
@@ -140,7 +140,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 ## Localization and Theming
 
-- [ ] All labels, placeholders from localization keys
+- [x] All labels, placeholders from localization keys — comprehensive i18n with `lcp_ruby.*` namespaces (toolbar, actions, search, filters, audit, flash, errors, etc.)
 - [ ] RTL language support
 - [ ] Light / dark mode
 - [ ] Custom theme per tenant (colors, logo, fonts)
@@ -157,8 +157,8 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 ## Accessibility (a11y)
 
-- [ ] Keyboard navigation in all views
-- [ ] ARIA attributes on components
+- [~] Keyboard navigation in all views — basic form field navigation via browser defaults, no custom keyboard handling
+- [~] ARIA attributes on components — breadcrumbs have `aria-label` and `aria-current`, incomplete coverage elsewhere
 - [ ] Screen reader support
 - [ ] Sufficient contrast (WCAG AA/AAA)
 - [ ] Focus management (correct focus order, focus trap in modals)

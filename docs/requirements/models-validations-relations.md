@@ -104,9 +104,9 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 ## Record Lifecycle
 
 - [x] Timestamps (created_at, updated_at) automatically
-- [ ] Soft-delete (deleted_at) with restore capability
+- [x] Soft-delete (deleted_at) with restore capability — SoftDeleteApplicator with `discard!`/`undiscard!`, cascade discard, archive presenters, `discarded_at` column
 - [ ] Record versioning (history of all changes, diff between versions)
-- [ ] Audit trail (who, when, what changed — per field)
+- [x] Audit trail (who, when, what changed — per field) — AuditWriter with field-level diffs, JSON/custom field expansion, nested changes, user snapshot
 - [ ] Record locking (pessimistic lock during editing, concurrent edit protection)
 - [ ] Optimistic locking (version / updated_at check on save)
 - [ ] Old record archival (move to archive table / storage)

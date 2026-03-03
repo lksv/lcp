@@ -59,9 +59,9 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 ## Saved Filters and Views
 
-- [ ] Save filter by name (saved filter / saved view) — planned Phase 5
-- [ ] Private filters (per user) — planned Phase 5
-- [ ] Shared filters (per team / per role) — planned Phase 5
+- [x] Save filter by name (saved filter / saved view) — `SavedFiltersController` + generator + persistence with staleness detection
+- [x] Private filters (per user) — `visibility: personal` saved filters scoped to user
+- [x] Shared filters (per team / per role) — `visibility: role/group/global` saved filters with ownership record_rules
 - [x] System / default filters defined in metadata — `predefined_filters` in presenter
 - [x] Default filter per view / per role — `default_scope` in presenter
 - [x] Preset filter combinations defined in YAML — `advanced_filter.presets` in presenter

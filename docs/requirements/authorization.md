@@ -37,7 +37,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 - [x] Button / action visibility by record state (workflow state) — record_rules + `action_permitted_for_record?`
 - [x] Button / action visibility by role + state combination
 - [x] Custom actions with their own permissions (export, approve, reject, escalate...) — `can_execute_action?`
-- [ ] Bulk actions — permissions for batch operations
+- [~] Bulk actions — permissions for batch operations — backend API implemented (`ActionsController#execute_batch` with `can_execute_action?`), multiselect UI not yet
 - [x] Action confirmation (confirm dialog) for destructive operations by role — `confirm: true` on actions
 - [ ] Action rate limiting per user / role (abuse protection)
 
@@ -51,7 +51,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 ## Audit and Tracking
 
-- [ ] Logging all access (who, when, what was viewed / changed)
+- [~] Logging all access (who, when, what was viewed / changed) — AuditWriter logs create/update/destroy with field diffs; view/read access not tracked
 - [x] Logging denied access (who attempted unauthorized action) — Pundit denial raises, can be logged
 - [ ] Permission change history (who added / removed a role from whom)
 - [ ] Audit log export capability

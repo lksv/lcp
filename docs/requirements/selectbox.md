@@ -4,49 +4,49 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 ## Basic Selectors and Conditional Selectors
 
-- [~] Value selection for foreign_key via inline vs. ajax — `association_select` input type renders inline `<select>`, no ajax support
-- [ ] Statically pre-filtered selection
-- [ ] Selection dependent on another field (selectbox → selectbox, radio → select, checkbox → select)
-- [~] Selection dependent on role — field-level permissions control visibility, but not individual option filtering
+- [x] Value selection for foreign_key via inline vs. ajax — `association_select` input type with Tom Select; inline (default) and AJAX remote search (`search: true` with `search_fields`, `per_page`, `min_query_length`)
+- [x] Statically pre-filtered selection — `scope` (named scope on target model) and `filter` (hash of field-value pairs) options on `association_select`
+- [x] Selection dependent on another field (selectbox → selectbox, radio → select, checkbox → select) — `depends_on` with `field` + `foreign_key`, multi-level cascading (A→B→C), reverse cascade (ancestor resolution)
+- [x] Selection dependent on role — `scope_by_role` option with per-role scope selection (e.g., admin: all, editor: active_companies)
 
 ## Data Source and Loading
 
-- [ ] Lazy loading / virtual scroll for large datasets (thousands of items)
-- [ ] Full-text search within items (with diacritics, fuzzy match)
-- [ ] Ability to combine static codelist + dynamic query (enum table vs. API endpoint)
+- [x] Lazy loading / virtual scroll for large datasets (thousands of items) — Tom Select with `search: true`, server-side pagination (`page`, `per_page`), `max_options` limit
+- [x] Full-text search within items (with diacritics, fuzzy match) — Tom Select client-side sifter (local mode) + server-side LIKE search across `search_fields` (remote mode); no fuzzy match
+- [~] Ability to combine static codelist + dynamic query (enum table vs. API endpoint) — enum fields (static) and association_select (dynamic) are separate input types, not combined in one widget
 - [ ] Item caching (how long a loaded list remains valid)
 
 ## Display and UX
 
-- [ ] Multi-select (selecting multiple values)
-- [ ] Grouped options (optgroup) — grouping items into categories
-- [ ] Custom item rendering (icon, color, description, badge)
-- [~] Placeholder / default value from metadata — `default` on field definition, `placeholder` on presenter field
-- [ ] "Create new item" directly from selectbox (inline create)
-- [ ] Hierarchical selection (tree, e.g., category → subcategory)
+- [x] Multi-select (selecting multiple values) — `multi_select` input type with Tom Select `remove_button` plugin, `min`/`max` constraints
+- [x] Grouped options (optgroup) — `group_by: field_name` groups options by model field into `<optgroup>` elements
+- [~] Custom item rendering (icon, color, description, badge) — `label_method` for custom display field; no full HTML templates for option rendering
+- [x] Placeholder / default value from metadata — `include_blank` (true/string/false) + `default` on field definition
+- [x] "Create new item" directly from selectbox (inline create) — `allow_inline_create: true`, opens modal form, created record auto-selected
+- [x] Hierarchical selection (tree, e.g., category → subcategory) — `tree_select` input type with collapsible tree dropdown, `max_depth`, expand/collapse
 
 ## Validation and Behavior
 
 - [x] Required / optional driven from metadata — `presence` validation in model definition
-- [ ] Disabled / readonly for individual items (not the entire select)
-- [ ] Maximum / minimum selected values (for multi-select)
-- [ ] Validation against current state (item was deleted or deactivated in the meantime)
+- [x] Disabled / readonly for individual items (not the entire select) — `disabled_values` (ID list) and `disabled_scope` (named scope) for non-selectable options
+- [x] Maximum / minimum selected values (for multi-select) — `min`/`max` on `multi_select` input type
+- [x] Validation against current state (item was deleted or deactivated in the meantime) — `legacy_scope` resolves archived/soft-deleted records, displays as disabled "(Archived)" option on edit
 
 ## Dependencies and Cascades
 
-- [ ] Chained dependencies (A → B → C), not just A → B
-- [ ] Dependent field reset on parent change (strategy: clear vs. keep if still valid)
+- [x] Chained dependencies (A → B → C), not just A → B — multi-level cascading selects via nested `depends_on`, tested with 3-level chains
+- [x] Dependent field reset on parent change (strategy: clear vs. keep if still valid) — `reset_strategy: "clear"` (default) or `reset_strategy: "keep_if_valid"`
 - [ ] Cross-form dependencies (value from another form / context)
 
 ## Permissions and Visibility
 
-- [ ] Visibility of individual items by role (not just the entire select, but specific options)
-- [ ] Audit trail — who changed the value and when
-- [ ] Soft-delete of codelist items (historical records display old value, new records don't offer it)
+- [~] Visibility of individual items by role (not just the entire select, but specific options) — `scope_by_role` filters entire option list per role, not individual items
+- [x] Audit trail — who changed the value and when — auditing module tracks all field changes including association values with old/new diffs
+- [x] Soft-delete of codelist items (historical records display old value, new records don't offer it) — `legacy_scope` with "(Archived)" label on edit forms, active scope excludes archived from new records
 
 ## Other
 
-- [ ] Item sorting (alphabetical, custom order, by usage frequency)
+- [x] Item sorting (alphabetical, custom order, by usage frequency) — `sort` option with field/direction hash (e.g., `sort: { name: asc }`)
 - [ ] Localization of item labels (multilingual codelist)
 - [ ] Support for copying / importing values (bulk operations)
 

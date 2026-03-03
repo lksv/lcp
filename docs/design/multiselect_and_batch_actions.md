@@ -1,6 +1,6 @@
 # Design: Multiselect and Batch Actions
 
-**Status:** Proposed
+**Status:** In Progress (backend API implemented, multiselect UI not yet)
 **Date:** 2026-02-22
 
 ## Problem

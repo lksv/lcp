@@ -5,11 +5,11 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 ## Basic Authentication
 
 - [x] Username / email + password authentication — built-in Devise mode or host app delegation
-- [ ] New user registration (self-registration with email confirmation)
+- [~] New user registration (self-registration with email confirmation) — registration via Devise RegistrationsController works, email confirmation (`:confirmable`) not enabled
 - [ ] Invitation system (admin invites user by email)
-- [ ] Login with remember me (persistent session)
+- [x] Login with remember me (persistent session) — Devise `:rememberable` module with `remember_created_at` column
 - [x] Logout (session / token invalidation)
-- [ ] Automatic logout after inactivity (configurable timeout per role / per tenant)
+- [~] Automatic logout after inactivity (configurable timeout per role / per tenant) — Devise `:timeoutable` with global `auth_session_timeout` config; per-role/tenant not supported
 - [ ] Forced logout of all sessions (admin action — on account compromise)
 
 ## Passwords and Password Policy
@@ -20,10 +20,10 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 - [ ] Check against known breaches (Have I Been Pwned API)
 - [ ] Password expiration (require change after X days — configurable, optional)
 - [ ] Password history (cannot reuse last N passwords)
-- [ ] Password reset via email (with time-limited token)
+- [x] Password reset via email (with time-limited token) — Devise `:recoverable` with PasswordsController, reset token + mailer template
 - [ ] Password reset via SMS / alternative channel
 - [ ] Forced password change on first login
-- [ ] Secure password hashing (bcrypt / Argon2 with configurable cost factor)
+- [~] Secure password hashing (bcrypt / Argon2 with configurable cost factor) — bcrypt via Devise with configurable `stretches` (1 test / 12 production); no Argon2 option
 
 ## Multi-Factor Authentication (MFA)
 
@@ -76,7 +76,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 ## Account Security
 
-- [ ] Account lockout after N failed attempts (with configurable timeout)
+- [x] Account lockout after N failed attempts (with configurable timeout) — Devise `:lockable` with `auth_lock_after_attempts` and `auth_lock_duration` config
 - [ ] Progressive delay (increasing wait time between attempts)
 - [ ] CAPTCHA after N failed attempts
 - [ ] Notification to user on login from new device / location
@@ -84,7 +84,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 - [ ] Notification on MFA add / remove
 - [ ] IP-based anomaly detection (login from unusual location → require verification)
 - [ ] Brute-force protection (rate limiting on login endpoint — per IP, per account)
-- [ ] Account deactivation / suspension (admin action)
+- [x] Account deactivation / suspension (admin action) — `active` boolean column on User, `active?` check in ApplicationController, i18n deactivation message
 - [ ] Account deletion (GDPR right to erasure — with data anonymization)
 
 ## User Management
@@ -120,7 +120,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 
 ## Audit and Compliance
 
-- [ ] Logging all authentication events (login, logout, failed login, password change, MFA setup...)
+- [~] Logging all authentication events (login, logout, failed login, password change, MFA setup...) — AuditSubscriber emits ActiveSupport::Notifications for login_success/login_failure/logout with IP + user_agent; not persisted to DB, password change/MFA not tracked
 - [ ] Logging IP address, user-agent, geolocation on login
 - [ ] Failed login report (overview of failed attempts — per user, per IP)
 - [ ] Login history per user (admin and self-service view)

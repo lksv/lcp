@@ -34,7 +34,7 @@ Legend: `[x]` = supported, `[~]` = partially supported (requires custom code), `
 - [x] Pagination in query parameters (`?page=3&per_page=25`) — Kaminari
 - [ ] Selected tab / section in URL (`?tab=history` or hash `#history`)
 - [x] Search expression in URL (`?q=novak`) — search query param
-- [ ] Saved filter as named route (`/{entity}?saved_filter=my-urgent`)
+- [~] Saved filter as named route (`/{entity}?saved_filter=my-urgent`) — `?saved_filter=<id>` URL param supported, SavedFilters::Resolver applies default filter
 - [x] All query parameters optional (URL without parameters → default view)
 - [ ] Serialization / deserialization of complex filters (nested AND/OR conditions in URL)
 - [ ] URL encoding of special characters (diacritics, spaces)
