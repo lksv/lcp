@@ -659,6 +659,8 @@ Purely declarative — no lambdas, no raw SQL. Options are additive (a single sc
 | `where_not:` | hash | `where.not(...)` conditions. Same syntax, negated. |
 | `order:` | hash | Ordering. Keys = columns, values = `:asc` or `:desc`. |
 | `limit:` | integer | Maximum number of returned records. |
+| `type:` | symbol | `:custom` (Ruby-only) or `:parameterized` (accepts typed parameters). |
+| `parameters:` | array | Parameter definitions (only when `type: :parameterized`). |
 
 ### Examples
 
@@ -668,6 +670,26 @@ scope :not_closed,   where_not: { stage: ["closed_won", "closed_lost"] }
 scope :recent,       order: { created_at: :desc }, limit: 10
 scope :top_active,   where: { status: "active" }, order: { value: :desc }, limit: 5
 ```
+
+### Parameterized Scopes
+
+Parameterized scopes accept typed parameters at runtime. The actual scope logic must be defined in Ruby (AR scope or `filter_*` interceptor).
+
+```ruby
+scope :by_min_price, type: :parameterized, parameters: [
+  { name: :min_price, type: :float, default: 0.0, min: 0 }
+]
+
+scope :created_recently, type: :parameterized, parameters: [
+  { name: :days, type: :integer, default: 30, min: 1, max: 365 }
+]
+
+scope :by_status_filter, type: :parameterized, parameters: [
+  { name: :status, type: :enum, values: %w[draft published archived], required: true }
+]
+```
+
+Each parameter hash supports: `name`, `type` (boolean/string/integer/float/enum/date/datetime/model_select), `default`, `required`, `min`, `max`, `values`. See [Models Reference — Parameterized Scopes](models.md#parameterized-scopes) for full details.
 
 Scopes can be referenced from [predefined filters](presenters.md#search-configuration) in presenters.
 

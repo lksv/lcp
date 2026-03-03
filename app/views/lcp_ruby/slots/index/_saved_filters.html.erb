@@ -1,0 +1,83 @@
+<% saved_filters = slot_context.locals[:saved_filters] || [] %>
+<% return if saved_filters.empty? %>
+<% active_id = slot_context.locals[:active_saved_filter]&.id %>
+<% sf_config = slot_context.presenter.saved_filters_config %>
+<% display = sf_config["display"] || "inline" %>
+<% max_pinned = sf_config["max_visible_pinned"] || 5 %>
+
+<div class="lcp-saved-filters" data-display="<%= display %>" data-saved-filters-url="<%= saved_filters_path %>">
+  <% if display == "inline" %>
+    <%# Pinned filters as buttons %>
+    <% pinned = saved_filters.select { |f| f.respond_to?(:pinned) && f.pinned }.first(max_pinned) %>
+    <% pinned.each do |filter| %>
+      <%= link_to resources_path + "?saved_filter=#{filter.id}",
+            class: "btn btn-filter lcp-saved-filter-btn #{'active' if filter.id == active_id}",
+            title: filter.respond_to?(:ql_text) ? filter.ql_text : nil,
+            data: { filter_id: filter.id } do %>
+        <% if filter.respond_to?(:icon) && filter.icon.present? %>
+          <span class="lcp-filter-icon"><%= filter.icon %></span>
+        <% end %>
+        <%= filter.name %>
+      <% end %>
+    <% end %>
+
+    <%# Overflow dropdown for remaining filters %>
+    <% remaining = saved_filters - pinned %>
+    <% if remaining.any? %>
+      <div class="lcp-saved-filter-dropdown">
+        <button type="button" class="btn btn-filter" data-toggle="saved-filters-dropdown">
+          <%= I18n.t("lcp_ruby.saved_filters.more", default: "Saved...") %> &#9662;
+        </button>
+        <div class="lcp-saved-filter-dropdown-menu" style="display: none;">
+          <%# Group by visibility %>
+          <% grouped = remaining.group_by(&:visibility) %>
+          <% %w[personal role group global].each do |vis| %>
+            <% filters_in_group = grouped[vis] %>
+            <% next unless filters_in_group&.any? %>
+            <div class="lcp-filter-group-label">
+              <%= I18n.t("lcp_ruby.saved_filters.groups.#{vis}", default: vis.humanize) %>
+            </div>
+            <% filters_in_group.each do |filter| %>
+              <a href="<%= resources_path %>?saved_filter=<%= filter.id %>"
+                 class="lcp-saved-filter-item #{'active' if filter.id == active_id}"
+                 data-filter-id="<%= filter.id %>">
+                <% if filter.respond_to?(:icon) && filter.icon.present? %>
+                  <span class="lcp-filter-icon"><%= filter.icon %></span>
+                <% end %>
+                <%= filter.name %>
+              </a>
+            <% end %>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% elsif display == "dropdown" %>
+    <div class="lcp-saved-filter-dropdown">
+      <button type="button" class="btn btn-filter" data-toggle="saved-filters-dropdown">
+        <%= I18n.t("lcp_ruby.saved_filters.dropdown_label", default: "Saved Filters") %> &#9662;
+      </button>
+      <div class="lcp-saved-filter-dropdown-menu" style="display: none;">
+        <% grouped = saved_filters.group_by(&:visibility) %>
+        <% %w[personal role group global].each do |vis| %>
+          <% filters_in_group = grouped[vis] %>
+          <% next unless filters_in_group&.any? %>
+          <div class="lcp-filter-group-label">
+            <%= I18n.t("lcp_ruby.saved_filters.groups.#{vis}", default: vis.humanize) %>
+          </div>
+          <% filters_in_group.each do |filter| %>
+            <a href="<%= resources_path %>?saved_filter=<%= filter.id %>"
+               class="lcp-saved-filter-item #{'active' if filter.id == active_id}"
+               data-filter-id="<%= filter.id %>">
+              <%= filter.name %>
+            </a>
+          <% end %>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%# Save button (shown when conditions are active) %>
+  <button type="button" class="btn btn-filter lcp-save-filter-btn" data-action="save-filter" style="display: none;">
+    <%= I18n.t("lcp_ruby.saved_filters.save", default: "Save filter") %>
+  </button>
+</div>

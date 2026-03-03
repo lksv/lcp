@@ -1,0 +1,75 @@
+model:
+  name: saved_filter
+  label: "Saved Filter"
+  label_plural: "Saved Filters"
+
+  fields:
+    - name: name
+      type: string
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+
+    - name: description
+      type: text
+
+    - name: target_presenter
+      type: string
+      column_options:
+        limit: 255
+        "null": false
+
+    - name: condition_tree
+      type: json
+
+    - name: ql_text
+      type: text
+
+    - name: visibility
+      type: enum
+      enum_values:
+        - { value: personal, label: "Personal" }
+        - { value: role, label: "Role" }
+        - { value: group, label: "Group" }
+        - { value: global, label: "Global" }
+      default: personal
+
+    - name: owner_id
+      type: integer
+
+    - name: target_role
+      type: string
+      column_options:
+        limit: 100
+
+    - name: target_group
+      type: string
+      column_options:
+        limit: 100
+
+    - name: pinned
+      type: boolean
+      default: false
+
+    - name: default_filter
+      type: boolean
+      default: false
+
+    - name: position
+      type: integer
+
+    - name: icon
+      type: string
+      column_options:
+        limit: 50
+
+    - name: color
+      type: string
+      column_options:
+        limit: 50
+
+  options:
+    timestamps: true
+    label_method: name

@@ -17,6 +17,14 @@ LcpRuby::Engine.routes.draw do
   delete "impersonate",      to: "impersonation#destroy", as: :stop_impersonate
 
   scope ":lcp_slug" do
+    # Saved filters API (must precede /:id to avoid matching "saved-filters" as id)
+    scope "saved-filters", as: :saved_filters do
+      get    "/",     to: "saved_filters#index"
+      post   "/",     to: "saved_filters#create"
+      patch  "/:id",  to: "saved_filters#update",  as: :update
+      delete "/:id",  to: "saved_filters#destroy", as: :destroy
+    end
+
     # Custom fields management (must precede /:id to avoid matching "custom-fields" as id)
     scope "custom-fields", as: :custom_fields do
       get    "/",          to: "custom_fields#index"

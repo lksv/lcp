@@ -175,6 +175,12 @@ define_presenter :showcase_searches do
           { field: "release_date", operator: "this_month" },
           { field: "status", operator: "not_eq", value: "archived" }
         ]
+
+      saved_filters do
+        enabled true
+        display :inline
+        max_visible_pinned 5
+      end
     end
   end
 

@@ -2,7 +2,7 @@ puts "Seeding showcase data..."
 
 # Clear existing data so seeds are re-runnable (children before parents)
 %w[
-  feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_userstamps
+  saved_filter feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_userstamps
   showcase_soft_delete_item showcase_soft_delete
   showcase_virtual_field showcase_extensibility permission_config role showcase_permission
   showcase_attachment custom_field_definition employee_skill project showcase_search
@@ -1218,6 +1218,96 @@ all_authors = AuthorModel.all.to_a
   SearchModel.create!(attrs)
 end
 puts "  Created #{SearchModel.count} showcase_search records"
+
+# Phase 15: Saved Filters
+if LcpRuby.registry.registered?("saved_filter")
+  SavedFilterModel = LcpRuby.registry.model_for("saved_filter")
+
+  [
+    {
+      name: "Published & Expensive",
+      description: "Items that are published with price >= 100",
+      target_presenter: "showcase-search",
+      condition_tree: {
+        logic: "and",
+        conditions: [
+          { field: "published", operator: "true" },
+          { field: "price", operator: "gteq", value: "100" }
+        ]
+      },
+      ql_text: "published is true and price >= 100",
+      visibility: "personal",
+      pinned: true,
+      owner_id: 1,
+      position: 1
+    },
+    {
+      name: "Critical Priority",
+      description: "Items with high or critical priority",
+      target_presenter: "showcase-search",
+      condition_tree: {
+        logic: "and",
+        conditions: [
+          { field: "priority", operator: "in", value: %w[high critical] }
+        ]
+      },
+      ql_text: "priority in ['high', 'critical']",
+      visibility: "personal",
+      owner_id: 1,
+      position: 2
+    },
+    {
+      name: "Recent Drafts",
+      description: "Draft items created in the last 30 days",
+      target_presenter: "showcase-search",
+      condition_tree: {
+        logic: "and",
+        conditions: [
+          { field: "status", operator: "eq", value: "draft" },
+          { field: "created_at", operator: "last_n_days", value: "30" }
+        ]
+      },
+      ql_text: "status = 'draft' and created_at last_n_days 30",
+      visibility: "personal",
+      owner_id: 1,
+      position: 3
+    },
+    {
+      name: "All Published",
+      description: "All published items (visible to everyone)",
+      target_presenter: "showcase-search",
+      condition_tree: {
+        logic: "and",
+        conditions: [
+          { field: "status", operator: "eq", value: "published" }
+        ]
+      },
+      ql_text: "status = 'published'",
+      visibility: "global",
+      pinned: true,
+      owner_id: 1,
+      position: 4
+    },
+    {
+      name: "Admin: In Review",
+      description: "Items currently in review (admin role filter)",
+      target_presenter: "showcase-search",
+      condition_tree: {
+        logic: "and",
+        conditions: [
+          { field: "status", operator: "eq", value: "review" }
+        ]
+      },
+      ql_text: "status = 'review'",
+      visibility: "role",
+      target_role: "admin",
+      owner_id: 1,
+      position: 5
+    }
+  ].each { |attrs| SavedFilterModel.create!(attrs) }
+
+  puts "  Created #{SavedFilterModel.count} saved filters"
+end
 
 # Phase 13: Feature Catalog
 FeatureModel = LcpRuby.registry.model_for("feature")
@@ -2708,6 +2798,35 @@ features = [
     config_example: "```ruby\n# In query language:\ncreated_at last_n_days 30      # created in last 30 days\nrelease_date this_month         # releasing this month\nlast_reviewed_at this_quarter   # reviewed this quarter\n\n# In visual builder:\n# Select a date field → choose \"Last N days\" operator → enter number\n# Or choose \"This week\", \"This month\", etc. (no value needed)\n```",
     demo_path: "/showcase/showcase-search",
     demo_hint: "Select **Release Date** or **Created at** in the filter, then browse the operator dropdown to see relative date options.",
+    status: "stable"
+  },
+
+  # === Saved Filters & Parameterized Scopes ===
+  {
+    name: "Saved Filters",
+    category: "search",
+    description: "User-persistent named filters with full CRUD API. Filters store condition trees and QL text for a target presenter.\n\nSupports visibility levels (personal, role, group, global), pinning for quick access, and a default filter option that auto-applies when the page loads.\n\nGenerate the saved_filter model with `rails generate lcp_ruby:saved_filters`.",
+    config_example: "```ruby\n# Presenter DSL — enable saved filters\nsearch do\n  advanced_filter do\n    saved_filters do\n      enabled true\n      display :inline\n      max_visible_pinned 5\n    end\n  end\nend\n```\n\n```bash\n# Generate the model, presenter, and permissions\nrails generate lcp_ruby:saved_filters\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "Look for saved filter buttons above the filter builder. Click one to apply its conditions instantly.",
+    status: "stable"
+  },
+  {
+    name: "Parameterized Scopes",
+    category: "search",
+    description: "Scopes with typed parameters that users can configure at runtime. Parameters support types: integer, float, string, boolean, enum, date, datetime, model_select.\n\nIn the query language, parameterized scopes are invoked with `@scope_name(key: value)` syntax.\n\nParameter values are cast, validated (min/max/required), and clamped before being passed to the scope.",
+    config_example: "```yaml\n# Model YAML\nscopes:\n  - name: created_recently\n    type: parameterized\n    parameters:\n      - name: days\n        type: integer\n        default: 30\n        min: 1\n        max: 365\n  - name: by_status_filter\n    type: parameterized\n    parameters:\n      - name: status\n        type: enum\n        values: [draft, published, archived]\n        required: true\n```\n\n```\n# Query language syntax\n@created_recently(days: 7)\n@by_status_filter(status: 'published')\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "Try typing `@by_min_price(min_price: 50)` or `@created_recently(days: 7)` in the query language editor.",
+    status: "stable"
+  },
+  {
+    name: "Saved Filter Visibility",
+    category: "search",
+    description: "Saved filters support four visibility levels:\n\n- **personal** — only the owner can see and use the filter\n- **role** — visible to all users with the specified role\n- **group** — visible to members of the specified group\n- **global** — visible to all users\n\nOwnership rules and record_rules enforce who can create, edit, and delete filters at each visibility level.",
+    config_example: "```yaml\n# Saved filter record examples:\n- name: \"My Quick Filter\"\n  visibility: personal\n  owner_id: 42\n\n- name: \"Admin Dashboard\"\n  visibility: role\n  target_role: admin\n  owner_id: 1\n\n- name: \"Team Backlog\"\n  visibility: group\n  target_group: engineering\n  owner_id: 5\n\n- name: \"All Open Items\"\n  visibility: global\n  owner_id: 1\n```",
+    demo_path: "/showcase/showcase-search",
+    demo_hint: "Check the saved filters — some are personal, one is global (All Published), and one is role-scoped (Admin: In Review).",
     status: "stable"
   }
 ]

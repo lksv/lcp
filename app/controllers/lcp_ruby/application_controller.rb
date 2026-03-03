@@ -20,7 +20,7 @@ module LcpRuby
                   :resource_path, :resources_path, :new_resource_path, :edit_resource_path,
                   :reorder_resource_path, :reparent_resource_path,
                   :restore_resource_path, :permanently_destroy_resource_path,
-                  :single_action_path, :select_options_path,
+                  :single_action_path, :select_options_path, :saved_filters_path,
                   :toggle_direction, :current_sort_field, :current_sort_direction,
                   :current_view_group, :sibling_views,
                   :impersonating?, :impersonated_role, :available_roles_for_impersonation,
@@ -234,6 +234,10 @@ module LcpRuby
       lcp_ruby.select_options_path(lcp_slug: current_presenter.slug)
     end
 
+    def saved_filters_path
+      lcp_ruby.saved_filters_path(lcp_slug: current_presenter.slug)
+    end
+
     # -- View group helpers --
 
     def current_view_group
@@ -328,11 +332,30 @@ module LcpRuby
         scope = scope.send(scope_name) if @model_class.respond_to?(scope_name)
       end
 
-      # 2. Apply predefined filter scope
-      if params[:filter].present?
+      # 2. Apply predefined filter scope (skipped when saved_filter is active)
+      if params[:filter].present? && params[:saved_filter].blank?
         predefined = search_config["predefined_filters"]&.find { |f| f["name"] == params[:filter] }
         scope_name = predefined&.dig("scope")
         scope = scope.send(scope_name) if scope_name && @model_class.respond_to?(scope_name)
+      end
+
+      # 2.5a Apply saved filter (?saved_filter=<id>)
+      if params[:saved_filter].present? && SavedFilters::Registry.available?
+        result = apply_saved_filter(scope)
+        if result
+          scope = result[:scope]
+          @active_saved_filter = result[:record]
+          @saved_filter_warnings = result[:warnings]
+        end
+      end
+
+      # 2.5b Apply parameterized scopes (?scope[name][param]=value)
+      if params[:scope].present?
+        scope_params = params[:scope].to_unsafe_h
+        scope = Search::ParameterizedScopeApplicator.apply(
+          scope, scope_params, @model_class, current_model_definition,
+          evaluator: current_evaluator
+        )
       end
 
       # 3. Sanitize ?f[...] params (reject blank values, enforce max_conditions)
@@ -367,6 +390,104 @@ module LcpRuby
       # 7. Custom field filters (?cf[...])
       if params[:cf].present? && current_model_definition.custom_fields_enabled?
         scope = apply_custom_field_filters(scope)
+      end
+
+      scope
+    end
+
+    def apply_saved_filter(scope)
+      model_class = SavedFilters::Registry.model_class
+      return nil unless model_class
+
+      record = model_class.find_by(id: params[:saved_filter])
+      return nil unless record
+
+      # Verify visibility access
+      return nil unless saved_filter_visible?(record)
+
+      # Validate condition tree against current filter metadata
+      validation = SavedFilters::StaleFieldValidator.validate(
+        record.condition_tree, filter_metadata
+      )
+
+      valid_tree = validation[:valid_tree]
+      warnings = validation[:skipped_conditions]
+
+      # Convert condition tree to Ransack params + scopes
+      built = Search::FilterParamBuilder.build(valid_tree)
+      ransack_params = built[:ransack] || {}
+      cf_params = built[:custom_fields] || {}
+      scope_params = built[:scopes] || {}
+
+      # Apply scope params from the condition tree
+      if scope_params.any?
+        scope = Search::ParameterizedScopeApplicator.apply(
+          scope, scope_params, @model_class, current_model_definition,
+          evaluator: current_evaluator
+        )
+      end
+
+      # Apply Ransack params
+      if ransack_params.present?
+        @ransack_search = @model_class.ransack(ransack_params, auth_object: current_evaluator)
+        scope = scope.merge(@ransack_search.result(distinct: true))
+      end
+
+      # Apply custom field filters
+      if cf_params.present? && current_model_definition.custom_fields_enabled?
+        scope = apply_saved_filter_custom_fields(scope, cf_params)
+      end
+
+      { scope: scope, record: record, warnings: warnings }
+    end
+
+    def saved_filter_visible?(record)
+      case record.visibility
+      when "personal"
+        record.owner_id == current_user&.id
+      when "global"
+        true
+      when "role"
+        user_roles = Array(current_user&.send(LcpRuby.configuration.role_method)).map(&:to_s)
+        user_roles.include?(record.target_role.to_s)
+      when "group"
+        return false unless Groups::Registry.available?
+        user_groups = Groups::Registry.groups_for_user(current_user&.id).map { |g|
+          g.respond_to?(:name) ? g.name : g.to_s
+        }
+        user_groups.include?(record.target_group.to_s)
+      else
+        false
+      end
+    rescue StandardError
+      false
+    end
+
+    def apply_saved_filter_custom_fields(scope, cf_params)
+      definitions = CustomFields::Registry.for_model(current_model_definition.name)
+      return scope if definitions.empty?
+
+      filterable_defs = definitions.select { |d| d.active && d.respond_to?(:filterable) && d.filterable }
+      defs_by_name = filterable_defs.index_by(&:field_name)
+      sorted_names = defs_by_name.keys.sort_by { |n| -n.length }
+      table_name = @model_class.table_name
+
+      cf_params.each do |key, meta|
+        field_name, operator = Search::CustomFieldFilter.parse_cf_key(key.delete_prefix("cf[").delete_suffix("]"), sorted_names)
+        # Fallback: try using the full key as-is
+        unless field_name
+          cf_name = key.match(/\Acf\[(.+)\]\z/)&.captures&.first
+          field_name = cf_name if cf_name && defs_by_name.key?(cf_name)
+          operator = meta[:operator]
+        end
+        next unless field_name
+
+        defn = defs_by_name[field_name]
+        next unless defn
+        next unless current_evaluator.field_readable?(field_name)
+
+        cast = Search::CustomFieldFilter.cast_for_type(defn.custom_type)
+        scope = Search::CustomFieldFilter.apply(scope, table_name, field_name, operator, meta[:value], cast: cast)
       end
 
       scope

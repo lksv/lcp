@@ -159,6 +159,14 @@ module LcpRuby
         fields.find { |f| f.name == name.to_s }
       end
 
+      def parameterized_scopes
+        scopes.select { |s| s["type"] == "parameterized" }
+      end
+
+      def parameterized_scope(name)
+        parameterized_scopes.find { |s| s["name"] == name.to_s }
+      end
+
       def enum_fields
         fields.select(&:enum?)
       end

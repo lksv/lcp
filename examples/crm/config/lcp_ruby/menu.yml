@@ -16,6 +16,10 @@ menu:
           badge:
             provider: won_deals_count
             renderer: text_badge
+        - view_group: activities
+          badge:
+            provider: pending_activities_count
+            renderer: count_badge
         - view_group: pipeline
           badge:
             provider: pipeline_value

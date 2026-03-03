@@ -21,6 +21,7 @@ module LcpRuby
           range_operators: OperatorRegistry::RANGE_OPERATORS.map(&:to_s),
           parameterized_operators: OperatorRegistry::PARAMETERIZED_OPERATORS.map(&:to_s),
           presets: advanced_filter_config["presets"] || [],
+          scopes: build_parameterized_scopes,
           config: {
             max_conditions: advanced_filter_config["max_conditions"] || 10,
             default_combinator: advanced_filter_config["default_combinator"] || "and",
@@ -308,6 +309,79 @@ module LcpRuby
         raise unless Rails.env.production?
         Rails.logger.error("[LcpRuby::FilterMetadataBuilder] #{e.message} (model=#{model_name})")
         nil
+      end
+
+      def build_parameterized_scopes
+        model_definition.parameterized_scopes.map do |scope_config|
+          name = scope_config["name"]
+          {
+            name: name,
+            label: I18n.t("lcp_ruby.scopes.#{name}", default: name.to_s.humanize),
+            parameters: build_scope_parameters(scope_config["parameters"] || [])
+          }
+        end
+      end
+
+      def build_scope_parameters(params_config)
+        params_config.map do |param|
+          param = param.transform_keys(&:to_s) if param.is_a?(Hash)
+          entry = {
+            name: param["name"],
+            label: I18n.t(
+              "lcp_ruby.scope_params.#{param['name']}",
+              default: param["name"].to_s.humanize
+            ),
+            type: param["type"],
+            required: param["required"] == true,
+            default: param["default"]
+          }
+
+          entry[:min] = param["min"] if param.key?("min")
+          entry[:max] = param["max"] if param.key?("max")
+          entry[:step] = param["step"] if param.key?("step")
+          entry[:placeholder] = param["placeholder"] if param.key?("placeholder")
+
+          if param["type"] == "enum" && param["values"]
+            entry[:values] = Array(param["values"]).map do |v|
+              [ v.to_s, v.to_s.humanize ]
+            end
+          end
+
+          if param["type"] == "model_select" && param["model"]
+            entry[:model] = param["model"]
+            entry[:display_field] = param["display_field"]
+            entry[:options] = load_model_select_options(param)
+          end
+
+          entry
+        end
+      end
+
+      def load_model_select_options(param)
+        model_name = param["model"]
+        model_class = LcpRuby.registry.model_for(model_name)
+        return [] unless model_class
+
+        model_def = load_model_definition(model_name)
+        return [] unless model_def
+
+        display_field = param["display_field"] || model_def.label_method
+        display_field = display_field.to_sym
+
+        query = model_class.all
+        filter_scope = param["filter_scope"]
+        query = query.send(filter_scope) if filter_scope && model_class.respond_to?(filter_scope)
+
+        query.limit(200).map do |record|
+          label = record.respond_to?(display_field) ? record.send(display_field).to_s : record.to_s
+          { value: record.id, label: label }
+        end
+      rescue StandardError => e
+        raise unless Rails.env.production?
+        Rails.logger.error(
+          "[LcpRuby::FilterMetadataBuilder] Failed to load model_select options: #{e.message} (model=#{model_name})"
+        )
+        []
       end
     end
   end

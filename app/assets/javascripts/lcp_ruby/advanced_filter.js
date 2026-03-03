@@ -76,6 +76,7 @@
 
     // State is always a root group
     var state = parseCurrentFiltersFromUrl(metadata);
+    container._lcpFilterState = state;
 
     // If there are active filters, auto-expand
     if (hasActiveChildren(state)) {
@@ -477,7 +478,12 @@
       destroyTomSelectInstances(valueContainer);
       valueContainer.innerHTML = "";
 
-      if (newFieldMeta) {
+      if (newFieldMeta && newFieldMeta.type === "scope") {
+        // Scope field: render parameter inputs instead of operator/value
+        condition.operator = "scope";
+        condition.params = condition.params || {};
+        renderScopeParams(valueContainer, newFieldMeta.scope_parameters || [], condition);
+      } else if (newFieldMeta) {
         renderOperatorSelect(operatorContainer, metadata, newFieldMeta, "", function(op) {
           condition.operator = op;
           destroyTomSelectInstances(valueContainer);
@@ -508,7 +514,12 @@
 
     // Populate operator and value for pre-existing conditions
     var fieldMeta = findFieldMeta(metadata, condition.field);
-    if (fieldMeta) {
+    if (fieldMeta && fieldMeta.type === "scope") {
+      // Scope condition: render parameter inputs
+      condition.operator = "scope";
+      condition.params = condition.params || {};
+      renderScopeParams(valueContainer, fieldMeta.scope_parameters || [], condition);
+    } else if (fieldMeta) {
       renderOperatorSelect(operatorContainer, metadata, fieldMeta, condition.operator, function(op) {
         condition.operator = op;
         renderValueInput(valueContainer, metadata, fieldMeta, op, condition, function(val) {
@@ -620,6 +631,22 @@
       }
       node.fields.push(f);
     });
+
+    // Add parameterized scopes as a "Scopes" group
+    if (metadata.scopes && metadata.scopes.length > 0) {
+      tree.associations["_scopes"] = {
+        label: (window.LcpI18n && window.LcpI18n.advanced_filter_field_groups_scopes) || "Scopes",
+        fields: metadata.scopes.map(function(s) {
+          return {
+            name: "@" + s.name,
+            label: s.label,
+            type: "scope",
+            scope_parameters: s.parameters
+          };
+        }),
+        associations: {}
+      };
+    }
 
     return tree;
   }
@@ -888,6 +915,113 @@
     container.appendChild(input);
   }
 
+  // Render parameter inputs for a parameterized scope condition.
+  function renderScopeParams(container, parameters, condition) {
+    if (!parameters || parameters.length === 0) return;
+
+    condition.params = condition.params || {};
+    var wrapper = document.createElement("div");
+    wrapper.className = "lcp-scope-params";
+
+    parameters.forEach(function(param) {
+      var paramRow = document.createElement("div");
+      paramRow.className = "lcp-scope-param";
+
+      var label = document.createElement("label");
+      label.textContent = param.label || param.name;
+      if (param.required) label.textContent += " *";
+      paramRow.appendChild(label);
+
+      var input;
+      var currentValue = condition.params[param.name];
+      if (currentValue === undefined && param.default !== undefined) {
+        currentValue = param.default;
+        condition.params[param.name] = currentValue;
+      }
+
+      switch (param.type) {
+        case "boolean":
+          input = document.createElement("input");
+          input.type = "checkbox";
+          input.checked = currentValue === true || currentValue === "true";
+          input.addEventListener("change", function() {
+            condition.params[param.name] = input.checked;
+          });
+          break;
+        case "integer":
+        case "float":
+          input = document.createElement("input");
+          input.type = "number";
+          if (param.min !== undefined) input.min = param.min;
+          if (param.max !== undefined) input.max = param.max;
+          if (param.step !== undefined) input.step = param.step;
+          else if (param.type === "float") input.step = "0.01";
+          input.value = currentValue !== undefined ? currentValue : "";
+          input.addEventListener("input", function() {
+            condition.params[param.name] = param.type === "integer" ? parseInt(input.value) : parseFloat(input.value);
+          });
+          break;
+        case "date":
+          input = document.createElement("input");
+          input.type = "date";
+          input.value = currentValue || "";
+          input.addEventListener("change", function() {
+            condition.params[param.name] = input.value;
+          });
+          break;
+        case "datetime":
+          input = document.createElement("input");
+          input.type = "datetime-local";
+          input.value = currentValue || "";
+          input.addEventListener("change", function() {
+            condition.params[param.name] = input.value;
+          });
+          break;
+        case "enum":
+          input = document.createElement("select");
+          input.innerHTML = '<option value="">--</option>';
+          (param.values || []).forEach(function(pair) {
+            var opt = document.createElement("option");
+            opt.value = Array.isArray(pair) ? pair[0] : pair;
+            opt.textContent = Array.isArray(pair) ? pair[1] : pair;
+            if (String(currentValue) === String(opt.value)) opt.selected = true;
+            input.appendChild(opt);
+          });
+          input.addEventListener("change", function() {
+            condition.params[param.name] = input.value;
+          });
+          break;
+        case "model_select":
+          input = document.createElement("select");
+          input.innerHTML = '<option value="">--</option>';
+          (param.options || []).forEach(function(opt) {
+            var option = document.createElement("option");
+            option.value = opt.value;
+            option.textContent = opt.label;
+            if (String(currentValue) === String(opt.value)) option.selected = true;
+            input.appendChild(option);
+          });
+          input.addEventListener("change", function() {
+            condition.params[param.name] = parseInt(input.value) || input.value;
+          });
+          break;
+        default:
+          input = document.createElement("input");
+          input.type = "text";
+          input.value = currentValue || "";
+          if (param.placeholder) input.placeholder = param.placeholder;
+          input.addEventListener("input", function() {
+            condition.params[param.name] = input.value;
+          });
+      }
+
+      paramRow.appendChild(input);
+      wrapper.appendChild(paramRow);
+    });
+
+    container.appendChild(wrapper);
+  }
+
   function renderBetweenInput(container, fieldType, value, onChange) {
     var wrapper = document.createElement("div");
     wrapper.className = "lcp-filter-between";
@@ -1091,6 +1225,16 @@
   function encodeCondition(params, prefix, condition) {
     if (!condition.field || !condition.operator) return;
 
+    // Scope condition: encode as scope[name][param]=value
+    if (condition.operator === "scope" && condition.field && condition.field.charAt(0) === "@") {
+      var scopeName = condition.field.substring(1);
+      var scopeParams = condition.params || {};
+      Object.keys(scopeParams).forEach(function(key) {
+        params["scope[" + scopeName + "][" + key + "]"] = scopeParams[key];
+      });
+      return;
+    }
+
     // Determine the param key format: cf[field_op] or prefix[field_op]
     var cfMatch = condition.field.match(/^cf\[([^\]]+)\]$/);
     var fieldBase, makeKey;
@@ -1146,6 +1290,20 @@
     if (!fieldName) return null;
     for (var i = 0; i < metadata.fields.length; i++) {
       if (metadata.fields[i].name === fieldName) return metadata.fields[i];
+    }
+    // Also search in parameterized scopes
+    if (metadata.scopes && fieldName && fieldName.charAt(0) === "@") {
+      var scopeName = fieldName.substring(1);
+      for (var j = 0; j < metadata.scopes.length; j++) {
+        if (metadata.scopes[j].name === scopeName) {
+          return {
+            name: "@" + metadata.scopes[j].name,
+            label: metadata.scopes[j].label,
+            type: "scope",
+            scope_parameters: metadata.scopes[j].parameters
+          };
+        }
+      }
     }
     return null;
   }
@@ -1297,6 +1455,18 @@
       errorDiv.style.display = "";
     });
   }
+
+  // Public API for saved filters integration
+  window.LcpAdvancedFilter = {
+    // Returns the current condition tree state from the first filter builder on page.
+    getConditionTree: function() {
+      var container = document.querySelector("[data-lcp-filter-metadata]");
+      if (!container || !container._lcpFilterState) return null;
+      var state = container._lcpFilterState;
+      if (!hasActiveChildren(state)) return null;
+      return JSON.parse(JSON.stringify(state)); // Deep clone
+    }
+  };
 
   // Initialize on DOM ready
   document.addEventListener("DOMContentLoaded", initFilterBuilders);

@@ -44,6 +44,7 @@ module IntegrationHelper
     LcpRuby::Permissions::Setup.apply!(loader)
     LcpRuby::Groups::Setup.apply!(loader)
     LcpRuby::Auditing::Setup.apply!(loader)
+    LcpRuby::SavedFilters::Setup.apply!(loader)
 
     # Discover services from fixture path
     LcpRuby::ConditionServiceRegistry.discover!(fixture_path)

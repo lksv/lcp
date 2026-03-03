@@ -35,6 +35,8 @@ define_presenter :deal do
       field :value, renderer: :currency, options: { currency: "EUR" }
       field "company.name", label: "Company"
       field :created_at, renderer: :relative_date
+      field :created_by_name
+      field :updated_by_name
       field :documents, renderer: :attachment_list
     end
 
@@ -45,6 +47,8 @@ define_presenter :deal do
       field :priority, renderer: :rating, options: { max: 5 }
       field :expected_close_date
     end
+
+    association_list "Activities", association: :activities
   end
 
   form do
@@ -124,6 +128,12 @@ define_presenter :deal do
           { field: "expected_close_date", operator: "this_month" },
           { field: "stage", operator: "not_in", value: %w[closed_won closed_lost] }
         ]
+
+      saved_filters do
+        enabled true
+        display :inline
+        max_visible_pinned 5
+      end
     end
   end
 

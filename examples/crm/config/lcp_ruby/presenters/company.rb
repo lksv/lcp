@@ -30,6 +30,7 @@ define_presenter :company do
     end
     association_list "Contacts", association: :contacts
     association_list "Deals", association: :deals
+    association_list "Activities", association: :activities
   end
 
   form do
@@ -109,6 +110,12 @@ define_presenter :company do
         conditions: [
           { field: "industry", operator: "eq", value: "technology" }
         ]
+
+      saved_filters do
+        enabled true
+        display :inline
+        max_visible_pinned 3
+      end
     end
   end
 

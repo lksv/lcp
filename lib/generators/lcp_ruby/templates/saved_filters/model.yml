@@ -1,0 +1,26 @@
+name: saved_filter
+table_name: lcp_saved_filters
+fields:
+  - { name: name, type: string }
+  - { name: description, type: text }
+  - { name: target_presenter, type: string }
+  - { name: condition_tree, type: json }
+  - { name: ql_text, type: text }
+  - { name: visibility, type: enum, values: [personal, role, global, group], default: personal }
+  - { name: owner_id, type: integer }
+  - { name: target_role, type: string }
+  - { name: target_group, type: string }
+  - { name: position, type: integer }
+  - { name: icon, type: string }
+  - { name: color, type: string }
+  - { name: pinned, type: boolean, default: false }
+  - { name: default_filter, type: boolean, default: false }
+validations:
+  - { field: name, type: presence }
+  - { field: target_presenter, type: presence }
+  - { field: condition_tree, type: presence }
+  - { field: owner_id, type: presence }
+options:
+  timestamps: true
+  userstamps: true
+  label_method: name

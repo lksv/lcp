@@ -18,8 +18,8 @@ module LcpRuby
         name = scope_config["name"]&.to_sym
         return unless name
 
-        if scope_config["type"] == "custom"
-          # Custom scopes are defined by Ruby code in model extensions
+        if scope_config["type"].in?(%w[custom parameterized])
+          # Custom and parameterized scopes are defined by Ruby code in model extensions
           return
         end
 

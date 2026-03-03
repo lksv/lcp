@@ -85,8 +85,13 @@ module LcpRuby
         operator = condition["operator"].to_s
         value = condition["value"]
 
-        # Scope reference
+        # Scope reference (with optional parameters)
         if operator == "scope" && field&.start_with?("@")
+          params = condition["params"]
+          if params.is_a?(Hash) && params.any?
+            formatted_params = params.map { |k, v| "#{k}: #{format_scope_param_value(v)}" }.join(", ")
+            return "#{field}(#{formatted_params})"
+          end
           return field
         end
 
@@ -171,6 +176,18 @@ module LcpRuby
         str.gsub("\\", "\\\\\\\\").gsub("'", "\\\\'")
       end
       private_class_method :escape_string
+
+      def self.format_scope_param_value(value)
+        case value
+        when true, false
+          value.to_s
+        when Integer, Float
+          value.to_s
+        else
+          "'#{escape_string(value.to_s)}'"
+        end
+      end
+      private_class_method :format_scope_param_value
     end
   end
 end

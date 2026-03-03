@@ -680,6 +680,34 @@ module LcpRuby
         }
       end
 
+      def saved_filters(&block)
+        builder = SavedFiltersBuilder.new
+        builder.instance_eval(&block)
+        @hash["saved_filters"] = builder.to_hash
+      end
+
+      def to_hash
+        @hash
+      end
+    end
+
+    class SavedFiltersBuilder
+      def initialize
+        @hash = {}
+      end
+
+      def enabled(value)
+        @hash["enabled"] = value
+      end
+
+      def display(value)
+        @hash["display"] = value.to_s
+      end
+
+      def max_visible_pinned(value)
+        @hash["max_visible_pinned"] = value
+      end
+
       def to_hash
         @hash
       end

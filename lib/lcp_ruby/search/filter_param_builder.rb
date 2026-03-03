@@ -9,9 +9,14 @@ module LcpRuby
       # and legacy format:
       #   { "combinator" => "and", "conditions" => [...], "groups" => [...] }
       #
-      # Output: { ransack: { ... }, custom_fields: { ... } }
+      # Output: { ransack: { ... }, custom_fields: { ... }, scopes: { ... } }
       def self.build(condition_tree)
         return {} if condition_tree.blank?
+
+        # Handle bare leaf condition (promoted from single-child group)
+        if condition_tree.key?("field") && !condition_tree.key?("children")
+          condition_tree = { "combinator" => "and", "children" => [ condition_tree ] }
+        end
 
         # Detect legacy format and delegate
         if condition_tree.key?("conditions") && !condition_tree.key?("children")
@@ -20,6 +25,7 @@ module LcpRuby
 
         result = {}
         custom_field_params = {}
+        scope_params = {}
         group_counter = { value: 0 }
 
         # Set root combinator when it's not the default "and"
@@ -30,18 +36,18 @@ module LcpRuby
         children.each do |child|
           if child.key?("field")
             # Leaf condition at top level
-            extract_condition(child, result, custom_field_params)
+            extract_condition(child, result, custom_field_params, scope_params)
           else
             # Nested group — emit as Ransack group
             result["g"] ||= {}
             idx = group_counter[:value].to_s
             group_counter[:value] += 1
-            group_params = build_ransack_group(child, group_counter, custom_field_params)
+            group_params = build_ransack_group(child, group_counter, custom_field_params, scope_params)
             result["g"][idx] = group_params if group_params.present?
           end
         end
 
-        { ransack: result, custom_fields: custom_field_params }
+        { ransack: result, custom_fields: custom_field_params, scopes: scope_params }
       end
 
       # Converts association dot-path to Ransack underscore format.
@@ -50,32 +56,36 @@ module LcpRuby
         path.tr(".", "_")
       end
 
-      private_class_method def self.extract_condition(condition, result, custom_field_params)
+      private_class_method def self.extract_condition(condition, result, custom_field_params, scope_params = {})
         field = condition["field"]
         operator = condition["operator"]&.to_sym
         value = condition["value"]
 
-        if field&.start_with?("cf[")
+        if operator == :scope && field&.start_with?("@")
+          # Scope condition — extract to scope_params
+          scope_name = field.delete_prefix("@")
+          scope_params[scope_name] = (condition["params"] || {}).transform_keys(&:to_s)
+        elsif field&.start_with?("cf[")
           custom_field_params[field] = { operator: operator, value: value }
         else
           merge_condition(result, field, operator, value)
         end
       end
 
-      private_class_method def self.build_ransack_group(node, group_counter, custom_field_params)
+      private_class_method def self.build_ransack_group(node, group_counter, custom_field_params, scope_params = {})
         combinator = node["combinator"] || "and"
         result = { "m" => combinator }
         children = node["children"] || []
 
         children.each do |child|
           if child.key?("field")
-            extract_condition(child, result, custom_field_params)
+            extract_condition(child, result, custom_field_params, scope_params)
           else
             # Nested sub-group
             result["g"] ||= {}
             idx = group_counter[:value].to_s
             group_counter[:value] += 1
-            sub_params = build_ransack_group(child, group_counter, custom_field_params)
+            sub_params = build_ransack_group(child, group_counter, custom_field_params, scope_params)
             result["g"][idx] = sub_params if sub_params.present?
           end
         end
@@ -94,7 +104,10 @@ module LcpRuby
           expand_between(result, ransack_field, value)
         else
           ransack_key = "#{ransack_field}_#{operator}"
-          result[ransack_key] = value
+          # Ransack ignores predicates with nil values. No-value operators
+          # (true, false, present, blank, null, not_null) need a truthy
+          # sentinel so Ransack actually applies the predicate.
+          result[ransack_key] = value.nil? && OperatorRegistry.no_value?(operator) ? 1 : value
         end
       end
 

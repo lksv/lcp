@@ -1,0 +1,38 @@
+presenter:
+  name: saved_filter
+  model: saved_filter
+  slug: saved-filters
+  label: "Saved Filters"
+
+  index:
+    table_columns:
+      - { field: name, sortable: true, link_to: show }
+      - { field: target_presenter, sortable: true }
+      - { field: visibility, sortable: true }
+
+  form:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+          - { field: description }
+          - { field: target_presenter }
+          - { field: visibility }
+
+  show:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+          - { field: description }
+          - { field: target_presenter }
+          - { field: visibility }
+          - { field: condition_tree }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in }

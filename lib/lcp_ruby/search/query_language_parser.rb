@@ -159,13 +159,118 @@ module LcpRuby
         end
       end
 
-      # scope_ref = "@" identifier
+      # scope_ref = "@" identifier ("(" scope_params ")")?
       def parse_scope_ref
         start_pos = @pos
         advance # consume "@"
         name = parse_identifier
         error("Expected scope name after '@'", pos: start_pos) if name.empty?
-        { "field" => "@#{name}", "operator" => "scope" }
+
+        result = { "field" => "@#{name}", "operator" => "scope" }
+
+        # Check for parameters: @name(key: value, ...)
+        skip_whitespace
+        if !eof? && peek_char == "("
+          result["params"] = parse_scope_params
+        end
+
+        result
+      end
+
+      # Parse scope parameters: (key: value, key: value)
+      def parse_scope_params
+        advance # consume "("
+        params = {}
+        skip_whitespace
+
+        unless peek_char == ")"
+          key, value = parse_scope_param
+          params[key] = value
+          skip_whitespace
+
+          while peek_char == ","
+            advance # consume ","
+            skip_whitespace
+            key, value = parse_scope_param
+            params[key] = value
+            skip_whitespace
+          end
+        end
+
+        expect_char(")")
+        params
+      end
+
+      # Parse a single key: value pair
+      def parse_scope_param
+        skip_whitespace
+        key = parse_identifier
+        error("Expected parameter name") if key.empty?
+        skip_whitespace
+        expect_char(":")
+        skip_whitespace
+        value = parse_scope_param_value
+        [ key, value ]
+      end
+
+      # Parse a scope parameter value (string, number, boolean)
+      def parse_scope_param_value
+        skip_whitespace
+        error("Expected parameter value") if eof?
+
+        case peek_char
+        when "'", '"'
+          parse_quoted_scope_value
+        else
+          # Try number or boolean/identifier
+          start = @pos
+          token = +""
+
+          while !eof? && peek_char =~ /[^\s,)]/
+            token << peek_char
+            advance
+          end
+
+          error("Expected parameter value") if token.empty?
+
+          case token.downcase
+          when "true" then true
+          when "false" then false
+          else
+            # Try numeric
+            if token =~ /\A-?\d+\z/
+              token.to_i
+            elsif token =~ /\A-?\d+\.\d+\z/
+              token.to_f
+            else
+              token
+            end
+          end
+        end
+      end
+
+      def parse_quoted_scope_value
+        quote_char = peek_char
+        advance # consume opening quote
+        result = +""
+
+        until eof?
+          ch = peek_char
+          if ch == "\\"
+            advance
+            error("Unexpected end of input in string escape") if eof?
+            result << peek_char
+            advance
+          elsif ch == quote_char
+            advance # consume closing quote
+            return result
+          else
+            result << ch
+            advance
+          end
+        end
+
+        error("Unterminated string in scope parameter")
       end
 
       # condition = field_path operator value?

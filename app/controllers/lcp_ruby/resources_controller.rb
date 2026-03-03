@@ -12,6 +12,18 @@ module LcpRuby
       scope = policy_scope(@model_class)
       scope = apply_soft_delete_scope(scope)
 
+      # Apply default saved filter when no explicit filter params are present
+      if no_explicit_filter_params? && SavedFilters::Registry.available? && current_presenter.saved_filters_enabled?
+        default = SavedFilters::Resolver.default_filter_for(
+          presenter_slug: current_presenter.slug,
+          user: current_user,
+          evaluator: current_evaluator
+        )
+        if default
+          params[:saved_filter] = default.id.to_s
+        end
+      end
+
       if current_presenter.tree_view? && current_model_definition.tree?
         load_tree_index(scope)
       else
@@ -177,7 +189,9 @@ module LcpRuby
       builder = Search::FilterMetadataBuilder.new(current_presenter, current_model_definition, current_evaluator)
       metadata = builder.build
 
-      render json: { fields: metadata[:fields] }
+      result = { fields: metadata[:fields] }
+      result[:scopes] = metadata[:scopes] if metadata[:scopes]&.any?
+      render json: result
     end
 
     def reorder
@@ -286,9 +300,24 @@ module LcpRuby
 
     private
 
+<<<<<<< HEAD
     def load_flat_index(scope)
       scope = apply_advanced_search(scope)
       scope = apply_sort(scope)
+
+      # Load saved filters for the UI
+      if SavedFilters::Registry.available? && current_presenter.saved_filters_enabled?
+        @saved_filters = SavedFilters::Resolver.visible_filters(
+          presenter_slug: current_presenter.slug,
+          user: current_user,
+          evaluator: current_evaluator
+        )
+        @slot_locals = (@slot_locals || {}).merge(
+          saved_filters: @saved_filters,
+          active_saved_filter: @active_saved_filter,
+          saved_filter_warnings: @saved_filter_warnings
+        )
+      end
 
       @summaries = compute_summaries(scope) if summary_columns_present?
 
@@ -397,6 +426,11 @@ module LcpRuby
       parent_field = current_model_definition.tree_parent_field
       pairs = @model_class.order(:id).pluck(:id, parent_field)
       Digest::SHA256.hexdigest(pairs.map { |id, pid| "#{id}:#{pid}" }.join(","))
+    end
+
+    def no_explicit_filter_params?
+      params[:f].blank? && params[:filter].blank? && params[:qs].blank? &&
+        params[:saved_filter].blank? && params[:scope].blank?
     end
 
     def set_record

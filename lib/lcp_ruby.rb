@@ -64,6 +64,7 @@ require "lcp_ruby/search/filter_metadata_builder"
 require "lcp_ruby/search/custom_field_filter"
 require "lcp_ruby/search/query_language_parser"
 require "lcp_ruby/search/query_language_serializer"
+require "lcp_ruby/search/parameterized_scope_applicator"
 
 # Model Factory
 require "lcp_ruby/model_factory/registry"
@@ -127,6 +128,14 @@ require "lcp_ruby/groups/host_loader"
 require "lcp_ruby/groups/contract_validator"
 require "lcp_ruby/groups/change_handler"
 require "lcp_ruby/groups/setup"
+
+# Saved Filters
+require "lcp_ruby/saved_filters/registry"
+require "lcp_ruby/saved_filters/contract_validator"
+require "lcp_ruby/saved_filters/change_handler"
+require "lcp_ruby/saved_filters/resolver"
+require "lcp_ruby/saved_filters/stale_field_validator"
+require "lcp_ruby/saved_filters/setup"
 
 # Authorization
 require "lcp_ruby/authorization/scope_builder"
@@ -273,6 +282,7 @@ module LcpRuby
       Groups::Registry.clear!
       Auditing::Registry.clear!
       Auditing::AuditWriter.clear_cache!
+      SavedFilters::Registry.clear!
       ViewSlots::Registry.clear!
 
       # Remove dynamic constants to avoid "already initialized" warnings

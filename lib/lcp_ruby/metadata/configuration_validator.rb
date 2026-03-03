@@ -233,9 +233,72 @@ module LcpRuby
           scope_name = scope["name"]
           next unless scope_name
 
-          validate_scope_fields(model, scope_name, scope["where"])
-          validate_scope_fields(model, scope_name, scope["where_not"])
-          validate_scope_order_fields(model, scope_name, scope["order"])
+          if scope["type"] == "parameterized"
+            validate_parameterized_scope(model, scope_name, scope)
+          else
+            validate_scope_fields(model, scope_name, scope["where"])
+            validate_scope_fields(model, scope_name, scope["where_not"])
+            validate_scope_order_fields(model, scope_name, scope["order"])
+          end
+        end
+      end
+
+      VALID_PARAM_TYPES = %w[integer float string enum date datetime boolean model_select].freeze
+
+      def validate_parameterized_scope(model, scope_name, scope_config)
+        parameters = scope_config["parameters"]
+
+        unless parameters.is_a?(Array) && parameters.any?
+          @errors << "Model '#{model.name}', parameterized scope '#{scope_name}': " \
+                     "must have at least one parameter"
+          return
+        end
+
+        param_names = []
+        parameters.each do |param|
+          param = param.transform_keys(&:to_s) if param.is_a?(Hash)
+          next unless param.is_a?(Hash)
+
+          name = param["name"]
+          unless name.present?
+            @errors << "Model '#{model.name}', parameterized scope '#{scope_name}': " \
+                       "parameter is missing required 'name'"
+            next
+          end
+
+          if param_names.include?(name)
+            @errors << "Model '#{model.name}', parameterized scope '#{scope_name}': " \
+                       "duplicate parameter name '#{name}'"
+          end
+          param_names << name
+
+          type = param["type"]&.to_s
+          unless type.present? && VALID_PARAM_TYPES.include?(type)
+            @errors << "Model '#{model.name}', parameterized scope '#{scope_name}', " \
+                       "parameter '#{name}': invalid type '#{type}'. " \
+                       "Valid: #{VALID_PARAM_TYPES.join(', ')}"
+            next
+          end
+
+          # Enum requires values
+          if type == "enum" && !(param["values"].is_a?(Array) && param["values"].any?)
+            @errors << "Model '#{model.name}', parameterized scope '#{scope_name}', " \
+                       "parameter '#{name}': enum type requires 'values' array"
+          end
+
+          # model_select requires model reference
+          if type == "model_select" && !param["model"].present?
+            @errors << "Model '#{model.name}', parameterized scope '#{scope_name}', " \
+                       "parameter '#{name}': model_select type requires 'model' reference"
+          end
+
+          # min/max validation for numeric types
+          if %w[integer float].include?(type) && param["min"] && param["max"]
+            if param["min"].to_f > param["max"].to_f
+              @errors << "Model '#{model.name}', parameterized scope '#{scope_name}', " \
+                         "parameter '#{name}': min (#{param['min']}) must be <= max (#{param['max']})"
+            end
+          end
         end
       end
 
@@ -1125,6 +1188,58 @@ module LcpRuby
           if valid_fields.include?(cf_name)
             @warnings << "Presenter '#{presenter.name}', advanced_filter custom_filters: " \
                          "'#{cf_name}' collides with model field name"
+          end
+        end
+
+        # Validate saved_filters configuration
+        validate_presenter_saved_filters(presenter, af_config)
+      end
+
+      def validate_presenter_saved_filters(presenter, af_config)
+        sf_config = af_config["saved_filters"]
+        return unless sf_config.is_a?(Hash) && sf_config["enabled"] == true
+
+        # Warn if saved_filter model is not defined
+        unless loader.model_definitions.key?("saved_filter")
+          @warnings << "Presenter '#{presenter.name}': saved_filters.enabled is true " \
+                       "but 'saved_filter' model is not defined. Run: rails generate lcp_ruby:saved_filters"
+        end
+
+        # Validate visibility_options
+        if sf_config.key?("visibility_options")
+          valid_vis = %w[personal role global group]
+          Array(sf_config["visibility_options"]).each do |vis|
+            unless valid_vis.include?(vis.to_s)
+              @errors << "Presenter '#{presenter.name}', saved_filters: " \
+                         "invalid visibility_option '#{vis}'. Valid: #{valid_vis.join(', ')}"
+            end
+          end
+
+          # Warn if 'group' is in visibility_options but group_source is :none
+          if Array(sf_config["visibility_options"]).include?("group") &&
+             LcpRuby.configuration.group_source == :none
+            @warnings << "Presenter '#{presenter.name}', saved_filters: " \
+                         "visibility_options includes 'group' but group_source is :none"
+          end
+        end
+
+        # Validate display mode
+        if sf_config.key?("display")
+          valid_displays = %w[inline dropdown sidebar]
+          unless valid_displays.include?(sf_config["display"].to_s)
+            @errors << "Presenter '#{presenter.name}', saved_filters: " \
+                       "display must be one of: #{valid_displays.join(', ')}, got '#{sf_config['display']}'"
+          end
+        end
+
+        # Validate numeric limits
+        %w[max_per_user max_per_role max_global max_visible_pinned].each do |key|
+          if sf_config.key?(key)
+            val = sf_config[key]
+            unless val.is_a?(Integer) && val > 0
+              @errors << "Presenter '#{presenter.name}', saved_filters: " \
+                         "#{key} must be a positive integer, got '#{val}'"
+            end
           end
         end
       end

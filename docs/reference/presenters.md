@@ -1814,9 +1814,12 @@ search:
         label: "Active Only"
         type: boolean
 
-  saved_filters:
-    enabled: false
-    sharing: false
+  advanced_filter:
+    enabled: true
+    saved_filters:
+      enabled: true
+      display: inline
+      max_visible_pinned: 5
 ```
 
 ### Search Attributes
@@ -1987,12 +1990,37 @@ See [Custom Filter Methods](../guides/extensibility.md#custom-filter-methods) fo
 
 ### Saved Filter Attributes
 
+The `saved_filters` block (nested inside `advanced_filter`) enables user-persistent named filters. Users can save filter conditions, pin favorites, set defaults, and share with roles/groups.
+
+**Prerequisite:** The saved filter model must exist. Generate it with `rails generate lcp_ruby:saved_filters`.
+
+```yaml
+advanced_filter:
+  enabled: true
+  saved_filters:
+    enabled: true
+    display: inline
+    max_visible_pinned: 5
+```
+
 | Attribute | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `enabled` | boolean | `false` | Allow users to save personal filters |
-| `sharing` | boolean | `false` | Allow sharing saved filters with roles |
+| `enabled` | boolean | `false` | Allow users to save, load, and manage personal filters |
+| `display` | string | `"inline"` | UI display mode: `"inline"` (pill buttons above filter), `"dropdown"` (select menu), `"sidebar"` (side panel) |
+| `max_visible_pinned` | integer | `3` | Maximum number of pinned filters shown directly (overflow goes to "more" menu) |
 
-Saved filters follow the Configuration Source Principle: predefined in YAML (via `presets` — implemented), user-created in DB (when `enabled: true` — planned), or provided by the host application. Full saved filter support (user-created, shared) is deferred to a future phase.
+**Saved filter visibility levels:**
+
+| Level | Description |
+|-------|-------------|
+| `personal` | Only the owner can see and use the filter |
+| `role` | Visible to all users with the `target_role` |
+| `group` | Visible to members of the `target_group` |
+| `global` | Visible to all users |
+
+**Saved filter model fields:** `name`, `description`, `target_presenter`, `condition_tree` (JSON), `ql_text`, `visibility` (enum), `owner_id`, `target_role`, `target_group`, `position`, `icon`, `color`, `pinned` (boolean), `default_filter` (boolean).
+
+See the [Saved Filters design spec](../design/saved_filters.md) for the complete feature description.
 
 ## Actions Configuration
 

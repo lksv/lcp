@@ -1,0 +1,22 @@
+admin:
+  crud: [create, read, update, delete]
+
+manager:
+  crud: [create, read, update, delete]
+  fields:
+    writable: [name, description, condition_tree, visibility, pinned, default_filter, position, icon, color, target_role, target_group]
+  record_rules:
+    - deny: [update, delete]
+      when:
+        visibility: { not_eq: personal }
+        owner_id: { not_eq: "{current_user.id}" }
+
+user:
+  crud: [create, read, update, delete]
+  record_rules:
+    - deny: [update, delete]
+      when:
+        visibility: { not_eq: personal }
+    - deny: [create]
+      when:
+        visibility: { in: [global, role] }

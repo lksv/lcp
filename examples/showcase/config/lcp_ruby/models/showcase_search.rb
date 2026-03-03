@@ -67,6 +67,18 @@ define_model :showcase_search do
   scope :high_priority, where: { priority: %w[high critical] }
   scope :recent, order: { created_at: :desc }, limit: 10
 
+  scope :by_min_price, type: :parameterized, parameters: [
+    { name: :min_price, type: :float, default: 0.0, min: 0 }
+  ]
+
+  scope :created_recently, type: :parameterized, parameters: [
+    { name: :days, type: :integer, default: 30, min: 1, max: 365 }
+  ]
+
+  scope :by_status_filter, type: :parameterized, parameters: [
+    { name: :status, type: :enum, values: %w[draft review approved published archived], required: true }
+  ]
+
   timestamps true
   label_method :title
 end

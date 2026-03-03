@@ -1,0 +1,48 @@
+name: saved_filters
+model: saved_filter
+slug: saved-filters
+search:
+  enabled: true
+  searchable_fields: [name, description, target_presenter]
+  predefined_filters:
+    - { name: personal, scope: personal_only }
+    - { name: global, scope: global_only }
+index:
+  table_columns:
+    - { field: name }
+    - { field: target_presenter }
+    - { field: visibility }
+    - { field: pinned }
+    - { field: default_filter }
+    - { field: owner_id }
+form:
+  sections:
+    - title: Details
+      fields:
+        - { field: name }
+        - { field: description }
+        - { field: target_presenter }
+        - { field: visibility }
+        - { field: target_role }
+        - { field: target_group }
+        - { field: pinned }
+        - { field: default_filter }
+        - { field: position }
+        - { field: icon }
+        - { field: color }
+show:
+  sections:
+    - title: Details
+      fields:
+        - { field: name }
+        - { field: description }
+        - { field: target_presenter }
+        - { field: visibility }
+        - { field: target_role }
+        - { field: target_group }
+        - { field: pinned }
+        - { field: default_filter }
+        - { field: position }
+        - { field: icon }
+        - { field: color }
+        - { field: ql_text }

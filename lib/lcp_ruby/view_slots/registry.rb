@@ -7,6 +7,8 @@ module LcpRuby
         { page: :index, slot: :toolbar_end,    name: :collection_actions, partial: "lcp_ruby/slots/index/collection_actions",  position: 10 },
         { page: :index, slot: :filter_bar,     name: :search,             partial: "lcp_ruby/slots/index/search",              position: 10 },
         { page: :index, slot: :filter_bar,     name: :predefined_filters, partial: "lcp_ruby/slots/index/predefined_filters",  position: 20 },
+        { page: :index, slot: :filter_bar,     name: :saved_filters,      partial: "lcp_ruby/slots/index/saved_filters",       position: 25,
+          enabled: ->(ctx) { SavedFilters::Registry.available? && ctx.presenter.saved_filters_enabled? } },
         { page: :index, slot: :filter_bar,     name: :advanced_filter,    partial: "lcp_ruby/slots/index/advanced_filter",     position: 30 },
         { page: :index, slot: :below_content,  name: :pagination,         partial: "lcp_ruby/slots/index/pagination",          position: 10 },
         { page: :show,  slot: :toolbar_start,  name: :view_switcher,      partial: "lcp_ruby/slots/show/view_switcher",        position: 10 },

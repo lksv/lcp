@@ -1,0 +1,74 @@
+model:
+  name: filtered_task
+  label: "Filtered Task"
+  label_plural: "Filtered Tasks"
+
+  fields:
+    - name: title
+      type: string
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+
+    - name: status
+      type: enum
+      enum_values:
+        - { value: open, label: "Open" }
+        - { value: in_progress, label: "In Progress" }
+        - { value: closed, label: "Closed" }
+      default: open
+
+    - name: priority
+      type: integer
+      default: 0
+
+    - name: description
+      type: text
+
+    - name: due_date
+      type: date
+
+    - name: active
+      type: boolean
+      default: true
+
+  scopes:
+    - name: open_tasks
+      where: { status: "open" }
+    - name: high_priority
+      where:
+        priority: { gte: 5 }
+    - name: created_recently
+      type: parameterized
+      parameters:
+        - name: days
+          type: integer
+          default: 7
+          min: 1
+          max: 365
+    - name: by_priority_range
+      type: parameterized
+      parameters:
+        - name: min_priority
+          type: integer
+          required: true
+          min: 0
+          max: 10
+        - name: max_priority
+          type: integer
+          required: true
+          min: 0
+          max: 10
+    - name: by_status
+      type: parameterized
+      parameters:
+        - name: status
+          type: enum
+          values: [open, in_progress, closed]
+          required: true
+
+  options:
+    timestamps: true
+    label_method: title

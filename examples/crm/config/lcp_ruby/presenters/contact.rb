@@ -28,11 +28,15 @@ define_presenter :contact do
       field :avatar, renderer: :attachment_preview, options: { variant: "medium" }
       field "company.name", label: "Company"
       field "company.industry", label: "Industry", renderer: :badge
+      field :created_by_name
+      field :updated_by_name
     end
 
     section "Documents" do
       field :documents, renderer: :attachment_list
     end
+
+    association_list "Activities", association: :activities
   end
 
   form do
@@ -71,6 +75,12 @@ define_presenter :contact do
         conditions: [
           { field: "active", operator: "eq", value: "true" }
         ]
+
+      saved_filters do
+        enabled true
+        display :inline
+        max_visible_pinned 3
+      end
     end
   end
 

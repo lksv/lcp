@@ -1,6 +1,6 @@
 # Feature Specification: Saved Filters & Parameterized Scopes
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2026-03-02
 
 ## Problem / Motivation

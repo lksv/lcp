@@ -141,6 +141,10 @@ module LcpRuby
         scope_hash["where_not"] = stringify_keys(options[:where_not]) if options.key?(:where_not)
         scope_hash["order"] = stringify_keys(options[:order]) if options.key?(:order)
         scope_hash["limit"] = options[:limit] if options.key?(:limit)
+        scope_hash["type"] = options[:type].to_s if options.key?(:type)
+        if options.key?(:parameters)
+          scope_hash["parameters"] = options[:parameters].map { |p| stringify_keys(p) }
+        end
         @scopes << scope_hash
       end
 

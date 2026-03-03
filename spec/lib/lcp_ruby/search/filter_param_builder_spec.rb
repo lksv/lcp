@@ -305,6 +305,85 @@ RSpec.describe LcpRuby::Search::FilterParamBuilder do
       end
     end
 
+    context "no-value operators" do
+      it "provides sentinel value for boolean true operator" do
+        tree = {
+          "combinator" => "and",
+          "children" => [
+            { "field" => "published", "operator" => "true" }
+          ]
+        }
+        result = described_class.build(tree)[:ransack]
+        expect(result["published_true"]).to eq(1)
+      end
+
+      it "provides sentinel value for boolean false operator" do
+        tree = {
+          "combinator" => "and",
+          "children" => [
+            { "field" => "published", "operator" => "false" }
+          ]
+        }
+        result = described_class.build(tree)[:ransack]
+        expect(result["published_false"]).to eq(1)
+      end
+
+      it "provides sentinel value for present operator" do
+        tree = {
+          "combinator" => "and",
+          "children" => [
+            { "field" => "name", "operator" => "present" }
+          ]
+        }
+        result = described_class.build(tree)[:ransack]
+        expect(result["name_present"]).to eq(1)
+      end
+
+      it "provides sentinel value for blank operator" do
+        tree = {
+          "combinator" => "and",
+          "children" => [
+            { "field" => "name", "operator" => "blank" }
+          ]
+        }
+        result = described_class.build(tree)[:ransack]
+        expect(result["name_blank"]).to eq(1)
+      end
+
+      it "provides sentinel value for null operator" do
+        tree = {
+          "combinator" => "and",
+          "children" => [
+            { "field" => "name", "operator" => "null" }
+          ]
+        }
+        result = described_class.build(tree)[:ransack]
+        expect(result["name_null"]).to eq(1)
+      end
+
+      it "provides sentinel value for not_null operator" do
+        tree = {
+          "combinator" => "and",
+          "children" => [
+            { "field" => "name", "operator" => "not_null" }
+          ]
+        }
+        result = described_class.build(tree)[:ransack]
+        expect(result["name_not_null"]).to eq(1)
+      end
+
+      it "preserves explicit value when provided for no-value operator" do
+        tree = {
+          "combinator" => "and",
+          "children" => [
+            { "field" => "published", "operator" => "true", "value" => "yes" }
+          ]
+        }
+        result = described_class.build(tree)[:ransack]
+        expect(result["published_true"]).to eq("yes")
+      end
+    end
+
     context "legacy format support" do
       it "handles legacy {conditions, groups} format" do
         tree = {

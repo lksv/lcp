@@ -103,6 +103,14 @@ module LcpRuby
         index_config["reparentable"] == true
       end
 
+      def saved_filters_enabled?
+        advanced_filter_config.dig("saved_filters", "enabled") == true
+      end
+
+      def saved_filters_config
+        advanced_filter_config["saved_filters"] || {}
+      end
+
       private
 
       def validate!

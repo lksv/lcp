@@ -1,0 +1,69 @@
+model:
+  name: product
+  label: "Product"
+  label_plural: "Products"
+
+  fields:
+    - name: name
+      type: string
+      column_options:
+        limit: 255
+        "null": false
+      validations:
+        - type: presence
+
+    - name: price
+      type: decimal
+      column_options: { precision: 10, scale: 2 }
+
+    - name: quantity
+      type: integer
+      default: 0
+
+    - name: active
+      type: boolean
+      default: true
+
+    - name: status
+      type: enum
+      enum_values:
+        - { value: draft, label: "Draft" }
+        - { value: published, label: "Published" }
+        - { value: archived, label: "Archived" }
+      default: draft
+
+    - name: release_date
+      type: date
+
+  scopes:
+    - name: active_products
+      where: { active: true }
+    - name: by_min_price
+      type: parameterized
+      parameters:
+        - name: min_price
+          type: float
+          default: 0.0
+          min: 0
+    - name: by_status_filter
+      type: parameterized
+      parameters:
+        - name: status
+          type: enum
+          values: [draft, published, archived]
+          required: true
+    - name: in_stock
+      type: parameterized
+      parameters:
+        - name: min_quantity
+          type: integer
+          default: 1
+          min: 0
+          max: 10000
+        - name: include_inactive
+          type: boolean
+          default: false
+
+  options:
+    timestamps: true
+    label_method: name

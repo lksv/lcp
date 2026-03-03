@@ -45,6 +45,7 @@ define_model :company do
 
   has_many :contacts, model: :contact, foreign_key: :company_id, dependent: :discard
   has_many :deals, model: :deal, foreign_key: :company_id, dependent: :discard
+  has_many :activities, model: :activity, foreign_key: :company_id, dependent: :discard
 
   belongs_to :country, model: :country, required: false
   belongs_to :region, model: :region, required: false

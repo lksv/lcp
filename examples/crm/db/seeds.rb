@@ -8,6 +8,8 @@ DealCategory = LcpRuby.registry.model_for("deal_category")
 Company = LcpRuby.registry.model_for("company")
 Contact = LcpRuby.registry.model_for("contact")
 Deal = LcpRuby.registry.model_for("deal")
+Activity = LcpRuby.registry.model_for("activity")
+SavedFilter = LcpRuby.registry.model_for("saved_filter")
 
 # ============================================================================
 # COUNTRIES (12 total, 2 inactive)
@@ -633,8 +635,8 @@ end
 
 sales = DealCategory.create!(name: "Sales")
 new_biz = DealCategory.create!(name: "New Business", parent: sales)
-DealCategory.create!(name: "Inbound", parent: new_biz)
-DealCategory.create!(name: "Outbound", parent: new_biz)
+inbound = DealCategory.create!(name: "Inbound", parent: new_biz)
+outbound = DealCategory.create!(name: "Outbound", parent: new_biz)
 upsell = DealCategory.create!(name: "Upsell", parent: sales)
 cross_sell = DealCategory.create!(name: "Cross-sell", parent: sales)
 
@@ -649,7 +651,7 @@ technology = DealCategory.create!(name: "Technology", parent: partnership)
 integration = DealCategory.create!(name: "Integration", parent: partnership)
 
 # ============================================================================
-# COMPANIES (5 original + address data on 2)
+# COMPANIES (15 total)
 # ============================================================================
 
 # Get country/region/city references for address assignment
@@ -660,6 +662,14 @@ brno = City.find_by(name: "Brno")
 sk = countries["SVK"]
 sk_ba = regions["SVK_Bratislavský"]
 bratislava = City.find_by(name: "Bratislava")
+
+de = countries["DEU"]
+de_by = regions["DEU_Bayern"]
+munich = City.find_by(name: "München")
+
+gb = countries["GBR"]
+gb_gl = regions["GBR_Greater London"]
+westminster = City.find_by(name: "Westminster")
 
 acme = Company.create!(
   name: "Acme Corp", industry: "technology",
@@ -685,19 +695,109 @@ stark = Company.create!(
   name: "Stark Industries", industry: "technology",
   website: "https://stark.example.com", phone: "+1-555-0500"
 )
+umbrella = Company.create!(
+  name: "Umbrella Corp", industry: "healthcare",
+  website: "https://umbrella.example.com", phone: "+1-555-0600"
+)
+oscorp = Company.create!(
+  name: "Oscorp Industries", industry: "technology",
+  website: "https://oscorp.example.com", phone: "+1-555-0700",
+  address_type: "known", country: de, region: de_by, city: munich,
+  street: "Marienplatz 42"
+)
+lexcorp = Company.create!(
+  name: "LexCorp", industry: "finance",
+  website: "https://lexcorp.example.com", phone: "+1-555-0800"
+)
+cyberdyne = Company.create!(
+  name: "Cyberdyne Systems", industry: "technology",
+  website: "https://cyberdyne.example.com", phone: "+1-555-0900"
+)
+tyrell = Company.create!(
+  name: "Tyrell Corporation", industry: "technology",
+  website: "https://tyrell.example.com", phone: "+1-555-1000",
+  address_type: "known", country: gb, region: gb_gl, city: westminster,
+  street: "221B Baker Street"
+)
+soylent = Company.create!(
+  name: "Soylent Corp", industry: "manufacturing",
+  website: "https://soylent.example.com", phone: "+1-555-1100"
+)
+aperture = Company.create!(
+  name: "Aperture Science", industry: "technology",
+  website: "https://aperture.example.com", phone: "+1-555-1200"
+)
+weyland = Company.create!(
+  name: "Weyland-Yutani", industry: "manufacturing",
+  website: "https://weyland.example.com", phone: "+1-555-1300"
+)
+ingen = Company.create!(
+  name: "InGen", industry: "healthcare",
+  website: "https://ingen.example.com", phone: "+1-555-1400"
+)
+massive = Company.create!(
+  name: "Massive Dynamic", industry: "technology",
+  website: "https://massive.example.com", phone: "+1-555-1500"
+)
+
+all_companies = [acme, globex, initech, wayne, stark, umbrella, oscorp, lexcorp,
+                 cyberdyne, tyrell, soylent, aperture, weyland, ingen, massive]
 
 # ============================================================================
-# CONTACTS (5, unchanged)
+# CONTACTS (30 total, 2 per company)
 # ============================================================================
 
 john = Contact.create!(first_name: "John", last_name: "Smith", email: "john@acme.example.com", phone: "+1-555-0101", position: "CTO", company: acme)
+sarah = Contact.create!(first_name: "Sarah", last_name: "Connor", email: "sarah@acme.example.com", phone: "+1-555-0102", position: "VP Engineering", company: acme)
+
 jane = Contact.create!(first_name: "Jane", last_name: "Doe", email: "jane@globex.example.com", phone: "+1-555-0201", position: "VP Engineering", company: globex)
+marcus = Contact.create!(first_name: "Marcus", last_name: "Wright", email: "marcus@globex.example.com", phone: "+1-555-0202", position: "Production Manager", company: globex)
+
 bob = Contact.create!(first_name: "Bob", last_name: "Wilson", email: "bob@initech.example.com", phone: "+1-555-0301", position: "Director of IT", company: initech)
+peter = Contact.create!(first_name: "Peter", last_name: "Gibbons", email: "peter@initech.example.com", phone: "+1-555-0302", position: "Software Engineer", company: initech)
+
 alice = Contact.create!(first_name: "Alice", last_name: "Johnson", email: "alice@wayne.example.com", phone: "+1-555-0401", position: "CFO", company: wayne)
+bruce = Contact.create!(first_name: "Bruce", last_name: "Thomas", email: "bruce@wayne.example.com", phone: "+1-555-0402", position: "Head of R&D", company: wayne)
+
 tony = Contact.create!(first_name: "Tony", last_name: "Martinez", email: "tony@stark.example.com", phone: "+1-555-0501", position: "CEO", company: stark)
+pepper = Contact.create!(first_name: "Virginia", last_name: "Potts", email: "pepper@stark.example.com", phone: "+1-555-0502", position: "COO", company: stark)
+
+albert = Contact.create!(first_name: "Albert", last_name: "Wesker", email: "albert@umbrella.example.com", phone: "+1-555-0601", position: "Head of Research", company: umbrella)
+jill = Contact.create!(first_name: "Jill", last_name: "Valentine", email: "jill@umbrella.example.com", phone: "+1-555-0602", position: "Lab Director", company: umbrella)
+
+norman = Contact.create!(first_name: "Norman", last_name: "Osborn", email: "norman@oscorp.example.com", phone: "+1-555-0701", position: "CEO", company: oscorp)
+gwen = Contact.create!(first_name: "Gwen", last_name: "Stacy", email: "gwen@oscorp.example.com", phone: "+1-555-0702", position: "Research Scientist", company: oscorp)
+
+lex = Contact.create!(first_name: "Lex", last_name: "Luthor", email: "lex@lexcorp.example.com", phone: "+1-555-0801", position: "CEO", company: lexcorp)
+mercy = Contact.create!(first_name: "Mercy", last_name: "Graves", email: "mercy@lexcorp.example.com", phone: "+1-555-0802", position: "VP Operations", company: lexcorp)
+
+miles = Contact.create!(first_name: "Miles", last_name: "Dyson", email: "miles@cyberdyne.example.com", phone: "+1-555-0901", position: "VP Product", company: cyberdyne)
+kate = Contact.create!(first_name: "Kate", last_name: "Brewster", email: "kate@cyberdyne.example.com", phone: "+1-555-0902", position: "Sales Director", company: cyberdyne)
+
+eldon = Contact.create!(first_name: "Eldon", last_name: "Tyrell", email: "eldon@tyrell.example.com", phone: "+1-555-1001", position: "Founder", company: tyrell)
+rachael = Contact.create!(first_name: "Rachael", last_name: "Rosen", email: "rachael@tyrell.example.com", phone: "+1-555-1002", position: "Product Manager", company: tyrell)
+
+sol = Contact.create!(first_name: "Sol", last_name: "Roth", email: "sol@soylent.example.com", phone: "+1-555-1101", position: "VP Supply Chain", company: soylent)
+frank = Contact.create!(first_name: "Frank", last_name: "Thorn", email: "frank@soylent.example.com", phone: "+1-555-1102", position: "Operations Manager", company: soylent)
+
+cave = Contact.create!(first_name: "Cave", last_name: "Johnson", email: "cave@aperture.example.com", phone: "+1-555-1201", position: "CEO", company: aperture)
+caroline = Contact.create!(first_name: "Caroline", last_name: "McLain", email: "caroline@aperture.example.com", phone: "+1-555-1202", position: "Head of Testing", company: aperture)
+
+karl = Contact.create!(first_name: "Karl", last_name: "Bishop", email: "karl@weyland.example.com", phone: "+1-555-1301", position: "Colony Director", company: weyland)
+ellen = Contact.create!(first_name: "Ellen", last_name: "Ripley", email: "ellen@weyland.example.com", phone: "+1-555-1302", position: "Chief Engineer", company: weyland)
+
+john_h = Contact.create!(first_name: "John", last_name: "Hammond", email: "john@ingen.example.com", phone: "+1-555-1401", position: "Founder", company: ingen)
+henry = Contact.create!(first_name: "Henry", last_name: "Wu", email: "henry@ingen.example.com", phone: "+1-555-1402", position: "Chief Geneticist", company: ingen)
+
+walter = Contact.create!(first_name: "Walter", last_name: "Bishop", email: "walter@massive.example.com", phone: "+1-555-1501", position: "Chief Scientist", company: massive)
+olivia = Contact.create!(first_name: "Olivia", last_name: "Dunham", email: "olivia@massive.example.com", phone: "+1-555-1502", position: "VP Security", company: massive)
+
+all_contacts = [john, sarah, jane, marcus, bob, peter, alice, bruce, tony, pepper,
+                albert, jill, norman, gwen, lex, mercy, miles, kate, eldon, rachael,
+                sol, frank, cave, caroline, karl, ellen, john_h, henry, walter, olivia]
 
 # ============================================================================
-# DEALS (6 original, 2 with deal_category)
+# DEALS (42 total)
 # ============================================================================
 
 # Create a dummy PDF for deals that require document attachments
@@ -711,7 +811,7 @@ deal2 = Deal.new(title: "Consulting Package - Globex", stage: "proposal", value:
 deal2.documents.attach(io: StringIO.new("%PDF-1.4 dummy"), filename: "proposal.pdf", content_type: "application/pdf")
 deal2.save!
 
-Deal.create!(title: "SaaS Migration - Initech", stage: "qualified", value: 200000.00, company: initech, contact: bob)
+Deal.create!(title: "SaaS Migration - Initech", stage: "qualified", value: 200000.00, company: initech, contact: bob, deal_category: implementation)
 
 deal4 = Deal.new(title: "Financial Platform - Wayne", stage: "closed_won", value: 500000.00, company: wayne, contact: alice)
 deal4.documents.attach(io: StringIO.new("%PDF-1.4 dummy"), filename: "agreement.pdf", content_type: "application/pdf")
@@ -719,6 +819,280 @@ deal4.save!
 
 Deal.create!(title: "Hardware Supply - Stark", stage: "lead", value: 50000.00, company: stark, contact: tony)
 Deal.create!(title: "Support Contract - Acme", stage: "closed_lost", value: 30000.00, company: acme, contact: john)
+
+# Helper: stages requiring document attachments
+def create_deal_with_docs!(attrs)
+  deal = Deal.new(attrs)
+  deal.documents.attach(io: StringIO.new("%PDF-1.4 dummy"), filename: "#{deal.title.parameterize}.pdf", content_type: "application/pdf")
+  deal.save!
+  deal
+end
+
+# New deals for expanded seed data
+create_deal_with_docs!(title: "Clinical Data Platform - Umbrella", stage: "proposal", value: 320000.00, company: umbrella, contact: albert, deal_category: new_biz, expected_close_date: 45.days.from_now)
+Deal.create!(title: "Lab Management System - Umbrella", stage: "qualified", value: 85000.00, company: umbrella, contact: jill, deal_category: consulting)
+create_deal_with_docs!(title: "Biotech Research License - Oscorp", stage: "negotiation", value: 450000.00, company: oscorp, contact: norman, deal_category: new_biz, expected_close_date: 20.days.from_now)
+Deal.create!(title: "Genome Sequencing Tools - Oscorp", stage: "lead", value: 120000.00, company: oscorp, contact: gwen)
+create_deal_with_docs!(title: "Financial Analytics Suite - LexCorp", stage: "closed_won", value: 680000.00, company: lexcorp, contact: lex, deal_category: upsell)
+create_deal_with_docs!(title: "Portfolio Management - LexCorp", stage: "proposal", value: 195000.00, company: lexcorp, contact: mercy, expected_close_date: 60.days.from_now)
+create_deal_with_docs!(title: "AI Safety Monitoring - Cyberdyne", stage: "negotiation", value: 275000.00, company: cyberdyne, contact: miles, deal_category: technology, expected_close_date: 15.days.from_now)
+Deal.create!(title: "Predictive Maintenance - Cyberdyne", stage: "qualified", value: 140000.00, company: cyberdyne, contact: kate, deal_category: implementation)
+create_deal_with_docs!(title: "Replicant Analytics - Tyrell", stage: "closed_won", value: 500000.00, company: tyrell, contact: eldon, deal_category: new_biz)
+create_deal_with_docs!(title: "Cloud Infrastructure - Tyrell", stage: "proposal", value: 210000.00, company: tyrell, contact: rachael, expected_close_date: 35.days.from_now)
+Deal.create!(title: "Supply Chain Optimization - Soylent", stage: "lead", value: 95000.00, company: soylent, contact: sol)
+Deal.create!(title: "Factory Automation - Soylent", stage: "qualified", value: 180000.00, company: soylent, contact: frank, deal_category: implementation)
+create_deal_with_docs!(title: "Testing Platform - Aperture", stage: "negotiation", value: 350000.00, company: aperture, contact: cave, deal_category: technology, expected_close_date: 10.days.from_now)
+Deal.create!(title: "Portal Technology License - Aperture", stage: "closed_lost", value: 550000.00, company: aperture, contact: caroline)
+create_deal_with_docs!(title: "Colony Management System - Weyland", stage: "proposal", value: 425000.00, company: weyland, contact: karl, deal_category: new_biz, expected_close_date: 50.days.from_now)
+Deal.create!(title: "Deep Space Analytics - Weyland", stage: "qualified", value: 160000.00, company: weyland, contact: ellen, deal_category: consulting)
+create_deal_with_docs!(title: "Genetic Database - InGen", stage: "closed_won", value: 290000.00, company: ingen, contact: john_h, deal_category: new_biz)
+Deal.create!(title: "Cloning Research Platform - InGen", stage: "lead", value: 175000.00, company: ingen, contact: henry)
+create_deal_with_docs!(title: "Cross-dimensional Analytics - Massive", stage: "negotiation", value: 320000.00, company: massive, contact: walter, deal_category: technology, expected_close_date: 25.days.from_now)
+create_deal_with_docs!(title: "Security Monitoring - Massive", stage: "proposal", value: 135000.00, company: massive, contact: olivia, expected_close_date: 40.days.from_now)
+
+# Additional deals for volume and variety
+Deal.create!(title: "DevOps Transformation - Acme", stage: "qualified", value: 110000.00, company: acme, contact: sarah, deal_category: consulting)
+create_deal_with_docs!(title: "Mobile App Development - Initech", stage: "proposal", value: 65000.00, company: initech, contact: peter, deal_category: new_biz, expected_close_date: 55.days.from_now)
+create_deal_with_docs!(title: "Wealth Management Platform - Wayne", stage: "negotiation", value: 380000.00, company: wayne, contact: bruce, deal_category: upsell, expected_close_date: 18.days.from_now)
+create_deal_with_docs!(title: "Hardware Refresh - Stark", stage: "closed_won", value: 240000.00, company: stark, contact: pepper, deal_category: cross_sell)
+Deal.create!(title: "Integration Services - Globex", stage: "qualified", value: 55000.00, company: globex, contact: marcus, deal_category: integration)
+Deal.create!(title: "Data Warehouse - Oscorp", stage: "closed_lost", value: 190000.00, company: oscorp, contact: gwen, deal_category: implementation)
+Deal.create!(title: "Compliance Toolkit - LexCorp", stage: "lead", value: 45000.00, company: lexcorp, contact: mercy)
+create_deal_with_docs!(title: "Robotics Platform - Cyberdyne", stage: "closed_won", value: 370000.00, company: cyberdyne, contact: kate, deal_category: technology)
+create_deal_with_docs!(title: "Support Renewal - Tyrell", stage: "proposal", value: 28000.00, company: tyrell, contact: rachael, deal_category: support, expected_close_date: 12.days.from_now)
+create_deal_with_docs!(title: "Quality Assurance System - Soylent", stage: "negotiation", value: 105000.00, company: soylent, contact: sol, deal_category: consulting, expected_close_date: 30.days.from_now)
+Deal.create!(title: "Research Portal - Aperture", stage: "qualified", value: 78000.00, company: aperture, contact: caroline, deal_category: new_biz)
+Deal.create!(title: "Fleet Management - Weyland", stage: "closed_lost", value: 220000.00, company: weyland, contact: ellen)
+create_deal_with_docs!(title: "Park Operations Suite - InGen", stage: "proposal", value: 310000.00, company: ingen, contact: henry, deal_category: implementation, expected_close_date: 65.days.from_now)
+Deal.create!(title: "Fringe Science Platform - Massive", stage: "lead", value: 250000.00, company: massive, contact: walter, deal_category: technology)
+create_deal_with_docs!(title: "Threat Intelligence - Massive", stage: "closed_won", value: 155000.00, company: massive, contact: olivia, deal_category: consulting)
+Deal.create!(title: "ERP Integration - Globex", stage: "lead", value: 8500.00, company: globex, contact: jane, deal_category: integration)
+
+# ============================================================================
+# ACTIVITIES (55 total)
+# ============================================================================
+
+now = Time.current
+
+# Completed activities (past)
+Activity.create!(subject: "Discovery call with Acme CTO", activity_type: "call", company: acme, contact: john, deal: deal1, scheduled_at: now - 14.days, completed: true, completed_at: now - 14.days + 30.minutes, outcome: "Identified key requirements for enterprise license. Budget approved internally.")
+Activity.create!(subject: "Product demo for Globex", activity_type: "meeting", company: globex, contact: jane, deal: deal2, scheduled_at: now - 10.days, completed: true, completed_at: now - 10.days + 2.hours, outcome: "Demo went well. Jane requested custom pricing for manufacturing modules.")
+Activity.create!(subject: "Follow-up email to Initech", activity_type: "email", company: initech, contact: bob, scheduled_at: now - 7.days, completed: true, completed_at: now - 7.days + 15.minutes, outcome: "Sent technical specification document. Bob will review with team.")
+Activity.create!(subject: "Contract review meeting - Wayne", activity_type: "meeting", company: wayne, contact: alice, deal: deal4, scheduled_at: now - 21.days, completed: true, completed_at: now - 21.days + 3.hours, outcome: "Legal review complete. Contract signed. Deal closed won.")
+Activity.create!(subject: "Introductory call with Stark CEO", activity_type: "call", company: stark, contact: tony, scheduled_at: now - 5.days, completed: true, completed_at: now - 5.days + 45.minutes, outcome: "Tony interested in expanding hardware supply contract. Will schedule demo.")
+Activity.create!(subject: "Research notes on Umbrella requirements", activity_type: "note", company: umbrella, contact: albert, scheduled_at: now - 3.days, completed: true, completed_at: now - 3.days, outcome: "Umbrella needs HIPAA-compliant platform. Custom security module required.")
+Activity.create!(subject: "Pricing proposal email to Oscorp", activity_type: "email", company: oscorp, contact: norman, scheduled_at: now - 8.days, completed: true, completed_at: now - 8.days, outcome: "Sent tiered pricing. Norman asked for volume discount on 3-year commitment.")
+Activity.create!(subject: "Technical workshop - Cyberdyne", activity_type: "meeting", company: cyberdyne, contact: miles, scheduled_at: now - 12.days, completed: true, completed_at: now - 12.days + 4.hours, outcome: "Deep dive on AI safety features. Miles impressed with monitoring capabilities.")
+Activity.create!(subject: "Needs assessment call - LexCorp", activity_type: "call", company: lexcorp, contact: lex, scheduled_at: now - 6.days, completed: true, completed_at: now - 6.days + 1.hour, outcome: "Lex wants analytics suite expanded to include real-time trading data.")
+Activity.create!(subject: "Onboarding kickoff - Tyrell", activity_type: "meeting", company: tyrell, contact: eldon, scheduled_at: now - 30.days, completed: true, completed_at: now - 30.days + 2.hours, outcome: "Onboarding started for Replicant Analytics. Phase 1 deployment in 6 weeks.")
+Activity.create!(subject: "Follow-up on proposal - Weyland", activity_type: "call", company: weyland, contact: karl, scheduled_at: now - 4.days, completed: true, completed_at: now - 4.days + 25.minutes, outcome: "Karl reviewing proposal with board. Decision expected next week.")
+Activity.create!(subject: "Demo setup notes - Aperture", activity_type: "note", company: aperture, contact: cave, scheduled_at: now - 2.days, completed: true, completed_at: now - 2.days, outcome: "Need to prepare custom demo environment for testing platform showcase.")
+Activity.create!(subject: "Success review - Massive Dynamic", activity_type: "meeting", company: massive, contact: olivia, scheduled_at: now - 9.days, completed: true, completed_at: now - 9.days + 1.hour, outcome: "Threat Intelligence deployment successful. Olivia recommends us to other departments.")
+Activity.create!(subject: "Renewal reminder email - Tyrell", activity_type: "email", company: tyrell, contact: rachael, scheduled_at: now - 1.day, completed: true, completed_at: now - 1.day, outcome: "Sent support renewal proposal. Rachael confirmed receipt.")
+Activity.create!(subject: "Reference call setup - InGen", activity_type: "call", company: ingen, contact: john_h, scheduled_at: now - 15.days, completed: true, completed_at: now - 15.days + 20.minutes, outcome: "John agreed to be a reference customer for genetic database platform.")
+
+# Overdue activities (scheduled in past, not completed)
+Activity.create!(subject: "Send revised proposal to Soylent", activity_type: "task", company: soylent, contact: sol, scheduled_at: now - 3.days, completed: false, description: "Revise pricing based on Q4 volume projections and send to Sol.")
+Activity.create!(subject: "Follow-up call with Aperture", activity_type: "call", company: aperture, contact: cave, scheduled_at: now - 2.days, completed: false, description: "Discuss testing platform timeline and resource requirements.")
+Activity.create!(subject: "Update CRM notes for LexCorp deal", activity_type: "task", company: lexcorp, contact: mercy, scheduled_at: now - 1.day, completed: false, description: "Document latest portfolio management requirements from Mercy.")
+Activity.create!(subject: "Email contract addendum to Cyberdyne", activity_type: "email", company: cyberdyne, contact: kate, scheduled_at: now - 4.days, completed: false, description: "Send updated contract terms for robotics platform extension.")
+Activity.create!(subject: "Prepare competitive analysis for Oscorp", activity_type: "task", company: oscorp, contact: gwen, scheduled_at: now - 5.days, completed: false, description: "Compare our biotech features against CompetitorX for Gwen's review.")
+
+# Pending activities (today and future)
+Activity.create!(subject: "Quarterly review call - Acme", activity_type: "call", company: acme, contact: john, deal: deal1, scheduled_at: now + 1.hour, completed: false, description: "Review Q1 progress and discuss enterprise license expansion.")
+Activity.create!(subject: "Product roadmap presentation - Globex", activity_type: "meeting", company: globex, contact: jane, deal: deal2, scheduled_at: now + 2.days, completed: false, description: "Present 2026 product roadmap and discuss manufacturing module priorities.")
+Activity.create!(subject: "Technical integration call - Initech", activity_type: "call", company: initech, contact: peter, scheduled_at: now + 3.days, completed: false, description: "Discuss SaaS migration technical requirements with engineering team.")
+Activity.create!(subject: "Executive dinner - Wayne Enterprises", activity_type: "meeting", company: wayne, contact: bruce, scheduled_at: now + 5.days, completed: false, description: "Dinner with Wayne R&D head to discuss new wealth management platform.")
+Activity.create!(subject: "Send case study to Stark", activity_type: "email", company: stark, contact: pepper, scheduled_at: now + 1.day, completed: false, description: "Share manufacturing customer case study with Virginia.")
+Activity.create!(subject: "Compliance review prep for Umbrella", activity_type: "task", company: umbrella, contact: jill, scheduled_at: now + 4.days, completed: false, description: "Prepare HIPAA compliance documentation for lab director review.")
+Activity.create!(subject: "Demo day - Oscorp biotech suite", activity_type: "meeting", company: oscorp, contact: norman, scheduled_at: now + 7.days, completed: false, description: "Full demo of biotech research platform for Oscorp leadership team.")
+Activity.create!(subject: "Contract negotiation call - LexCorp", activity_type: "call", company: lexcorp, contact: lex, scheduled_at: now + 2.days, completed: false, description: "Final pricing negotiation for portfolio management system.")
+Activity.create!(subject: "Architecture review email - Cyberdyne", activity_type: "email", company: cyberdyne, contact: miles, scheduled_at: now + 6.days, completed: false, description: "Send system architecture document for AI safety monitoring platform.")
+Activity.create!(subject: "User acceptance testing - Tyrell", activity_type: "meeting", company: tyrell, contact: rachael, scheduled_at: now + 8.days, completed: false, description: "UAT session for cloud infrastructure deployment with product team.")
+Activity.create!(subject: "Factory visit - Soylent Corp", activity_type: "meeting", company: soylent, contact: frank, scheduled_at: now + 10.days, completed: false, description: "On-site visit to understand factory automation requirements.")
+Activity.create!(subject: "Pilot kickoff - Aperture Science", activity_type: "meeting", company: aperture, contact: cave, scheduled_at: now + 12.days, completed: false, description: "Launch 30-day pilot of testing platform with Aperture team.")
+Activity.create!(subject: "Board presentation prep - Weyland", activity_type: "task", company: weyland, contact: karl, scheduled_at: now + 3.days, completed: false, description: "Prepare executive summary for Weyland board meeting presentation.")
+Activity.create!(subject: "Research partnership discussion - InGen", activity_type: "meeting", company: ingen, contact: henry, scheduled_at: now + 14.days, completed: false, description: "Explore research partnership for genetic database enhancements.")
+Activity.create!(subject: "Security audit findings review - Massive", activity_type: "call", company: massive, contact: olivia, scheduled_at: now + 5.days, completed: false, description: "Review security audit findings and discuss remediation plan.")
+Activity.create!(subject: "Prepare training materials for Acme", activity_type: "task", company: acme, contact: sarah, scheduled_at: now + 9.days, completed: false, description: "Create onboarding training deck for Acme engineering team.")
+Activity.create!(subject: "Send NDA to Cyberdyne", activity_type: "email", company: cyberdyne, contact: kate, scheduled_at: now + 1.day, completed: false, description: "Send mutual NDA for robotics platform integration details.")
+Activity.create!(subject: "Proposal follow-up call - InGen", activity_type: "call", company: ingen, contact: john_h, scheduled_at: now + 6.days, completed: false, description: "Follow up on park operations suite proposal.")
+Activity.create!(subject: "Market analysis for Massive Dynamic", activity_type: "task", company: massive, contact: walter, scheduled_at: now + 11.days, completed: false, description: "Complete competitive market analysis for fringe science platform positioning.")
+Activity.create!(subject: "Integration planning - Globex", activity_type: "meeting", company: globex, contact: marcus, scheduled_at: now + 15.days, completed: false, description: "Plan ERP integration phases with production management team.")
+Activity.create!(subject: "Renewal negotiation prep - Wayne", activity_type: "task", company: wayne, contact: alice, scheduled_at: now + 7.days, completed: false, description: "Prepare renewal terms for financial platform with improved SLA.")
+Activity.create!(subject: "Technical deep dive - Soylent QA", activity_type: "meeting", company: soylent, contact: sol, scheduled_at: now + 16.days, completed: false, description: "Deep technical session on quality assurance system integration points.")
+Activity.create!(subject: "Competitive positioning email - Aperture", activity_type: "email", company: aperture, contact: caroline, scheduled_at: now + 4.days, completed: false, description: "Send competitive analysis showing advantages of our research portal.")
+Activity.create!(subject: "Weekly status update - Stark", activity_type: "email", company: stark, contact: tony, scheduled_at: now + 2.days, completed: false, description: "Send weekly project status update for hardware refresh deployment.")
+Activity.create!(subject: "Reference check call - Weyland", activity_type: "call", company: weyland, contact: ellen, scheduled_at: now + 8.days, completed: false, description: "Ellen wants to speak with existing fleet management customer reference.")
+
+# ============================================================================
+# SAVED FILTERS (8 total)
+# ============================================================================
+
+# Use owner_id: 1 (seeded admin user or first user)
+owner_id = 1
+
+# Deal saved filters
+SavedFilter.create!(
+  name: "High Value Open",
+  description: "Open deals worth 50k+ EUR",
+  target_presenter: "deals",
+  condition_tree: {
+    "type" => "group",
+    "operator" => "and",
+    "conditions" => [
+      { "field" => "stage", "operator" => "not_in", "value" => %w[closed_won closed_lost] },
+      { "field" => "value", "operator" => "gteq", "value" => "50000" }
+    ]
+  },
+  ql_text: 'stage NOT IN ("closed_won", "closed_lost") AND value >= 50000',
+  visibility: "global",
+  owner_id: owner_id,
+  pinned: true,
+  position: 1,
+  icon: "trending-up",
+  color: "green"
+)
+
+SavedFilter.create!(
+  name: "Closing This Month",
+  description: "Open deals expected to close this month",
+  target_presenter: "deals",
+  condition_tree: {
+    "type" => "group",
+    "operator" => "and",
+    "conditions" => [
+      { "field" => "expected_close_date", "operator" => "this_month" },
+      { "field" => "stage", "operator" => "not_in", "value" => %w[closed_won closed_lost] }
+    ]
+  },
+  ql_text: 'expected_close_date IS THIS MONTH AND stage NOT IN ("closed_won", "closed_lost")',
+  visibility: "personal",
+  owner_id: owner_id,
+  pinned: true,
+  position: 2,
+  icon: "calendar"
+)
+
+SavedFilter.create!(
+  name: "Won Deals",
+  description: "All deals closed as won",
+  target_presenter: "deals",
+  condition_tree: {
+    "type" => "group",
+    "operator" => "and",
+    "conditions" => [
+      { "field" => "stage", "operator" => "eq", "value" => "closed_won" }
+    ]
+  },
+  ql_text: 'stage = "closed_won"',
+  visibility: "personal",
+  owner_id: owner_id,
+  position: 3,
+  icon: "award",
+  color: "green"
+)
+
+SavedFilter.create!(
+  name: "Tech Companies",
+  description: "Deals from technology companies",
+  target_presenter: "deals",
+  condition_tree: {
+    "type" => "group",
+    "operator" => "and",
+    "conditions" => [
+      { "field" => "company.industry", "operator" => "eq", "value" => "technology" }
+    ]
+  },
+  ql_text: 'company.industry = "technology"',
+  visibility: "personal",
+  owner_id: owner_id,
+  position: 4,
+  icon: "cpu"
+)
+
+SavedFilter.create!(
+  name: "Needs Follow-up",
+  description: "Proposal/negotiation deals worth 20k+ needing attention",
+  target_presenter: "deals",
+  condition_tree: {
+    "type" => "group",
+    "operator" => "and",
+    "conditions" => [
+      { "field" => "stage", "operator" => "in", "value" => %w[proposal negotiation] },
+      { "field" => "value", "operator" => "gteq", "value" => "20000" }
+    ]
+  },
+  ql_text: 'stage IN ("proposal", "negotiation") AND value >= 20000',
+  visibility: "personal",
+  owner_id: owner_id,
+  pinned: true,
+  position: 5,
+  icon: "alert-circle",
+  color: "orange"
+)
+
+# Activity saved filters
+SavedFilter.create!(
+  name: "Pending Tasks",
+  description: "All incomplete tasks",
+  target_presenter: "activities",
+  condition_tree: {
+    "type" => "group",
+    "operator" => "and",
+    "conditions" => [
+      { "field" => "completed", "operator" => "eq", "value" => "false" },
+      { "field" => "activity_type", "operator" => "eq", "value" => "task" }
+    ]
+  },
+  ql_text: 'completed = false AND activity_type = "task"',
+  visibility: "global",
+  owner_id: owner_id,
+  pinned: true,
+  position: 1,
+  icon: "check-square",
+  color: "orange"
+)
+
+SavedFilter.create!(
+  name: "Upcoming Meetings",
+  description: "Future meetings not yet completed",
+  target_presenter: "activities",
+  condition_tree: {
+    "type" => "group",
+    "operator" => "and",
+    "conditions" => [
+      { "field" => "activity_type", "operator" => "eq", "value" => "meeting" },
+      { "field" => "completed", "operator" => "eq", "value" => "false" }
+    ]
+  },
+  ql_text: 'activity_type = "meeting" AND completed = false',
+  visibility: "personal",
+  owner_id: owner_id,
+  pinned: true,
+  position: 2,
+  icon: "users",
+  color: "purple"
+)
+
+SavedFilter.create!(
+  name: "My Calls This Week",
+  description: "Call activities scheduled for this week",
+  target_presenter: "activities",
+  condition_tree: {
+    "type" => "group",
+    "operator" => "and",
+    "conditions" => [
+      { "field" => "activity_type", "operator" => "eq", "value" => "call" },
+      { "field" => "scheduled_at", "operator" => "this_week" }
+    ]
+  },
+  ql_text: 'activity_type = "call" AND scheduled_at IS THIS WEEK',
+  visibility: "personal",
+  owner_id: owner_id,
+  position: 3,
+  icon: "phone"
+)
 
 # ============================================================================
 # Summary
@@ -732,3 +1106,5 @@ puts "  #{DealCategory.count} deal categories"
 puts "  #{Company.count} companies"
 puts "  #{Contact.count} contacts"
 puts "  #{Deal.count} deals"
+puts "  #{Activity.count} activities (#{Activity.where(completed: true).count} completed, #{Activity.where(completed: false).count} pending)"
+puts "  #{SavedFilter.count} saved filters"

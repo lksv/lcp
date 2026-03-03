@@ -75,10 +75,11 @@ Implemented:
 - [Soft Delete](design/soft_delete.md) — Discard/restore support with `discarded_at` timestamp, cascade discard/undiscard, archive presenters
 - [Auditing](design/auditing.md) — Native change tracking and audit trail
 - [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
+- [Saved Filters & Parameterized Scopes](design/saved_filters.md) — User-persistent named filters with visibility levels, parameterized scopes with typed parameters, generator, CRUD API
 
 In Progress:
 
-- [Advanced Search & Filter Builder](design/advanced_search.md) — Type-aware quick search, Ransack-based filter builder, custom filter methods, query language (Phase 0–4 implemented, saved filters deferred)
+- [Advanced Search & Filter Builder](design/advanced_search.md) — Type-aware quick search, Ransack-based filter builder, custom filter methods, query language (Phase 0–4 implemented)
 - [Page Layouts & View Slots](design/page_layout_and_slots.md) — Extensible page layout system: slot registry (Phase 1 implemented), layout variants (planned)
 - [Deep Filter Enhancements](design/recursive_association_field_picker.md) — Recursive association field picker and recursive condition nesting (AND/OR tree)
 

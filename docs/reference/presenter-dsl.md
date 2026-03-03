@@ -784,6 +784,47 @@ Adds a predefined filter tab.
 | `default:` | boolean | Whether this filter is selected by default |
 | `scope:` | symbol | Model scope to apply (must be defined in the model) |
 
+#### `advanced_filter { ... }`
+
+Configures the visual filter builder. See [Presenters Reference — Advanced Filter](presenters.md#advanced-filter-attributes) for all options.
+
+```ruby
+search do
+  advanced_filter do
+    enabled true
+    max_conditions 20
+    allow_or_groups true
+    query_language true
+    filterable_fields :title, :status, :price, "department.name"
+    field_options :status, operators: %i[eq not_eq in not_in]
+
+    preset :expensive,
+      label: "Expensive items",
+      conditions: [
+        { field: "price", operator: "gteq", value: "100" }
+      ]
+
+    saved_filters do
+      enabled true
+      display :inline
+      max_visible_pinned 5
+    end
+  end
+end
+```
+
+##### `saved_filters { ... }`
+
+Nested inside `advanced_filter`, enables user-persistent named filters.
+
+| Method | Type | Description |
+|--------|------|-------------|
+| `enabled(value)` | boolean | Enable saved filters (default: `false`) |
+| `display(value)` | symbol | Display mode: `:inline`, `:dropdown`, `:sidebar` (default: `:inline`) |
+| `max_visible_pinned(value)` | integer | Max pinned filters shown directly (default: `3`) |
+
+See [Presenters Reference — Saved Filter Attributes](presenters.md#saved-filter-attributes) for full details.
+
 ## Actions
 
 Actions are defined at the top level of the presenter (not inside a block).

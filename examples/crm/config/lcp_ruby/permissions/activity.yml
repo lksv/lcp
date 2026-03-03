@@ -1,0 +1,27 @@
+permissions:
+  model: activity
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    sales_rep:
+      crud: [index, show, create, update, destroy]
+      fields:
+        readable: all
+        writable: [subject, activity_type, description, company_id, contact_id, deal_id, scheduled_at, completed, completed_at, outcome]
+      actions:
+        allowed: [complete]
+      scope: all
+
+    viewer:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      actions: { allowed: [] }
+      scope: all
+
+  default_role: viewer

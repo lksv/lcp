@@ -597,3 +597,32 @@ th.lcp-drag-column { background: #f8f9fa; }
 .lcp-copy-field { background: none; border: none; cursor: pointer; color: #6c757d; padding: 0 0.25rem; vertical-align: middle; opacity: 0.6; }
 .lcp-copy-field:hover { opacity: 1; color: #333; }
 .lcp-copy-field.lcp-copied { color: #28a745; opacity: 1; }
+
+/* Saved Filters */
+.lcp-saved-filters { display: flex; align-items: center; gap: 0.25rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
+.lcp-saved-filter-btn { font-size: 0.85rem; }
+.lcp-saved-filter-btn.active { background: #0d6efd; color: #fff; border-color: #0d6efd; }
+.lcp-saved-filter-dropdown { position: relative; display: inline-block; }
+.lcp-saved-filter-dropdown-menu { position: absolute; top: 100%; left: 0; z-index: 1000; min-width: 200px; background: #fff; border: 1px solid #dee2e6; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.12); padding: 0.25rem 0; max-height: 300px; overflow-y: auto; }
+.lcp-filter-group-label { padding: 0.35rem 0.75rem; font-size: 0.75rem; color: #6c757d; text-transform: uppercase; font-weight: 600; }
+.lcp-saved-filter-item { display: block; padding: 0.35rem 0.75rem; color: #333; text-decoration: none; font-size: 0.85rem; }
+.lcp-saved-filter-item:hover { background: #f0f0f0; }
+.lcp-saved-filter-item.active { background: #e8f0fe; color: #0d6efd; font-weight: 500; }
+.lcp-filter-icon { margin-right: 0.25rem; }
+.lcp-save-filter-btn { font-size: 0.85rem; color: #6c757d; border-style: dashed; }
+
+/* Save dialog */
+.lcp-save-dialog { position: fixed; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; z-index: 10000; }
+.lcp-save-dialog-overlay { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.4); }
+.lcp-save-dialog-content { position: relative; background: #fff; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,0.2); padding: 1.5rem; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto; }
+.lcp-save-dialog-content h3 { margin-bottom: 1rem; font-size: 1.1rem; }
+.lcp-save-dialog-field { margin-bottom: 0.75rem; }
+.lcp-save-dialog-field label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.25rem; }
+.lcp-save-dialog-checkbox label { display: flex; align-items: center; gap: 0.5rem; font-weight: normal; }
+.lcp-save-dialog-actions { display: flex; gap: 0.5rem; margin-top: 1rem; justify-content: flex-end; }
+
+/* Scope parameters */
+.lcp-scope-params { display: flex; flex-direction: column; gap: 0.5rem; }
+.lcp-scope-param { display: flex; align-items: center; gap: 0.5rem; }
+.lcp-scope-param label { font-size: 0.8rem; color: #555; white-space: nowrap; min-width: 80px; }
+.lcp-scope-param input, .lcp-scope-param select { flex: 1; }

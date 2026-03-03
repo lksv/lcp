@@ -39,10 +39,13 @@ define_model :contact do
 
   belongs_to :company, model: :company, required: true
 
+  has_many :activities, model: :activity, foreign_key: :contact_id
+
   scope :active_contacts, where: { active: true }
 
   custom_fields true
   soft_delete
+  userstamps
 
   timestamps true
   label_method :full_name

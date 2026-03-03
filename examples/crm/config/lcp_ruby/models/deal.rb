@@ -50,14 +50,27 @@ define_model :deal do
   validates_model :service, service: "deal_credit_limit"
   validates_model :service, service: "deal_documents_required"
 
+  has_many :activities, model: :activity, foreign_key: :deal_id
+
   scope :open_deals, where_not: { stage: [ "closed_won", "closed_lost" ] }
   scope :won,        where: { stage: "closed_won" }
   scope :lost,       where: { stage: "closed_lost" }
+
+  scope :above_value, type: :parameterized, parameters: [
+    { name: :min_value, type: :decimal, default: 10000, min: 0 }
+  ]
+  scope :closing_within_days, type: :parameterized, parameters: [
+    { name: :days, type: :integer, default: 30, min: 1, max: 365 }
+  ]
+  scope :by_stage_filter, type: :parameterized, parameters: [
+    { name: :stage, type: :enum, values: %w[lead qualified proposal negotiation closed_won closed_lost], required: true }
+  ]
 
   on_field_change :on_stage_change, field: :stage,
     condition: { field: :stage, operator: :not_in, value: %w[lead] }
 
   soft_delete
+  userstamps
 
   timestamps true
   label_method :title

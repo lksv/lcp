@@ -1,0 +1,19 @@
+permissions:
+  model: saved_filter
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    user:
+      crud: [index, show, create]
+      fields: { readable: all, writable: [name, description, condition_tree, visibility, ql_text] }
+      actions: []
+      scope: all
+      presenters: all
+
+  default_role: user

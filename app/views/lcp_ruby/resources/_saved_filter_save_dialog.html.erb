@@ -1,0 +1,83 @@
+<div class="lcp-save-dialog" id="lcp-save-filter-dialog" style="display: none;">
+  <div class="lcp-save-dialog-overlay" data-action="close-save-dialog"></div>
+  <div class="lcp-save-dialog-content">
+    <h3><%= I18n.t("lcp_ruby.saved_filters.dialog_title", default: "Save Filter") %></h3>
+    <form id="lcp-save-filter-form" data-url="<%= saved_filters_path %>">
+      <div class="lcp-save-dialog-field">
+        <label for="saved_filter_name">
+          <%= I18n.t("lcp_ruby.saved_filters.name_label", default: "Name") %> *
+        </label>
+        <input type="text" id="saved_filter_name" name="saved_filter[name]" required
+               class="lcp-input" />
+      </div>
+
+      <div class="lcp-save-dialog-field">
+        <label for="saved_filter_description">
+          <%= I18n.t("lcp_ruby.saved_filters.description_label", default: "Description") %>
+        </label>
+        <textarea id="saved_filter_description" name="saved_filter[description]"
+                  class="lcp-input" rows="2"></textarea>
+      </div>
+
+      <% sf_config = current_presenter.saved_filters_config %>
+      <% visibility_options = sf_config["visibility_options"] || %w[personal role global] %>
+      <div class="lcp-save-dialog-field">
+        <label for="saved_filter_visibility">
+          <%= I18n.t("lcp_ruby.saved_filters.visibility_label", default: "Visibility") %>
+        </label>
+        <select id="saved_filter_visibility" name="saved_filter[visibility]" class="lcp-input"
+                data-toggle-target-role="saved_filter_target_role_wrapper"
+                data-toggle-target-group="saved_filter_target_group_wrapper">
+          <% visibility_options.each do |vis| %>
+            <option value="<%= vis %>">
+              <%= I18n.t("lcp_ruby.saved_filters.visibility_#{vis}", default: vis.humanize) %>
+            </option>
+          <% end %>
+        </select>
+      </div>
+
+      <div class="lcp-save-dialog-field" id="saved_filter_target_role_wrapper" style="display: none;">
+        <label for="saved_filter_target_role">
+          <%= I18n.t("lcp_ruby.saved_filters.target_role_label", default: "Target role") %>
+        </label>
+        <input type="text" id="saved_filter_target_role" name="saved_filter[target_role]"
+               class="lcp-input" />
+      </div>
+
+      <div class="lcp-save-dialog-field" id="saved_filter_target_group_wrapper" style="display: none;">
+        <label for="saved_filter_target_group">
+          <%= I18n.t("lcp_ruby.saved_filters.target_group_label", default: "Target group") %>
+        </label>
+        <input type="text" id="saved_filter_target_group" name="saved_filter[target_group]"
+               class="lcp-input" />
+      </div>
+
+      <% if sf_config.fetch("allow_pinning", true) %>
+        <div class="lcp-save-dialog-field lcp-save-dialog-checkbox">
+          <label>
+            <input type="checkbox" id="saved_filter_pinned" name="saved_filter[pinned]" value="true" />
+            <%= I18n.t("lcp_ruby.saved_filters.pin_label", default: "Pin to toolbar") %>
+          </label>
+        </div>
+      <% end %>
+
+      <% if sf_config.fetch("allow_default", true) %>
+        <div class="lcp-save-dialog-field lcp-save-dialog-checkbox">
+          <label>
+            <input type="checkbox" id="saved_filter_default" name="saved_filter[default_filter]" value="true" />
+            <%= I18n.t("lcp_ruby.saved_filters.default_label", default: "Set as default filter") %>
+          </label>
+        </div>
+      <% end %>
+
+      <div class="lcp-save-dialog-actions">
+        <button type="submit" class="btn btn-primary">
+          <%= I18n.t("lcp_ruby.saved_filters.save", default: "Save filter") %>
+        </button>
+        <button type="button" class="btn btn-secondary" data-action="close-save-dialog">
+          <%= I18n.t("lcp_ruby.form.cancel", default: "Cancel") %>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>

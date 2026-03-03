@@ -199,8 +199,19 @@ Advanced search and filter pipeline that wraps Ransack with LCP metadata for con
 - **OperatorRegistry** — central registry mapping field types to available operators with labels, no-value operators, and multi-value operators
 - **CustomFilterInterceptor** — detects and calls `filter_*` class methods on the model before Ransack; validates return types; removes intercepted keys from Ransack params
 - **FilterMetadataBuilder** — request-time builder that generates JSON metadata for the JS visual filter builder; permission-aware (filters fields/associations by evaluator); resolves custom types to base types; supports explicit `filterable_fields` or auto-detection mode; traverses `belongs_to` associations respecting `max_association_depth`
+- **QueryLanguageParser** — recursive descent parser for text-based query language; supports all operators, AND/OR logic, parentheses, dot-path fields, and `@scope(key: value)` parameterized scope syntax
+- **QueryLanguageSerializer** — converts condition tree back to QL text for round-trip editing
+- **ParameterizedScopeApplicator** — applies parameterized scopes from request params to a query scope; casts parameters by type (integer, float, boolean, enum, date, datetime, model_select), clamps numeric values within min/max bounds, validates required parameters, invokes `filter_*` interceptors or direct AR scopes
 
 Note: Ransack model configuration (`ransackable_attributes`, `ransackable_associations`) is set up at boot time by `ModelFactory::RansackApplicator`.
+
+### Saved Filters (`lib/lcp_ruby/saved_filters/`)
+
+User-persistent named filters stored as a standard LCP dynamic model. Not a hardcoded engine component — the saved filter model is created via generator (`rails generate lcp_ruby:saved_filters`) and managed through normal CRUD presenters.
+
+- **SavedFiltersGenerator** — generates model YAML, presenter YAML, and permissions YAML for the saved filter model with all required fields (name, target_presenter, condition_tree, visibility, owner_id, etc.)
+- **Configuration** — presenter-level `saved_filters` block inside `advanced_filter` controls display mode (`inline`, `dropdown`, `sidebar`), max visible pinned filters, and enable/disable toggle
+- **Visibility** — four levels: `personal` (owner only), `role` (matching `target_role`), `group` (matching `target_group`), `global` (all users). Record rules enforce who can create/edit/delete at each level
 
 ### Routing (`lib/lcp_ruby/routing/`)
 

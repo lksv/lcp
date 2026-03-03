@@ -1,0 +1,13 @@
+view_group:
+  model: activity
+  primary: activity
+  navigation: false
+  breadcrumb:
+    relation: company
+  views:
+    - presenter: activity
+      label: "Detailed"
+      icon: maximize
+    - presenter: activity_short
+      label: "Short"
+      icon: list

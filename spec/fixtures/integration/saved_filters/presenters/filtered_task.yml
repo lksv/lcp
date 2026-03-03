@@ -1,0 +1,67 @@
+presenter:
+  name: filtered_task
+  model: filtered_task
+  slug: filtered-tasks
+  label: "Filtered Tasks"
+
+  search:
+    enabled: true
+    searchable_fields: [title, description]
+    placeholder: "Search tasks..."
+
+    predefined_filters:
+      - { name: all, label: "All", default: true }
+      - { name: open, label: "Open", scope: open_tasks }
+
+    advanced_filter:
+      enabled: true
+      max_conditions: 10
+      default_combinator: and
+      filterable_fields:
+        - title
+        - status
+        - priority
+        - description
+        - due_date
+        - active
+      saved_filters:
+        enabled: true
+        display: inline
+        max_visible_pinned: 5
+
+  index:
+    table_columns:
+      - { field: title, sortable: true, link_to: show }
+      - { field: status, sortable: true }
+      - { field: priority, sortable: true }
+      - { field: active }
+
+  form:
+    sections:
+      - section: details
+        fields:
+          - { field: title }
+          - { field: description }
+          - { field: status }
+          - { field: priority }
+          - { field: due_date }
+          - { field: active }
+
+  show:
+    sections:
+      - section: details
+        fields:
+          - { field: title }
+          - { field: description }
+          - { field: status }
+          - { field: priority }
+          - { field: due_date }
+          - { field: active }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in }

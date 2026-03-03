@@ -1200,9 +1200,85 @@ Limits the number of returned records. Combine with `order` for "top N" queries.
 | | |
 |---|---|
 | **Required** | no |
-| **Allowed** | `custom` |
+| **Allowed** | `custom`, `parameterized` |
 
-When set to `custom`, the scope is not generated from YAML. Instead, it must be defined in Ruby code via a model extension. The scope entry in YAML serves as documentation and allows it to be referenced from predefined filters.
+- `custom` — the scope is not generated from YAML. Instead, it must be defined in Ruby code via a model extension. The scope entry in YAML serves as documentation and allows it to be referenced from predefined filters.
+- `parameterized` — the scope accepts typed parameters at runtime. The `parameters` attribute defines the parameter schema (see below). The actual scope must be defined in Ruby — either as a standard AR scope with keyword arguments, or as a `filter_*` interceptor method.
+
+#### `parameters`
+
+| | |
+|---|---|
+| **Required** | only when `type: parameterized` |
+| **Type** | array of parameter definitions |
+
+Each parameter has:
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `name` | string | yes | Parameter name (used as keyword argument) |
+| `type` | string | yes | One of: `boolean`, `string`, `integer`, `float`, `enum`, `date`, `datetime`, `model_select` |
+| `default` | any | no | Default value when the parameter is not provided |
+| `required` | boolean | no | Whether the parameter must be provided (default: `false`). If a required parameter is missing, the scope is skipped |
+| `min` | number | no | Minimum value (integer/float only). Values below this are clamped |
+| `max` | number | no | Maximum value (integer/float only). Values above this are clamped |
+| `values` | array | no | Allowed values (enum type only). Values not in the list are rejected |
+| `model` | string | no | Target model name (model_select only) |
+| `display_field` | string | no | Field to display in the select dropdown (model_select only) |
+
+### Parameterized Scopes
+
+Parameterized scopes let users configure scope arguments at runtime. Parameters are cast, validated, and clamped before being passed to the scope.
+
+```yaml
+scopes:
+  - name: created_recently
+    type: parameterized
+    parameters:
+      - name: days
+        type: integer
+        default: 30
+        min: 1
+        max: 365
+
+  - name: by_min_price
+    type: parameterized
+    parameters:
+      - name: min_price
+        type: float
+        default: 0.0
+        min: 0
+
+  - name: by_status_filter
+    type: parameterized
+    parameters:
+      - name: status
+        type: enum
+        values: [draft, published, archived]
+        required: true
+```
+
+The Ruby implementation can be either a standard scope or a `filter_*` interceptor:
+
+```ruby
+# Option A: AR scope with keyword arguments
+scope :created_recently, ->(days: 30) {
+  where("created_at >= ?", days.to_i.days.ago)
+}
+
+# Option B: filter_* interceptor (more flexible)
+def self.filter_by_min_price(scope, params, evaluator)
+  min = params[:min_price] || 0
+  scope.where("price >= ?", min)
+end
+```
+
+In the [query language](../design/advanced_search.md), parameterized scopes use `@` prefix syntax:
+
+```
+@created_recently(days: 7)
+@by_status_filter(status: 'published')
+```
 
 ### Combined Scopes
 
