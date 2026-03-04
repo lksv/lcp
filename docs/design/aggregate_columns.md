@@ -1,6 +1,6 @@
 # Feature Specification: Aggregate & Computed Columns
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2026-03-02
 
 ## Problem / Motivation

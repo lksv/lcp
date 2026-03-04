@@ -173,6 +173,43 @@ Key options:
 | `renderer` | Visual renderer for the cell value (see [Renderers Guide](display-types.md)) |
 | `summary` | Adds a footer row with `sum`, `avg`, or `count` |
 
+### Aggregate Columns
+
+Columns can reference [aggregate fields](../reference/models.md#aggregates) defined on the model. Aggregate columns are computed via SQL subqueries at query time — no database column is needed. They support sorting and renderers just like regular columns.
+
+**YAML:**
+
+```yaml
+index:
+  table_columns:
+    - { field: name, sortable: true }
+    - { field: contacts_count, sortable: true }
+    - { field: total_deal_value, renderer: currency, sortable: true }
+```
+
+**Ruby DSL:**
+
+```ruby
+index do
+  column :name, sortable: true
+  column :contacts_count, sortable: true
+  column :total_deal_value, renderer: :currency, sortable: true
+end
+```
+
+Aggregates are also usable in show page sections:
+
+```ruby
+show do
+  section "Statistics", columns: 2 do
+    field :contacts_count
+    field :total_deal_value, renderer: :currency
+  end
+end
+```
+
+Aggregate columns are visible to all roles regardless of field-level permissions. Only aggregates referenced in the current presenter's columns are included in the query — unreferenced aggregates add zero overhead.
+
 ### Empty State and Actions Position
 
 **YAML:**

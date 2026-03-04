@@ -18,6 +18,7 @@ model:
   scopes: []
   events: []
   display_templates: {}
+  aggregates: {}
   positioning: true | { field: position, scope: parent_id }
   options: {}
 ```
@@ -1488,6 +1489,172 @@ Fields referenced in templates are resolved through `FieldValueResolver`, which 
 ### Eager Loading
 
 The `IncludesResolver` automatically detects dot-path fields in display templates (e.g., `{company.name}`) and generates nested eager loading (e.g., `{ contacts: :company }`) to prevent N+1 queries.
+
+## Aggregates
+
+Virtual computed columns derived from associated records via SQL subqueries. Aggregates are not stored in the database — they are calculated at query time and injected into SELECT statements as correlated subqueries. They can be referenced in presenter table columns and show sections just like regular fields.
+
+Aggregate names must not collide with field names on the same model.
+
+### YAML Syntax
+
+```yaml
+aggregates:
+  issues_count:
+    function: count
+    association: issues
+
+  open_issues_count:
+    function: count
+    association: issues
+    where: { status: open }
+
+  total_revenue:
+    function: sum
+    association: orders
+    source_field: amount
+    default: 0
+
+  weighted_score:
+    sql: "SELECT SUM(r.score * r.weight) / NULLIF(SUM(r.weight), 0) FROM ratings r WHERE r.project_id = %{table}.id"
+    type: float
+
+  health_score:
+    service: project_health
+    type: integer
+```
+
+### DSL Syntax
+
+```ruby
+aggregate :issues_count, function: :count, association: :issues
+aggregate :open_issues_count, function: :count, association: :issues,
+  where: { status: "open" }
+aggregate :total_revenue, function: :sum, association: :orders,
+  source_field: :amount, default: 0
+```
+
+### Three Aggregate Types
+
+| Type | Detected by | Description |
+|------|-------------|-------------|
+| **Declarative** | `function` + `association` | SQL aggregate function over a has_many association |
+| **SQL** | `sql` key | Custom SQL subquery returning a single value |
+| **Service** | `service` key | Ruby service class from `app/lcp_services/aggregates/` |
+
+### Declarative Aggregate Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `function` | string | yes | SQL aggregate function: `count`, `sum`, `min`, `max`, `avg` |
+| `association` | string | yes | Name of a `has_many` association on the model |
+| `source_field` | string | for sum/min/max/avg | Field on the target model to aggregate. Optional for `count` (defaults to `*`) |
+| `where` | hash | no | Equality conditions on the target model (see [Where Conditions](#where-conditions)) |
+| `distinct` | boolean | no | Use `DISTINCT` in the aggregate function (default: `false`) |
+| `default` | any | no | Default value via `COALESCE`. `count` always defaults to `0` even without this |
+| `include_discarded` | boolean | no | Include soft-deleted records (default: `false`). Only relevant when the target model uses `soft_delete` |
+
+### SQL Aggregate Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `sql` | string | yes | Custom SQL subquery. Use `%{table}` for the parent model's quoted table name |
+| `type` | string | yes | Result type: `string`, `integer`, `float`, `decimal`, `boolean`, `date`, `datetime` |
+| `default` | any | no | Default value via `COALESCE` |
+
+### Service Aggregate Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `service` | string | yes | Service key looked up in `app/lcp_services/aggregates/` |
+| `type` | string | yes | Result type |
+| `options` | hash | no | Options hash passed to the service's `call` method |
+
+The service class must implement `self.call(record, options:)`. Optionally implement `self.sql_expression(model_class, options:)` to return a SQL string — this enables sorting and avoids per-record evaluation.
+
+### Where Conditions
+
+The `where` hash applies equality conditions to the subquery:
+
+```yaml
+where: { status: open }                         # WHERE status = 'open'
+where: { status: [open, in_progress] }           # WHERE status IN ('open', 'in_progress')
+where: { deleted_at: null }                      # WHERE deleted_at IS NULL
+where: { status: active, priority: high }        # WHERE status = 'active' AND priority = 'high'
+where: { assignee_id: :current_user }            # WHERE assignee_id = <current_user.id>
+```
+
+The `:current_user` placeholder resolves to `current_user.id` at query time. When no user is signed in, it resolves to `nil` (producing `IS NULL`). This enables per-user aggregates like "my open issues count".
+
+### Type Inference
+
+Declarative aggregates infer their result type automatically:
+
+| Function | Inferred type |
+|----------|---------------|
+| `count` | `integer` (always) |
+| `sum`, `min`, `max` | Same as `source_field` type |
+| `avg` | `float` (or `decimal` if source is `decimal`) |
+
+SQL and service aggregates require an explicit `type` attribute.
+
+### Soft Delete Awareness
+
+When the target model uses `soft_delete`, aggregates automatically exclude soft-deleted records (`WHERE discarded_at IS NULL`). Set `include_discarded: true` to include them.
+
+### Presenter Usage
+
+Aggregates are referenced in presenters as regular fields:
+
+```yaml
+# Index — sortable aggregate column
+table_columns:
+  - { field: issues_count, sortable: true }
+  - { field: total_revenue, renderer: currency, sortable: true }
+
+# Show — in a section
+layout:
+  - section: "Statistics"
+    fields:
+      - { field: issues_count }
+      - { field: total_revenue, renderer: currency }
+```
+
+Aggregates are visible to all roles regardless of field permissions — they are computed values, not stored data.
+
+### Complete Example
+
+```yaml
+model:
+  name: company
+  fields:
+    - { name: name, type: string }
+  associations:
+    - { type: has_many, name: contacts, target_model: contact, foreign_key: company_id }
+    - { type: has_many, name: deals, target_model: deal, foreign_key: company_id }
+  aggregates:
+    contacts_count:
+      function: count
+      association: contacts
+    deals_count:
+      function: count
+      association: deals
+    total_deal_value:
+      function: sum
+      association: deals
+      source_field: value
+      default: 0
+    won_deals_value:
+      function: sum
+      association: deals
+      source_field: value
+      where: { stage: closed_won }
+      default: 0
+    my_deals_count:
+      function: count
+      association: deals
+      where: { assignee_id: :current_user }
+```
 
 ## Options
 

@@ -781,6 +781,66 @@ define_model :contact do
 end
 ```
 
+## Aggregates
+
+Virtual computed columns derived from associated records. See [Models Reference — Aggregates](models.md#aggregates) for full semantics.
+
+```ruby
+aggregate :name, function: :func, association: :assoc, **options
+```
+
+### Arguments
+
+| Argument | Required | Description |
+|----------|----------|-------------|
+| `name` | yes | Aggregate identifier (symbol). Must not collide with field names. |
+| `function:` | conditional | SQL function: `:count`, `:sum`, `:min`, `:max`, `:avg`. Required for declarative aggregates. |
+| `association:` | conditional | Target `has_many` association name. Required for declarative aggregates. |
+| `source_field:` | conditional | Field on the target model. Required for sum/min/max/avg. |
+| `where:` | no | Hash of equality conditions on the target model. Supports `:current_user` placeholder. |
+| `distinct:` | no | Use DISTINCT in the function (default: `false`). |
+| `default:` | no | Default value via COALESCE. Count defaults to 0 automatically. |
+| `include_discarded:` | no | Include soft-deleted records (default: `false`). |
+| `sql:` | conditional | Custom SQL subquery. Use `%{table}` for parent table name. Required for SQL-type aggregates. |
+| `service:` | conditional | Service key from `app/lcp_services/aggregates/`. Required for service-type aggregates. |
+| `type:` | conditional | Result type. Required for SQL and service aggregates; inferred for declarative. |
+| `options:` | no | Hash passed to service's `call` method. |
+
+### Examples
+
+```ruby
+define_model :company do
+  has_many :contacts, model: :contact, foreign_key: :company_id
+  has_many :deals, model: :deal, foreign_key: :company_id
+
+  # Count all contacts
+  aggregate :contacts_count, function: :count, association: :contacts
+
+  # Count deals with a filter
+  aggregate :open_deals_count, function: :count, association: :deals,
+    where: { stage: "open" }
+
+  # Sum with default
+  aggregate :total_deal_value, function: :sum, association: :deals,
+    source_field: :value, default: 0
+
+  # Filtered sum
+  aggregate :won_deals_value, function: :sum, association: :deals,
+    source_field: :value, where: { stage: "closed_won" }, default: 0
+
+  # Per-user aggregate
+  aggregate :my_deals_count, function: :count, association: :deals,
+    where: { assignee_id: :current_user }
+
+  # Custom SQL
+  aggregate :weighted_score, sql: "SELECT AVG(r.score) FROM ratings r WHERE r.company_id = %{table}.id",
+    type: :float
+
+  # Service-based
+  aggregate :health_score, service: :company_health, type: :integer
+end
+```
+
 ## DSL vs YAML Equivalence
 
 The DSL produces the exact same hash structure as parsed YAML. Every DSL construct has a 1:1 YAML equivalent:
@@ -802,6 +862,7 @@ The DSL produces the exact same hash structure as parsed YAML. Every DSL constru
 | `on_field_change :e, field: :f` | `events: [{ name: e, type: field_change, field: f }]` |
 | `display_template :default, template: "{name}"` | `display_templates: { default: { template: "{name}" } }` |
 | `display_template :card, renderer: "X"` | `display_templates: { card: { renderer: X } }` |
+| `aggregate :x, function: :count, association: :y` | `aggregates: { x: { function: count, association: y } }` |
 | `positioning` | `positioning: true` |
 | `positioning scope: :pipeline_id` | `positioning: { scope: pipeline_id }` |
 | `soft_delete` | `options: { soft_delete: true }` |
