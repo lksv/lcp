@@ -5025,6 +5025,190 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       )
     end
   end
+
+  context "model aggregates" do
+    let(:metadata_path) { "" }
+
+    def project_with_issues(*aggregates_yaml)
+      with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+              associations:
+                - type: has_many
+                  name: issues
+                  target_model: issue
+                  foreign_key: project_id
+              aggregates:
+                #{aggregates_yaml.join("\n                ")}
+          YAML
+          <<~YAML
+            model:
+              name: issue
+              fields:
+                - { name: title, type: string }
+                - { name: priority, type: integer }
+                - { name: status, type: string }
+              associations:
+                - type: belongs_to
+                  name: project
+                  target_model: project
+                  foreign_key: project_id
+          YAML
+        ]
+      )
+    end
+
+    it "accepts valid declarative count aggregate" do
+      v = project_with_issues('issues_count: { function: count, association: issues }')
+      result = v.validate
+      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      expect(agg_errors).to be_empty
+    end
+
+    it "accepts valid declarative sum aggregate with source_field" do
+      v = project_with_issues('total_priority: { function: sum, association: issues, source_field: priority }')
+      result = v.validate
+      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      expect(agg_errors).to be_empty
+    end
+
+    it "accepts valid declarative aggregate with where clause" do
+      v = project_with_issues('open_issues: { function: count, association: issues, where: { status: open } }')
+      result = v.validate
+      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      expect(agg_errors).to be_empty
+    end
+
+    it "errors when aggregate references unknown association" do
+      v = project_with_issues('task_count: { function: count, association: tasks }')
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/aggregate 'task_count'.*unknown association 'tasks'/)
+      )
+    end
+
+    it "errors when aggregate references belongs_to association" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: issue
+              fields:
+                - { name: title, type: string }
+              associations:
+                - type: belongs_to
+                  name: project
+                  target_model: project
+                  foreign_key: project_id
+              aggregates:
+                project_count: { function: count, association: project }
+          YAML
+          <<~YAML
+            model:
+              name: project
+              fields:
+                - { name: title, type: string }
+          YAML
+        ]
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/aggregate 'project_count'.*must be has_many, got 'belongs_to'/)
+      )
+    end
+
+    it "raises MetadataError at parse time when non-count function missing source_field" do
+      expect {
+        project_with_issues('total: { function: sum, association: issues }')
+      }.to raise_error(LcpRuby::MetadataError, /function 'sum' requires 'source_field'/)
+    end
+
+    it "errors when source_field not found on target model" do
+      v = project_with_issues('total: { function: sum, association: issues, source_field: amount }')
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/aggregate 'total'.*source_field 'amount' not found on model 'issue'/)
+      )
+    end
+
+    it "warns when where clause references unknown field on target model" do
+      v = project_with_issues('filtered: { function: count, association: issues, where: { nonexistent: value } }')
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/aggregate 'filtered'.*where clause references field 'nonexistent' not found on model 'issue'/)
+      )
+    end
+
+    it "does not warn when where clause references valid field" do
+      v = project_with_issues('filtered: { function: count, association: issues, where: { status: open } }')
+      result = v.validate
+      where_warnings = result.warnings.select { |w| w.include?("where clause") }
+      expect(where_warnings).to be_empty
+    end
+
+    it "raises MetadataError at parse time when aggregate name collides with field name" do
+      expect {
+        with_metadata(
+          models: [
+            <<~YAML,
+              model:
+                name: project
+                fields:
+                  - { name: title, type: string }
+                associations:
+                  - type: has_many
+                    name: issues
+                    target_model: issue
+                    foreign_key: project_id
+                aggregates:
+                  title: { function: count, association: issues }
+            YAML
+            <<~YAML
+              model:
+                name: issue
+                fields:
+                  - { name: title, type: string }
+                associations:
+                  - type: belongs_to
+                    name: project
+                    target_model: project
+                    foreign_key: project_id
+            YAML
+          ]
+        )
+      }.to raise_error(LcpRuby::MetadataError, /aggregate names collide with field names/)
+    end
+
+    it "raises MetadataError at parse time when SQL aggregate missing type" do
+      expect {
+        project_with_issues('custom: { sql: "SELECT 1" }')
+      }.to raise_error(LcpRuby::MetadataError, /SQL aggregate requires 'type'/)
+    end
+
+    it "raises MetadataError at parse time when service aggregate missing type" do
+      expect {
+        project_with_issues('health: { service: project_health }')
+      }.to raise_error(LcpRuby::MetadataError, /service aggregate requires 'type'/)
+    end
+
+    it "accepts valid SQL aggregate with type" do
+      v = project_with_issues('custom: { sql: "SELECT 1", type: integer }')
+      result = v.validate
+      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      expect(agg_errors).to be_empty
+    end
+
+    it "accepts valid service aggregate with type" do
+      v = project_with_issues('health: { service: project_health, type: string }')
+      result = v.validate
+      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      expect(agg_errors).to be_empty
+    end
+  end
 end
 
 RSpec.describe LcpRuby::Metadata::ConfigurationValidator::ValidationResult do

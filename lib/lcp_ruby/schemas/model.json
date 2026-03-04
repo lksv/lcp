@@ -732,63 +732,98 @@
     },
 
     "aggregate": {
-      "type": "object",
-      "description": "A virtual aggregate column definition. Supports three types: declarative (function+association), custom SQL expression, or service-based computation.",
-      "properties": {
-        "function": {
-          "type": "string",
-          "description": "SQL aggregate function for declarative aggregates.",
-          "enum": ["count", "sum", "min", "max", "avg"]
-        },
-        "association": {
-          "type": "string",
-          "description": "Name of a has_many association on the model. Required for declarative aggregates.",
-          "examples": ["issues", "orders", "comments"]
-        },
-        "source_field": {
-          "type": "string",
-          "description": "Field on the target model to aggregate. Required for sum/min/max/avg; optional for count (defaults to *).",
-          "examples": ["amount", "created_at", "score"]
-        },
-        "where": {
+      "description": "A virtual aggregate column definition. Exactly one of three types must be used: declarative (function+association), custom SQL expression, or service-based computation.",
+      "oneOf": [
+        {
           "type": "object",
-          "description": "Hash equality conditions on the target model. Supports :current_user placeholder for per-user aggregates.",
-          "examples": [{ "status": "open" }, { "assignee_id": ":current_user" }]
+          "description": "Declarative aggregate: SQL aggregate function over a has_many association.",
+          "properties": {
+            "function": {
+              "type": "string",
+              "description": "SQL aggregate function.",
+              "enum": ["count", "sum", "min", "max", "avg"]
+            },
+            "association": {
+              "type": "string",
+              "description": "Name of a has_many association on the model.",
+              "examples": ["issues", "orders", "comments"]
+            },
+            "source_field": {
+              "type": "string",
+              "description": "Field on the target model to aggregate. Required for sum/min/max/avg; optional for count (defaults to *).",
+              "examples": ["amount", "created_at", "score"]
+            },
+            "where": {
+              "type": "object",
+              "description": "Hash equality conditions on the target model. Supports :current_user placeholder for per-user aggregates.",
+              "examples": [{ "status": "open" }, { "assignee_id": ":current_user" }]
+            },
+            "distinct": {
+              "type": "boolean",
+              "description": "Use DISTINCT in the aggregate function (e.g., COUNT(DISTINCT ...) or SUM(DISTINCT ...)).",
+              "default": false
+            },
+            "default": {
+              "description": "Default value via COALESCE wrap. COUNT always defaults to 0 even without this setting."
+            },
+            "include_discarded": {
+              "type": "boolean",
+              "description": "When false (default), excludes soft-deleted records from the aggregate. Only applies when the target model uses soft_delete.",
+              "default": false
+            },
+            "type": {
+              "type": "string",
+              "description": "Explicit result type override. Normally inferred from function and source field type.",
+              "enum": ["string", "integer", "float", "decimal", "boolean", "date", "datetime"]
+            }
+          },
+          "required": ["function", "association"],
+          "additionalProperties": false
         },
-        "distinct": {
-          "type": "boolean",
-          "description": "Use DISTINCT in the aggregate function (e.g., COUNT(DISTINCT ...) or SUM(DISTINCT ...)).",
-          "default": false
-        },
-        "default": {
-          "description": "Default value via COALESCE wrap. COUNT always defaults to 0 even without this setting."
-        },
-        "include_discarded": {
-          "type": "boolean",
-          "description": "When false (default), excludes soft-deleted records from the aggregate. Only applies when the target model uses soft_delete.",
-          "default": false
-        },
-        "sql": {
-          "type": "string",
-          "description": "Custom SQL subquery returning a single value. Use %{table} placeholder for the parent model's table name.",
-          "examples": ["SELECT SUM(r.score * r.weight) / NULLIF(SUM(r.weight), 0) FROM ratings r WHERE r.project_id = %{table}.id"]
-        },
-        "service": {
-          "type": "string",
-          "description": "Service key looked up in app/lcp_services/aggregates/. The service class must implement self.call(record, options:).",
-          "examples": ["project_health", "custom_score"]
-        },
-        "type": {
-          "type": "string",
-          "description": "Explicit result type. Required for sql and service aggregates; inferred for declarative aggregates.",
-          "enum": ["string", "integer", "float", "decimal", "boolean", "date", "datetime"]
-        },
-        "options": {
+        {
           "type": "object",
-          "description": "Options hash passed to the service. Only used with service aggregates."
+          "description": "Custom SQL aggregate: raw SQL subquery returning a single value.",
+          "properties": {
+            "sql": {
+              "type": "string",
+              "description": "Custom SQL subquery returning a single value. Use %{table} placeholder for the parent model's table name.",
+              "examples": ["SELECT SUM(r.score * r.weight) / NULLIF(SUM(r.weight), 0) FROM ratings r WHERE r.project_id = %{table}.id"]
+            },
+            "type": {
+              "type": "string",
+              "description": "Result type. Required for SQL aggregates.",
+              "enum": ["string", "integer", "float", "decimal", "boolean", "date", "datetime"]
+            },
+            "default": {
+              "description": "Default value via COALESCE wrap."
+            }
+          },
+          "required": ["sql", "type"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Service-based aggregate: computed by a Ruby service class.",
+          "properties": {
+            "service": {
+              "type": "string",
+              "description": "Service key looked up in app/lcp_services/aggregates/. The service class must implement self.call(record, options:).",
+              "examples": ["project_health", "custom_score"]
+            },
+            "type": {
+              "type": "string",
+              "description": "Result type. Required for service aggregates.",
+              "enum": ["string", "integer", "float", "decimal", "boolean", "date", "datetime"]
+            },
+            "options": {
+              "type": "object",
+              "description": "Options hash passed to the service."
+            }
+          },
+          "required": ["service", "type"],
+          "additionalProperties": false
         }
-      },
-      "additionalProperties": false
+      ]
     }
   }
 }

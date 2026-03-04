@@ -342,34 +342,60 @@ module LcpRuby
       end
 
       def validate_model_aggregates(model)
+        # Name collision with fields is already checked by ModelDefinition#validate! at parse time.
         model.aggregates.each do |agg_name, agg_def|
           if agg_def.declarative?
-            # Verify association exists and is has_many
-            assoc = model.associations.find { |a| a.name == agg_def.association }
-            unless assoc
-              @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
-                         "references unknown association '#{agg_def.association}'"
-              next
-            end
-            unless assoc.type == "has_many"
-              @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
-                         "association '#{agg_def.association}' must be has_many, got '#{assoc.type}'"
-              next
-            end
-
-            # Verify source_field exists on target model
-            if agg_def.source_field.present? && assoc.target_model
-              target_def = loader.model_definitions[assoc.target_model]
-              if target_def && !target_def.field(agg_def.source_field)
-                @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
-                           "source_field '#{agg_def.source_field}' not found on model '#{assoc.target_model}'"
-              end
-            end
+            validate_declarative_aggregate(model, agg_name, agg_def)
+          elsif agg_def.sql_type?
+            validate_sql_aggregate(model, agg_name, agg_def)
           elsif agg_def.service_type?
-            # Service validation happens at boot via AggregateApplicator
+            validate_service_aggregate(model, agg_name, agg_def)
           end
         end
       end
+
+      def validate_declarative_aggregate(model, agg_name, agg_def)
+        # Verify association exists and is has_many
+        assoc = model.associations.find { |a| a.name == agg_def.association }
+        unless assoc
+          @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
+                     "references unknown association '#{agg_def.association}'"
+          return
+        end
+        unless assoc.type == "has_many"
+          @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
+                     "association '#{agg_def.association}' must be has_many, got '#{assoc.type}'"
+          return
+        end
+
+        # Verify source_field exists on target model
+        if agg_def.source_field.present? && assoc.target_model
+          target_def = loader.model_definitions[assoc.target_model]
+          if target_def && !target_def.field(agg_def.source_field)
+            @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
+                       "source_field '#{agg_def.source_field}' not found on model '#{assoc.target_model}'"
+          end
+        end
+
+        # Verify where clause fields exist on target model
+        if agg_def.where.present? && assoc.target_model
+          target_def = loader.model_definitions[assoc.target_model]
+          if target_def
+            target_fields = target_def.fields.map(&:name) + %w[id created_at updated_at]
+            agg_def.where.each_key do |where_field|
+              unless target_fields.include?(where_field.to_s)
+                @warnings << "Model '#{model.name}', aggregate '#{agg_name}': " \
+                             "where clause references field '#{where_field}' not found on model '#{assoc.target_model}'"
+              end
+            end
+          end
+        end
+      end
+
+      # SQL and service aggregate type checks are handled by AggregateDefinition#validate!
+      # at parse time (raises MetadataError if type is missing).
+      def validate_sql_aggregate(_model, _agg_name, _agg_def); end
+      def validate_service_aggregate(_model, _agg_name, _agg_def); end
 
       def validate_model_events(model)
         model.events.each do |event|
