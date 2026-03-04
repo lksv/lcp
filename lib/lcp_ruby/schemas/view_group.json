@@ -2,32 +2,77 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://lcp-ruby.dev/schemas/view_group.json",
   "title": "LCP Ruby View Group Definition",
-  "description": "Schema for view group metadata that defines presenter switching, navigation, and breadcrumbs.",
+  "description": "Schema for view group metadata that groups multiple presenters for the same model into a switchable navigation unit. Defined in config/lcp_ruby/view_groups/. View groups control presenter switching (tabs/dropdown), navigation menu inclusion, and breadcrumb hierarchy. Models with a single presenter get an auto-created view group (_auto suffix) if none is explicitly defined.",
   "type": "object",
   "properties": {
-    "name": { "type": "string" },
-    "model": { "type": "string" },
-    "primary": { "type": "string" },
-    "public": { "type": "boolean" },
-    "navigation": { "$ref": "#/$defs/navigation_config" },
-    "breadcrumb": { "$ref": "#/$defs/breadcrumb_config" },
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for this view group. Used in menu.yml references and URL routing. Conventionally matches the model name or a descriptive plural noun.",
+      "examples": ["employees", "departments", "deals", "employee_directory"]
+    },
+    "model": {
+      "type": "string",
+      "description": "The model this view group applies to. All presenters listed in views must reference this same model. Must match a model name from config/lcp_ruby/models/.",
+      "examples": ["employee", "department", "deal"]
+    },
+    "primary": {
+      "type": "string",
+      "description": "The default presenter shown when navigating to this view group. Must be one of the presenter names listed in views. This presenter's slug is used for the main URL.",
+      "examples": ["employees", "employees_directory", "deals_pipeline"]
+    },
+    "public": {
+      "type": "boolean",
+      "description": "When true, allows unauthenticated access. An anonymous user with empty roles is used for permission evaluation. When false, standard authentication is required.",
+      "default": false,
+      "examples": [true, false]
+    },
+    "navigation": {
+      "$ref": "#/$defs/navigation_config",
+      "description": "Controls whether and how this view group appears in auto-generated navigation menus. When omitted, the view group is included in navigation with default settings. Set to false to exclude entirely."
+    },
+    "breadcrumb": {
+      "$ref": "#/$defs/breadcrumb_config",
+      "description": "Controls breadcrumb trail rendering. When omitted, default breadcrumbs are shown (Home > View Label > Record). Use the relation option to add parent model breadcrumbs via a belongs_to association. Set to false to disable breadcrumbs entirely."
+    },
     "switcher": {
-      "description": "Where to show the view switcher. Omit or 'auto' for auto-detection, array of contexts, or false to disable.",
+      "description": "Controls where the view switcher (tabs/dropdown for switching between presenters) is displayed. Requires at least 2 views to be shown. 'auto' (default) compares presenter configurations and shows the switcher only on pages where presenters differ.",
       "oneOf": [
-        { "type": "boolean", "const": false },
-        { "type": "string", "const": "auto" },
+        {
+          "type": "boolean",
+          "const": false,
+          "description": "Disable the view switcher entirely — no tabs/dropdown on any page."
+        },
+        {
+          "type": "string",
+          "const": "auto",
+          "description": "Auto-detect where to show the switcher based on presenter configuration differences."
+        },
         {
           "type": "array",
-          "items": { "type": "string", "enum": ["index", "show", "form"] },
+          "description": "Explicitly specify which page contexts show the view switcher.",
+          "items": {
+            "type": "string",
+            "enum": ["index", "show", "form"],
+            "description": "Page context: 'index' (list page), 'show' (detail page), 'form' (new/edit page)."
+          },
           "minItems": 1,
           "uniqueItems": true
         }
-      ]
+      ],
+      "default": "auto",
+      "examples": ["auto", false, ["index"], ["index", "show"], ["index", "show", "form"]]
     },
     "views": {
       "type": "array",
+      "description": "List of presenters available in this view group. Order determines the display order in the view switcher. The first view is typically the primary view. Must contain at least one view.",
       "items": { "$ref": "#/$defs/view" },
-      "minItems": 1
+      "minItems": 1,
+      "examples": [
+        [
+          { "presenter": "employees", "icon": "table-cells" },
+          { "presenter": "employees_directory", "icon": "squares-2x2" }
+        ]
+      ]
     }
   },
   "required": ["model", "primary", "views"],
@@ -36,24 +81,51 @@
   "$defs": {
     "view": {
       "type": "object",
+      "description": "A single view (presenter) within the view group. Each view represents a different way to display the same model data.",
       "properties": {
-        "presenter": { "type": "string" },
-        "label": { "type": "string" },
-        "icon": { "type": "string" }
+        "presenter": {
+          "type": "string",
+          "description": "Name of the presenter to use for this view. Must match a presenter name from config/lcp_ruby/presenters/ that targets the same model as the view group.",
+          "examples": ["employees", "employees_directory", "deals_pipeline", "deals_board"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label for this view in the switcher. When omitted, falls back to the presenter's humanized name. Resolved via i18n.",
+          "examples": ["Table View", "Directory", "Pipeline", "Board"]
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon identifier displayed in the view switcher tab/button. Uses the icon set configured in the host application.",
+          "examples": ["table-cells", "squares-2x2", "chart-bar", "list-bullet"]
+        }
       },
       "required": ["presenter"],
       "additionalProperties": false
     },
 
     "navigation_config": {
-      "description": "Navigation settings or false to exclude from navigation.",
+      "description": "Navigation settings controlling menu inclusion. When omitted (default), the view group appears in auto-generated menus. Set to false to exclude from navigation entirely. Auto-created view groups default to { menu: 'main', position: 99 }.",
       "oneOf": [
-        { "type": "boolean", "const": false },
+        {
+          "type": "boolean",
+          "const": false,
+          "description": "Exclude this view group from all auto-generated navigation menus."
+        },
         {
           "type": "object",
+          "description": "Navigation configuration with menu assignment and sort order.",
           "properties": {
-            "position": { "type": "integer" },
-            "menu": { "type": "string" }
+            "position": {
+              "type": "integer",
+              "description": "Sort order within the menu. Lower numbers appear first. Auto-created view groups default to 99.",
+              "examples": [1, 10, 50, 99]
+            },
+            "menu": {
+              "type": "string",
+              "description": "Menu group name for organizing navigation items. Used when the menu.yml references groups by name.",
+              "default": "main",
+              "examples": ["main", "admin", "reports"]
+            }
           },
           "additionalProperties": false
         }
@@ -61,13 +133,22 @@
     },
 
     "breadcrumb_config": {
-      "description": "Breadcrumb settings or false to disable.",
+      "description": "Breadcrumb settings controlling the breadcrumb trail on detail and form pages. When omitted, default breadcrumbs are shown. Set to false to disable breadcrumbs entirely.",
       "oneOf": [
-        { "type": "boolean", "const": false },
+        {
+          "type": "boolean",
+          "const": false,
+          "description": "Disable breadcrumbs entirely for this view group."
+        },
         {
           "type": "object",
+          "description": "Breadcrumb configuration with optional parent relation for hierarchical breadcrumbs.",
           "properties": {
-            "relation": { "type": "string" }
+            "relation": {
+              "type": "string",
+              "description": "Name of a belongs_to association on the model. When set, the parent record is included in the breadcrumb trail (e.g., Department > Employee). The parent model must also have a view group for the breadcrumb link to work.",
+              "examples": ["department", "organization_unit", "project", "category"]
+            }
           },
           "additionalProperties": false
         }

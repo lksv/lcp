@@ -2,35 +2,89 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://lcp-ruby.dev/schemas/type.json",
   "title": "LCP Ruby Type Definition",
-  "description": "Schema for custom business type metadata that bundles storage type, transforms, validations, and form hints.",
+  "description": "Schema for custom business type metadata that bundles storage type, transforms, validations, and form hints into a reusable type. Defined in config/lcp_ruby/types/. Fields referencing a custom type inherit its transforms, validations, input_type, and renderer. Field-level settings override type-level settings. Built-in types: email (string + strip/downcase + email input + email_link renderer), phone (string + strip/normalize_phone + tel input + phone_link renderer), url (string + strip/normalize_url + url input + url_link renderer), color (string + strip/downcase + color input + color_swatch renderer).",
   "type": "object",
   "properties": {
-    "name": { "type": "string" },
+    "name": {
+      "type": "string",
+      "description": "Unique type name used to reference this type from model field definitions via type: <name>. Must be unique across all type definitions.",
+      "examples": ["email", "phone", "url", "color", "currency", "percentage", "social_security_number"]
+    },
     "base_type": {
       "type": "string",
-      "enum": ["string", "text", "integer", "float", "decimal", "boolean", "date", "datetime", "enum", "file", "rich_text", "json", "uuid"]
+      "description": "The underlying database column type. Determines the ActiveRecord attribute type, database column type, and default form input behavior.",
+      "enum": ["string", "text", "integer", "float", "decimal", "boolean", "date", "datetime", "enum", "file", "rich_text", "json", "uuid"],
+      "examples": ["string", "decimal", "integer"]
     },
     "transforms": {
       "type": "array",
-      "items": { "type": "string" }
+      "description": "Transform service keys applied to the field value on assignment via ActiveRecord normalizes. Field-level transforms are merged (union) with type-level transforms. Built-in transforms: 'strip' (remove whitespace), 'downcase' (lowercase), 'normalize_url' (prepend https://), 'normalize_phone' (strip non-digits, keep leading +). Custom transforms registered in Services::Registry.",
+      "items": { "type": "string" },
+      "default": [],
+      "examples": [["strip", "downcase"], ["strip", "normalize_phone"], ["strip", "normalize_url"]]
     },
     "validations": {
       "type": "array",
-      "items": { "$ref": "#/$defs/validation" }
+      "description": "Default validations applied to all fields of this type. Field-level validations of the same type override (not merge with) type-level validations. Built-in type validations include allow_blank: true so they only validate when a value is present.",
+      "items": { "$ref": "#/$defs/validation" },
+      "default": [],
+      "examples": [
+        [{ "type": "format", "options": { "with": "\\A[^@\\s]+@[^@\\s]+\\z" }, "message": "is not a valid email" }],
+        [{ "type": "length", "options": { "maximum": 50 } }]
+      ]
     },
-    "input_type": { "type": "string" },
-    "renderer": { "type": "string" },
+    "input_type": {
+      "type": "string",
+      "description": "Default HTML input type for form fields of this type. Overridden by field-level or presenter-level input_type. Resolution chain: presenter field input_type > type input_type > base field type.",
+      "examples": ["email", "tel", "url", "color", "number", "password"]
+    },
+    "renderer": {
+      "type": "string",
+      "description": "Default display renderer for show/index views. Overridden by field-level or presenter-level renderer. When omitted, the value is displayed as plain text. Must be a registered renderer name.",
+      "examples": ["email_link", "phone_link", "url_link", "color_swatch", "currency", "percentage"]
+    },
     "column_options": {
       "type": "object",
+      "description": "Default database column options applied when creating the column. Field-level column_options override type-level options for the same keys.",
       "properties": {
-        "limit": { "type": "integer" },
-        "null": { "type": "boolean" },
-        "precision": { "type": "integer" },
-        "scale": { "type": "integer" }
+        "limit": {
+          "type": "integer",
+          "description": "Maximum column length in characters (for string columns) or bytes.",
+          "examples": [7, 50, 255, 2048]
+        },
+        "null": {
+          "type": "boolean",
+          "description": "Whether the column allows NULL values. When false, a NOT NULL constraint is added.",
+          "examples": [false, true]
+        },
+        "precision": {
+          "type": "integer",
+          "description": "Total number of significant digits (for decimal/numeric columns).",
+          "examples": [10, 15]
+        },
+        "scale": {
+          "type": "integer",
+          "description": "Number of digits after the decimal point (for decimal/numeric columns).",
+          "examples": [2, 4]
+        }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "default": {},
+      "examples": [
+        { "limit": 255 },
+        { "limit": 7, "null": false },
+        { "precision": 10, "scale": 2 }
+      ]
     },
-    "html_input_attrs": { "type": "object" }
+    "html_input_attrs": {
+      "type": "object",
+      "description": "Additional HTML attributes added to form input elements for fields of this type. Useful for browser-level hints like autocomplete, placeholder patterns, or inputmode. Reserved for future view partial integration.",
+      "default": {},
+      "examples": [
+        { "autocomplete": "email" },
+        { "inputmode": "tel", "pattern": "[0-9+\\-\\s]+" }
+      ]
+    }
   },
   "required": ["name", "base_type"],
   "additionalProperties": false,
@@ -38,13 +92,29 @@
   "$defs": {
     "validation": {
       "type": "object",
+      "description": "A validation rule applied to field values. Corresponds to ActiveModel validation types. Type-level validations include allow_blank: true by default.",
       "properties": {
         "type": {
           "type": "string",
-          "enum": ["presence", "length", "numericality", "format", "inclusion", "exclusion", "uniqueness", "confirmation", "custom", "comparison", "service"]
+          "description": "The validation type. Maps to ActiveModel validators: presence, length (min/max), numericality (gt/lt/eq), format (regex), inclusion/exclusion (allowed/disallowed values), uniqueness (DB unique check), confirmation (field_confirmation match), comparison (compare two fields), custom (custom validator class), service (delegated to registered service).",
+          "enum": ["presence", "length", "numericality", "format", "inclusion", "exclusion", "uniqueness", "confirmation", "custom", "comparison", "service"],
+          "examples": ["presence", "format", "length", "numericality"]
         },
-        "options": { "type": "object" },
-        "message": { "type": "string" }
+        "options": {
+          "type": "object",
+          "description": "Validation options passed to the ActiveModel validator. Keys depend on the validation type: length accepts minimum/maximum/is, numericality accepts greater_than/less_than/equal_to, format accepts with (regex pattern), inclusion/exclusion accept in (array of values).",
+          "examples": [
+            { "maximum": 255 },
+            { "with": "\\A[^@\\s]+@[^@\\s]+\\z" },
+            { "greater_than": 0 },
+            { "in": ["active", "inactive", "pending"] }
+          ]
+        },
+        "message": {
+          "type": "string",
+          "description": "Custom error message when validation fails. Overrides the default ActiveModel message. Supports i18n interpolation.",
+          "examples": ["is not a valid email", "must be positive", "is too long"]
+        }
       },
       "required": ["type"],
       "additionalProperties": false

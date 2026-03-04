@@ -2,22 +2,43 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://lcp-ruby.dev/schemas/permission.json",
   "title": "LCP Ruby Permission Definition",
-  "description": "Schema for permission metadata that defines role-based access control: CRUD, field visibility, scopes, and record rules.",
+  "description": "Schema for permission metadata that defines role-based access control. Each permission file maps to one model and defines what each role can do: CRUD operations, field visibility, data scopes, and record-level rules. Defined in config/lcp_ruby/permissions/.",
   "type": "object",
   "properties": {
-    "model": { "type": "string" },
-    "default_role": { "type": "string" },
+    "model": {
+      "type": "string",
+      "description": "The model this permission applies to. Must match a model name from config/lcp_ruby/models/.",
+      "examples": ["employee", "deal"]
+    },
+    "default_role": {
+      "type": "string",
+      "description": "Role assigned to users who don't match any other role. Falls back to denying all access if omitted.",
+      "examples": ["viewer", "guest"]
+    },
     "roles": {
       "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/role_config" }
+      "description": "Role definitions. Keys are role names, values define what the role can do.",
+      "additionalProperties": { "$ref": "#/$defs/role_config" },
+      "examples": [{
+        "admin": { "crud": ["index", "show", "create", "update", "destroy"], "fields": { "readable": "all", "writable": "all" }, "scope": "all" },
+        "viewer": { "crud": ["index", "show"], "fields": { "readable": "all", "writable": [] } }
+      }]
     },
     "field_overrides": {
       "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/field_override" }
+      "description": "Per-field access overrides that apply across roles. Useful for restricting sensitive fields (e.g., salary) to specific roles without duplicating the field list in every role.",
+      "additionalProperties": { "$ref": "#/$defs/field_override" },
+      "examples": [{ "salary": { "readable_by": ["admin", "hr_manager"], "writable_by": ["admin"] } }]
     },
     "record_rules": {
       "type": "array",
-      "items": { "$ref": "#/$defs/record_rule" }
+      "description": "Record-level rules that deny CRUD operations based on field conditions. Evaluated per-record at runtime (e.g., deny editing archived records).",
+      "items": { "$ref": "#/$defs/record_rule" },
+      "examples": [[{
+        "name": "archived_readonly",
+        "condition": { "field": "status", "operator": "eq", "value": "archived" },
+        "effect": { "deny_crud": ["update", "destroy"], "except_roles": ["admin"] }
+      }]]
     }
   },
   "required": ["model", "roles"],
@@ -26,15 +47,19 @@
   "$defs": {
     "crud_action": {
       "type": "string",
+      "description": "A CRUD operation. 'restore' and 'permanently_destroy' are only relevant for soft-deleted models.",
       "enum": ["index", "show", "create", "update", "destroy", "restore", "permanently_destroy"]
     },
 
     "role_config": {
       "type": "object",
+      "description": "Access configuration for a single role.",
       "properties": {
         "crud": {
           "type": "array",
-          "items": { "$ref": "#/$defs/crud_action" }
+          "description": "List of CRUD operations this role can perform.",
+          "items": { "$ref": "#/$defs/crud_action" },
+          "examples": [["index", "show", "create", "update", "destroy"], ["index", "show"]]
         },
         "fields": { "$ref": "#/$defs/field_access" },
         "actions": { "$ref": "#/$defs/actions_access" },
@@ -46,15 +71,27 @@
 
     "field_access": {
       "type": "object",
+      "description": "Which fields this role can read and write.",
       "properties": {
-        "readable": { "$ref": "#/$defs/field_list" },
-        "writable": { "$ref": "#/$defs/field_list" }
+        "readable": {
+          "$ref": "#/$defs/field_list",
+          "description": "Fields this role can see. 'all' grants access to every field."
+        },
+        "writable": {
+          "$ref": "#/$defs/field_list",
+          "description": "Fields this role can modify. 'all' grants write access to every field. Empty array means read-only."
+        }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "examples": [
+        { "readable": "all", "writable": "all" },
+        { "readable": "all", "writable": ["name", "email", "department_id"] },
+        { "readable": ["name", "email"], "writable": [] }
+      ]
     },
 
     "field_list": {
-      "description": "\"all\" or array of field names.",
+      "description": "'all' for unrestricted access, or an explicit array of field names.",
       "oneOf": [
         { "type": "string", "const": "all" },
         { "type": "array", "items": { "type": "string" } }
@@ -62,13 +99,14 @@
     },
 
     "actions_access": {
-      "description": "\"all\" or object with allowed/denied action lists.",
+      "description": "Custom action permissions. 'all' grants access to every custom action. Object form allows explicit allowed/denied lists.",
       "oneOf": [
         { "type": "string", "const": "all" },
         {
           "type": "object",
           "properties": {
             "allowed": {
+              "description": "'all' or array of action names this role can execute.",
               "oneOf": [
                 { "type": "string", "const": "all" },
                 { "type": "array", "items": { "type": "string" } }
@@ -76,16 +114,18 @@
             },
             "denied": {
               "type": "array",
-              "items": { "type": "string" }
+              "items": { "type": "string" },
+              "description": "Action names explicitly denied for this role (takes precedence over allowed)."
             }
           },
           "additionalProperties": false
         }
-      ]
+      ],
+      "examples": ["all", { "allowed": ["archive", "export"], "denied": [] }]
     },
 
     "scope_config": {
-      "description": "\"all\" or scope configuration object.",
+      "description": "Data scope limiting which records this role can see. 'all' means no restriction. Object form defines the scoping strategy.",
       "oneOf": [
         { "type": "string", "const": "all" },
         {
@@ -93,57 +133,120 @@
           "properties": {
             "type": {
               "type": "string",
+              "description": "Scoping strategy. 'field_match' compares a record field to a value. 'association' filters by user's associated records. 'where' applies raw conditions. 'custom' delegates to host app.",
               "enum": ["field_match", "association", "where", "custom"]
             },
-            "field": { "type": "string" },
-            "value": { "type": "string" },
-            "user_field": { "type": "string" },
-            "method": { "type": "string" },
-            "conditions": { "type": "object" }
+            "field": {
+              "type": "string",
+              "description": "For field_match/association: the column on the model to filter by.",
+              "examples": ["owner_id", "department_id", "organization_unit_id"]
+            },
+            "value": {
+              "type": "string",
+              "description": "For field_match: the value to match against. Use 'current_user_id' for the logged-in user's ID.",
+              "examples": ["current_user_id"]
+            },
+            "user_field": {
+              "type": "string",
+              "description": "For association: the field on the user record to read the matching value from.",
+              "examples": ["organization_unit_id", "department_id"]
+            },
+            "method": {
+              "type": "string",
+              "description": "For association: method to call on the user to get associated values (e.g., user.department_ids).",
+              "examples": ["department_ids", "managed_team_ids"]
+            },
+            "conditions": {
+              "type": "object",
+              "description": "For where: raw conditions hash passed to ActiveRecord where().",
+              "examples": [{ "published": true }]
+            }
           },
           "additionalProperties": false
         }
+      ],
+      "examples": [
+        "all",
+        { "type": "field_match", "field": "owner_id", "value": "current_user_id" },
+        { "type": "association", "field": "department_id", "method": "department_ids" },
+        { "type": "association", "field": "organization_unit_id", "user_field": "organization_unit_id" }
       ]
     },
 
     "presenter_access": {
-      "description": "\"all\" or array of presenter names.",
+      "description": "Which presenters this role can access for the model. 'all' grants access to every presenter. Array form limits to specific presenter names.",
       "oneOf": [
         { "type": "string", "const": "all" },
         { "type": "array", "items": { "type": "string" } }
-      ]
+      ],
+      "examples": ["all", ["employees", "employees_directory"]]
     },
 
     "field_override": {
       "type": "object",
+      "description": "Per-field access override applied across all roles.",
       "properties": {
-        "readable_by": { "type": "array", "items": { "type": "string" } },
-        "writable_by": { "type": "array", "items": { "type": "string" } },
-        "masked_for": { "type": "array", "items": { "type": "string" } }
+        "readable_by": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Only these roles can read this field. Other roles see it as hidden.",
+          "examples": [["admin", "hr_manager"]]
+        },
+        "writable_by": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Only these roles can modify this field. Other roles see it as read-only.",
+          "examples": [["admin"]]
+        },
+        "masked_for": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "These roles see a masked value (e.g., '****') instead of the real value.",
+          "examples": [["viewer", "guest"]]
+        }
       },
       "additionalProperties": false
     },
 
     "record_rule": {
       "type": "object",
+      "description": "A record-level access rule that denies specific CRUD operations when a field condition is met. Automatically hides edit/destroy buttons on matching records.",
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string",
+          "description": "Rule identifier for debugging and error messages.",
+          "examples": ["archived_readonly", "locked_no_delete"]
+        },
         "condition": { "$ref": "#/$defs/rule_condition" },
         "effect": { "$ref": "#/$defs/rule_effect" }
       },
       "required": ["name", "condition", "effect"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "examples": [{
+        "name": "archived_readonly",
+        "condition": { "field": "status", "operator": "eq", "value": "archived" },
+        "effect": { "deny_crud": ["update", "destroy"], "except_roles": ["admin"] }
+      }]
     },
 
     "rule_condition": {
       "type": "object",
+      "description": "Field condition evaluated per-record. Supports all 12 condition operators.",
       "properties": {
-        "field": { "type": "string" },
+        "field": {
+          "type": "string",
+          "description": "Field name on the record to evaluate.",
+          "examples": ["status", "locked", "approved_at"]
+        },
         "operator": {
           "type": "string",
+          "description": "Comparison operator.",
           "enum": ["eq", "not_eq", "neq", "in", "not_in", "gt", "gte", "lt", "lte", "present", "blank", "matches", "not_matches"]
         },
-        "value": {}
+        "value": {
+          "description": "Value to compare against. Type depends on the operator (string, number, array for 'in'/'not_in', omitted for 'present'/'blank').",
+          "examples": ["archived", true, ["draft", "pending"]]
+        }
       },
       "required": ["field", "operator"],
       "additionalProperties": false
@@ -151,14 +254,19 @@
 
     "rule_effect": {
       "type": "object",
+      "description": "What happens when the rule condition matches.",
       "properties": {
         "deny_crud": {
           "type": "array",
-          "items": { "$ref": "#/$defs/crud_action" }
+          "description": "CRUD operations denied on matching records.",
+          "items": { "$ref": "#/$defs/crud_action" },
+          "examples": [["update", "destroy"]]
         },
         "except_roles": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Roles exempt from this rule (e.g., admin can still edit archived records).",
+          "examples": [["admin", "superadmin"]]
         }
       },
       "required": ["deny_crud"],

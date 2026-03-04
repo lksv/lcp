@@ -2,59 +2,92 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://lcp-ruby.dev/schemas/model.json",
   "title": "LCP Ruby Model Definition",
-  "description": "Schema for model metadata that defines database structure, validations, associations, scopes, and events.",
+  "description": "Schema for model metadata that defines database structure, validations, associations, scopes, and events. Models are defined in config/lcp_ruby/models/ as YAML files or via Ruby DSL.",
   "type": "object",
   "properties": {
-    "name": { "type": "string" },
-    "label": { "type": "string" },
-    "label_plural": { "type": "string" },
-    "table_name": { "type": "string" },
+    "name": {
+      "type": "string",
+      "description": "Unique model identifier. Used to reference the model from presenters, permissions, and associations.",
+      "examples": ["employee", "todo_item", "deal"]
+    },
+    "label": {
+      "type": "string",
+      "description": "Human-readable singular name for the model. Falls back to humanized name if omitted.",
+      "examples": ["Employee", "Todo Item"]
+    },
+    "label_plural": {
+      "type": "string",
+      "description": "Human-readable plural name for the model. Falls back to Rails pluralization of label.",
+      "examples": ["Employees", "Todo Items"]
+    },
+    "table_name": {
+      "type": "string",
+      "description": "Override the database table name. Defaults to Rails convention (pluralized snake_case). Use '_virtual' for metadata-only models (no AR class or DB table).",
+      "examples": ["hr_employees", "_virtual"]
+    },
     "fields": {
       "type": "array",
+      "description": "Database columns and their configuration. Each field becomes an ActiveRecord attribute with optional validations and transforms.",
       "items": { "$ref": "#/$defs/field" }
     },
     "associations": {
       "type": "array",
+      "description": "ActiveRecord associations (belongs_to, has_many, has_one) with other LCP models or external AR classes.",
       "items": { "$ref": "#/$defs/association" }
     },
     "validations": {
       "type": "array",
+      "description": "Model-level validations not attached to a specific field (e.g., cross-field comparisons, custom validators).",
       "items": { "$ref": "#/$defs/validation" }
     },
     "scopes": {
       "type": "array",
+      "description": "Named query scopes for filtering records. Simple scopes use where/order/limit; complex scopes use type: custom or type: parameterized.",
       "items": { "$ref": "#/$defs/scope" }
     },
     "events": {
       "type": "array",
+      "description": "Lifecycle and field-change events dispatched to registered handlers in app/event_handlers/.",
       "items": { "$ref": "#/$defs/event" }
     },
     "display_templates": {
       "type": "object",
-      "additionalProperties": { "$ref": "#/$defs/display_template" }
+      "description": "Named templates for rendering model records in different contexts (e.g., association lists, search results). Keys are template names.",
+      "additionalProperties": { "$ref": "#/$defs/display_template" },
+      "examples": [{ "default": { "template": "{first_name} {last_name}", "subtitle": "{department}", "icon": "user" } }]
     },
     "options": { "$ref": "#/$defs/model_options" },
     "positioning": {
+      "description": "Enable drag-and-drop record ordering via the positioning gem. true uses defaults; object form allows customization.",
       "oneOf": [
         { "type": "boolean", "const": true },
         {
           "type": "object",
           "properties": {
-            "field": { "type": "string" },
+            "field": {
+              "type": "string",
+              "description": "Column name storing the position integer.",
+              "default": "position"
+            },
             "scope": {
+              "description": "Scope positioning within a parent (e.g., position per category). String for single scope, array for composite.",
               "oneOf": [
                 { "type": "string" },
                 { "type": "array", "items": { "type": "string" } }
-              ]
+              ],
+              "examples": ["category_id", ["project_id", "sprint_id"]]
             }
           },
           "additionalProperties": false
         }
-      ]
+      ],
+      "examples": [true, { "field": "sort_order", "scope": "department_id" }]
     },
     "indexes": {
       "type": "array",
-      "items": { "$ref": "#/$defs/index" }
+      "description": "Database indexes to create on the model's table. SchemaManager creates these at boot alongside the table.",
+      "items": { "$ref": "#/$defs/index" },
+      "examples": [[{ "columns": ["status", "created_at"] }, { "columns": ["email"], "unique": true }]]
     }
   },
   "required": ["name"],
@@ -63,70 +96,160 @@
   "$defs": {
     "model_options": {
       "type": "object",
+      "description": "Model-wide feature toggles and configuration.",
       "properties": {
-        "timestamps": { "type": "boolean" },
-        "label_method": { "type": "string" },
-        "custom_fields": { "type": "boolean" },
+        "timestamps": {
+          "type": "boolean",
+          "description": "Add created_at and updated_at columns.",
+          "default": true
+        },
+        "label_method": {
+          "type": "string",
+          "description": "Method called on a record to produce its display label (used in association selects, display templates, etc.).",
+          "default": "to_s",
+          "examples": ["name", "title", "full_name"]
+        },
+        "custom_fields": {
+          "type": "boolean",
+          "description": "Enable runtime user-defined custom fields stored in a JSON column. Requires the custom_fields generator.",
+          "default": false
+        },
         "soft_delete": {
+          "description": "Enable soft delete (discard/restore) instead of permanent destruction. Records are marked with a timestamp column rather than deleted.",
           "oneOf": [
             { "type": "boolean", "const": true },
             {
               "type": "object",
               "properties": {
-                "column": { "type": "string" }
+                "column": {
+                  "type": "string",
+                  "description": "Name of the timestamp column for soft delete.",
+                  "default": "discarded_at"
+                }
               },
               "additionalProperties": false
             }
-          ]
+          ],
+          "examples": [true, { "column": "archived_at" }]
         },
         "auditing": {
+          "description": "Enable change tracking. Records field-level diffs on create/update/destroy into an audit log model.",
           "oneOf": [
             { "type": "boolean", "const": true },
             {
               "type": "object",
               "properties": {
-                "only": { "type": "array", "items": { "type": "string" } },
-                "ignore": { "type": "array", "items": { "type": "string" } },
-                "track_associations": { "type": "boolean" },
-                "track_attachments": { "type": "boolean" },
-                "expand_custom_fields": { "type": "boolean" },
-                "expand_json_fields": { "type": "array", "items": { "type": "string" } }
+                "only": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Whitelist: only track changes to these fields. Mutually exclusive with 'ignore'."
+                },
+                "ignore": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Blacklist: track all fields except these."
+                },
+                "track_associations": {
+                  "type": "boolean",
+                  "description": "Include association FK changes in audit diffs."
+                },
+                "track_attachments": {
+                  "type": "boolean",
+                  "description": "Include Active Storage attachment changes in audit diffs."
+                },
+                "expand_custom_fields": {
+                  "type": "boolean",
+                  "description": "Expand custom_fields JSON column into individual field diffs instead of logging raw JSON."
+                },
+                "expand_json_fields": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "List of JSON column names to expand into individual key diffs.",
+                  "examples": [["properties", "metadata"]]
+                }
               },
               "additionalProperties": false
             }
-          ]
+          ],
+          "examples": [true, { "ignore": ["updated_at", "position"], "expand_custom_fields": true }]
         },
         "userstamps": {
+          "description": "Automatically track which user created/updated each record via FK columns pointing to the user model.",
           "oneOf": [
             { "type": "boolean", "const": true },
             {
               "type": "object",
               "properties": {
-                "created_by": { "type": "string" },
-                "updated_by": { "type": "string" },
-                "store_name": { "type": "boolean" }
+                "created_by": {
+                  "type": "string",
+                  "description": "FK column name for the creating user.",
+                  "default": "created_by_id"
+                },
+                "updated_by": {
+                  "type": "string",
+                  "description": "FK column name for the last updating user.",
+                  "default": "updated_by_id"
+                },
+                "store_name": {
+                  "type": "boolean",
+                  "description": "Also store the user's display name in a separate column (e.g., created_by_name) as a snapshot for display without joins.",
+                  "default": false
+                }
               },
               "additionalProperties": false
             }
-          ]
+          ],
+          "examples": [true, { "store_name": true }, { "created_by": "author_id", "updated_by": "editor_id" }]
         },
         "tree": {
+          "description": "Enable self-referential tree hierarchy with parent/children associations, traversal methods, and cycle detection.",
           "oneOf": [
             { "type": "boolean", "const": true },
             {
               "type": "object",
               "properties": {
-                "parent_field": { "type": "string" },
-                "children_name": { "type": "string" },
-                "parent_name": { "type": "string" },
-                "dependent": { "type": "string", "enum": ["destroy", "nullify", "restrict_with_exception", "restrict_with_error", "discard"] },
-                "max_depth": { "type": "integer", "minimum": 1 },
-                "ordered": { "type": "boolean" },
-                "position_field": { "type": "string" }
+                "parent_field": {
+                  "type": "string",
+                  "description": "FK column pointing to the parent record. Must be declared in fields as integer type.",
+                  "default": "parent_id"
+                },
+                "children_name": {
+                  "type": "string",
+                  "description": "Name of the auto-generated has_many association for child records.",
+                  "default": "children"
+                },
+                "parent_name": {
+                  "type": "string",
+                  "description": "Name of the auto-generated belongs_to association for the parent record.",
+                  "default": "parent"
+                },
+                "dependent": {
+                  "type": "string",
+                  "description": "What happens to children when a parent is destroyed.",
+                  "enum": ["destroy", "nullify", "restrict_with_exception", "restrict_with_error", "discard"],
+                  "default": "destroy"
+                },
+                "max_depth": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Maximum nesting depth for cycle detection and traversal limits.",
+                  "default": 10
+                },
+                "ordered": {
+                  "type": "boolean",
+                  "description": "Enable position-based ordering of siblings within the same parent. Requires a position field.",
+                  "default": false
+                },
+                "position_field": {
+                  "type": "string",
+                  "description": "Column name for sibling ordering when ordered: true.",
+                  "default": "position"
+                }
               },
               "additionalProperties": false
             }
-          ]
+          ],
+          "examples": [true, { "parent_field": "manager_id", "children_name": "subordinates", "ordered": true }]
         }
       },
       "additionalProperties": false
@@ -134,39 +257,74 @@
 
     "field": {
       "type": "object",
+      "description": "A database column with type, validations, and optional transforms.",
       "properties": {
-        "name": { "type": "string" },
-        "type": { "type": "string" },
-        "label": { "type": "string" },
-        "default": {},
+        "name": {
+          "type": "string",
+          "description": "Column name in the database. Must be unique within the model.",
+          "examples": ["title", "email", "hire_date", "salary"]
+        },
+        "type": {
+          "type": "string",
+          "description": "Data type. Base types: string, text, integer, float, decimal, boolean, date, datetime, enum, file, rich_text, json, uuid, attachment. Custom types (email, phone, url, color) and user-defined types from config/lcp_ruby/types/ are also valid.",
+          "examples": ["string", "integer", "boolean", "date", "enum", "email", "attachment"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label. Falls back to humanized field name."
+        },
+        "default": {
+          "description": "Default value for new records. Type must match the field type."
+        },
         "transforms": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Value transforms applied before save: strip, downcase, upcase, normalize_url, normalize_phone, etc.",
+          "examples": [["strip", "downcase"]]
         },
         "column_options": { "$ref": "#/$defs/column_options" },
         "validations": {
           "type": "array",
-          "items": { "$ref": "#/$defs/validation" }
+          "items": { "$ref": "#/$defs/validation" },
+          "description": "Field-level validations applied to this column."
         },
         "enum_values": {
           "type": "array",
-          "items": {}
+          "items": {},
+          "description": "For enum fields: list of allowed values. Can be strings or {value, label} objects.",
+          "examples": [["draft", "active", "archived"], [{ "value": "m", "label": "Male" }, { "value": "f", "label": "Female" }]]
         },
-        "computed": { "type": ["string", "object"] },
-        "options": { "type": "object" },
+        "computed": {
+          "type": ["string", "object"],
+          "description": "Read-only computed field. String form is a Ruby expression; object form uses a service.",
+          "examples": ["first_name + ' ' + last_name"]
+        },
+        "options": {
+          "type": "object",
+          "description": "Type-specific options. For attachments: content_type, max_size, max_files, variants. For other types: custom options passed to the type handler.",
+          "examples": [{ "content_type": ["image/png", "image/jpeg"], "max_size": 5242880 }]
+        },
         "source": {
+          "description": "Data source for virtual/external fields. 'external' means the field is not backed by a DB column. Object form uses a service (e.g., json_field extractor).",
           "oneOf": [
             { "type": "string" },
             {
               "type": "object",
               "properties": {
-                "service": { "type": "string" },
-                "options": { "type": "object" }
+                "service": {
+                  "type": "string",
+                  "description": "Data provider service name from app/lcp_services/data_providers/."
+                },
+                "options": {
+                  "type": "object",
+                  "description": "Options passed to the data provider service."
+                }
               },
               "required": ["service"],
               "additionalProperties": false
             }
-          ]
+          ],
+          "examples": ["external", { "service": "json_field", "options": { "column": "properties", "key": "color" } }]
         }
       },
       "required": ["name", "type"],
@@ -175,30 +333,79 @@
 
     "column_options": {
       "type": "object",
+      "description": "Database column options passed directly to the Rails migration column definition.",
       "properties": {
-        "limit": { "type": "integer" },
-        "null": { "type": "boolean" },
-        "precision": { "type": "integer" },
-        "scale": { "type": "integer" }
+        "limit": {
+          "type": "integer",
+          "description": "Maximum length for string columns or byte size for binary columns.",
+          "examples": [255, 1000]
+        },
+        "null": {
+          "type": "boolean",
+          "description": "Whether the column allows NULL values.",
+          "default": true
+        },
+        "precision": {
+          "type": "integer",
+          "description": "Total number of digits for decimal columns.",
+          "examples": [10, 15]
+        },
+        "scale": {
+          "type": "integer",
+          "description": "Number of digits after the decimal point for decimal columns.",
+          "examples": [2, 4]
+        }
       },
       "additionalProperties": false
     },
 
     "validation": {
       "type": "object",
+      "description": "A validation rule applied to a field or at model level.",
       "properties": {
         "type": {
           "type": "string",
+          "description": "Validation type. Maps to Rails validators (e.g., presence → validates_presence_of).",
           "enum": ["presence", "length", "numericality", "format", "inclusion", "exclusion", "uniqueness", "confirmation", "custom", "comparison", "service"]
         },
-        "options": { "type": "object" },
-        "when": { "$ref": "#/$defs/condition" },
-        "message": { "type": "string" },
-        "validator_class": { "type": "string" },
-        "field_ref": { "type": "string" },
-        "operator": { "type": "string" },
-        "service": { "type": "string" },
-        "field": { "type": "string" }
+        "options": {
+          "type": "object",
+          "description": "Options passed to the validator (e.g., {minimum: 3} for length, {greater_than: 0} for numericality).",
+          "examples": [{ "minimum": 1, "maximum": 255 }, { "greater_than": 0 }]
+        },
+        "when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditional validation — only runs when the condition is met."
+        },
+        "message": {
+          "type": "string",
+          "description": "Custom error message override.",
+          "examples": ["must be at least 3 characters"]
+        },
+        "validator_class": {
+          "type": "string",
+          "description": "Fully qualified class name for type: custom validators.",
+          "examples": ["PhoneNumberValidator"]
+        },
+        "field_ref": {
+          "type": "string",
+          "description": "Reference to another field for cross-field validations (e.g., comparison).",
+          "examples": ["start_date"]
+        },
+        "operator": {
+          "type": "string",
+          "description": "Comparison operator for cross-field validations.",
+          "examples": ["gt", "gte", "lt", "lte"]
+        },
+        "service": {
+          "type": "string",
+          "description": "Service class name for type: service validations.",
+          "examples": ["EmailDomainValidator"]
+        },
+        "field": {
+          "type": "string",
+          "description": "Target field name for model-level validations (when validation is not nested under a field)."
+        }
       },
       "required": ["type"],
       "additionalProperties": false
@@ -206,27 +413,89 @@
 
     "association": {
       "type": "object",
+      "description": "An ActiveRecord association linking this model to another model.",
       "properties": {
         "type": {
           "type": "string",
+          "description": "Association type.",
           "enum": ["belongs_to", "has_many", "has_one"]
         },
-        "name": { "type": "string" },
-        "target_model": { "type": "string" },
-        "class_name": { "type": "string" },
-        "foreign_key": { "type": "string" },
-        "dependent": { "type": "string", "enum": ["destroy", "delete", "delete_all", "nullify", "restrict_with_exception", "restrict_with_error", "discard"] },
-        "required": { "type": "boolean" },
-        "inverse_of": { "type": "string" },
-        "counter_cache": { "type": ["string", "boolean"] },
-        "touch": { "type": ["string", "boolean"] },
-        "polymorphic": { "type": "boolean" },
-        "as": { "type": "string" },
-        "through": { "type": "string" },
-        "source": { "type": "string" },
-        "autosave": { "type": "boolean" },
-        "validate": { "type": "boolean" },
-        "order": { "type": "object" },
+        "name": {
+          "type": "string",
+          "description": "Association name used in code and presenter references.",
+          "examples": ["department", "employees", "manager"]
+        },
+        "target_model": {
+          "type": "string",
+          "description": "Name of the associated LCP model. Omit for non-LCP (external AR) classes.",
+          "examples": ["department", "employee"]
+        },
+        "class_name": {
+          "type": "string",
+          "description": "Explicit AR class name. Use when the association name doesn't match the model (e.g., 'manager' → 'User').",
+          "examples": ["User", "LcpRuby::Dynamic::Employee"]
+        },
+        "foreign_key": {
+          "type": "string",
+          "description": "FK column name. Defaults to Rails convention ({name}_id for belongs_to).",
+          "examples": ["manager_id", "department_id"]
+        },
+        "dependent": {
+          "type": "string",
+          "description": "Behavior when the owning record is destroyed.",
+          "enum": ["destroy", "delete", "delete_all", "nullify", "restrict_with_exception", "restrict_with_error", "discard"]
+        },
+        "required": {
+          "type": "boolean",
+          "description": "For belongs_to: make the association mandatory (adds presence validation on FK)."
+        },
+        "inverse_of": {
+          "type": "string",
+          "description": "Name of the reciprocal association on the target model. Helps Rails avoid extra queries.",
+          "examples": ["employees", "department"]
+        },
+        "counter_cache": {
+          "type": ["string", "boolean"],
+          "description": "For belongs_to: maintain a counter column on the parent. true uses Rails convention ({plural}_count), string overrides the column name.",
+          "examples": [true, "members_count"]
+        },
+        "touch": {
+          "type": ["string", "boolean"],
+          "description": "For belongs_to: touch the parent's updated_at when this record changes. String form touches a specific column.",
+          "examples": [true, "last_activity_at"]
+        },
+        "polymorphic": {
+          "type": "boolean",
+          "description": "For belongs_to: enable polymorphic association (stores type + id)."
+        },
+        "as": {
+          "type": "string",
+          "description": "For has_many/has_one: the polymorphic interface name on the target model.",
+          "examples": ["commentable", "attachable"]
+        },
+        "through": {
+          "type": "string",
+          "description": "For has_many :through — name of the join association on this model.",
+          "examples": ["employee_skills"]
+        },
+        "source": {
+          "type": "string",
+          "description": "For has_many :through — source association name on the join model when it differs from the association name.",
+          "examples": ["skill"]
+        },
+        "autosave": {
+          "type": "boolean",
+          "description": "Automatically save associated records when the parent is saved."
+        },
+        "validate": {
+          "type": "boolean",
+          "description": "Run validations on associated records when saving."
+        },
+        "order": {
+          "type": "object",
+          "description": "Default ordering for the association (e.g., {created_at: 'desc'}).",
+          "examples": [{ "created_at": "desc" }, { "position": "asc" }]
+        },
         "nested_attributes": { "$ref": "#/$defs/nested_attributes" }
       },
       "required": ["type", "name"],
@@ -235,45 +504,121 @@
 
     "nested_attributes": {
       "type": "object",
+      "description": "Enable accepts_nested_attributes_for on this association, allowing form-based editing of associated records.",
       "properties": {
-        "allow_destroy": { "type": "boolean" },
-        "reject_if": { "type": "string" },
-        "limit": { "type": "integer" },
-        "update_only": { "type": "boolean" }
+        "allow_destroy": {
+          "type": "boolean",
+          "description": "Allow removing associated records via _destroy param."
+        },
+        "reject_if": {
+          "type": "string",
+          "description": "Proc name or :all_blank to reject empty nested records.",
+          "examples": ["all_blank"]
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of nested records allowed."
+        },
+        "update_only": {
+          "type": "boolean",
+          "description": "Only allow updating existing records, not creating new ones."
+        }
       },
       "additionalProperties": false
     },
 
     "scope": {
       "type": "object",
+      "description": "A named query scope for filtering records.",
       "properties": {
-        "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["custom", "parameterized"] },
-        "where": { "type": "object" },
-        "where_not": { "type": "object" },
-        "order": { "type": "object" },
-        "limit": { "type": "integer" },
+        "name": {
+          "type": "string",
+          "description": "Scope name. Used in predefined filters, permission scopes, and URL params.",
+          "examples": ["active", "recent", "by_department"]
+        },
+        "type": {
+          "type": "string",
+          "description": "'custom' means implemented in the host app as a class method. 'parameterized' accepts typed parameters from the UI.",
+          "enum": ["custom", "parameterized"]
+        },
+        "where": {
+          "type": "object",
+          "description": "Simple where clause. Keys are column names, values are match values.",
+          "examples": [{ "status": "active" }, { "published": true }]
+        },
+        "where_not": {
+          "type": "object",
+          "description": "Negated where clause. Generates scope with where.not(...).",
+          "examples": [{ "status": "archived" }]
+        },
+        "order": {
+          "type": "object",
+          "description": "Sort order applied by this scope.",
+          "examples": [{ "created_at": "desc" }]
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of records returned by this scope.",
+          "examples": [10, 50]
+        },
         "parameters": {
           "type": "array",
+          "description": "Parameter definitions for type: parameterized scopes. Each parameter is cast from request params and passed to the scope method.",
           "items": { "$ref": "#/$defs/scope_parameter" }
         }
       },
       "required": ["name"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "examples": [
+        { "name": "active", "where": { "status": "active" } },
+        { "name": "above_value", "type": "parameterized", "parameters": [{ "name": "min_value", "type": "float", "required": true, "min": 0 }] }
+      ]
     },
 
     "scope_parameter": {
       "type": "object",
+      "description": "A typed parameter for a parameterized scope. Values are cast from string request params at runtime.",
       "properties": {
-        "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["integer", "float", "string", "enum", "date", "datetime", "boolean", "model_select"] },
-        "label": { "type": "string" },
-        "required": { "type": "boolean" },
-        "default": {},
-        "values": { "type": "array", "items": { "type": "string" } },
-        "model": { "type": "string" },
-        "min": { "type": "number" },
-        "max": { "type": "number" }
+        "name": {
+          "type": "string",
+          "description": "Parameter name (used as the key in request params).",
+          "examples": ["min_value", "status", "department_id"]
+        },
+        "type": {
+          "type": "string",
+          "description": "Parameter data type. Determines how the raw string value is cast.",
+          "enum": ["integer", "float", "string", "enum", "date", "datetime", "boolean", "model_select"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Human-readable label for the parameter in the filter UI."
+        },
+        "required": {
+          "type": "boolean",
+          "description": "If true, the scope is skipped when this parameter is missing."
+        },
+        "default": {
+          "description": "Default value used when the parameter is not provided."
+        },
+        "values": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "For type: enum — list of allowed values. Input not in this list is rejected.",
+          "examples": [["active", "inactive", "pending"]]
+        },
+        "model": {
+          "type": "string",
+          "description": "For type: model_select — the LCP model name to populate the select dropdown.",
+          "examples": ["department", "category"]
+        },
+        "min": {
+          "type": "number",
+          "description": "For numeric types — minimum allowed value (clamped, not rejected)."
+        },
+        "max": {
+          "type": "number",
+          "description": "For numeric types — maximum allowed value (clamped, not rejected)."
+        }
       },
       "required": ["name", "type"],
       "additionalProperties": false
@@ -281,13 +626,22 @@
 
     "index": {
       "type": "object",
+      "description": "A database index created on the model's table by SchemaManager.",
       "properties": {
         "columns": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Column names included in the index. Order matters for composite indexes.",
+          "examples": [["status", "created_at"], ["email"]]
         },
-        "unique": { "type": "boolean" },
-        "name": { "type": "string" }
+        "unique": {
+          "type": "boolean",
+          "description": "Create a unique index (enforces uniqueness constraint at the DB level)."
+        },
+        "name": {
+          "type": "string",
+          "description": "Custom index name. Auto-generated if omitted."
+        }
       },
       "required": ["columns"],
       "additionalProperties": false
@@ -295,14 +649,28 @@
 
     "event": {
       "type": "object",
+      "description": "A lifecycle or field-change event dispatched to registered handlers in app/event_handlers/.",
       "properties": {
-        "name": { "type": "string" },
+        "name": {
+          "type": "string",
+          "description": "Event name. For lifecycle events: after_create, after_update, before_destroy, after_destroy. For field_change: a custom name.",
+          "examples": ["after_create", "on_status_change"]
+        },
         "type": {
           "type": "string",
+          "description": "Event type. 'lifecycle' fires on AR callbacks; 'field_change' fires when a specific field value changes.",
           "enum": ["lifecycle", "field_change"]
         },
-        "field": { "type": "string" },
-        "condition": { "type": ["string", "object"] }
+        "field": {
+          "type": "string",
+          "description": "For type: field_change — the field name to monitor for changes.",
+          "examples": ["status", "assigned_to_id"]
+        },
+        "condition": {
+          "type": ["string", "object"],
+          "description": "Optional condition that must be met for the event to fire.",
+          "examples": [{ "field": "status", "operator": "eq", "value": "completed" }]
+        }
       },
       "required": ["name"],
       "additionalProperties": false
@@ -310,21 +678,51 @@
 
     "display_template": {
       "type": "object",
+      "description": "Template for rendering a model record in association lists, search results, or menu badges. Uses {field_name} interpolation.",
       "properties": {
-        "template": { "type": "string" },
-        "subtitle": { "type": "string" },
-        "icon": { "type": "string" },
-        "badge": { "type": "string" },
-        "renderer": { "type": "string" },
-        "partial": { "type": "string" },
-        "options": { "type": "object" }
+        "template": {
+          "type": "string",
+          "description": "Text template with {field_name} placeholders.",
+          "examples": ["{first_name} {last_name}", "{name} (#{code})"]
+        },
+        "subtitle": {
+          "type": "string",
+          "description": "Secondary line template shown below the main template.",
+          "examples": ["{department} — {job_title}"]
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon name displayed alongside the template.",
+          "examples": ["user", "briefcase", "folder"]
+        },
+        "badge": {
+          "type": "string",
+          "description": "Field name whose value is rendered as a badge next to the template.",
+          "examples": ["status"]
+        },
+        "renderer": {
+          "type": "string",
+          "description": "Custom renderer name for the entire display template."
+        },
+        "partial": {
+          "type": "string",
+          "description": "ERB partial path for fully custom rendering."
+        },
+        "options": {
+          "type": "object",
+          "description": "Options passed to the renderer or partial."
+        }
       },
       "additionalProperties": false
     },
 
     "condition": {
-      "description": "Conditional trigger: field-based check or service reference.",
-      "type": ["object", "string"]
+      "description": "Conditional trigger: field-based condition object (with field/operator/value keys), service reference, or a method name string.",
+      "type": ["object", "string"],
+      "examples": [
+        { "field": "status", "operator": "eq", "value": "active" },
+        "can_archive?"
+      ]
     }
   }
 }

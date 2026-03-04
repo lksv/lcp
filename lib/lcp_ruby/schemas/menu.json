@@ -2,36 +2,94 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://lcp-ruby.dev/schemas/menu.json",
   "title": "LCP Ruby Menu Definition",
-  "description": "Schema for menu metadata that defines navigation layout: top bar, sidebar, or combined.",
+  "description": "Schema for menu metadata that defines navigation layout. Supports top bar, sidebar, or combined layouts. Defined in config/lcp_ruby/menu.yml. Menu items can reference view groups, contain dropdown children, link to external URLs, or act as visual separators. Items support role-based visibility and dynamic badge counters.",
   "type": "object",
   "properties": {
     "top_menu": {
       "type": "array",
-      "items": { "$ref": "#/$defs/menu_item" }
+      "description": "Items displayed in the horizontal top navigation bar. Rendered left-to-right in array order.",
+      "items": { "$ref": "#/$defs/menu_item" },
+      "examples": [
+        [
+          { "view_group": "employees" },
+          { "label": "Reports", "icon": "chart-bar", "children": [
+            { "view_group": "monthly_reports" },
+            { "view_group": "annual_reports" }
+          ]}
+        ]
+      ]
     },
     "sidebar_menu": {
       "type": "array",
-      "items": { "$ref": "#/$defs/menu_item" }
+      "description": "Items displayed in the vertical sidebar navigation. Rendered top-to-bottom in array order. Items with position: 'bottom' are pinned to the sidebar footer.",
+      "items": { "$ref": "#/$defs/menu_item" },
+      "examples": [
+        [
+          { "view_group": "dashboard" },
+          { "separator": true },
+          { "view_group": "employees", "badge": { "provider": "active_employee_count", "renderer": "count_badge" } },
+          { "view_group": "settings", "icon": "cog", "position": "bottom" }
+        ]
+      ]
     }
   },
   "additionalProperties": false,
 
   "$defs": {
     "menu_item": {
-      "description": "Menu item: separator, view_group reference, group with children, or custom link.",
+      "description": "A navigation menu item. Can be one of: (1) view_group reference — links to a view group's primary presenter, (2) parent with children — dropdown/expandable group, (3) custom link — external URL, (4) separator — visual divider line. Items are displayed in array order.",
       "type": "object",
       "properties": {
-        "separator": { "type": "boolean", "const": true },
-        "view_group": { "type": "string" },
-        "label": { "type": "string" },
-        "icon": { "type": "string" },
-        "url": { "type": "string" },
-        "position": { "type": "string", "enum": ["bottom"] },
-        "visible_when": { "$ref": "#/$defs/visibility_condition" },
-        "badge": { "$ref": "#/$defs/badge_config" },
+        "separator": {
+          "type": "boolean",
+          "const": true,
+          "description": "When true, renders a horizontal divider line instead of a clickable item. All other properties are ignored on separator items.",
+          "examples": [true]
+        },
+        "view_group": {
+          "type": "string",
+          "description": "Name of the view group this item links to. The item inherits the view group's label and icon unless explicitly overridden. Must match a view group name from config/lcp_ruby/view_groups/.",
+          "examples": ["employees", "departments", "deals"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Display text for the menu item. Overrides the view group's default label when both are specified. Required for custom URL links and parent items without a view_group. Resolved via i18n.",
+          "examples": ["Employees", "Reports", "Settings"]
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon identifier displayed before the label. Overrides the view group's default icon. Uses the icon set configured in the host application (e.g., Heroicons, FontAwesome).",
+          "examples": ["users", "chart-bar", "cog", "folder"]
+        },
+        "url": {
+          "type": "string",
+          "description": "Custom URL for the menu item. Use for linking to external pages or host app routes outside the LCP engine. When set, the item does not link to any view group.",
+          "examples": ["/admin/settings", "https://docs.example.com"]
+        },
+        "position": {
+          "type": "string",
+          "enum": ["bottom"],
+          "description": "Special positioning for sidebar items. 'bottom' pins the item to the sidebar footer area (e.g., settings, help links). Only meaningful in sidebar_menu."
+        },
+        "visible_when": {
+          "$ref": "#/$defs/visibility_condition",
+          "description": "Role-based visibility condition. When omitted, the item is visible to all authenticated users."
+        },
+        "badge": {
+          "$ref": "#/$defs/badge_config",
+          "description": "Dynamic badge displayed next to the menu item label. Fetches data from a registered data provider and renders it using a badge renderer, template, or partial."
+        },
         "children": {
           "type": "array",
-          "items": { "$ref": "#/$defs/menu_item" }
+          "description": "Nested menu items for dropdown (top_menu) or expandable (sidebar_menu) groups. The parent item acts as a toggle and is not itself a link.",
+          "items": { "$ref": "#/$defs/menu_item" },
+          "examples": [
+            [
+              { "view_group": "monthly_reports" },
+              { "separator": true },
+              { "view_group": "annual_reports" }
+            ]
+          ]
         }
       },
       "additionalProperties": false
@@ -39,10 +97,13 @@
 
     "visibility_condition": {
       "type": "object",
+      "description": "Condition controlling when a menu item is visible. Currently supports role-based filtering. When the condition is omitted or empty, the item is visible to all users.",
       "properties": {
         "role": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "List of role names that can see this menu item. The item is visible if the current user has any of the listed roles. When omitted, no role restriction is applied.",
+          "examples": [["admin", "hr_manager"], ["admin"]]
         }
       },
       "additionalProperties": false
@@ -50,12 +111,34 @@
 
     "badge_config": {
       "type": "object",
+      "description": "Configuration for a dynamic badge on a menu item. The badge fetches data from a data provider (registered in app/lcp_services/data_providers/) and renders it using exactly one of: renderer, template, or partial.",
       "properties": {
-        "provider": { "type": "string" },
-        "renderer": { "type": "string" },
-        "template": { "type": "string" },
-        "partial": { "type": "string" },
-        "options": { "type": "object" }
+        "provider": {
+          "type": "string",
+          "description": "Name of the data provider that supplies the badge value. Must be registered in Services::Registry. The provider receives the current user and returns the badge data.",
+          "examples": ["active_employee_count", "pending_approvals_count", "unread_notifications"]
+        },
+        "renderer": {
+          "type": "string",
+          "description": "Built-in badge renderer name. Available renderers: 'count_badge' (red pill with number, hidden for 0), 'text_badge' (uppercase text with optional color), 'icon_badge' (icon with optional color). Mutually exclusive with template and partial.",
+          "examples": ["count_badge", "text_badge", "icon_badge"]
+        },
+        "template": {
+          "type": "string",
+          "description": "String template with {key} interpolation for custom badge markup. The provider's return value is interpolated into the template. Mutually exclusive with renderer and partial.",
+          "examples": ["{count} new", "{status}"]
+        },
+        "partial": {
+          "type": "string",
+          "description": "Rails partial path for fully custom badge rendering. Receives the provider's return value as a local variable. Mutually exclusive with renderer and template.",
+          "examples": ["shared/custom_badge", "badges/notification_bell"]
+        },
+        "options": {
+          "type": "object",
+          "description": "Additional options passed to the badge renderer or partial. Content depends on the renderer being used.",
+          "default": {},
+          "examples": [{ "color": "red" }, { "max": 99 }]
+        }
       },
       "required": ["provider"],
       "additionalProperties": false

@@ -2,26 +2,72 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://lcp-ruby.dev/schemas/presenter.json",
   "title": "LCP Ruby Presenter Definition",
-  "description": "Schema for presenter metadata that defines UI configuration for a model (index, show, form, search, actions).",
+  "description": "Schema for presenter metadata that defines UI configuration for a model — index table, show page, form, search, and actions. Presenters are defined in config/lcp_ruby/presenters/ as YAML files or via Ruby DSL.",
   "type": "object",
   "properties": {
-    "name": { "type": "string" },
-    "model": { "type": "string" },
-    "label": { "type": "string" },
-    "slug": { "type": "string" },
-    "icon": { "type": "string" },
-    "read_only": { "type": "boolean" },
-    "embeddable": { "type": "boolean" },
+    "name": {
+      "type": "string",
+      "description": "Unique presenter identifier. Multiple presenters can reference the same model (e.g., 'employees' and 'employees_archived').",
+      "examples": ["employees", "deal_pipeline"]
+    },
+    "model": {
+      "type": "string",
+      "description": "The model this presenter displays. Must match a model name from config/lcp_ruby/models/.",
+      "examples": ["employee", "deal"]
+    },
+    "label": {
+      "type": "string",
+      "description": "Human-readable title shown in navigation and page headers.",
+      "examples": ["Employees", "Deal Pipeline"]
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL slug for routing. Defaults to presenter name. Must be unique across all presenters.",
+      "examples": ["employees", "deals", "pipeline"]
+    },
+    "icon": {
+      "type": "string",
+      "description": "Icon name shown in navigation and page headers (Lucide icon names).",
+      "examples": ["users", "briefcase", "folder-tree"]
+    },
+    "read_only": {
+      "type": "boolean",
+      "description": "When true, hides create/edit/destroy actions regardless of permissions. Useful for archive or report views."
+    },
+    "embeddable": {
+      "type": "boolean",
+      "description": "When true, allows this presenter to be embedded in other pages (e.g., as an association list)."
+    },
     "redirect_after": {
       "type": "object",
+      "description": "Override where the user is redirected after create/update actions.",
       "properties": {
-        "create": { "type": "string", "enum": ["index", "show", "edit", "new"] },
-        "update": { "type": "string", "enum": ["index", "show", "edit", "new"] }
+        "create": {
+          "type": "string",
+          "description": "Redirect target after successful create.",
+          "enum": ["index", "show", "edit", "new"],
+          "default": "show"
+        },
+        "update": {
+          "type": "string",
+          "description": "Redirect target after successful update.",
+          "enum": ["index", "show", "edit", "new"],
+          "default": "show"
+        }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "examples": [{ "create": "index", "update": "show" }]
     },
-    "empty_value": { "type": "string" },
-    "scope": { "type": "string", "enum": ["discarded", "with_discarded"] },
+    "empty_value": {
+      "type": "string",
+      "description": "Text displayed for nil/empty field values on show and index pages. Overrides the engine-level default.",
+      "examples": ["—", "N/A", "(empty)"]
+    },
+    "scope": {
+      "type": "string",
+      "description": "Base query scope applied to all records in this presenter. 'discarded' shows only soft-deleted records; 'with_discarded' includes both.",
+      "enum": ["discarded", "with_discarded"]
+    },
     "index": { "$ref": "#/$defs/index_config" },
     "show": { "$ref": "#/$defs/show_config" },
     "form": { "$ref": "#/$defs/form_config" },
@@ -33,169 +79,473 @@
 
   "$defs": {
     "condition": {
-      "description": "Condition for visible_when/disable_when: field-based, service-based, or method name string.",
-      "type": ["object", "string"]
+      "description": "Condition for visible_when/disable_when: a field-based condition object ({field, operator, value}), a service reference object ({service, method}), or a method name string invoked on the record.",
+      "type": ["object", "string"],
+      "examples": [
+        { "field": "status", "operator": "eq", "value": "active" },
+        "can_archive?"
+      ]
     },
 
     "hidden_on": {
+      "description": "Hide the element on specific device sizes. Accepts a single value or array.",
       "oneOf": [
         { "type": "string", "enum": ["mobile", "tablet"] },
         { "type": "array", "items": { "type": "string", "enum": ["mobile", "tablet"] } }
-      ]
+      ],
+      "examples": ["mobile", ["mobile", "tablet"]]
     },
 
     "table_column": {
       "type": "object",
+      "description": "A column in the index table view.",
       "properties": {
-        "field": { "type": "string" },
-        "label": { "type": "string" },
-        "width": { "type": "string" },
-        "link_to": { "type": "string" },
-        "sortable": { "type": "boolean" },
-        "renderer": { "type": "string" },
-        "options": { "type": "object" },
-        "partial": { "type": "string" },
+        "field": {
+          "type": "string",
+          "description": "Field name to display. Supports dot-path for associations (e.g., 'department.name') and template syntax (e.g., '{first_name} {last_name}').",
+          "examples": ["name", "department.name", "{first_name} {last_name}"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Column header text. Falls back to humanized field name."
+        },
+        "width": {
+          "type": "string",
+          "description": "Column width as CSS value.",
+          "examples": ["30%", "200px", "auto"]
+        },
+        "link_to": {
+          "type": "string",
+          "description": "Make the cell value a link to this action (typically 'show').",
+          "examples": ["show", "edit"]
+        },
+        "sortable": {
+          "type": "boolean",
+          "description": "Allow sorting by this column via clickable header."
+        },
+        "renderer": {
+          "type": "string",
+          "description": "Display renderer name from the RendererRegistry (e.g., badge, date, currency, email_link).",
+          "examples": ["badge", "date", "currency", "boolean_icon", "email_link"]
+        },
+        "options": {
+          "type": "object",
+          "description": "Options passed to the renderer (e.g., color_map for badge renderer).",
+          "examples": [{ "color_map": { "active": "green", "inactive": "gray" } }]
+        },
+        "partial": {
+          "type": "string",
+          "description": "ERB partial path for fully custom cell rendering. Receives the record as a local.",
+          "examples": ["employees/status_cell"]
+        },
         "hidden_on": { "$ref": "#/$defs/hidden_on" },
-        "pinned": { "type": "string", "enum": ["left", "right"] },
-        "summary": { "type": "string", "enum": ["sum", "avg", "count"] },
-        "copyable": { "type": "boolean" },
-        "visible_when": { "$ref": "#/$defs/condition" },
-        "disable_when": { "$ref": "#/$defs/condition" }
+        "pinned": {
+          "type": "string",
+          "description": "Pin the column to the left or right edge of the table (stays visible during horizontal scroll).",
+          "enum": ["left", "right"]
+        },
+        "summary": {
+          "type": "string",
+          "description": "Show a summary row at the bottom of the table with the specified aggregation.",
+          "enum": ["sum", "avg", "count"]
+        },
+        "copyable": {
+          "type": "boolean",
+          "description": "Show a copy-to-clipboard button next to the cell value."
+        },
+        "visible_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally show this column based on a field condition or service."
+        },
+        "disable_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally disable (gray out) this column."
+        }
       },
       "required": ["field"],
       "additionalProperties": false
     },
 
     "show_field": {
-      "description": "Field in show section. Regular field (has 'field' key), divider (type: divider), or info (type: info).",
+      "description": "Field in show section. Regular field (has 'field' key), divider (type: divider), or info box (type: info).",
       "type": "object",
       "properties": {
-        "field": { "type": "string" },
-        "label": { "type": "string" },
-        "renderer": { "type": "string" },
-        "options": { "type": "object" },
-        "partial": { "type": "string" },
-        "col_span": { "type": "integer", "minimum": 1 },
-        "copyable": { "type": "boolean" },
-        "hint": { "type": "string" },
+        "field": {
+          "type": "string",
+          "description": "Field name to display. Supports dot-path and template syntax.",
+          "examples": ["name", "department.name", "{first_name} {last_name}"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Override the field label."
+        },
+        "renderer": {
+          "type": "string",
+          "description": "Display renderer name.",
+          "examples": ["badge", "date", "currency", "rich_text", "attachment_gallery"]
+        },
+        "options": {
+          "type": "object",
+          "description": "Options passed to the renderer."
+        },
+        "partial": {
+          "type": "string",
+          "description": "ERB partial for custom field rendering."
+        },
+        "col_span": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of grid columns this field spans (for multi-column section layouts).",
+          "examples": [2, 3]
+        },
+        "copyable": {
+          "type": "boolean",
+          "description": "Show a copy-to-clipboard button next to the value."
+        },
+        "hint": {
+          "type": "string",
+          "description": "Help text displayed below the field value.",
+          "examples": ["This value is calculated from the employee's base salary and bonus."]
+        },
         "hidden_on": { "$ref": "#/$defs/hidden_on" },
-        "visible_when": { "$ref": "#/$defs/condition" },
-        "disable_when": { "$ref": "#/$defs/condition" },
-        "type": { "type": "string", "enum": ["divider", "info"] },
-        "text": { "type": "string" }
+        "visible_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally show this field based on a record condition."
+        },
+        "disable_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally disable (gray out) this field."
+        },
+        "type": {
+          "type": "string",
+          "description": "Special field types: 'divider' renders a horizontal line, 'info' renders a text box.",
+          "enum": ["divider", "info"]
+        },
+        "text": {
+          "type": "string",
+          "description": "Text content for type: info fields."
+        }
       },
       "additionalProperties": false
     },
 
     "form_field": {
-      "description": "Field in form section. Regular field (has 'field' key), divider (type: divider), or info (type: info).",
+      "description": "Field in form section. Regular input (has 'field' key), divider (type: divider), or info box (type: info).",
       "type": "object",
       "properties": {
-        "field": { "type": "string" },
-        "label": { "type": "string" },
-        "input_type": { "type": "string" },
-        "placeholder": { "type": "string" },
-        "autofocus": { "type": "boolean" },
-        "prefix": { "type": "string" },
-        "suffix": { "type": "string" },
-        "col_span": { "type": "integer", "minimum": 1 },
-        "hint": { "type": "string" },
-        "readonly": { "type": "boolean" },
-        "visible_when": { "$ref": "#/$defs/condition" },
-        "disable_when": { "$ref": "#/$defs/condition" },
-        "default": {},
-        "input_options": { "type": "object" },
-        "options": { "type": "object" },
-        "renderer": { "type": "string" },
-        "partial": { "type": "string" },
+        "field": {
+          "type": "string",
+          "description": "Field name matching a model field or association FK.",
+          "examples": ["name", "department_id", "status"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Override the input label."
+        },
+        "input_type": {
+          "type": "string",
+          "description": "Input widget type. Inferred from field type if omitted (e.g., text for string, select for enum, association_select for FK).",
+          "examples": ["text", "textarea", "select", "date", "color", "association_select", "rich_text", "file"]
+        },
+        "placeholder": {
+          "type": "string",
+          "description": "Placeholder text shown in empty inputs.",
+          "examples": ["Enter employee name..."]
+        },
+        "autofocus": {
+          "type": "boolean",
+          "description": "Automatically focus this input when the form loads. Only one field per form should have this."
+        },
+        "prefix": {
+          "type": "string",
+          "description": "Text or symbol shown before the input (e.g., currency symbol).",
+          "examples": ["$", "EUR"]
+        },
+        "suffix": {
+          "type": "string",
+          "description": "Text or symbol shown after the input (e.g., unit).",
+          "examples": ["%", "kg", "hours"]
+        },
+        "col_span": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of grid columns this field spans."
+        },
+        "hint": {
+          "type": "string",
+          "description": "Help text displayed below the input.",
+          "examples": ["Use format: +1-234-567-8900"]
+        },
+        "readonly": {
+          "type": "boolean",
+          "description": "Render the field as read-only (displayed but not editable)."
+        },
+        "visible_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally show this field based on other form field values. Evaluated client-side for instant reactivity."
+        },
+        "disable_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally disable this field based on other form field values."
+        },
+        "default": {
+          "description": "Default value pre-filled in the form for new records. Overrides the model-level default."
+        },
+        "input_options": {
+          "type": "object",
+          "description": "HTML attributes and widget-specific options for the input element.",
+          "examples": [{ "rows": 6 }, { "min": 0, "step": 0.01 }]
+        },
+        "options": {
+          "type": "object",
+          "description": "Options passed to the renderer when the field uses a custom renderer instead of the default input."
+        },
+        "renderer": {
+          "type": "string",
+          "description": "Use a display renderer instead of an input widget (makes the field read-only in the form)."
+        },
+        "partial": {
+          "type": "string",
+          "description": "ERB partial for fully custom input rendering."
+        },
         "hidden_on": { "$ref": "#/$defs/hidden_on" },
-        "type": { "type": "string", "enum": ["divider", "info"] },
-        "text": { "type": "string" }
+        "type": {
+          "type": "string",
+          "description": "Special types: 'divider' renders a horizontal line, 'info' renders a text box.",
+          "enum": ["divider", "info"]
+        },
+        "text": {
+          "type": "string",
+          "description": "Text content for type: info fields."
+        }
       },
       "additionalProperties": false
     },
 
     "show_section": {
-      "description": "Section in show layout. Regular section, association_list, json_items_list, or audit_history.",
+      "description": "Section in show page layout. Regular field section, association_list (embedded table of related records), json_items_list (items from a JSON column), or audit_history (change log).",
       "type": "object",
       "properties": {
-        "section": { "type": "string" },
-        "type": { "type": "string", "enum": ["association_list", "json_items_list", "audit_history"] },
-        "columns": { "type": "integer", "minimum": 1 },
-        "description": { "type": "string" },
-        "responsive": { "type": "object" },
-        "visible_when": { "$ref": "#/$defs/condition" },
-        "disable_when": { "$ref": "#/$defs/condition" },
+        "section": {
+          "type": "string",
+          "description": "Section title displayed as the heading. Also used as i18n key: lcp_ruby.presenters.<presenter>.sections.<section>.",
+          "examples": ["Overview", "Contact Details", "Employment History"]
+        },
+        "type": {
+          "type": "string",
+          "description": "Section type. Omit for regular field sections.",
+          "enum": ["association_list", "json_items_list", "audit_history"]
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of grid columns for field layout within this section.",
+          "examples": [2, 3]
+        },
+        "description": {
+          "type": "string",
+          "description": "Explanatory text shown below the section title."
+        },
+        "responsive": {
+          "type": "object",
+          "description": "Responsive column overrides per breakpoint (e.g., {mobile: 1, tablet: 2})."
+        },
+        "visible_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally show this entire section based on the record's field values."
+        },
+        "disable_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally disable (gray out) this section."
+        },
         "fields": {
           "type": "array",
+          "description": "Fields displayed in this section (for regular and json_items_list sections).",
           "items": { "$ref": "#/$defs/show_field" }
         },
         "sub_sections": {
           "type": "array",
+          "description": "Sub-sections for organizing fields into groups within a json_items_list or nested section.",
           "items": { "$ref": "#/$defs/sub_section" }
         },
-        "association": { "type": "string" },
-        "json_field": { "type": "string" },
-        "target_model": { "type": "string" },
-        "display_template": { "type": "string" },
-        "link": { "type": "boolean" },
-        "sort": { "type": "object" },
-        "limit": { "type": "integer" },
-        "empty_message": { "type": "string" },
-        "scope": { "type": "string" }
+        "association": {
+          "type": "string",
+          "description": "For type: association_list — the association name on the model.",
+          "examples": ["employees", "skills", "comments"]
+        },
+        "json_field": {
+          "type": "string",
+          "description": "For type: json_items_list — the JSON column name containing the array of items.",
+          "examples": ["addresses", "work_history"]
+        },
+        "target_model": {
+          "type": "string",
+          "description": "For type: json_items_list — virtual model defining the field schema for each JSON item.",
+          "examples": ["address", "work_history_entry"]
+        },
+        "display_template": {
+          "type": "string",
+          "description": "For type: association_list — template for rendering each item. Uses {field} interpolation.",
+          "examples": ["{name}", "{first_name} {last_name} ({role})"]
+        },
+        "link": {
+          "type": "boolean",
+          "description": "For type: association_list — make each item a link to its show page."
+        },
+        "sort": {
+          "type": "object",
+          "description": "For type: association_list — default ordering of items.",
+          "examples": [{ "created_at": "desc" }]
+        },
+        "limit": {
+          "type": "integer",
+          "description": "For type: association_list — maximum number of items to display.",
+          "examples": [5, 10]
+        },
+        "empty_message": {
+          "type": "string",
+          "description": "Message shown when no items exist.",
+          "examples": ["No employees found.", "No history entries yet."]
+        },
+        "scope": {
+          "type": "string",
+          "description": "For type: association_list — named scope to apply when loading items.",
+          "examples": ["active", "recent"]
+        }
       },
       "required": ["section"],
       "additionalProperties": false
     },
 
     "form_section": {
-      "description": "Section in form layout. Regular section (has 'title' + 'fields') or nested_fields (type: nested_fields).",
+      "description": "Section in form layout. Regular section (title + fields) or nested_fields (editable association or JSON items).",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "type": { "type": "string", "enum": ["nested_fields"] },
-        "columns": { "type": "integer", "minimum": 1 },
-        "description": { "type": "string" },
-        "responsive": { "type": "object" },
-        "collapsible": { "type": "boolean" },
-        "collapsed": { "type": "boolean" },
-        "visible_when": { "$ref": "#/$defs/condition" },
-        "disable_when": { "$ref": "#/$defs/condition" },
+        "title": {
+          "type": "string",
+          "description": "Section heading. Also used as i18n key.",
+          "examples": ["Basic Information", "Address", "Skills"]
+        },
+        "type": {
+          "type": "string",
+          "description": "Set to 'nested_fields' for inline editing of associated records or JSON array items.",
+          "enum": ["nested_fields"]
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of grid columns for field layout.",
+          "examples": [2, 3]
+        },
+        "description": {
+          "type": "string",
+          "description": "Explanatory text shown below the section title."
+        },
+        "responsive": {
+          "type": "object",
+          "description": "Responsive column overrides per breakpoint."
+        },
+        "collapsible": {
+          "type": "boolean",
+          "description": "Allow the section to be collapsed/expanded by clicking the title."
+        },
+        "collapsed": {
+          "type": "boolean",
+          "description": "Start the section in collapsed state. Only effective when collapsible: true."
+        },
+        "visible_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally show this section based on form field values."
+        },
+        "disable_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally disable all inputs in this section."
+        },
         "fields": {
           "type": "array",
+          "description": "Input fields in this section.",
           "items": { "$ref": "#/$defs/form_field" }
         },
         "sub_sections": {
           "type": "array",
+          "description": "Sub-sections for organizing fields into titled groups within nested_fields.",
           "items": { "$ref": "#/$defs/sub_section" }
         },
-        "association": { "type": "string" },
-        "json_field": { "type": "string" },
-        "target_model": { "type": "string" },
-        "allow_add": { "type": "boolean" },
-        "allow_remove": { "type": "boolean" },
-        "min": { "type": "integer" },
-        "max": { "type": "integer" },
-        "add_label": { "type": "string" },
-        "empty_message": { "type": "string" },
-        "sortable": {}
+        "association": {
+          "type": "string",
+          "description": "For type: nested_fields with AR associations — the association name. Requires nested_attributes on the model.",
+          "examples": ["addresses", "phone_numbers"]
+        },
+        "json_field": {
+          "type": "string",
+          "description": "For type: nested_fields with JSON columns — the JSON column name storing the array of items.",
+          "examples": ["addresses", "work_history"]
+        },
+        "target_model": {
+          "type": "string",
+          "description": "For type: nested_fields with JSON — virtual model defining field schema and validations for each item.",
+          "examples": ["address", "work_history_entry"]
+        },
+        "allow_add": {
+          "type": "boolean",
+          "description": "For type: nested_fields — show an 'Add' button to create new items."
+        },
+        "allow_remove": {
+          "type": "boolean",
+          "description": "For type: nested_fields — show a 'Remove' button on each item."
+        },
+        "min": {
+          "type": "integer",
+          "description": "For type: nested_fields — minimum number of items required."
+        },
+        "max": {
+          "type": "integer",
+          "description": "For type: nested_fields — maximum number of items allowed."
+        },
+        "add_label": {
+          "type": "string",
+          "description": "For type: nested_fields — custom label for the 'Add' button.",
+          "examples": ["Add Address", "Add Skill"]
+        },
+        "empty_message": {
+          "type": "string",
+          "description": "For type: nested_fields — message shown when no items exist."
+        },
+        "sortable": {
+          "description": "For type: nested_fields — enable drag-and-drop reordering of items. Boolean true or a config object."
+        }
       },
       "required": ["title"],
       "additionalProperties": false
     },
 
     "sub_section": {
-      "description": "Sub-section within nested_fields or json_items_list, grouping fields under a title.",
+      "description": "Sub-section within nested_fields or json_items_list, grouping fields under a titled sub-heading.",
       "type": "object",
       "properties": {
-        "title": { "type": "string" },
-        "columns": { "type": "integer", "minimum": 1 },
-        "collapsible": { "type": "boolean" },
-        "collapsed": { "type": "boolean" },
-        "visible_when": { "$ref": "#/$defs/condition" },
-        "disable_when": { "$ref": "#/$defs/condition" },
+        "title": {
+          "type": "string",
+          "description": "Sub-section heading.",
+          "examples": ["Street Address", "Emergency Contact"]
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of grid columns for field layout within this sub-section."
+        },
+        "collapsible": { "type": "boolean", "description": "Allow collapsing." },
+        "collapsed": { "type": "boolean", "description": "Start collapsed." },
+        "visible_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally show this sub-section."
+        },
+        "disable_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally disable all inputs in this sub-section."
+        },
         "fields": {
           "type": "array",
+          "description": "Input fields in this sub-section.",
           "items": { "$ref": "#/$defs/form_field" }
         }
       },
@@ -205,29 +555,68 @@
 
     "action": {
       "type": "object",
+      "description": "A UI action button shown on index or show pages.",
       "properties": {
-        "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["built_in", "custom"] },
-        "label": { "type": "string" },
-        "icon": { "type": "string" },
+        "name": {
+          "type": "string",
+          "description": "Action identifier. Built-in names: show, edit, destroy, create, update, restore, permanently_destroy.",
+          "examples": ["show", "edit", "destroy", "archive", "export_pdf"]
+        },
+        "type": {
+          "type": "string",
+          "description": "'built_in' for standard CRUD actions; 'custom' for host-app actions defined in app/actions/.",
+          "enum": ["built_in", "custom"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Button label text. Falls back to i18n lookup: lcp_ruby.actions.<name>."
+        },
+        "icon": {
+          "type": "string",
+          "description": "Lucide icon name for the action button.",
+          "examples": ["plus", "pencil", "trash-2", "archive"]
+        },
         "confirm": {
+          "description": "Confirmation dialog before executing. true uses default message, string provides custom message, object limits confirmation to specific roles.",
           "oneOf": [
             { "type": "boolean" },
             { "type": "string" },
             {
               "type": "object",
               "properties": {
-                "except": { "type": "array", "items": { "type": "string" } },
-                "only": { "type": "array", "items": { "type": "string" } }
+                "except": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Skip confirmation for these roles."
+                },
+                "only": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Only require confirmation for these roles."
+                }
               },
               "additionalProperties": false
             }
-          ]
+          ],
+          "examples": [true, "Are you sure you want to delete this record?", { "except": ["admin"] }]
         },
-        "confirm_message": { "type": "string" },
-        "style": { "type": "string" },
-        "visible_when": { "$ref": "#/$defs/condition" },
-        "disable_when": { "$ref": "#/$defs/condition" }
+        "confirm_message": {
+          "type": "string",
+          "description": "Custom confirmation dialog message (alternative to confirm: 'message')."
+        },
+        "style": {
+          "type": "string",
+          "description": "Visual style of the button.",
+          "examples": ["danger", "primary", "secondary", "warning"]
+        },
+        "visible_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally show this action based on the record's field values."
+        },
+        "disable_when": {
+          "$ref": "#/$defs/condition",
+          "description": "Conditionally disable (gray out) this action."
+        }
       },
       "required": ["name", "type"],
       "additionalProperties": false
@@ -235,101 +624,236 @@
 
     "search_filter": {
       "type": "object",
+      "description": "A predefined filter shown as a tab/chip above the index table. Activates a named scope on the model.",
       "properties": {
-        "name": { "type": "string" },
-        "label": { "type": "string" },
-        "default": { "type": "boolean" },
-        "scope": { "type": "string" }
+        "name": {
+          "type": "string",
+          "description": "Filter identifier, usually matching a scope name.",
+          "examples": ["active", "overdue", "my_records"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label for the filter tab."
+        },
+        "default": {
+          "type": "boolean",
+          "description": "If true, this filter is active by default when the page loads."
+        },
+        "scope": {
+          "type": "string",
+          "description": "Scope name to activate. Defaults to the filter name if omitted.",
+          "examples": ["active", "with_discarded"]
+        }
       },
       "required": ["name", "label"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "examples": [{ "name": "active", "label": "Active", "default": true }]
     },
 
     "default_sort": {
       "type": "object",
+      "description": "Default sorting applied to the index table on initial load.",
       "properties": {
-        "field": { "type": "string" },
-        "direction": { "type": "string", "enum": ["asc", "desc"] }
+        "field": {
+          "type": "string",
+          "description": "Field name to sort by.",
+          "examples": ["name", "created_at", "status"]
+        },
+        "direction": {
+          "type": "string",
+          "description": "Sort direction.",
+          "enum": ["asc", "desc"],
+          "default": "asc"
+        }
       },
       "required": ["field"],
-      "additionalProperties": false
+      "additionalProperties": false,
+      "examples": [{ "field": "created_at", "direction": "desc" }]
     },
 
     "index_config": {
       "type": "object",
+      "description": "Configuration for the index (list) page.",
       "properties": {
-        "reorderable": { "type": "boolean" },
-        "description": { "type": "string" },
-        "default_view": { "type": "string" },
-        "views_available": { "type": "array", "items": { "type": "string" } },
+        "reorderable": {
+          "type": "boolean",
+          "description": "Enable drag-and-drop row reordering. Requires positioning on the model."
+        },
+        "description": {
+          "type": "string",
+          "description": "Explanatory text shown above the table."
+        },
+        "default_view": {
+          "type": "string",
+          "description": "Default view mode when multiple views are available.",
+          "default": "table",
+          "examples": ["table", "card", "tree"]
+        },
+        "views_available": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "List of available view modes the user can switch between.",
+          "examples": [["table", "card"]]
+        },
         "default_sort": { "$ref": "#/$defs/default_sort" },
-        "per_page": { "type": "integer", "minimum": 1 },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of records per page (Kaminari pagination).",
+          "default": 25,
+          "examples": [10, 25, 50, 100]
+        },
         "table_columns": {
           "type": "array",
+          "description": "Columns displayed in the index table.",
           "items": { "$ref": "#/$defs/table_column" }
         },
-        "row_click": { "type": "string" },
-        "empty_message": { "type": "string" },
-        "actions_position": { "type": "string" },
-        "includes": { "type": "array" },
-        "eager_load": { "type": "array" },
-        "tree_view": { "type": "boolean" },
+        "row_click": {
+          "type": "string",
+          "description": "Action triggered when clicking a table row.",
+          "examples": ["show", "edit"]
+        },
+        "empty_message": {
+          "type": "string",
+          "description": "Message shown when no records match the current filters.",
+          "examples": ["No employees found."]
+        },
+        "actions_position": {
+          "type": "string",
+          "description": "Position of action buttons in table rows.",
+          "examples": ["right", "left", "dropdown"]
+        },
+        "includes": {
+          "type": "array",
+          "description": "Manual eager loading hints (AR includes). Auto-detected from presenter fields if omitted.",
+          "examples": [["department", "manager"]]
+        },
+        "eager_load": {
+          "type": "array",
+          "description": "Manual eager_load hints (uses LEFT OUTER JOIN). Use for associations that must always be loaded.",
+          "examples": [["company"]]
+        },
+        "tree_view": {
+          "type": "boolean",
+          "description": "Enable tree-structured index view. Requires tree option on the model."
+        },
         "default_expanded": {
+          "description": "For tree_view: how many levels to expand by default. 0 means all collapsed, 'all' means fully expanded.",
           "oneOf": [
             { "type": "integer", "minimum": 0 },
             { "type": "string", "const": "all" }
-          ]
+          ],
+          "default": 0,
+          "examples": [0, 2, "all"]
         },
-        "reparentable": { "type": "boolean" }
+        "reparentable": {
+          "type": "boolean",
+          "description": "For tree_view: allow drag-and-drop reparenting of tree nodes."
+        }
       },
       "additionalProperties": false
     },
 
     "show_config": {
       "type": "object",
+      "description": "Configuration for the show (detail) page.",
       "properties": {
-        "description": { "type": "string" },
-        "copy_url": { "type": "boolean" },
+        "description": {
+          "type": "string",
+          "description": "Explanatory text shown at the top of the show page."
+        },
+        "copy_url": {
+          "type": "boolean",
+          "description": "Show a 'Copy URL' button in the toolbar for sharing direct links to this record."
+        },
         "layout": {
           "type": "array",
+          "description": "Ordered list of sections displayed on the show page.",
           "items": { "$ref": "#/$defs/show_section" }
         },
-        "includes": { "type": "array" },
-        "eager_load": { "type": "array" }
+        "includes": {
+          "type": "array",
+          "description": "Manual eager loading hints for the show page."
+        },
+        "eager_load": {
+          "type": "array",
+          "description": "Manual eager_load hints for the show page."
+        }
       },
       "additionalProperties": false
     },
 
     "form_config": {
       "type": "object",
+      "description": "Configuration for the new/edit form.",
       "properties": {
-        "description": { "type": "string" },
-        "layout": { "type": "string" },
+        "description": {
+          "type": "string",
+          "description": "Explanatory text shown above the form."
+        },
+        "layout": {
+          "type": "string",
+          "description": "Form layout mode.",
+          "examples": ["stacked", "inline"]
+        },
         "sections": {
           "type": "array",
+          "description": "Ordered list of form sections, each containing input fields.",
           "items": { "$ref": "#/$defs/form_section" }
         },
-        "includes": { "type": "array" },
-        "eager_load": { "type": "array" }
+        "includes": {
+          "type": "array",
+          "description": "Manual eager loading hints for the edit form (e.g., for association selects)."
+        },
+        "eager_load": {
+          "type": "array",
+          "description": "Manual eager_load hints for the edit form."
+        }
       },
       "additionalProperties": false
     },
 
     "search_config": {
       "type": "object",
+      "description": "Configuration for quick search, predefined filters, and advanced filter builder.",
       "properties": {
-        "enabled": { "type": "boolean" },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable the search box on the index page."
+        },
         "searchable_fields": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Fields included in quick search (text search across multiple fields).",
+          "examples": [["name", "email", "department.name"]]
         },
-        "placeholder": { "type": "string" },
-        "auto_search": { "type": "boolean" },
-        "debounce_ms": { "type": "integer" },
-        "min_query_length": { "type": "integer" },
-        "default_scope": { "type": "string" },
+        "placeholder": {
+          "type": "string",
+          "description": "Placeholder text in the search input.",
+          "examples": ["Search employees..."]
+        },
+        "auto_search": {
+          "type": "boolean",
+          "description": "Trigger search automatically as the user types (with debounce) instead of requiring Enter."
+        },
+        "debounce_ms": {
+          "type": "integer",
+          "description": "Debounce delay in milliseconds for auto_search.",
+          "examples": [300, 500]
+        },
+        "min_query_length": {
+          "type": "integer",
+          "description": "Minimum number of characters before auto_search triggers.",
+          "examples": [2, 3]
+        },
+        "default_scope": {
+          "type": "string",
+          "description": "Named scope applied to all search queries as a base filter.",
+          "examples": ["active", "visible"]
+        },
         "predefined_filters": {
           "type": "array",
+          "description": "Filter tabs shown above the search results.",
           "items": { "$ref": "#/$defs/search_filter" }
         },
         "advanced_filter": { "$ref": "#/$defs/advanced_filter_config" }
@@ -339,58 +863,120 @@
 
     "advanced_filter_config": {
       "type": "object",
+      "description": "Configuration for the visual filter builder UI that lets users construct complex queries with multiple conditions.",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "max_conditions": { "type": "integer", "minimum": 1 },
-        "max_association_depth": { "type": "integer", "minimum": 1, "maximum": 5 },
-        "default_combinator": { "type": "string", "enum": ["and", "or"] },
-        "allow_or_groups": { "type": "boolean" },
-        "query_language": { "type": "boolean" },
-        "max_nesting_depth": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "enabled": {
+          "type": "boolean",
+          "description": "Show the advanced filter builder button on the index page."
+        },
+        "max_conditions": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of filter conditions a user can add.",
+          "default": 10
+        },
+        "max_association_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5,
+          "description": "Maximum depth for filtering on associated model fields (e.g., 1 = direct associations only).",
+          "default": 1
+        },
+        "default_combinator": {
+          "type": "string",
+          "description": "Default logical operator between conditions.",
+          "enum": ["and", "or"],
+          "default": "and"
+        },
+        "allow_or_groups": {
+          "type": "boolean",
+          "description": "Allow users to create OR groups within the filter builder.",
+          "default": true
+        },
+        "query_language": {
+          "type": "boolean",
+          "description": "Enable the text-based query language input alongside the visual builder.",
+          "default": false
+        },
+        "max_nesting_depth": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "description": "Maximum nesting depth for condition groups.",
+          "default": 2
+        },
         "filterable_fields": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Whitelist of fields available in the filter builder. If omitted, all readable fields are available.",
+          "examples": [["name", "status", "department_id", "hire_date"]]
         },
         "filterable_fields_except": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": { "type": "string" },
+          "description": "Blacklist of fields excluded from the filter builder.",
+          "examples": [["internal_notes", "password_digest"]]
         },
         "field_options": {
           "type": "object",
+          "description": "Per-field customization of available filter operators. Keys are field names.",
           "additionalProperties": {
             "type": "object",
             "properties": {
               "operators": {
                 "type": "array",
-                "items": { "type": "string" }
+                "items": { "type": "string" },
+                "description": "List of operators available for this field.",
+                "examples": [["eq", "not_eq", "in", "not_in"]]
               }
             },
             "additionalProperties": false
-          }
+          },
+          "examples": [{ "status": { "operators": ["eq", "not_eq", "in"] } }]
         },
         "presets": {
           "type": "array",
+          "description": "Pre-defined filter combinations that users can apply with one click.",
           "items": {
             "type": "object",
             "properties": {
-              "name": { "type": "string" },
-              "label": { "type": "string" },
+              "name": {
+                "type": "string",
+                "description": "Preset identifier."
+              },
+              "label": {
+                "type": "string",
+                "description": "Display label for the preset button."
+              },
               "conditions": {
                 "type": "array",
-                "items": { "type": "object" }
+                "items": { "type": "object" },
+                "description": "Array of condition objects ({field, operator, value}) applied by this preset."
               }
             },
             "required": ["name"]
-          }
+          },
+          "examples": [[{ "name": "active_this_month", "label": "Active This Month", "conditions": [{ "field": "status", "operator": "eq", "value": "active" }] }]]
         },
         "custom_filters": {
           "type": "array",
+          "description": "Custom filter widgets implemented as filter_* methods on the model.",
           "items": {
             "type": "object",
             "properties": {
-              "name": { "type": "string" },
-              "label": { "type": "string" },
-              "type": { "type": "string" }
+              "name": {
+                "type": "string",
+                "description": "Filter name matching a filter_<name> method on the model."
+              },
+              "label": {
+                "type": "string",
+                "description": "Display label in the filter UI."
+              },
+              "type": {
+                "type": "string",
+                "description": "Input type for the custom filter widget.",
+                "examples": ["text", "select", "date_range"]
+              }
             },
             "required": ["name"]
           }
@@ -402,18 +988,58 @@
 
     "saved_filters_config": {
       "type": "object",
+      "description": "Configuration for user-saveable filter presets. Requires the saved_filters generator to create the backing model.",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "display": { "type": "string", "enum": ["inline", "dropdown", "sidebar"] },
-        "max_per_user": { "type": "integer", "minimum": 1 },
-        "max_per_role": { "type": "integer", "minimum": 1 },
-        "max_global": { "type": "integer", "minimum": 1 },
-        "max_visible_pinned": { "type": "integer", "minimum": 1 },
-        "allow_pinning": { "type": "boolean" },
-        "allow_default": { "type": "boolean" },
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable the saved filters feature for this presenter."
+        },
+        "display": {
+          "type": "string",
+          "description": "How saved filters are displayed in the UI.",
+          "enum": ["inline", "dropdown", "sidebar"],
+          "default": "inline"
+        },
+        "max_per_user": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of personal saved filters per user.",
+          "default": 50
+        },
+        "max_per_role": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of role-shared saved filters.",
+          "default": 20
+        },
+        "max_global": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of globally visible saved filters.",
+          "default": 30
+        },
+        "max_visible_pinned": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum number of pinned filters shown inline (overflow goes to dropdown).",
+          "default": 5
+        },
+        "allow_pinning": {
+          "type": "boolean",
+          "description": "Allow users to pin saved filters for quick access.",
+          "default": true
+        },
+        "allow_default": {
+          "type": "boolean",
+          "description": "Allow users to set a saved filter as their personal default.",
+          "default": true
+        },
         "visibility_options": {
           "type": "array",
-          "items": { "type": "string", "enum": ["personal", "role", "global", "group"] }
+          "description": "Which visibility levels are available when saving a filter.",
+          "items": { "type": "string", "enum": ["personal", "role", "global", "group"] },
+          "default": ["personal", "role", "global"],
+          "examples": [["personal", "role", "global"], ["personal", "group"]]
         }
       },
       "additionalProperties": false
@@ -421,17 +1047,21 @@
 
     "actions_config": {
       "type": "object",
+      "description": "Action buttons grouped by context: collection (index page toolbar), single (per-record row actions), batch (multi-select actions).",
       "properties": {
         "collection": {
           "type": "array",
+          "description": "Actions shown in the index page toolbar (e.g., 'Create New').",
           "items": { "$ref": "#/$defs/action" }
         },
         "single": {
           "type": "array",
+          "description": "Actions shown per record row on the index page and on the show page (e.g., 'Show', 'Edit', 'Delete').",
           "items": { "$ref": "#/$defs/action" }
         },
         "batch": {
           "type": "array",
+          "description": "Actions available when multiple records are selected (e.g., 'Delete Selected', 'Export').",
           "items": { "$ref": "#/$defs/action" }
         }
       },
