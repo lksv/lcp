@@ -435,3 +435,19 @@ The tiles grid uses CSS Grid with `grid-template-columns: repeat(N, 1fr)` and re
 7. **Card templates / custom partials** — `tile.partial: "my_custom_card"` for host apps that need full control over card HTML while still using the platform's data pipeline.
 
 8. **Aggregates in tile summary** — When aggregate columns land, tile summary bar could reference model-level aggregates in addition to SQL functions on plain fields.
+
+## Planned Future Layouts
+
+Beyond tiles, the following index layouts are planned for future versions. Each will follow the same architecture: a dedicated `layout` value, a layout-specific config block under `index:`, and full reuse of the existing rendering pipeline (FieldValueResolver, RendererRegistry, ColumnSet, ActionSet). View groups handle switching between layouts.
+
+| Layout | `layout` value | Description |
+|--------|---------------|-------------|
+| **Kanban** | `kanban` | Cards grouped by a status/category field into drag-and-drop columns (Trello-style). Config: `group_by` field, column ordering, WIP limits. |
+| **Calendar** | `calendar` | Records displayed on a monthly/weekly/daily calendar grid. Config: `date_field` (or `start_field` + `end_field` for ranges), `title_field`, color mapping. |
+| **Gallery** | `gallery` | Image-first grid optimized for visual content — larger thumbnails than tiles, lightbox preview. Config: `image_field`, `caption_field`, aspect ratio. Suitable for product catalogs, document previews, media libraries. |
+| **Map** | `map` | Records with geolocation data plotted on an interactive map. Config: `latitude_field`, `longitude_field` (or `location_field`), marker styling, clustering. |
+| **Board** | `board` | Two-dimensional swimlane grid — rows and columns defined by different fields (e.g., rows = team, columns = status). A generalization of kanban for resource planning and matrix views. |
+| **Timeline** | `timeline` | Chronological vertical axis with records displayed as events or milestones. Config: `date_field`, `title_field`, `description_field`. Suitable for activity history, audit logs, project milestones. |
+| **Dashboard** | `dashboard` | Aggregate-only view with KPI widgets, charts, and summary statistics instead of individual records. Config: widget definitions with aggregate functions, chart types, and layout grid. |
+
+These layouts will be introduced incrementally. The unified `layout` key and one-presenter-per-layout principle ensure that adding a new layout requires no changes to existing presenters or the core rendering pipeline.
