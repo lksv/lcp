@@ -1,0 +1,7 @@
+view_group:
+  model: showcase_aggregate_item
+  primary: showcase_aggregate_items
+  views:
+    - presenter: showcase_aggregate_items
+      label: "Tasks"
+      icon: check-square

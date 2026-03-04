@@ -18,6 +18,8 @@ menu:
         - view_group: showcase_searches
         - view_group: saved_filters
         - view_group: showcase_positioning
+        - view_group: showcase_aggregates
+        - view_group: showcase_aggregate_items
         - view_group: showcase_userstamps
         - view_group: showcase_soft_delete
 

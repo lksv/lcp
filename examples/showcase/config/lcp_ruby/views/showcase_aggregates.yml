@@ -1,0 +1,7 @@
+view_group:
+  model: showcase_aggregate
+  primary: showcase_aggregates
+  views:
+    - presenter: showcase_aggregates
+      label: "Projects"
+      icon: calculator

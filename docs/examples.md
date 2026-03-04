@@ -103,3 +103,33 @@ bundle exec rails s -p 3001
 | Menu badges | Dynamic badges on sidebar menu items (count, text, template) | [Menu Badges](reference/menu.md#badges) |
 | Data providers | `open_deals_count`, `active_contacts_count`, `won_deals_count`, `pipeline_value` in `app/lcp_services/data_providers/` | [Menu Guide](guides/menu.md#adding-badges) |
 | Service auto-discover | Custom services in `app/lcp_services/` | [Extensibility](guides/extensibility.md#auto-discovery-setup) |
+| Aggregate columns | Company: `contacts_count`, `deals_count`, `total_deal_value`, `won_deals_value` (filtered SUM); Contact: `activities_count`, `completed_activities_count` (filtered COUNT) | [Aggregates](reference/models.md#aggregates) |
+
+## Showcase App (`examples/showcase/`)
+
+A comprehensive feature catalog demonstrating nearly every platform capability. Each feature area has its own dedicated model, presenter, and view group.
+
+### Running
+
+```bash
+cd examples/showcase
+bundle install
+bundle exec rails db:prepare
+bundle exec rails s -p 3002
+# Visit http://localhost:3002
+```
+
+### Aggregate Columns Demo
+
+The **Aggregate Projects** section (`showcase_aggregates`) demonstrates all aggregate column types:
+
+- **COUNT** — `tasks_count` (total tasks per project)
+- **Filtered COUNT** — `completed_count` (only tasks with `status: done`)
+- **SUM** — `total_hours` (sum of estimated hours)
+- **Filtered SUM** — `completed_cost` (cost of completed tasks only)
+- **AVG** — `avg_priority` (average priority score)
+- **MAX** — `latest_due_date` (latest task due date)
+- **MIN** — `earliest_due_date` (earliest task due date)
+- **COUNT DISTINCT** — `unique_assignees` (distinct assignee names)
+
+All aggregate columns are sortable in the index view and displayed in dedicated sections on the show page.

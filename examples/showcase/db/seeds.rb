@@ -5,7 +5,7 @@ puts "Seeding showcase data..."
 connection = ActiveRecord::Base.connection
 %w[
   saved_filter feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_userstamps
-  showcase_soft_delete_item showcase_soft_delete
+  showcase_soft_delete_item showcase_soft_delete showcase_aggregate_item showcase_aggregate
   showcase_virtual_field showcase_extensibility permission_config role showcase_permission
   showcase_attachment custom_field_definition employee_skill project showcase_search
   employee skill department showcase_form comment article_tag tag article
@@ -2976,6 +2976,66 @@ LcpRuby::Current.user = nil
 puts "  Created #{UserstampsModel.count} tracked documents (userstamps showcase)"
 
 # Phase: Soft Delete Showcase
+# Phase: Aggregates
+AggProjectModel = LcpRuby.registry.model_for("showcase_aggregate")
+AggTaskModel = LcpRuby.registry.model_for("showcase_aggregate_item")
+
+agg_projects = [
+  { name: "Platform Redesign", description: "Complete UI/UX overhaul with new design system", status: "active", budget: 150_000 },
+  { name: "Mobile App v2", description: "Native mobile app rewrite in Swift/Kotlin", status: "active", budget: 200_000 },
+  { name: "Data Pipeline", description: "Real-time data ingestion and processing pipeline", status: "planning", budget: 80_000 },
+  { name: "API Gateway", description: "Centralized API gateway with rate limiting and auth", status: "completed", budget: 60_000 },
+  { name: "Legacy Migration", description: "Migrate legacy PHP codebase to Rails", status: "archived", budget: 120_000 }
+].map { |attrs| AggProjectModel.create!(attrs) }
+
+# Tasks for Platform Redesign (project 0) — 8 tasks, 3 done, 3 assignees
+[
+  { title: "Design system tokens", status: "done", hours: 40, cost: 4000, priority_score: 9, assignee: "Alice", due_date: "2025-01-15" },
+  { title: "Component library", status: "done", hours: 80, cost: 8000, priority_score: 9, assignee: "Alice", due_date: "2025-02-01" },
+  { title: "Navigation redesign", status: "done", hours: 24, cost: 2400, priority_score: 7, assignee: "Bob", due_date: "2025-02-15" },
+  { title: "Dashboard layout", status: "in_progress", hours: 32, cost: 3200, priority_score: 8, assignee: "Bob", due_date: "2025-03-01" },
+  { title: "Form components", status: "in_progress", hours: 48, cost: 4800, priority_score: 6, assignee: "Carol", due_date: "2025-03-15" },
+  { title: "Accessibility audit", status: "todo", hours: 16, cost: 1600, priority_score: 5, assignee: "Alice", due_date: "2025-04-01" },
+  { title: "Performance testing", status: "todo", hours: 20, cost: 2000, priority_score: 4, assignee: "Bob", due_date: "2025-04-15" },
+  { title: "Documentation", status: "todo", hours: 12, cost: 1200, priority_score: 3, assignee: "Carol", due_date: "2025-05-01" }
+].each { |attrs| AggTaskModel.create!(attrs.merge(showcase_aggregate_id: agg_projects[0].id)) }
+
+# Tasks for Mobile App v2 (project 1) — 6 tasks, 1 done, 2 assignees
+[
+  { title: "App architecture", status: "done", hours: 24, cost: 3600, priority_score: 10, assignee: "Dan", due_date: "2025-01-20" },
+  { title: "Auth module", status: "in_progress", hours: 40, cost: 6000, priority_score: 8, assignee: "Eve", due_date: "2025-02-10" },
+  { title: "Offline sync", status: "in_progress", hours: 60, cost: 9000, priority_score: 7, assignee: "Dan", due_date: "2025-03-01" },
+  { title: "Push notifications", status: "todo", hours: 20, cost: 3000, priority_score: 5, assignee: "Eve", due_date: "2025-03-20" },
+  { title: "App store submission", status: "todo", hours: 8, cost: 1200, priority_score: 3, assignee: "Dan", due_date: "2025-04-15" },
+  { title: "Beta testing", status: "todo", hours: 16, cost: 2400, priority_score: 4, assignee: "Eve", due_date: "2025-04-01" }
+].each { |attrs| AggTaskModel.create!(attrs.merge(showcase_aggregate_id: agg_projects[1].id)) }
+
+# Tasks for Data Pipeline (project 2) — 4 tasks, 0 done, 2 assignees
+[
+  { title: "Schema design", status: "todo", hours: 16, cost: 2400, priority_score: 8, assignee: "Frank", due_date: "2025-03-01" },
+  { title: "Kafka setup", status: "todo", hours: 24, cost: 3600, priority_score: 7, assignee: "Grace", due_date: "2025-03-15" },
+  { title: "Stream processors", status: "todo", hours: 40, cost: 6000, priority_score: 6, assignee: "Frank", due_date: "2025-04-01" },
+  { title: "Monitoring dashboard", status: "todo", hours: 12, cost: 1800, priority_score: 4, assignee: "Grace", due_date: "2025-04-15" }
+].each { |attrs| AggTaskModel.create!(attrs.merge(showcase_aggregate_id: agg_projects[2].id)) }
+
+# Tasks for API Gateway (project 3) — 5 tasks, all done, 1 assignee
+[
+  { title: "Gateway framework", status: "done", hours: 32, cost: 3200, priority_score: 9, assignee: "Hank", due_date: "2024-10-01" },
+  { title: "Rate limiter", status: "done", hours: 16, cost: 1600, priority_score: 8, assignee: "Hank", due_date: "2024-10-15" },
+  { title: "Auth middleware", status: "done", hours: 24, cost: 2400, priority_score: 8, assignee: "Hank", due_date: "2024-11-01" },
+  { title: "Load testing", status: "done", hours: 12, cost: 1200, priority_score: 5, assignee: "Hank", due_date: "2024-11-15" },
+  { title: "Production deploy", status: "done", hours: 8, cost: 800, priority_score: 7, assignee: "Hank", due_date: "2024-12-01" }
+].each { |attrs| AggTaskModel.create!(attrs.merge(showcase_aggregate_id: agg_projects[3].id)) }
+
+# Tasks for Legacy Migration (project 4) — 3 tasks, 2 done, 2 assignees
+[
+  { title: "Code audit", status: "done", hours: 40, cost: 4000, priority_score: 7, assignee: "Ivy", due_date: "2024-06-01" },
+  { title: "Data migration scripts", status: "done", hours: 60, cost: 6000, priority_score: 8, assignee: "Jack", due_date: "2024-07-15" },
+  { title: "Final cutover", status: "cancelled", hours: 16, cost: 1600, priority_score: 9, assignee: "Ivy", due_date: "2024-08-01" }
+].each { |attrs| AggTaskModel.create!(attrs.merge(showcase_aggregate_id: agg_projects[4].id)) }
+
+puts "  Created #{AggProjectModel.count} aggregate projects with #{AggTaskModel.count} tasks"
+
 SoftDeleteModel = LcpRuby.registry.model_for("showcase_soft_delete")
 SoftDeleteItemModel = LcpRuby.registry.model_for("showcase_soft_delete_item")
 
