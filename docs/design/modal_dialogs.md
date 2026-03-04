@@ -11,9 +11,13 @@ The goal is that **every modal dialog is a presenter rendered in a modal context
 
 ## Core Concept
 
-**Dialog = presenter rendered in a modal context instead of a full page.**
+**Dialog = presenter rendered in a modal context instead of a full page.** The render context (page vs dialog) is a separate concern from the presenter content (fields, sections, actions).
 
-Everything else (fields, sections, validations, permissions, conditional rendering, actions) already exists. The only new concept is *where* and *how* the presenter is rendered.
+Key terminology:
+- **Presenter** = one specific UI variant of a model. Defines *what* is rendered: fields, sections, layout, actions, permissions linkage.
+- **View Group** = navigational-organizational layer above presenters. Defines *where* and *how* presenters are accessed: grouping, default presenter, menu position, breadcrumb, view switcher.
+
+The open question is **where the "render as dialog" responsibility belongs** — see [Q2: Render context ownership](#q2-render-context-ownership--where-does-display-dialog-live).
 
 ```
 ┌─────────────────────────────────────────────────┐
@@ -22,6 +26,8 @@ Everything else (fields, sections, validations, permissions, conditional renderi
 │  Model (real / virtual)  ─┐                       │
 │  Presenter (fields,       ├──▶  Dialog            │
 │    sections, actions)    ─┘    (= render context) │
+│  View Group (navigation,  ────▶  (candidate owner)│
+│    switcher, display)                              │
 │  Permissions             ─────▶  (reuse as-is)    │
 │  Actions (trigger)       ─────▶  (trigger source) │
 │  Events (on_submit)      ─────▶  (reuse as-is)    │
@@ -32,15 +38,16 @@ What already exists and works:
 - **Virtual models** (`table_name: _virtual`) — metadata without a DB table
 - **Real models** — standard DB-backed models (e.g., saved filters)
 - **Presenters** — layout, fields, sections, conditional rendering
+- **View Groups** — presenter grouping, navigation, breadcrumb, view switcher
 - **Actions** — trigger point for opening dialogs
 - **Permissions** — who can open / submit a dialog
 - **Events** — what happens after submit
 - **Condition evaluator** — `visible_when`, `disable_when` inside dialogs
 
 What is **new**:
-1. **Render context** — presenter knows it renders as a dialog (not a full page)
+1. **Render context** — something determines the presenter renders as a dialog (not a full page)
 2. **Dialog trigger** — action/button knows to open a dialog (not navigate)
-3. **Submit behavior** — what happens after form submission (create, update, execute action, close)
+3. **Submit behavior** — split into two parts (see [Q3](#q3-submit-behavior--who-controls-what-happens-after-submit))
 4. **Dialog lifecycle** — open → fill → validate → submit → success/error → close/stay
 
 ## User Scenarios
@@ -252,7 +259,16 @@ The dialog system reuses existing infrastructure with minimal additions:
 
 ## Decisions
 
-*(None yet — this is an initial brainstorm.)*
+### D1: Submit behavior is split between presenter and caller
+
+Submit has two distinct concerns with different owners:
+
+| Concern | Owner | Mechanism |
+|---------|-------|-----------|
+| **What operation** (create, update, custom action) | **Presenter** | Existing `redirect_after` + actions. `redirect_after: { create: close }` where `close` is a new redirect target value |
+| **What happens in parent context after dialog closes** (reload parent page, redirect, callback) | **Caller** (trigger action) | `on_success: reload` on the action that opens the dialog |
+
+This mirrors the existing architecture: the presenter already defines actions and `redirect_after`, the caller already defines navigation intent. Dialog just adds `close` as a new redirect target.
 
 ## Open Questions
 
@@ -268,26 +284,140 @@ Options:
 - **(b)** Virtual model is a hash wrapper (like existing `JsonItemWrapper`) — simpler but fewer features
 - **(c)** Virtual model is a full AR with in-memory SQLite table — overkill?
 
-### Q2: One model, multiple presenters — dialog vs page?
+### Q2: Render context ownership — where does `display: dialog` live?
 
-A contact has 20 fields. Full-page form shows all 20. "Quick Add" dialog shows 4. This is just a different presenter for the same model — that already works today. But how to distinguish?
-- **(a)** `mode: dialog` on the presenter — simple flag
-- **(b)** View group with `display: dialog` — dialog is just another "view" of the same model
-- **(c)** Presenter is just a presenter, the render context is determined by the caller (action)
+The central design question. A presenter can render as a full page or as a modal dialog. Who decides? Two variants under consideration:
 
-### Q3: Submit behavior — who controls what happens after submit?
+#### Variant A: View Group owns it (`display: dialog` on view group)
 
-- **(a)** Dialog presenter defines `on_submit` (create/update/custom action)
-- **(b)** Trigger action defines `on_success` (reload/close/redirect)
-- **(c)** Both — presenter says *what* to execute, trigger says *what happens next*
+View group gets a `display: dialog | page` attribute (default `page`). Presenter stays pure — defines what to render. View group says where/how.
 
-### Q4: Nesting — dialog from dialog?
+```yaml
+# View group — optional, auto-created if missing
+view_group:
+  name: contact_dialogs
+  model: contact
+  display: dialog
+  navigation: false
+  dialog:
+    size: medium
+  views:
+    - presenter: contact_quick_form
+    - presenter: contact_full_form
+
+# Presenter — no dialog knowledge
+presenter:
+  name: contact_quick_form
+  model: contact
+  redirect_after: { create: close }
+  sections:
+    - name: main
+      fields: [first_name, last_name, email]
+
+# Caller action — knows what happens in parent context
+actions:
+  - name: quick_add
+    type: dialog
+    dialog:
+      presenter: contact_quick_form
+      on_success: reload
+```
+
+**Pro:**
+- Clean separation: presenter = what, view group = where/how — matches existing architecture
+- Presenter stays a pure UI variant, reusable in both page and dialog contexts
+- View switcher inside dialogs works naturally (same concept, different display)
+- Auto-creation covers simple cases — no view group file needed for single-presenter dialogs
+- Future render modes (drawer, sidebar, embedded) are just new `display:` values, no presenter changes
+- Discoverability — grep `display: dialog` in view groups to find all dialogs
+- Navigation, breadcrumb, switcher logic already lives in view groups — dialog is just another context
+
+**Contra:**
+- Dialog size lives in view group, fields live in presenter — two files to understand a dialog (but same as page presenters today: navigation in view group, layout in presenter)
+- If two presenters in the same dialog view group need different sizes, per-view overrides are needed:
+  ```yaml
+  views:
+    - presenter: quick_form
+      dialog: { size: small }
+    - presenter: full_form
+      dialog: { size: large }
+  ```
+- One presenter in two view groups (page + dialog) requires relaxing the current "one view group per presenter" validation rule — new rule: "at most one view group per display type"
+- Auto-creation needs new logic: how does the engine know a presenter is "dialog-intended" if there's no explicit view group? Needs a signal (e.g., no `slug`, or explicit `dialog:` key on presenter)
+
+#### Variant B: Caller owns it (trigger action determines render context)
+
+Presenter is completely agnostic. The action that invokes it decides the render context.
+
+```yaml
+# Presenter — no dialog knowledge, no mode
+presenter:
+  name: contact_quick_form
+  model: contact
+  redirect_after: { create: close }
+  sections:
+    - name: main
+      fields: [first_name, last_name, email]
+
+# Caller action — decides everything about the dialog context
+actions:
+  - name: quick_add
+    type: dialog
+    dialog:
+      presenter: contact_quick_form
+      size: medium
+      on_success: reload
+```
+
+No view group involvement. The dialog concept doesn't exist as a first-class entity — it's just an action render mode.
+
+**Pro:**
+- Maximum reuse — same presenter works as full page (via URL/view group) and as dialog (via action), zero duplication, zero extra config
+- Minimal schema changes — no new concepts on presenter or view group, only a new action type
+- Clean separation: presenter = what, action = how to invoke
+- Per-caller customization is natural — same dialog opened from deals page is `size: medium`, from contacts page is `size: large`, no overrides needed
+- No view group validation changes needed
+- No auto-creation logic changes needed
+- Simple mental model: "an action can navigate to a page, or open a presenter in a dialog"
+
+**Contra:**
+- Dialog config (size, behavior) is scattered across every trigger — if 5 actions open `contact_quick_form` as a dialog, size is duplicated 5 times
+- No single place to list "all dialogs in this app" — must grep all presenter actions for `type: dialog`
+- No view switcher inside dialogs — without a view group there's no sibling set to switch between. Would need ad-hoc config:
+  ```yaml
+  dialog:
+    presenter: contact_quick_form
+    alternatives:
+      - presenter: contact_full_form
+        label: "Full"
+  ```
+  This reinvents view group structure inside the action
+- Presenter can't adapt its own layout to the modal context (e.g., 2 columns on page, 1 column in dialog) — it doesn't know it's in a dialog
+- Platform built-in dialogs (save filter, delete confirm) have no natural home — they're just actions with inline config, not discoverable as a concept
+
+#### Side-by-side comparison
+
+| Criterion | A: View Group | B: Caller |
+|-----------|:-:|:-:|
+| Separation of concerns | presenter=what, view group=how, caller=aftermath | presenter=what, caller=how+aftermath |
+| Same presenter in page + dialog | yes (two view groups, one per display type) | yes (URL for page, action for dialog) |
+| Simple cases (1 dialog, no view group) | auto-creation handles it | no extra files at all |
+| View switcher inside dialog | natural (view group siblings) | must reinvent inside action config |
+| Config duplication | dialog config in one view group, reused by all callers | each caller duplicates size, etc. |
+| Discoverability | grep `display: dialog` in view groups | grep `type: dialog` across all actions |
+| Presenter layout adaptation | presenter knows context via view group's `display` | presenter doesn't know it's in a dialog |
+| Future render modes (drawer, sidebar) | new `display:` values | new action types or action options |
+| Schema complexity | view group gets `display` + `dialog` keys | action gets `dialog` block |
+| Built-in dialogs (save filter, confirm) | first-class view group entries | inline action config, no central definition |
+| Validation / boot-time checks | can validate dialog view groups at boot | can only validate at action resolution time |
+
+### Q3: Nesting — dialog from dialog?
 
 User opens "New Invoice" → clicks "Add Contact" → nested dialog opens. Support this? Stacking? Or max 1 level?
 
-### Q5: Record picker as a special dialog?
+### Q4: Record picker as a special dialog?
 
-Record picker (advanced association select) is essentially a `mode: dialog` presenter with an `index` view instead of a `form` view. It has a selection mode (single/multi select) and returns selected records. Is it:
+Record picker (advanced association select) is essentially a dialog presenter with an `index` view instead of a `form` view. It has a selection mode (single/multi select) and returns selected records. Is it:
 - **(a)** A special dialog type (`mode: picker`)
 - **(b)** A normal dialog with index view and `select_mode: true`
 - **(c)** A completely different mechanism (not a dialog)
