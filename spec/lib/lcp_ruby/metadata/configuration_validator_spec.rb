@@ -4167,6 +4167,108 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
   end
 
+  # --- label_method validations ---
+
+  context "label_method" do
+    let(:metadata_path) { "" }
+
+    it "warns when label_method is not defined on a non-virtual model" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(a_string_matching(/task.*no label_method defined/))
+    end
+
+    it "warns when label_method references a non-existent field" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+            options:
+              label_method: nonexistent
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(a_string_matching(/task.*label_method 'nonexistent'.*not a defined field/))
+    end
+
+    it "does not warn when label_method references a valid field" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+            options:
+              label_method: title
+        YAML
+      )
+
+      result = v.validate
+      label_warnings = result.warnings.select { |w| w.include?("label_method") }
+      expect(label_warnings).to be_empty
+    end
+
+    it "does not warn when label_method references a valid association" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: review
+              fields:
+                - { name: score, type: integer }
+                - { name: employee_id, type: integer }
+              associations:
+                - type: belongs_to
+                  name: employee
+                  target_model: employee
+                  foreign_key: employee_id
+              options:
+                label_method: employee
+          YAML
+          <<~YAML
+            model:
+              name: employee
+              fields:
+                - { name: name, type: string }
+              options:
+                label_method: name
+          YAML
+        ]
+      )
+
+      result = v.validate
+      label_warnings = result.warnings.select { |w| w.include?("label_method") }
+      expect(label_warnings).to be_empty
+    end
+
+    it "does not warn about label_method on virtual models" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: dashboard
+            table_name: _virtual
+            fields:
+              - { name: count, type: integer }
+        YAML
+      )
+
+      result = v.validate
+      label_warnings = result.warnings.select { |w| w.include?("label_method") }
+      expect(label_warnings).to be_empty
+    end
+  end
+
   # --- Sub-section validations ---
 
   context "sub-sections" do

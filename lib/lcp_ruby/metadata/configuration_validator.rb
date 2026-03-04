@@ -151,6 +151,7 @@ module LcpRuby
             validate_auditing(model)
             validate_userstamps(model)
             validate_tree(model)
+            validate_label_method(model)
           end
         end
       end
@@ -560,6 +561,24 @@ module LcpRuby
             @warnings << "Model '#{model.name}': manual has_many :#{children_name} association " \
                          "conflicts with tree-generated children association — tree will override it"
           end
+        end
+      end
+
+      def validate_label_method(model)
+        label_attr = model.options["label_method"]
+
+        if label_attr.nil?
+          @warnings << "Model '#{model.name}': no label_method defined — records will display " \
+                       "as '#<ClassName:0x...>' in headlines and breadcrumbs. " \
+                       "Add label_method to options (e.g., label_method: name)"
+          return
+        end
+
+        field_names = model.fields.map(&:name)
+        assoc_names = model.associations.map(&:name)
+        unless field_names.include?(label_attr.to_s) || assoc_names.include?(label_attr.to_s)
+          @warnings << "Model '#{model.name}': label_method '#{label_attr}' is not a defined " \
+                       "field or association — records may display incorrectly"
         end
       end
 
