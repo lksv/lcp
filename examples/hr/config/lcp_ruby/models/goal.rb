@@ -1,6 +1,7 @@
 define_model :goal do
   label "Goal"
   label_plural "Goals"
+  label_method :title
 
   field :title, :string, null: false do
     validates :presence

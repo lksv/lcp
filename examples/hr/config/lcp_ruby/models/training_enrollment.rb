@@ -1,6 +1,7 @@
 define_model :training_enrollment do
   label "Training Enrollment"
   label_plural "Training Enrollments"
+  label_method :status
 
   field :status, :enum, default: "enrolled",
     values: {

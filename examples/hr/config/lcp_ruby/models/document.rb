@@ -1,6 +1,7 @@
 define_model :document do
   label "Document"
   label_plural "Documents"
+  label_method :title
 
   field :title, :string, null: false do
     validates :presence

@@ -1,6 +1,7 @@
 define_model :performance_review do
   label "Performance Review"
   label_plural "Performance Reviews"
+  label_method :review_period
 
   field :review_period, :enum,
     values: {

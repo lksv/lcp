@@ -1,6 +1,7 @@
 define_model :group_membership do
   label "Group Membership"
   label_plural "Group Memberships"
+  label_method :role_in_group
 
   field :role_in_group, :enum, default: "member",
     values: {

@@ -1,6 +1,7 @@
 define_model :asset_assignment do
   label "Asset Assignment"
   label_plural "Asset Assignments"
+  label_method :assigned_at
 
   field :assigned_at, :date, null: false do
     validates :presence

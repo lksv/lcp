@@ -1,6 +1,7 @@
 define_model :expense_claim do
   label "Expense Claim"
   label_plural "Expense Claims"
+  label_method :title
 
   field :title, :string, null: false do
     validates :presence

@@ -1,6 +1,7 @@
 define_model :employee_skill do
   label "Employee Skill"
   label_plural "Employee Skills"
+  label_method :proficiency
 
   field :proficiency, :enum,
     values: {

@@ -1,6 +1,7 @@
 define_model :interview do
   label "Interview"
   label_plural "Interviews"
+  label_method :interview_type
 
   field :interview_type, :enum,
     values: {

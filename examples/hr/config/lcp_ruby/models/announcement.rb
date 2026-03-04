@@ -1,6 +1,7 @@
 define_model :announcement do
   label "Announcement"
   label_plural "Announcements"
+  label_method :title
 
   field :title, :string, null: false do
     validates :presence

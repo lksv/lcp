@@ -1,6 +1,7 @@
 define_model :leave_balance do
   label "Leave Balance"
   label_plural "Leave Balances"
+  label_method :year
 
   field :year, :integer, null: false, default: { service: "current_year" } do
     validates :presence
