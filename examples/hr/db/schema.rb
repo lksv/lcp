@@ -264,17 +264,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.string "category"
     t.string "status", default: "draft"
     t.date "expense_date", null: false
-    t.integer "approved_by_id"
     t.datetime "approved_at"
     t.text "rejection_note"
     t.json "items"
     t.bigint "employee_id", null: false
+    t.bigint "approved_by_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "created_by_id"
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
+    t.index ["approved_by_id"], name: "index_expense_claims_on_approved_by_id"
     t.index ["created_by_id"], name: "index_expense_claims_on_created_by_id"
     t.index ["employee_id"], name: "index_expense_claims_on_employee_id"
     t.index ["updated_by_id"], name: "index_expense_claims_on_updated_by_id"
@@ -423,16 +424,17 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.string "status", default: "draft"
     t.text "reason"
     t.text "rejection_note"
-    t.integer "approved_by_id"
     t.datetime "approved_at"
     t.bigint "employee_id", null: false
     t.bigint "leave_type_id", null: false
+    t.bigint "approved_by_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "created_by_id"
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
+    t.index ["approved_by_id"], name: "index_leave_requests_on_approved_by_id"
     t.index ["created_by_id"], name: "index_leave_requests_on_created_by_id"
     t.index ["employee_id"], name: "index_leave_requests_on_employee_id"
     t.index ["leave_type_id"], name: "index_leave_requests_on_leave_type_id"
@@ -459,7 +461,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.decimal "budget", precision: 12, scale: 2
     t.boolean "active", default: true
     t.integer "parent_id"
-    t.integer "head_id"
+    t.bigint "head_id"
     t.json "custom_data", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
@@ -473,6 +475,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.index ["created_by_id"], name: "index_organization_units_on_created_by_id"
     t.index ["discarded_at"], name: "index_organization_units_on_discarded_at"
     t.index ["discarded_by_type", "discarded_by_id"], name: "idx_on_discarded_by_type_discarded_by_id_2380496adc"
+    t.index ["head_id"], name: "index_organization_units_on_head_id"
     t.index ["parent_id"], name: "index_organization_units_on_parent_id"
     t.index ["updated_by_id"], name: "index_organization_units_on_updated_by_id"
   end
