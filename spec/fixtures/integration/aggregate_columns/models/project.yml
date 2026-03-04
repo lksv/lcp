@@ -1,0 +1,31 @@
+model:
+  name: agg_project
+  fields:
+    - name: name
+      type: string
+    - name: description
+      type: text
+  associations:
+    - type: has_many
+      name: agg_issues
+      target_model: agg_issue
+      foreign_key: agg_project_id
+  aggregates:
+    issues_count:
+      function: count
+      association: agg_issues
+    open_issues_count:
+      function: count
+      association: agg_issues
+      where:
+        status: open
+    total_hours:
+      function: sum
+      association: agg_issues
+      source_field: estimated_hours
+      default: 0
+    max_priority:
+      function: max
+      association: agg_issues
+      source_field: priority
+      default: 0

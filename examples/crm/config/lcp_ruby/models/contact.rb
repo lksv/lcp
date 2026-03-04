@@ -41,6 +41,10 @@ define_model :contact do
 
   has_many :activities, model: :activity, foreign_key: :contact_id
 
+  aggregate :activities_count, function: :count, association: :activities
+  aggregate :completed_activities_count, function: :count, association: :activities,
+    where: { completed: true }
+
   scope :active_contacts, where: { active: true }
 
   custom_fields true

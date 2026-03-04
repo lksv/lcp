@@ -152,6 +152,7 @@ module LcpRuby
             validate_userstamps(model)
             validate_tree(model)
             validate_label_method(model)
+            validate_model_aggregates(model)
           end
         end
       end
@@ -336,6 +337,36 @@ module LcpRuby
           unless field_names.include?(field_name.to_s)
             @warnings << "Model '#{model.name}', scope '#{scope_name}': " \
                          "orders by unknown field '#{field_name}'"
+          end
+        end
+      end
+
+      def validate_model_aggregates(model)
+        model.aggregates.each do |agg_name, agg_def|
+          if agg_def.declarative?
+            # Verify association exists and is has_many
+            assoc = model.associations.find { |a| a.name == agg_def.association }
+            unless assoc
+              @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
+                         "references unknown association '#{agg_def.association}'"
+              next
+            end
+            unless assoc.type == "has_many"
+              @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
+                         "association '#{agg_def.association}' must be has_many, got '#{assoc.type}'"
+              next
+            end
+
+            # Verify source_field exists on target model
+            if agg_def.source_field.present? && assoc.target_model
+              target_def = loader.model_definitions[assoc.target_model]
+              if target_def && !target_def.field(agg_def.source_field)
+                @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
+                           "source_field '#{agg_def.source_field}' not found on model '#{assoc.target_model}'"
+              end
+            end
+          elsif agg_def.service_type?
+            # Service validation happens at boot via AggregateApplicator
           end
         end
       end
@@ -768,7 +799,8 @@ module LcpRuby
           .select { |a| a.through? }
           .map { |a| "#{a.name.to_s.singularize}_ids" }
         userstamp_fields = model_def.userstamp_column_names
-        all_valid = valid_fields + fk_fields + collection_id_fields + userstamp_fields + %w[created_at updated_at id]
+        aggregate_fields = model_def.aggregate_names
+        all_valid = valid_fields + fk_fields + collection_id_fields + userstamp_fields + aggregate_fields + %w[created_at updated_at id]
 
         # Check table columns
         presenter.table_columns.each do |col|
@@ -1279,7 +1311,8 @@ module LcpRuby
         field = sort["field"]
         direction = sort["direction"]
 
-        if field && !valid_fields.include?(field.to_s)
+        # Allow dot-path sort fields (validated at runtime via apply_sort)
+        if field && !field.to_s.include?(".") && !valid_fields.include?(field.to_s)
           @errors << "Presenter '#{presenter.name}', index default_sort: " \
                      "references unknown field '#{field}' on model '#{presenter.model}'"
         end

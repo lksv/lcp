@@ -10,11 +10,13 @@ define_presenter :company do
     per_page 25
     row_click :show
 
-    column :name, width: "30%", link_to: :show, sortable: true, pinned: :left
-    column :industry, width: "20%", renderer: :badge, sortable: true
-    column :website, width: "25%", renderer: :url_link
-    column :phone, width: "25%", renderer: :phone_link
-    column "contacts.first_name", label: "Contacts", renderer: :collection, options: { limit: 3, overflow: "..." }
+    column :name, width: "25%", link_to: :show, sortable: true, pinned: :left
+    column :industry, width: "15%", renderer: :badge, sortable: true
+    column :contacts_count, width: "10%", sortable: true
+    column :deals_count, width: "10%", sortable: true
+    column :total_deal_value, width: "15%", renderer: :currency, sortable: true
+    column :won_deals_value, width: "15%", renderer: :currency, sortable: true
+    column :phone, width: "10%", renderer: :phone_link
   end
 
   show do
@@ -26,7 +28,13 @@ define_presenter :company do
       field :logo, renderer: :attachment_preview
       field :contract_template, renderer: :attachment_link
       field :created_at, renderer: :relative_date
-      field "contacts.first_name", label: "Contacts", renderer: :collection, options: { limit: 5 }
+    end
+
+    section "Statistics", columns: 2 do
+      field :contacts_count
+      field :deals_count
+      field :total_deal_value, renderer: :currency
+      field :won_deals_value, renderer: :currency
     end
     association_list "Contacts", association: :contacts
     association_list "Deals", association: :deals

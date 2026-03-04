@@ -1,0 +1,20 @@
+presenter:
+  name: agg_issues
+  model: agg_issue
+  slug: agg_issues
+  index:
+    table_columns:
+      - field: title
+        sortable: true
+      - field: status
+      - field: priority
+      - field: estimated_hours
+  form:
+    sections:
+      - title: Details
+        fields:
+          - field: title
+          - field: status
+          - field: priority
+          - field: estimated_hours
+          - field: agg_project_id

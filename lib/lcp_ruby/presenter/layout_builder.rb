@@ -151,16 +151,30 @@ module LcpRuby
           field_def = model_definition.field(f["field"])
 
           if field_def.nil?
-            assoc = model_definition.associations.find { |a| a.foreign_key == f["field"].to_s }
-            if assoc
+            # Check if it's an aggregate field
+            agg_def = model_definition.aggregate(f["field"])
+            if agg_def
               f = f.merge(
                 "field_definition" => Metadata::FieldDefinition.new(
                   name: f["field"],
-                  type: "integer",
-                  label: assoc.name.to_s.humanize
+                  type: agg_def.inferred_type(model_definition),
+                  label: f["field"].to_s.humanize
                 ),
-                "association" => assoc
+                "readonly" => true,
+                "aggregate" => true
               )
+            else
+              assoc = model_definition.associations.find { |a| a.foreign_key == f["field"].to_s }
+              if assoc
+                f = f.merge(
+                  "field_definition" => Metadata::FieldDefinition.new(
+                    name: f["field"],
+                    type: "integer",
+                    label: assoc.name.to_s.humanize
+                  ),
+                  "association" => assoc
+                )
+              end
             end
           else
             f = f.merge("field_definition" => field_def)

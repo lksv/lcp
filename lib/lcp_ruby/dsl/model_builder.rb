@@ -14,6 +14,7 @@ module LcpRuby
         @scopes = []
         @events = []
         @display_templates = {}
+        @aggregates = {}
         @positioning_config = nil
         @options = {}
       end
@@ -183,6 +184,22 @@ module LcpRuby
         @display_templates[name.to_s] = tmpl
       end
 
+      def aggregate(name, **opts)
+        agg = {}
+        agg["function"] = opts[:function].to_s if opts[:function]
+        agg["association"] = opts[:association].to_s if opts[:association]
+        agg["source_field"] = opts[:source_field].to_s if opts[:source_field]
+        agg["where"] = stringify_keys(opts[:where]) if opts[:where]
+        agg["distinct"] = opts[:distinct] if opts.key?(:distinct)
+        agg["default"] = opts[:default] if opts.key?(:default)
+        agg["include_discarded"] = opts[:include_discarded] if opts.key?(:include_discarded)
+        agg["sql"] = opts[:sql].to_s if opts[:sql]
+        agg["service"] = opts[:service].to_s if opts[:service]
+        agg["type"] = opts[:type].to_s if opts[:type]
+        agg["options"] = stringify_keys(opts[:options]) if opts[:options]
+        @aggregates[name.to_s] = agg
+      end
+
       def positioning(field: :position, scope: nil)
         config = { "field" => field.to_s }
         config["scope"] = Array(scope).map(&:to_s) if scope
@@ -262,6 +279,7 @@ module LcpRuby
         hash["scopes"] = @scopes unless @scopes.empty?
         hash["events"] = @events unless @events.empty?
         hash["display_templates"] = @display_templates unless @display_templates.empty?
+        hash["aggregates"] = @aggregates unless @aggregates.empty?
         hash["positioning"] = @positioning_config if @positioning_config
         hash["options"] = @options unless @options.empty?
 

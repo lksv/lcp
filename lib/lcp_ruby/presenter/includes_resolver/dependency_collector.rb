@@ -79,8 +79,12 @@ module LcpRuby
         # Index context: scan table_columns for FK fields, dot-paths, and templates.
         def collect_index_deps(presenter_def, model_def)
           fk_map = model_def.belongs_to_fk_map
+          agg_names = model_def.aggregate_names
           presenter_def.table_columns.each do |col|
             field = col["field"].to_s
+
+            # Skip aggregate columns — they are SQL subqueries, not associations
+            next if agg_names.include?(field)
 
             if field.include?("{")
               # Template: extract all {ref} and collect dot-path deps

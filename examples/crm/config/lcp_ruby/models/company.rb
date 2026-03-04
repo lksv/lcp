@@ -51,6 +51,12 @@ define_model :company do
   belongs_to :region, model: :region, required: false
   belongs_to :city, model: :city, required: false
 
+  aggregate :contacts_count, function: :count, association: :contacts
+  aggregate :deals_count, function: :count, association: :deals
+  aggregate :total_deal_value, function: :sum, association: :deals, source_field: :value, default: 0
+  aggregate :won_deals_value, function: :sum, association: :deals, source_field: :value,
+    where: { stage: "closed_won" }, default: 0
+
   custom_fields true
   soft_delete
 

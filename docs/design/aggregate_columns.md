@@ -123,7 +123,25 @@ where: { status: open }                      # WHERE status = 'open'
 where: { status: [open, in_progress] }       # WHERE status IN ('open', 'in_progress')
 where: { deleted_at: null }                  # WHERE deleted_at IS NULL
 where: { status: active, priority: high }    # WHERE status = 'active' AND priority = 'high'
+where: { assignee_id: :current_user }        # WHERE assignee_id = <current_user.id>
 ```
+
+**The `:current_user` placeholder** resolves to `current_user.id` at query time. It can be used in any `where` value position to filter associated records by the currently logged-in user. This enables per-user aggregates like "my open issues count" or "tasks assigned to me":
+
+```yaml
+aggregates:
+  my_issues_count:
+    function: count
+    association: issues
+    where: { assignee_id: :current_user }
+
+  my_open_issues_count:
+    function: count
+    association: issues
+    where: { assignee_id: :current_user, status: open }
+```
+
+When no user is signed in (e.g., public pages), `:current_user` resolves to `nil`, which produces `IS NULL` — effectively returning 0 for count or NULL for other functions. This is a safe default.
 
 For anything more complex (operators, OR conditions, subqueries), use `sql:` or `service:`.
 
@@ -291,6 +309,30 @@ Generated SQL:
 (SELECT COALESCE(SUM(orders.amount), 0) FROM orders
  WHERE orders.project_id = projects.id AND orders.status = 'completed') AS total_revenue
 ```
+
+### Per-user: my assigned issues
+
+```yaml
+aggregates:
+  my_issues_count:
+    function: count
+    association: issues
+    where: { assignee_id: :current_user }
+
+  my_overdue_issues:
+    function: count
+    association: issues
+    where: { assignee_id: :current_user, status: open }
+```
+
+Generated SQL (with `current_user.id = 42`):
+```sql
+(SELECT COUNT(*) FROM issues
+ WHERE issues.project_id = projects.id
+   AND issues.assignee_id = 42) AS my_issues_count
+```
+
+When `:current_user` is used, the aggregate is inherently user-specific — different users see different values in the same column. This is expected and correct behavior.
 
 ### Custom SQL: weighted average
 
@@ -464,6 +506,17 @@ Aggregate subqueries add overhead. They should only be included when the current
 2. **Show page:** `LayoutBuilder` collects referenced aggregate names from show sections. The single-record query includes only those subqueries. For service aggregates, `call` is invoked directly (no query modification).
 3. **No presenter reference → zero overhead.**
 
+### `:current_user` placeholder resolution
+
+When `AggregateQueryBuilder` encounters `:current_user` (symbol or string `":current_user"`) in a `where` value, it replaces it with `current_user.id` as a bind parameter:
+
+1. Controller passes `current_user` to `AggregateQueryBuilder.apply(scope, model_definition, aggregate_names, current_user:)`
+2. Builder iterates `where` conditions; any value equal to `:current_user` is replaced with `current_user&.id`
+3. If `current_user` is `nil`, the value becomes `nil` → generates `IS NULL` in SQL (safe default, produces 0 for COUNT, NULL for others)
+4. The value is always bound via parameterized query (`?`), never interpolated — no SQL injection risk
+
+This is the only dynamic placeholder supported in v1. See [Open Questions](#open-questions--future-v2) for planned role and group placeholders.
+
 ### Association resolution for subqueries
 
 The engine resolves the `association` name to a concrete SQL subquery by reading the `AssociationDefinition`:
@@ -533,6 +586,8 @@ The engine resolves the `association` name to a concrete SQL subquery by reading
 
 7. **Show page: yes.** Aggregates are usable in show page sections, not just index columns.
 
+8. **`:current_user` in v1, role/group placeholders deferred.** The `:current_user` placeholder is simple (single ID, always SQL-compatible, no external dependencies). Role and group placeholders depend on configurable sources (DB, YAML, host adapter) and have hierarchy/multi-value complexity. For v1, `:current_user` covers the most common per-user aggregate use case. Role/group filtering is fully achievable via `service:` type as an escape hatch.
+
 ## Open Questions / Future (v2)
 
 1. **Filtering by aggregate values** — Enabling `?f[issues_count_gteq]=5` on the index page would require wrapping the query in a CTE or using HAVING. Deferred to v2.
@@ -558,3 +613,86 @@ The engine resolves the `association` name to a concrete SQL subquery by reading
 5. **Aggregate in `record_rules` / `visible_when`** — Using aggregate values in conditions (e.g., hide edit button when `issues_count > 100`). Natural extension once aggregate values are loaded on records.
 
 6. **Dashboard / summary aggregates** — Aggregates over the entire filtered result set (not per-record), e.g., "Total revenue across all visible projects: $1.2M". Related to the existing `summary` column feature (`sum`, `avg`, `count` in table footer). Could share configuration.
+
+7. **`:current_role` placeholder — filtering by user's role(s)**
+
+   Goal: aggregate only records that match the current user's role(s). Example — "count of issues created by users with the same role as me":
+
+   ```yaml
+   aggregates:
+     team_issues_count:
+       function: count
+       association: issues
+       where: { creator_role: :current_role }
+   ```
+
+   **Challenges:**
+   - **Multiple roles.** A user can have multiple roles → the placeholder must resolve to a list, generating `IN (...)` instead of `= ?`.
+   - **Role source variability.** Roles come from different sources depending on configuration:
+     - *Implicit (YAML keys)* — role is a static string on the user, trivial to resolve.
+     - *`role_source: :model`* — roles are DB records, resolvable via `Roles::Registry`.
+     - *`role_method` on user* — arbitrary Ruby method; result may not map to a DB column, making a pure SQL subquery impossible.
+   - **What column to compare against?** The target model must have a column storing the role (e.g., `creator_role`). This works when the host app explicitly stores role at creation time. But if the question is "records created by users who *currently* have role X" (as opposed to "had role X at creation time"), the subquery needs a JOIN to the user table + role resolution — which depends on the host app's user model structure and is not generically solvable in SQL.
+   - **SQL feasibility.** Only possible when role resolution is DB-backed. For `role_method`-based roles, the engine would need to call Ruby per record (N+1) or fall back to loading all user IDs with matching roles upfront (extra query).
+
+   **Possible approach:** Support `:current_role` only when `role_source` is `:model` or implicit (resolvable to DB values). Emit a `ConfigurationValidator` error otherwise. Resolve to `current_user`'s role IDs/names via `Roles::Registry` and bind as `IN (...)`.
+
+   **Until then:** Use `service:` aggregate type. The service has full access to `current_user` and can implement any role resolution logic.
+
+8. **`:current_groups` placeholder — filtering by user's group(s)**
+
+   Goal: aggregate only records belonging to the current user's organizational groups. Example — "count of issues in my department":
+
+   ```yaml
+   aggregates:
+     department_issues_count:
+       function: count
+       association: issues
+       where: { department_id: :current_groups }
+   ```
+
+   **Challenges (all of `:current_role` plus more):**
+   - **Three group sources.** Groups come from YAML (static), DB (`group_source: :model`), or host adapter (`group_source: :host`). Each has different resolution cost and SQL feasibility.
+   - **Group hierarchy.** Groups can be hierarchical (parent → child). If the user belongs to "Engineering", should the aggregate include records from "Backend Team" (a sub-group)? This requires tree traversal — either recursive CTE in SQL or pre-computed ancestor/descendant lists.
+   - **Many-to-many membership.** A user can belong to multiple groups, each group can have sub-groups → the `IN (...)` list can be large. In a correlated subquery this may have performance implications.
+   - **Role mapping.** Groups have optional `role_mapping` — the user's effective role can differ per group. If the aggregate should respect role-based visibility within a group context, the logic becomes a combination of group + role resolution.
+   - **Host adapter opacity.** When `group_source: :host`, the platform cannot know how groups are stored. The adapter returns Ruby objects — no SQL translation possible. The engine would need to call `Groups::Registry.groups_for_user(user)` upfront and bind the IDs, but this only works if the target model has a group FK column.
+
+   **Possible approach (DB-backed groups only):**
+   1. Resolve `Groups::Registry.groups_for_user(current_user)` → list of group IDs
+   2. Optionally expand to include descendant group IDs (if hierarchy traversal is enabled)
+   3. Bind as `IN (...)` parameter
+   4. Only supported when `group_source` is `:model` or YAML (SQL-resolvable). Emit validator error for `:host`.
+
+   **Hierarchy expansion options:**
+   - `where: { department_id: :current_groups }` — exact match, only direct groups
+   - `where: { department_id: { placeholder: :current_groups, include_descendants: true } }` — includes sub-groups (extended syntax, v3+)
+
+   **Until then:** Use `service:` aggregate type. The service calls `Groups::Registry.groups_for_user(current_user)`, handles hierarchy traversal, and returns the computed value. Example:
+
+   ```ruby
+   # app/lcp_services/aggregates/department_issues.rb
+   class DepartmentIssues
+     def self.call(record, options: {})
+       user = LcpRuby.current_user
+       group_ids = Groups::Registry.groups_for_user(user).map(&:id)
+       record.issues.where(department_id: group_ids).count
+     end
+
+     def self.sql_expression(model_class, options: {})
+       user = LcpRuby.current_user
+       group_ids = Groups::Registry.groups_for_user(user).map(&:id)
+       return "SELECT 0" if group_ids.empty?
+       t = model_class.table_name
+       "SELECT COUNT(*) FROM issues WHERE issues.project_id = #{t}.id AND issues.department_id IN (#{group_ids.join(',')})"
+     end
+   end
+   ```
+
+   **Complexity summary:**
+
+   | Placeholder | SQL feasible? | Depends on | Hierarchy? | v1? |
+   |-------------|--------------|------------|------------|-----|
+   | `:current_user` | Always | nothing | N/A | **Yes** |
+   | `:current_role` | Only DB/implicit roles | `role_source` config | No | No (v2) |
+   | `:current_groups` | Only DB/YAML groups | `group_source` config | Optional | No (v3) |

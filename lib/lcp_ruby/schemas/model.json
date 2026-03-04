@@ -88,6 +88,12 @@
       "description": "Database indexes to create on the model's table. SchemaManager creates these at boot alongside the table.",
       "items": { "$ref": "#/$defs/index" },
       "examples": [[{ "columns": ["status", "created_at"] }, { "columns": ["email"], "unique": true }]]
+    },
+    "aggregates": {
+      "type": "object",
+      "description": "Virtual aggregate columns computed from associated records via SQL subqueries or custom services. Each key is the aggregate name, which becomes a virtual attribute referenceable in presenters.",
+      "additionalProperties": { "$ref": "#/$defs/aggregate" },
+      "examples": [{ "issues_count": { "function": "count", "association": "issues" }, "total_revenue": { "function": "sum", "association": "orders", "source_field": "amount" } }]
     }
   },
   "required": ["name"],
@@ -723,6 +729,66 @@
         { "field": "status", "operator": "eq", "value": "active" },
         "can_archive?"
       ]
+    },
+
+    "aggregate": {
+      "type": "object",
+      "description": "A virtual aggregate column definition. Supports three types: declarative (function+association), custom SQL expression, or service-based computation.",
+      "properties": {
+        "function": {
+          "type": "string",
+          "description": "SQL aggregate function for declarative aggregates.",
+          "enum": ["count", "sum", "min", "max", "avg"]
+        },
+        "association": {
+          "type": "string",
+          "description": "Name of a has_many association on the model. Required for declarative aggregates.",
+          "examples": ["issues", "orders", "comments"]
+        },
+        "source_field": {
+          "type": "string",
+          "description": "Field on the target model to aggregate. Required for sum/min/max/avg; optional for count (defaults to *).",
+          "examples": ["amount", "created_at", "score"]
+        },
+        "where": {
+          "type": "object",
+          "description": "Hash equality conditions on the target model. Supports :current_user placeholder for per-user aggregates.",
+          "examples": [{ "status": "open" }, { "assignee_id": ":current_user" }]
+        },
+        "distinct": {
+          "type": "boolean",
+          "description": "Use DISTINCT in the aggregate function (e.g., COUNT(DISTINCT ...) or SUM(DISTINCT ...)).",
+          "default": false
+        },
+        "default": {
+          "description": "Default value via COALESCE wrap. COUNT always defaults to 0 even without this setting."
+        },
+        "include_discarded": {
+          "type": "boolean",
+          "description": "When false (default), excludes soft-deleted records from the aggregate. Only applies when the target model uses soft_delete.",
+          "default": false
+        },
+        "sql": {
+          "type": "string",
+          "description": "Custom SQL subquery returning a single value. Use %{table} placeholder for the parent model's table name.",
+          "examples": ["SELECT SUM(r.score * r.weight) / NULLIF(SUM(r.weight), 0) FROM ratings r WHERE r.project_id = %{table}.id"]
+        },
+        "service": {
+          "type": "string",
+          "description": "Service key looked up in app/lcp_services/aggregates/. The service class must implement self.call(record, options:).",
+          "examples": ["project_health", "custom_score"]
+        },
+        "type": {
+          "type": "string",
+          "description": "Explicit result type. Required for sql and service aggregates; inferred for declarative aggregates.",
+          "enum": ["string", "integer", "float", "decimal", "boolean", "date", "datetime"]
+        },
+        "options": {
+          "type": "object",
+          "description": "Options hash passed to the service. Only used with service aggregates."
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

@@ -1,0 +1,14 @@
+permissions:
+  model: agg_project
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields:
+        readable: [name, description]
+        writable: [name, description]
+      presenters: all
+    viewer:
+      crud: [index, show]
+      fields:
+        readable: [name, description]
+      presenters: all

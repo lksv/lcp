@@ -10,11 +10,13 @@ define_presenter :contact do
     per_page 25
     row_click :show
 
-    column :full_name, width: "25%", link_to: :show, sortable: true
+    column :full_name, width: "20%", link_to: :show, sortable: true
     column "company.name", label: "Company", width: "15%"
     column "company.industry", label: "Industry", width: "10%", renderer: :badge
-    column :email, width: "20%", renderer: :email_link
-    column :phone, width: "15%", renderer: :phone_link
+    column :email, width: "15%", renderer: :email_link
+    column :phone, width: "10%", renderer: :phone_link
+    column :activities_count, width: "10%", sortable: true
+    column :completed_activities_count, width: "10%", sortable: true
     column :active, width: "10%", renderer: :boolean_icon
   end
 
@@ -30,6 +32,11 @@ define_presenter :contact do
       field "company.industry", label: "Industry", renderer: :badge
       field :created_by_name
       field :updated_by_name
+    end
+
+    section "Activity Statistics", columns: 2 do
+      field :activities_count
+      field :completed_activities_count
     end
 
     section "Documents" do

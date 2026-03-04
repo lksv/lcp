@@ -24,6 +24,8 @@ module LcpRuby
           resolve_template(record, field_path, fk_map: fk_map)
         elsif self.class.dot_path?(field_path)
           resolve_dot_path(record, field_path)
+        elsif aggregate_field?(field_path)
+          resolve_aggregate(record, field_path)
         elsif fk_map.key?(field_path)
           resolve_fk(record, fk_map[field_path])
         else
@@ -131,6 +133,20 @@ module LcpRuby
 
       def resolve_simple(record, field_name)
         record.respond_to?(field_name) ? record.public_send(field_name) : nil
+      end
+
+      def aggregate_field?(field_path)
+        model_definition.aggregate(field_path).present?
+      end
+
+      def resolve_aggregate(record, name)
+        # Try reading the SQL-injected virtual attribute first
+        if record.respond_to?(name)
+          record.public_send(name)
+        else
+          # Fallback: try read_attribute for SQL alias
+          record.read_attribute(name) if record.respond_to?(:read_attribute)
+        end
       end
     end
   end

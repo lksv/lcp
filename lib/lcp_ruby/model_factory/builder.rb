@@ -14,6 +14,7 @@ module LcpRuby
         apply_validations(model_class)
         apply_transforms(model_class)
         apply_associations(model_class)
+        apply_aggregates(model_class)
         apply_attachments(model_class)
         apply_scopes(model_class)
         apply_soft_delete(model_class)
@@ -79,6 +80,10 @@ module LcpRuby
 
       def apply_associations(model_class)
         AssociationApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_aggregates(model_class)
+        AggregateApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_attachments(model_class)

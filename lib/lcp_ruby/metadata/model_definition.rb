@@ -3,7 +3,7 @@ module LcpRuby
     class ModelDefinition
       attr_reader :name, :label, :label_plural, :table_name, :fields,
                   :validations, :associations, :scopes, :events, :options,
-                  :display_templates, :raw_hash
+                  :display_templates, :aggregates, :raw_hash
       attr_accessor :positioning_config
 
       def initialize(attrs = {})
@@ -18,6 +18,7 @@ module LcpRuby
         @events = attrs[:events] || []
         @options = attrs[:options] || {}
         @display_templates = attrs[:display_templates] || {}
+        @aggregates = attrs[:aggregates] || {}
         @positioning_config = attrs[:positioning_config]
         @raw_hash = attrs[:raw_hash]
 
@@ -37,6 +38,7 @@ module LcpRuby
           events: parse_events(hash["events"]),
           options: hash["options"] || {},
           display_templates: parse_display_templates(hash["display_templates"]),
+          aggregates: parse_aggregates(hash["aggregates"]),
           positioning_config: normalize_positioning(hash["positioning"]),
           raw_hash: hash
         )
@@ -175,6 +177,14 @@ module LcpRuby
         display_templates[name.to_s]
       end
 
+      def aggregate(name)
+        aggregates[name.to_s]
+      end
+
+      def aggregate_names
+        aggregates.keys
+      end
+
       def positioned?
         @positioning_config.present?
       end
@@ -226,6 +236,7 @@ module LcpRuby
       def validate!
         raise MetadataError, "Model name is required" if @name.blank?
         validate_field_names_unique!
+        validate_aggregate_names_unique!
       end
 
       def validate_field_names_unique!
@@ -233,6 +244,14 @@ module LcpRuby
         duplicates = names.select { |n| names.count(n) > 1 }.uniq
         if duplicates.any?
           raise MetadataError, "Duplicate field names in model '#{@name}': #{duplicates.join(', ')}"
+        end
+      end
+
+      def validate_aggregate_names_unique!
+        field_names = fields.map(&:name)
+        collisions = aggregate_names & field_names
+        if collisions.any?
+          raise MetadataError, "Model '#{@name}': aggregate names collide with field names: #{collisions.join(', ')}"
         end
       end
 
@@ -268,6 +287,13 @@ module LcpRuby
       def self.parse_events(events_data)
         return [] unless events_data.is_a?(Array)
         events_data.map { |e| EventDefinition.from_hash(e) }
+      end
+
+      def self.parse_aggregates(data)
+        return {} unless data.is_a?(Hash)
+        data.each_with_object({}) do |(name, hash), result|
+          result[name.to_s] = AggregateDefinition.from_hash(name, hash)
+        end
       end
 
       def self.parse_display_templates(data)

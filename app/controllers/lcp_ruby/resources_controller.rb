@@ -33,9 +33,10 @@ module LcpRuby
 
     def show
       authorize @record
+      @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+      load_show_aggregates
       preload_associations(@record, :show)
       @record.strict_loading! if LcpRuby.configuration.strict_loading_enabled?
-      @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
       @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
       @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
@@ -303,6 +304,7 @@ module LcpRuby
     def load_flat_index(scope)
       scope = apply_advanced_search(scope)
       scope = apply_sort(scope)
+      scope = apply_aggregates(scope)
 
       # Load saved filters for the UI
       if SavedFilters::Registry.available? && current_presenter.saved_filters_enabled?
@@ -332,6 +334,7 @@ module LcpRuby
     def load_tree_index(scope)
       parent_field = current_model_definition.tree_parent_field
       scope = scope.all unless scope.is_a?(ActiveRecord::Relation)
+      scope = apply_aggregates(scope)
 
       # Detect if search is active
       @search_active = search_active?
@@ -370,6 +373,73 @@ module LcpRuby
       @fk_map = @column_set.fk_association_map(current_model_definition)
       @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
       @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
+    end
+
+    # Inject aggregate subqueries into the scope for index/tree views.
+    # Only includes aggregates that are referenced in the presenter's table_columns.
+    def apply_aggregates(scope)
+      agg_names = index_aggregate_names
+      return scope if agg_names.empty?
+
+      scope, @service_aggregates = Aggregates::QueryBuilder.apply(
+        scope, current_model_definition, agg_names, current_user: current_user
+      )
+      scope
+    end
+
+    # Collect aggregate names referenced by the current presenter's table columns.
+    def index_aggregate_names
+      all_agg_names = current_model_definition.aggregate_names
+      return [] if all_agg_names.empty?
+
+      current_presenter.table_columns
+        .map { |c| c["field"].to_s }
+        .select { |f| all_agg_names.include?(f) }
+    end
+
+    # Load aggregate values for a show page record.
+    # Expects @layout_builder to be set before calling.
+    def load_show_aggregates
+      show_sections = @layout_builder.show_sections
+      all_agg_names = current_model_definition.aggregate_names
+      return if all_agg_names.empty?
+
+      # Collect aggregate names from show layout fields
+      show_agg_names = show_sections
+        .flat_map { |s| (s["fields"] || []).map { |f| f["field"].to_s } }
+        .select { |f| all_agg_names.include?(f) }
+        .uniq
+      return if show_agg_names.empty?
+
+      # Re-load record with aggregate subqueries
+      scope = @model_class.where(id: @record.id)
+      scope, service_only = Aggregates::QueryBuilder.apply(
+        scope, current_model_definition, show_agg_names, current_user: current_user
+      )
+
+      loaded = scope.first
+      if loaded
+        @record = loaded
+      end
+
+      # Resolve service aggregates without sql_expression
+      resolve_service_aggregates(@record, service_only)
+    end
+
+    # Compute service aggregate values and define singleton methods on the record.
+    def resolve_service_aggregates(record, service_names)
+      return if service_names.blank?
+
+      service_names.each do |agg_name|
+        agg_def = current_model_definition.aggregate(agg_name)
+        next unless agg_def
+
+        service = Services::Registry.lookup("aggregates", agg_def.service)
+        next unless service
+
+        value = service.call(record, options: agg_def.options)
+        record.define_singleton_method(agg_name) { value }
+      end
     end
 
     def search_active?

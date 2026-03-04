@@ -1,0 +1,18 @@
+model:
+  name: agg_issue
+  fields:
+    - name: title
+      type: string
+    - name: status
+      type: string
+    - name: priority
+      type: integer
+    - name: estimated_hours
+      type: float
+    - name: agg_project_id
+      type: integer
+  associations:
+    - type: belongs_to
+      name: agg_project
+      target_model: agg_project
+      foreign_key: agg_project_id

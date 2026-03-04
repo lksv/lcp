@@ -87,6 +87,8 @@ module LcpRuby
           template_field_visible?(field_path, readable)
         elsif FieldValueResolver.dot_path?(field_path)
           dot_path_field_visible?(field_path)
+        elsif aggregate_field?(field_path)
+          true # Aggregates visible to all roles (per spec Decision #5)
         else
           readable.include?(field_path)
         end
@@ -126,6 +128,11 @@ module LcpRuby
         end
 
         false
+      end
+
+      def aggregate_field?(field_path)
+        model_def = load_model_definition(presenter_definition.model)
+        model_def&.aggregate(field_path).present?
       end
 
       def root_model_name

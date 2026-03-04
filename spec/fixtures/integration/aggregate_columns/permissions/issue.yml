@@ -1,0 +1,14 @@
+permissions:
+  model: agg_issue
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields:
+        readable: [title, status, priority, estimated_hours, agg_project_id]
+        writable: [title, status, priority, estimated_hours, agg_project_id]
+      presenters: all
+    viewer:
+      crud: [index, show]
+      fields:
+        readable: [title, status, priority, estimated_hours, agg_project_id]
+      presenters: all

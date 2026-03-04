@@ -1,0 +1,33 @@
+presenter:
+  name: agg_projects
+  model: agg_project
+  slug: agg_projects
+  index:
+    table_columns:
+      - field: name
+        sortable: true
+      - field: issues_count
+        sortable: true
+      - field: open_issues_count
+      - field: total_hours
+      - field: max_priority
+    search:
+      enabled: true
+      searchable_fields:
+        - name
+  show:
+    layout:
+      - title: Details
+        fields:
+          - field: name
+          - field: description
+          - field: issues_count
+          - field: open_issues_count
+          - field: total_hours
+          - field: max_priority
+  form:
+    sections:
+      - title: Details
+        fields:
+          - field: name
+          - field: description

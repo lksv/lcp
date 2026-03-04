@@ -548,6 +548,11 @@ module LcpRuby
         conn = @model_class.connection
         scope.order(Arel.sql("#{conn.quote_table_name(target_def.table_name)}.#{conn.quote_column_name(col)} #{direction}"))
       else
+        # Check if sort field is an aggregate — order by the subquery alias
+        if current_model_definition.aggregate(field.to_s)
+          return scope.order(Arel.sql("#{@model_class.connection.quote_column_name(field)} #{direction}"))
+        end
+
         return scope unless @model_class.column_names.include?(field.to_s)
         scope.order(field => direction)
       end
