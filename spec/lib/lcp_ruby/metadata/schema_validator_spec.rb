@@ -147,11 +147,11 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
         scopes: [ {
           name: "above_value",
           type: "parameterized",
-          parameters: [ { name: "val", type: "decimal" } ]
+          parameters: [ { name: "val", type: "nonsense" } ]
         } ]
       )
       errors = validator.send(:validate, :model, raw, context_name: "Model 'test'")
-      expect(errors).to include(a_string_matching(/invalid value 'decimal'/))
+      expect(errors).to include(a_string_matching(/invalid value 'nonsense'/))
     end
 
     it "accepts model with indexes" do

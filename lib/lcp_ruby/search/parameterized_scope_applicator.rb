@@ -75,7 +75,7 @@ module LcpRuby
           val = raw.to_i
           val = clamp_numeric(val, param_def)
           val
-        when "float"
+        when "float", "decimal"
           val = raw.to_f
           val = clamp_numeric(val, param_def)
           val

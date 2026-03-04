@@ -4635,7 +4635,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     it "reports error for invalid parameter type" do
       v = with_metadata(
         models: [ model_with_parameterized_scope([
-          "{ name: amount, type: decimal }"
+          "{ name: amount, type: nonsense }"
         ]) ],
         presenters: [ base_presenter ],
         permissions: [ base_permission ]
@@ -4643,7 +4643,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
       result = v.validate
       expect(result.errors).to include(
-        a_string_matching(/parameter 'amount': invalid type 'decimal'/)
+        a_string_matching(/parameter 'amount': invalid type 'nonsense'/)
       )
     end
 

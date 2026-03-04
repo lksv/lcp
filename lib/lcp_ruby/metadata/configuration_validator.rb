@@ -252,7 +252,7 @@ module LcpRuby
         end
       end
 
-      VALID_PARAM_TYPES = %w[integer float string enum date datetime boolean model_select].freeze
+      VALID_PARAM_TYPES = %w[integer float decimal string enum date datetime boolean model_select].freeze
 
       def validate_parameterized_scope(model, scope_name, scope_config)
         parameters = scope_config["parameters"]
