@@ -4122,6 +4122,49 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       assoc_errors = result.errors.select { |e| e.include?("children") }
       expect(assoc_errors).to be_empty
     end
+
+    it "recognizes tree-generated parent association in breadcrumb relation" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: category
+            fields:
+              - { name: name, type: string }
+              - { name: parent_id, type: integer }
+            options:
+              tree: true
+        YAML
+        presenters: [ <<~YAML ],
+          presenter:
+            name: categories
+            model: category
+            slug: categories
+        YAML
+        permissions: [ <<~YAML ],
+          permissions:
+            model: category
+            roles:
+              admin:
+                crud: [index, show, create, update, destroy]
+                fields: { readable: all, writable: all }
+                scope: all
+        YAML
+        view_groups: [ <<~YAML ]
+          view_group:
+            name: categories
+            model: category
+            primary: categories
+            breadcrumb:
+              relation: parent
+            views:
+              - presenter: categories
+        YAML
+      )
+
+      result = v.validate
+      breadcrumb_errors = result.errors.select { |e| e.include?("breadcrumb") }
+      expect(breadcrumb_errors).to be_empty
+    end
   end
 
   # --- Sub-section validations ---

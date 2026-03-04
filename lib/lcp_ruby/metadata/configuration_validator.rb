@@ -1629,7 +1629,7 @@ module LcpRuby
         model_def = loader.model_definitions[vg.model]
         return unless model_def
 
-        assoc_names = model_def.associations.map(&:name)
+        assoc_names = model_association_names(vg.model)
         unless assoc_names.include?(relation)
           @errors << "View group '#{vg.name}': breadcrumb relation '#{relation}' " \
                      "does not match any association on model '#{vg.model}'. " \
