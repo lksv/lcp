@@ -45,7 +45,7 @@ define_model :contact do
 
   custom_fields true
   soft_delete
-  userstamps
+  userstamps store_name: true
 
   timestamps true
   label_method :full_name

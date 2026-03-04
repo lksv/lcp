@@ -35,7 +35,8 @@ define_model :activity do
     { name: :days, type: :integer, default: 7, min: 1, max: 90 }
   ]
 
-  userstamps
+  soft_delete
+  userstamps store_name: true
 
   timestamps true
   label_method :subject

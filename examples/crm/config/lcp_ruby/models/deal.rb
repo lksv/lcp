@@ -70,7 +70,7 @@ define_model :deal do
     condition: { field: :stage, operator: :not_in, value: %w[lead] }
 
   soft_delete
-  userstamps
+  userstamps store_name: true
 
   timestamps true
   label_method :title
