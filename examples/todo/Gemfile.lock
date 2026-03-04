@@ -3,7 +3,7 @@ PATH
   specs:
     lcp_ruby (0.1.0)
       commonmarker (~> 2.0)
-      devise (~> 4.9)
+      devise (>= 4.9, < 6.0)
       json_schemer (~> 2.0)
       kaminari (~> 1.2)
       ostruct (>= 0.6)
