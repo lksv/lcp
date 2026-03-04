@@ -4470,6 +4470,459 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       )
     end
   end
+
+  # --- Parameterized scope parameter validations ---
+
+  context "parameterized scope parameters" do
+    let(:metadata_path) { "" }
+
+    def model_with_parameterized_scope(parameters)
+      <<~YAML
+        model:
+          name: product
+          fields:
+            - { name: name, type: string }
+            - { name: price, type: float }
+            - { name: status, type: enum, enum_values: [active, inactive] }
+          scopes:
+            - name: filtered
+              type: parameterized
+              parameters:
+#{parameters.map { |p| "                - #{p}" }.join("\n")}
+      YAML
+    end
+
+    def base_presenter
+      <<~YAML
+        presenter:
+          name: products
+          model: product
+          slug: products
+      YAML
+    end
+
+    def base_permission
+      <<~YAML
+        permissions:
+          model: product
+          roles:
+            admin:
+              crud: [index, show, create, update, destroy]
+              fields: { readable: all, writable: all }
+              scope: all
+      YAML
+    end
+
+    it "accepts valid parameterized scope with all parameter types" do
+      v = with_metadata(
+        models: [ model_with_parameterized_scope([
+          "{ name: min_price, type: float, required: true, min: 0 }",
+          "{ name: category, type: enum, values: [a, b, c], default: a }",
+          "{ name: active, type: boolean }",
+          "{ name: search, type: string }"
+        ]) ],
+        presenters: [ base_presenter ],
+        permissions: [ base_permission ]
+      )
+
+      result = v.validate
+      param_errors = result.errors.select { |e| e.include?("parameterized") || e.include?("parameter") }
+      expect(param_errors).to be_empty
+    end
+
+    it "reports error for invalid parameter type" do
+      v = with_metadata(
+        models: [ model_with_parameterized_scope([
+          "{ name: amount, type: decimal }"
+        ]) ],
+        presenters: [ base_presenter ],
+        permissions: [ base_permission ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/parameter 'amount': invalid type 'decimal'/)
+      )
+    end
+
+    it "reports error for missing parameter name" do
+      v = with_metadata(
+        models: [ model_with_parameterized_scope([
+          "{ type: integer }"
+        ]) ],
+        presenters: [ base_presenter ],
+        permissions: [ base_permission ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/parameter is missing required 'name'/)
+      )
+    end
+
+    it "reports error for duplicate parameter names" do
+      v = with_metadata(
+        models: [ model_with_parameterized_scope([
+          "{ name: val, type: integer }",
+          "{ name: val, type: float }"
+        ]) ],
+        presenters: [ base_presenter ],
+        permissions: [ base_permission ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/duplicate parameter name 'val'/)
+      )
+    end
+
+    it "reports error for enum parameter without values" do
+      v = with_metadata(
+        models: [ model_with_parameterized_scope([
+          "{ name: category, type: enum }"
+        ]) ],
+        presenters: [ base_presenter ],
+        permissions: [ base_permission ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/parameter 'category': enum type requires 'values' array/)
+      )
+    end
+
+    it "reports error for model_select parameter without model" do
+      v = with_metadata(
+        models: [ model_with_parameterized_scope([
+          "{ name: owner, type: model_select }"
+        ]) ],
+        presenters: [ base_presenter ],
+        permissions: [ base_permission ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/parameter 'owner': model_select type requires 'model' reference/)
+      )
+    end
+
+    it "reports error when min > max" do
+      v = with_metadata(
+        models: [ model_with_parameterized_scope([
+          "{ name: amount, type: integer, min: 100, max: 10 }"
+        ]) ],
+        presenters: [ base_presenter ],
+        permissions: [ base_permission ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/parameter 'amount': min \(100\) must be <= max \(10\)/)
+      )
+    end
+  end
+
+  # --- Advanced filter validations ---
+
+  context "advanced filter validations" do
+    let(:metadata_path) { "" }
+
+    def model_yaml
+      <<~YAML
+        model:
+          name: task
+          fields:
+            - { name: title, type: string }
+            - { name: status, type: enum, enum_values: [open, closed] }
+      YAML
+    end
+
+    def permission_yaml
+      <<~YAML
+        permissions:
+          model: task
+          roles:
+            admin:
+              crud: [index, show, create, update, destroy]
+              fields: { readable: all, writable: all }
+              scope: all
+      YAML
+    end
+
+    it "reports error for non-positive max_conditions" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ <<~YAML ],
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            search:
+              advanced_filter:
+                enabled: true
+                max_conditions: 0
+        YAML
+        permissions: [ permission_yaml ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/max_conditions must be a positive integer/)
+      )
+    end
+
+    it "reports error for max_association_depth out of range" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ <<~YAML ],
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            search:
+              advanced_filter:
+                enabled: true
+                max_association_depth: 6
+        YAML
+        permissions: [ permission_yaml ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/max_association_depth must be between 1 and 5/)
+      )
+    end
+
+    it "reports error for max_nesting_depth out of range" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ <<~YAML ],
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            search:
+              advanced_filter:
+                enabled: true
+                max_nesting_depth: 11
+        YAML
+        permissions: [ permission_yaml ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/max_nesting_depth must be between 1 and 10/)
+      )
+    end
+
+    it "reports error for invalid default_combinator" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ <<~YAML ],
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            search:
+              advanced_filter:
+                enabled: true
+                default_combinator: xor
+        YAML
+        permissions: [ permission_yaml ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/default_combinator must be 'and' or 'or'/)
+      )
+    end
+
+    it "reports error for mutual exclusion of filterable_fields and filterable_fields_except" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ <<~YAML ],
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            search:
+              advanced_filter:
+                enabled: true
+                filterable_fields: [title]
+                filterable_fields_except: [status]
+        YAML
+        permissions: [ permission_yaml ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/filterable_fields and filterable_fields_except are mutually exclusive/)
+      )
+    end
+  end
+
+  # --- Saved filter validations ---
+
+  context "saved filter validations" do
+    let(:metadata_path) { "" }
+
+    def model_yaml
+      <<~YAML
+        model:
+          name: task
+          fields:
+            - { name: title, type: string }
+      YAML
+    end
+
+    def permission_yaml
+      <<~YAML
+        permissions:
+          model: task
+          roles:
+            admin:
+              crud: [index, show, create, update, destroy]
+              fields: { readable: all, writable: all }
+              scope: all
+      YAML
+    end
+
+    it "reports error for invalid visibility_option" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ <<~YAML ],
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            search:
+              advanced_filter:
+                enabled: true
+                saved_filters:
+                  enabled: true
+                  visibility_options: [personal, public]
+        YAML
+        permissions: [ permission_yaml ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/invalid visibility_option 'public'/)
+      )
+    end
+
+    it "reports error for invalid display mode" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ <<~YAML ],
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            search:
+              advanced_filter:
+                enabled: true
+                saved_filters:
+                  enabled: true
+                  display: modal
+        YAML
+        permissions: [ permission_yaml ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/display must be one of: inline, dropdown, sidebar/)
+      )
+    end
+
+    it "reports error for non-positive numeric limit" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ <<~YAML ],
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            search:
+              advanced_filter:
+                enabled: true
+                saved_filters:
+                  enabled: true
+                  max_per_user: -1
+        YAML
+        permissions: [ permission_yaml ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/max_per_user must be a positive integer/)
+      )
+    end
+
+    it "warns when saved_filter model is not defined" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ <<~YAML ],
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            search:
+              advanced_filter:
+                enabled: true
+                saved_filters:
+                  enabled: true
+        YAML
+        permissions: [ permission_yaml ]
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/saved_filters.enabled is true but 'saved_filter' model is not defined/)
+      )
+    end
+  end
+
+  # --- Permission field_override role reference validations ---
+
+  context "permission field_override role references" do
+    let(:metadata_path) { "" }
+
+    it "warns when field_override references unknown field" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: employee
+            fields:
+              - { name: name, type: string }
+              - { name: salary, type: decimal }
+        YAML
+        presenters: [ <<~YAML ],
+          presenter:
+            name: employees
+            model: employee
+            slug: employees
+        YAML
+        permissions: [ <<~YAML ]
+          permissions:
+            model: employee
+            roles:
+              admin:
+                crud: [index, show, create, update, destroy]
+                fields: { readable: all, writable: all }
+                scope: all
+            field_overrides:
+              nonexistent_field:
+                readable_by: [admin]
+        YAML
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/field_override for unknown field 'nonexistent_field'/)
+      )
+    end
+  end
 end
 
 RSpec.describe LcpRuby::Metadata::ConfigurationValidator::ValidationResult do

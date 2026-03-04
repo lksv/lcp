@@ -162,6 +162,29 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
       expect(validator.validate_model(model)).to be_empty
     end
 
+    it "catches unknown index attribute" do
+      raw = LcpRuby::HashUtils.stringify_deep(
+        name: "test",
+        indexes: [ { columns: %w[email], bogus: true } ]
+      )
+      errors = validator.send(:validate, :model, raw, context_name: "Model 'test'")
+      expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
+    end
+
+    it "accepts field with validations array" do
+      model = build_model(
+        fields: [
+          { name: "email", type: "string",
+            validations: [
+              { type: "presence" },
+              { type: "format", options: { with: "\\A.+@.+\\z" }, message: "invalid email" },
+              { type: "length", options: { maximum: 255 } }
+            ] }
+        ]
+      )
+      expect(validator.validate_model(model)).to be_empty
+    end
+
     it "catches unknown scope attribute" do
       model = build_model(scopes: [ { name: "active", bogus: true } ])
       errors = validator.validate_model(model)
@@ -361,6 +384,56 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
       errors = validator.validate_view_group(vg)
       expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
     end
+
+    it "accepts switcher: false" do
+      vg = build_view_group(switcher: false)
+      expect(validator.validate_view_group(vg)).to be_empty
+    end
+
+    it "accepts switcher as array of contexts" do
+      vg = build_view_group(switcher: %w[index show])
+      expect(validator.validate_view_group(vg)).to be_empty
+    end
+
+    it "catches invalid switcher context" do
+      raw = LcpRuby::HashUtils.stringify_deep(
+        name: "test_group", model: "widget", primary: "widgets",
+        switcher: %w[index details],
+        views: [ { presenter: "widgets" } ]
+      )
+      errors = validator.send(:validate, :view_group, raw, context_name: "View group 'test_group'")
+      expect(errors).to include(a_string_matching(/invalid value 'details'/))
+    end
+
+    it "accepts breadcrumb: false" do
+      vg = build_view_group(breadcrumb: false)
+      expect(validator.validate_view_group(vg)).to be_empty
+    end
+
+    it "accepts public: true" do
+      vg = build_view_group(public: true)
+      expect(validator.validate_view_group(vg)).to be_empty
+    end
+
+    it "catches unknown navigation attribute" do
+      raw = LcpRuby::HashUtils.stringify_deep(
+        name: "test_group", model: "widget", primary: "widgets",
+        navigation: { position: 1, bogus: true },
+        views: [ { presenter: "widgets" } ]
+      )
+      errors = validator.send(:validate, :view_group, raw, context_name: "View group 'test_group'")
+      expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
+    end
+
+    it "catches unknown breadcrumb attribute" do
+      raw = LcpRuby::HashUtils.stringify_deep(
+        name: "test_group", model: "widget", primary: "widgets",
+        breadcrumb: { relation: "parent", bogus: true },
+        views: [ { presenter: "widgets" } ]
+      )
+      errors = validator.send(:validate, :view_group, raw, context_name: "View group 'test_group'")
+      expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
+    end
   end
 
   # === Menu schema ===
@@ -428,6 +501,64 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
       errors = validator.validate_menu(menu)
       expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
     end
+
+    it "accepts badge with template instead of renderer" do
+      menu = build_menu(
+        top_menu: [ {
+          view_group: "inbox",
+          badge: { provider: "count", template: "{count} new" }
+        } ]
+      )
+      expect(validator.validate_menu(menu)).to be_empty
+    end
+
+    it "accepts badge with partial instead of renderer" do
+      menu = build_menu(
+        top_menu: [ {
+          view_group: "inbox",
+          badge: { provider: "count", partial: "shared/badge" }
+        } ]
+      )
+      expect(validator.validate_menu(menu)).to be_empty
+    end
+
+    it "accepts badge with options" do
+      menu = build_menu(
+        top_menu: [ {
+          view_group: "inbox",
+          badge: { provider: "count", renderer: "count_badge", options: { max: 99 } }
+        } ]
+      )
+      expect(validator.validate_menu(menu)).to be_empty
+    end
+
+    it "accepts deeply nested children" do
+      menu = build_menu(
+        sidebar_menu: [ {
+          label: "Admin",
+          icon: "cog",
+          children: [
+            { view_group: "users" },
+            { separator: true },
+            { label: "Advanced", children: [
+              { view_group: "settings" }
+            ] }
+          ]
+        } ]
+      )
+      expect(validator.validate_menu(menu)).to be_empty
+    end
+
+    it "catches unknown visibility_when attribute" do
+      raw = LcpRuby::HashUtils.stringify_deep(
+        top_menu: [ {
+          view_group: "admin",
+          visible_when: { role: %w[admin], bogus: true }
+        } ]
+      )
+      errors = validator.send(:validate, :menu, raw, context_name: "Menu")
+      expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
+    end
   end
 
   # === Type schema ===
@@ -476,6 +607,29 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
                "column_options" => { "limit" => 255, "bogus" => true } }
       errors = validator.validate_type_hash(hash, name: "test")
       expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
+    end
+
+    it "accepts type with column_options precision and scale" do
+      hash = { "name" => "currency", "base_type" => "decimal",
+               "column_options" => { "precision" => 10, "scale" => 2 } }
+      expect(validator.validate_type_hash(hash, name: "currency")).to be_empty
+    end
+
+    it "catches invalid validation type in type definition" do
+      hash = { "name" => "test", "base_type" => "string",
+               "validations" => [ { "type" => "magic" } ] }
+      errors = validator.validate_type_hash(hash, name: "test")
+      expect(errors).to include(a_string_matching(/invalid value 'magic'/))
+    end
+
+    it "accepts validation with options and message" do
+      hash = { "name" => "test", "base_type" => "string",
+               "validations" => [ {
+                 "type" => "format",
+                 "options" => { "with" => "\\A.+\\z" },
+                 "message" => "is invalid"
+               } ] }
+      expect(validator.validate_type_hash(hash, name: "test")).to be_empty
     end
 
     it "returns empty for nil hash" do
@@ -1019,6 +1173,146 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
         expect(errors).to include(a_string_matching(/unknown attribute 'display'/))
         expect(errors).to include(a_string_matching(/unknown attribute 'display_options'/))
         expect(errors).to include(a_string_matching(/invalid value 'center'/))
+      end
+    end
+
+    # --- Advanced filter schema ---
+
+    context "advanced filter options" do
+      it "accepts full advanced_filter configuration" do
+        presenter = build_presenter(
+          search: {
+            advanced_filter: {
+              enabled: true,
+              max_conditions: 20,
+              max_association_depth: 2,
+              max_nesting_depth: 3,
+              default_combinator: "and",
+              allow_or_groups: true,
+              query_language: true,
+              filterable_fields: %w[name status],
+              field_options: { name: { operators: %w[eq contains] } },
+              presets: [ { name: "active_only", conditions: [] } ],
+              custom_filters: [ { name: "my_filter", label: "Custom" } ]
+            }
+          }
+        )
+        errors = validator.validate_presenter(presenter)
+        af_errors = errors.select { |e| e.include?("advanced_filter") }
+        expect(af_errors).to be_empty
+      end
+
+      it "accepts saved_filters inside advanced_filter" do
+        presenter = build_presenter(
+          search: {
+            advanced_filter: {
+              enabled: true,
+              saved_filters: {
+                enabled: true,
+                display: "inline",
+                max_per_user: 50,
+                max_per_role: 20,
+                max_global: 30,
+                max_visible_pinned: 5,
+                allow_pinning: true,
+                allow_default: true,
+                visibility_options: %w[personal role global]
+              }
+            }
+          }
+        )
+        errors = validator.validate_presenter(presenter)
+        sf_errors = errors.select { |e| e.include?("saved_filters") }
+        expect(sf_errors).to be_empty
+      end
+
+      it "catches unknown advanced_filter attribute" do
+        presenter = build_presenter(
+          search: {
+            advanced_filter: { enabled: true, bogus: true }
+          }
+        )
+        errors = validator.validate_presenter(presenter)
+        expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
+      end
+
+      it "catches unknown saved_filters attribute" do
+        presenter = build_presenter(
+          search: {
+            advanced_filter: {
+              enabled: true,
+              saved_filters: { enabled: true, bogus: true }
+            }
+          }
+        )
+        errors = validator.validate_presenter(presenter)
+        expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
+      end
+    end
+
+    # --- Index configuration schema ---
+
+    context "index configuration" do
+      it "accepts full index configuration with all options" do
+        presenter = build_presenter(
+          index: {
+            default_view: "table",
+            per_page: 50,
+            row_click: "show",
+            reorderable: true,
+            tree_view: true,
+            reparentable: true,
+            default_expanded: 2,
+            default_sort: { field: "name", direction: "desc" },
+            table_columns: [ { field: "name" } ]
+          }
+        )
+        errors = validator.validate_presenter(presenter)
+        idx_errors = errors.select { |e| e.include?("index") }
+        expect(idx_errors).to be_empty
+      end
+
+      it "catches unknown index attribute" do
+        presenter = build_presenter(
+          index: { bogus_option: true, table_columns: [ { field: "name" } ] }
+        )
+        errors = validator.validate_presenter(presenter)
+        expect(errors).to include(a_string_matching(/unknown attribute 'bogus_option'/))
+      end
+    end
+
+    # --- Presenter top-level attributes schema ---
+
+    context "presenter attributes" do
+      it "accepts read_only and embeddable flags" do
+        presenter = build_presenter(read_only: true, embeddable: true)
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+
+      it "accepts valid scope value" do
+        presenter = build_presenter(scope: "discarded")
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+
+      it "catches invalid scope value" do
+        raw = LcpRuby::HashUtils.stringify_deep(
+          name: "test", model: "widget", scope: "deleted"
+        )
+        errors = validator.send(:validate, :presenter, raw, context_name: "Presenter 'test'")
+        expect(errors).to include(a_string_matching(/invalid value 'deleted'/))
+      end
+
+      it "accepts valid redirect_after object" do
+        presenter = build_presenter(redirect_after: { create: "index", update: "show" })
+        expect(validator.validate_presenter(presenter)).to be_empty
+      end
+
+      it "catches invalid redirect_after create value" do
+        raw = LcpRuby::HashUtils.stringify_deep(
+          name: "test", model: "widget", redirect_after: { create: "dashboard" }
+        )
+        errors = validator.send(:validate, :presenter, raw, context_name: "Presenter 'test'")
+        expect(errors).to include(a_string_matching(/invalid value 'dashboard'/))
       end
     end
 
