@@ -2,7 +2,7 @@ define_model :organization_unit do
   label "Organization Unit"
   label_plural "Organization Units"
 
-  field :name, :string, label: "Name", limit: 255, null: false, transforms: [:strip] do
+  field :name, :string, label: "Name", limit: 255, null: false, transforms: [ :strip ] do
     validates :presence
   end
 

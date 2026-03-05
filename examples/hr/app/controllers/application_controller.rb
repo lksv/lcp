@@ -3,7 +3,7 @@ class ApplicationController < ActionController::Base
     role = session[:role] || "admin"
     @current_user ||= OpenStruct.new(
       id: 1,
-      lcp_role: [role],
+      lcp_role: [ role ],
       lcp_groups: [],
       name: "Demo User (#{role})",
       email: "demo@example.com",

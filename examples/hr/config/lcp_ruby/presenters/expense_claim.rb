@@ -33,7 +33,6 @@ define_presenter :expense_claim do
         visible_when: { field: :status, operator: :eq, value: "rejected" }
       field :items
     end
-
   end
 
   form do

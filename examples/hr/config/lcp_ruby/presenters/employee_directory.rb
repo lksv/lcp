@@ -10,7 +10,7 @@ define_presenter :employee_directory do
     per_page 50
     empty_message "No employees in directory"
 
-    column :photo, width: "5%", renderer: :avatar, options: { variant: "thumbnail", initials_fields: ["first_name", "last_name"] }
+    column :photo, width: "5%", renderer: :avatar, options: { variant: "thumbnail", initials_fields: [ "first_name", "last_name" ] }
     column :full_name, width: "25%", sortable: true, pinned: :left
     column "position.title", label: "Position", width: "20%", sortable: true
     column "organization_unit.name", label: "Organization Unit", width: "20%", sortable: true

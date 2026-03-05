@@ -17,8 +17,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
-    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
-    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+    t.index [ "blob_id" ], name: "index_active_storage_attachments_on_blob_id"
+    t.index [ "record_type", "record_id", "name", "blob_id" ], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", force: :cascade do |t|
@@ -30,13 +30,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "byte_size", null: false
     t.string "checksum"
     t.datetime "created_at", null: false
-    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+    t.index [ "key" ], name: "index_active_storage_blobs_on_key", unique: true
   end
 
   create_table "active_storage_variant_records", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
-    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+    t.index [ "blob_id", "variation_digest" ], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
   create_table "announcements", force: :cascade do |t|
@@ -57,11 +57,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.datetime "discarded_at"
     t.string "discarded_by_type"
     t.bigint "discarded_by_id"
-    t.index ["created_by_id"], name: "index_announcements_on_created_by_id"
-    t.index ["discarded_at"], name: "index_announcements_on_discarded_at"
-    t.index ["discarded_by_type", "discarded_by_id"], name: "index_announcements_on_discarded_by_type_and_discarded_by_id"
-    t.index ["organization_unit_id"], name: "index_announcements_on_organization_unit_id"
-    t.index ["updated_by_id"], name: "index_announcements_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_announcements_on_created_by_id"
+    t.index [ "discarded_at" ], name: "index_announcements_on_discarded_at"
+    t.index [ "discarded_by_type", "discarded_by_id" ], name: "index_announcements_on_discarded_by_type_and_discarded_by_id"
+    t.index [ "organization_unit_id" ], name: "index_announcements_on_organization_unit_id"
+    t.index [ "updated_by_id" ], name: "index_announcements_on_updated_by_id"
   end
 
   create_table "asset_assignments", force: :cascade do |t|
@@ -78,10 +78,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["asset_id"], name: "index_asset_assignments_on_asset_id"
-    t.index ["created_by_id"], name: "index_asset_assignments_on_created_by_id"
-    t.index ["employee_id"], name: "index_asset_assignments_on_employee_id"
-    t.index ["updated_by_id"], name: "index_asset_assignments_on_updated_by_id"
+    t.index [ "asset_id" ], name: "index_asset_assignments_on_asset_id"
+    t.index [ "created_by_id" ], name: "index_asset_assignments_on_created_by_id"
+    t.index [ "employee_id" ], name: "index_asset_assignments_on_employee_id"
+    t.index [ "updated_by_id" ], name: "index_asset_assignments_on_updated_by_id"
   end
 
   create_table "assets", force: :cascade do |t|
@@ -107,10 +107,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.datetime "discarded_at"
     t.string "discarded_by_type"
     t.bigint "discarded_by_id"
-    t.index ["created_by_id"], name: "index_assets_on_created_by_id"
-    t.index ["discarded_at"], name: "index_assets_on_discarded_at"
-    t.index ["discarded_by_type", "discarded_by_id"], name: "index_assets_on_discarded_by_type_and_discarded_by_id"
-    t.index ["updated_by_id"], name: "index_assets_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_assets_on_created_by_id"
+    t.index [ "discarded_at" ], name: "index_assets_on_discarded_at"
+    t.index [ "discarded_by_type", "discarded_by_id" ], name: "index_assets_on_discarded_by_type_and_discarded_by_id"
+    t.index [ "updated_by_id" ], name: "index_assets_on_updated_by_id"
   end
 
   create_table "audit_logs", force: :cascade do |t|
@@ -143,9 +143,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["created_by_id"], name: "index_candidates_on_created_by_id"
-    t.index ["job_posting_id"], name: "index_candidates_on_job_posting_id"
-    t.index ["updated_by_id"], name: "index_candidates_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_candidates_on_created_by_id"
+    t.index [ "job_posting_id" ], name: "index_candidates_on_job_posting_id"
+    t.index [ "updated_by_id" ], name: "index_candidates_on_updated_by_id"
   end
 
   create_table "custom_field_definitions", force: :cascade do |t|
@@ -198,9 +198,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["created_by_id"], name: "index_documents_on_created_by_id"
-    t.index ["employee_id"], name: "index_documents_on_employee_id"
-    t.index ["updated_by_id"], name: "index_documents_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_documents_on_created_by_id"
+    t.index [ "employee_id" ], name: "index_documents_on_employee_id"
+    t.index [ "updated_by_id" ], name: "index_documents_on_updated_by_id"
   end
 
   create_table "employee_skills", force: :cascade do |t|
@@ -212,8 +212,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "skill_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["employee_id"], name: "index_employee_skills_on_employee_id"
-    t.index ["skill_id"], name: "index_employee_skills_on_skill_id"
+    t.index [ "employee_id" ], name: "index_employee_skills_on_employee_id"
+    t.index [ "skill_id" ], name: "index_employee_skills_on_skill_id"
   end
 
   create_table "employees", force: :cascade do |t|
@@ -247,13 +247,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.datetime "discarded_at"
     t.string "discarded_by_type"
     t.bigint "discarded_by_id"
-    t.index ["created_by_id"], name: "index_employees_on_created_by_id"
-    t.index ["discarded_at"], name: "index_employees_on_discarded_at"
-    t.index ["discarded_by_type", "discarded_by_id"], name: "index_employees_on_discarded_by_type_and_discarded_by_id"
-    t.index ["manager_id"], name: "index_employees_on_manager_id"
-    t.index ["organization_unit_id"], name: "index_employees_on_organization_unit_id"
-    t.index ["position_id"], name: "index_employees_on_position_id"
-    t.index ["updated_by_id"], name: "index_employees_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_employees_on_created_by_id"
+    t.index [ "discarded_at" ], name: "index_employees_on_discarded_at"
+    t.index [ "discarded_by_type", "discarded_by_id" ], name: "index_employees_on_discarded_by_type_and_discarded_by_id"
+    t.index [ "manager_id" ], name: "index_employees_on_manager_id"
+    t.index [ "organization_unit_id" ], name: "index_employees_on_organization_unit_id"
+    t.index [ "position_id" ], name: "index_employees_on_position_id"
+    t.index [ "updated_by_id" ], name: "index_employees_on_updated_by_id"
   end
 
   create_table "expense_claims", force: :cascade do |t|
@@ -275,10 +275,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["approved_by_id"], name: "index_expense_claims_on_approved_by_id"
-    t.index ["created_by_id"], name: "index_expense_claims_on_created_by_id"
-    t.index ["employee_id"], name: "index_expense_claims_on_employee_id"
-    t.index ["updated_by_id"], name: "index_expense_claims_on_updated_by_id"
+    t.index [ "approved_by_id" ], name: "index_expense_claims_on_approved_by_id"
+    t.index [ "created_by_id" ], name: "index_expense_claims_on_created_by_id"
+    t.index [ "employee_id" ], name: "index_expense_claims_on_employee_id"
+    t.index [ "updated_by_id" ], name: "index_expense_claims_on_updated_by_id"
   end
 
   create_table "goals", force: :cascade do |t|
@@ -298,10 +298,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["created_by_id"], name: "index_goals_on_created_by_id"
-    t.index ["employee_id"], name: "index_goals_on_employee_id"
-    t.index ["performance_review_id"], name: "index_goals_on_performance_review_id"
-    t.index ["updated_by_id"], name: "index_goals_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_goals_on_created_by_id"
+    t.index [ "employee_id" ], name: "index_goals_on_employee_id"
+    t.index [ "performance_review_id" ], name: "index_goals_on_performance_review_id"
+    t.index [ "updated_by_id" ], name: "index_goals_on_updated_by_id"
   end
 
   create_table "group_memberships", force: :cascade do |t|
@@ -317,10 +317,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["created_by_id"], name: "index_group_memberships_on_created_by_id"
-    t.index ["employee_id"], name: "index_group_memberships_on_employee_id"
-    t.index ["group_id"], name: "index_group_memberships_on_group_id"
-    t.index ["updated_by_id"], name: "index_group_memberships_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_group_memberships_on_created_by_id"
+    t.index [ "employee_id" ], name: "index_group_memberships_on_employee_id"
+    t.index [ "group_id" ], name: "index_group_memberships_on_group_id"
+    t.index [ "updated_by_id" ], name: "index_group_memberships_on_updated_by_id"
   end
 
   create_table "groups", force: :cascade do |t|
@@ -335,8 +335,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["created_by_id"], name: "index_groups_on_created_by_id"
-    t.index ["updated_by_id"], name: "index_groups_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_groups_on_created_by_id"
+    t.index [ "updated_by_id" ], name: "index_groups_on_updated_by_id"
   end
 
   create_table "interviews", force: :cascade do |t|
@@ -358,10 +358,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["candidate_id"], name: "index_interviews_on_candidate_id"
-    t.index ["created_by_id"], name: "index_interviews_on_created_by_id"
-    t.index ["interviewer_id"], name: "index_interviews_on_interviewer_id"
-    t.index ["updated_by_id"], name: "index_interviews_on_updated_by_id"
+    t.index [ "candidate_id" ], name: "index_interviews_on_candidate_id"
+    t.index [ "created_by_id" ], name: "index_interviews_on_created_by_id"
+    t.index [ "interviewer_id" ], name: "index_interviews_on_interviewer_id"
+    t.index [ "updated_by_id" ], name: "index_interviews_on_updated_by_id"
   end
 
   create_table "job_postings", force: :cascade do |t|
@@ -389,13 +389,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.datetime "discarded_at"
     t.string "discarded_by_type"
     t.bigint "discarded_by_id"
-    t.index ["created_by_id"], name: "index_job_postings_on_created_by_id"
-    t.index ["discarded_at"], name: "index_job_postings_on_discarded_at"
-    t.index ["discarded_by_type", "discarded_by_id"], name: "index_job_postings_on_discarded_by_type_and_discarded_by_id"
-    t.index ["hiring_manager_id"], name: "index_job_postings_on_hiring_manager_id"
-    t.index ["organization_unit_id"], name: "index_job_postings_on_organization_unit_id"
-    t.index ["position_id"], name: "index_job_postings_on_position_id"
-    t.index ["updated_by_id"], name: "index_job_postings_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_job_postings_on_created_by_id"
+    t.index [ "discarded_at" ], name: "index_job_postings_on_discarded_at"
+    t.index [ "discarded_by_type", "discarded_by_id" ], name: "index_job_postings_on_discarded_by_type_and_discarded_by_id"
+    t.index [ "hiring_manager_id" ], name: "index_job_postings_on_hiring_manager_id"
+    t.index [ "organization_unit_id" ], name: "index_job_postings_on_organization_unit_id"
+    t.index [ "position_id" ], name: "index_job_postings_on_position_id"
+    t.index [ "updated_by_id" ], name: "index_job_postings_on_updated_by_id"
   end
 
   create_table "leave_balances", force: :cascade do |t|
@@ -411,10 +411,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["created_by_id"], name: "index_leave_balances_on_created_by_id"
-    t.index ["employee_id"], name: "index_leave_balances_on_employee_id"
-    t.index ["leave_type_id"], name: "index_leave_balances_on_leave_type_id"
-    t.index ["updated_by_id"], name: "index_leave_balances_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_leave_balances_on_created_by_id"
+    t.index [ "employee_id" ], name: "index_leave_balances_on_employee_id"
+    t.index [ "leave_type_id" ], name: "index_leave_balances_on_leave_type_id"
+    t.index [ "updated_by_id" ], name: "index_leave_balances_on_updated_by_id"
   end
 
   create_table "leave_requests", force: :cascade do |t|
@@ -434,11 +434,11 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["approved_by_id"], name: "index_leave_requests_on_approved_by_id"
-    t.index ["created_by_id"], name: "index_leave_requests_on_created_by_id"
-    t.index ["employee_id"], name: "index_leave_requests_on_employee_id"
-    t.index ["leave_type_id"], name: "index_leave_requests_on_leave_type_id"
-    t.index ["updated_by_id"], name: "index_leave_requests_on_updated_by_id"
+    t.index [ "approved_by_id" ], name: "index_leave_requests_on_approved_by_id"
+    t.index [ "created_by_id" ], name: "index_leave_requests_on_created_by_id"
+    t.index [ "employee_id" ], name: "index_leave_requests_on_employee_id"
+    t.index [ "leave_type_id" ], name: "index_leave_requests_on_leave_type_id"
+    t.index [ "updated_by_id" ], name: "index_leave_requests_on_updated_by_id"
   end
 
   create_table "leave_types", force: :cascade do |t|
@@ -472,12 +472,12 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.datetime "discarded_at"
     t.string "discarded_by_type"
     t.bigint "discarded_by_id"
-    t.index ["created_by_id"], name: "index_organization_units_on_created_by_id"
-    t.index ["discarded_at"], name: "index_organization_units_on_discarded_at"
-    t.index ["discarded_by_type", "discarded_by_id"], name: "idx_on_discarded_by_type_discarded_by_id_2380496adc"
-    t.index ["head_id"], name: "index_organization_units_on_head_id"
-    t.index ["parent_id"], name: "index_organization_units_on_parent_id"
-    t.index ["updated_by_id"], name: "index_organization_units_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_organization_units_on_created_by_id"
+    t.index [ "discarded_at" ], name: "index_organization_units_on_discarded_at"
+    t.index [ "discarded_by_type", "discarded_by_id" ], name: "idx_on_discarded_by_type_discarded_by_id_2380496adc"
+    t.index [ "head_id" ], name: "index_organization_units_on_head_id"
+    t.index [ "parent_id" ], name: "index_organization_units_on_parent_id"
+    t.index [ "updated_by_id" ], name: "index_organization_units_on_updated_by_id"
   end
 
   create_table "performance_reviews", force: :cascade do |t|
@@ -501,10 +501,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["created_by_id"], name: "index_performance_reviews_on_created_by_id"
-    t.index ["employee_id"], name: "index_performance_reviews_on_employee_id"
-    t.index ["reviewer_id"], name: "index_performance_reviews_on_reviewer_id"
-    t.index ["updated_by_id"], name: "index_performance_reviews_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_performance_reviews_on_created_by_id"
+    t.index [ "employee_id" ], name: "index_performance_reviews_on_employee_id"
+    t.index [ "reviewer_id" ], name: "index_performance_reviews_on_reviewer_id"
+    t.index [ "updated_by_id" ], name: "index_performance_reviews_on_updated_by_id"
   end
 
   create_table "positions", force: :cascade do |t|
@@ -521,9 +521,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.datetime "discarded_at"
     t.string "discarded_by_type"
     t.bigint "discarded_by_id"
-    t.index ["discarded_at"], name: "index_positions_on_discarded_at"
-    t.index ["discarded_by_type", "discarded_by_id"], name: "index_positions_on_discarded_by_type_and_discarded_by_id"
-    t.index ["parent_id"], name: "index_positions_on_parent_id"
+    t.index [ "discarded_at" ], name: "index_positions_on_discarded_at"
+    t.index [ "discarded_by_type", "discarded_by_id" ], name: "index_positions_on_discarded_by_type_and_discarded_by_id"
+    t.index [ "parent_id" ], name: "index_positions_on_parent_id"
   end
 
   create_table "skills", force: :cascade do |t|
@@ -533,7 +533,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.integer "parent_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["parent_id"], name: "index_skills_on_parent_id"
+    t.index [ "parent_id" ], name: "index_skills_on_parent_id"
   end
 
   create_table "training_courses", force: :cascade do |t|
@@ -558,10 +558,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.datetime "discarded_at"
     t.string "discarded_by_type"
     t.bigint "discarded_by_id"
-    t.index ["created_by_id"], name: "index_training_courses_on_created_by_id"
-    t.index ["discarded_at"], name: "index_training_courses_on_discarded_at"
-    t.index ["discarded_by_type", "discarded_by_id"], name: "idx_on_discarded_by_type_discarded_by_id_204bf8a07f"
-    t.index ["updated_by_id"], name: "index_training_courses_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_training_courses_on_created_by_id"
+    t.index [ "discarded_at" ], name: "index_training_courses_on_discarded_at"
+    t.index [ "discarded_by_type", "discarded_by_id" ], name: "idx_on_discarded_by_type_discarded_by_id_204bf8a07f"
+    t.index [ "updated_by_id" ], name: "index_training_courses_on_updated_by_id"
   end
 
   create_table "training_enrollments", force: :cascade do |t|
@@ -577,10 +577,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_03_03_202825) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["created_by_id"], name: "index_training_enrollments_on_created_by_id"
-    t.index ["employee_id"], name: "index_training_enrollments_on_employee_id"
-    t.index ["training_course_id"], name: "index_training_enrollments_on_training_course_id"
-    t.index ["updated_by_id"], name: "index_training_enrollments_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_training_enrollments_on_created_by_id"
+    t.index [ "employee_id" ], name: "index_training_enrollments_on_employee_id"
+    t.index [ "training_course_id" ], name: "index_training_enrollments_on_training_course_id"
+    t.index [ "updated_by_id" ], name: "index_training_enrollments_on_updated_by_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"

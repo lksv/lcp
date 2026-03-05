@@ -186,10 +186,10 @@ end
 
 # Technical sub-skills
 tech_subs = {
-  "programming" => ["Ruby", "Python", "JavaScript", "TypeScript", "Go", "Java", "C#", "Rust"],
-  "devops" => ["Docker", "Kubernetes", "AWS", "Azure", "CI/CD", "Terraform"],
-  "databases" => ["PostgreSQL", "MySQL", "Redis", "MongoDB", "Elasticsearch"],
-  "frontend" => ["React", "Vue.js", "Angular", "CSS/SCSS", "HTML5"]
+  "programming" => [ "Ruby", "Python", "JavaScript", "TypeScript", "Go", "Java", "C#", "Rust" ],
+  "devops" => [ "Docker", "Kubernetes", "AWS", "Azure", "CI/CD", "Terraform" ],
+  "databases" => [ "PostgreSQL", "MySQL", "Redis", "MongoDB", "Elasticsearch" ],
+  "frontend" => [ "React", "Vue.js", "Angular", "CSS/SCSS", "HTML5" ]
 }
 
 tech_subs.each do |sub_name, leaves|
@@ -213,7 +213,7 @@ end
 end
 
 # Certifications
-["AWS Solutions Architect", "PMP", "Scrum Master", "CISSP", "CPA", "ISO 27001 Auditor"].each do |name|
+[ "AWS Solutions Architect", "PMP", "Scrum Master", "CISSP", "CPA", "ISO 27001 Auditor" ].each do |name|
   skills[name.downcase.gsub(/[^a-z0-9]/, "_")] = Skill.create!(
     name: name, category: "certification", parent_id: skills["certification"].id
   )
@@ -322,7 +322,7 @@ team_position_map = {
   "CSUITE" => %w[CEO CTO CFO CHRO CCO]
 }
 
-weighted_teams = team_weights.flat_map { |k, w| [k] * w }
+weighted_teams = team_weights.flat_map { |k, w| [ k ] * w }
 employees = []
 all_statuses = %w[active active active active active active active active on_leave terminated]
 employment_types = %w[full_time full_time full_time full_time part_time contract intern]
@@ -332,7 +332,7 @@ currencies = %w[CZK CZK CZK CZK EUR USD]
 500.times do |i|
   team_key = weighted_teams.sample
   team = org_units[team_key]
-  pos_options = team_position_map[team_key] || ["RECRUITER"]
+  pos_options = team_position_map[team_key] || [ "RECRUITER" ]
   pos_key = pos_options.sample
   position = positions[pos_key]
 
@@ -403,7 +403,7 @@ active_employees = employees.select { |e| e.status != "terminated" }
 
 active_employees.each do |emp|
   leave_types.each_value do |lt|
-    used = rand(0..([lt.default_days, 5].min)).to_f
+    used = rand(0..([ lt.default_days, 5 ].min)).to_f
     LeaveBalance.create!(
       employee_id: emp.id,
       leave_type_id: lt.id,
@@ -438,7 +438,7 @@ active_employees.sample(400).each do |emp|
     remaining = balance_remaining[bal_key] || 0
 
     start_date = Faker::Date.between(from: 6.months.ago, to: 3.months.from_now)
-    days = [rand(1..5), remaining.floor].min
+    days = [ rand(1..5), remaining.floor ].min
     next if days <= 0
 
     status = lr_statuses.sample
@@ -480,7 +480,7 @@ active_employees.sample(350).each do |emp|
     employee_id: emp.id,
     reviewer_id: reviewer.id,
     review_period: %w[q1 q2 q3 q4 annual].sample,
-    year: [current_year, current_year - 1].sample,
+    year: [ current_year, current_year - 1 ].sample,
     status: status,
     self_rating: status.in?(%w[completed acknowledged manager_review]) ? rand(2..5) : nil,
     manager_rating: status.in?(%w[completed acknowledged]) ? rand(2..5) : nil,
@@ -784,7 +784,7 @@ candidates.each do |candidate|
       interviewer_id: interviewer.id,
       interview_type: interview_types[round] || interview_types.sample,
       scheduled_at: Faker::Time.between(from: 2.months.ago, to: 1.month.from_now),
-      duration_minutes: [30, 45, 60, 90].sample,
+      duration_minutes: [ 30, 45, 60, 90 ].sample,
       location: rand < 0.5 ? "Office - Meeting Room #{rand(1..10)}" : nil,
       meeting_url: rand < 0.5 ? "https://meet.example.com/#{SecureRandom.hex(4)}" : nil,
       status: status,

@@ -12,22 +12,22 @@ define_presenter :employee do
     description "Manage employee records and personnel information"
     empty_message "No employees found"
 
-    column :photo, width: "5%", renderer: :avatar, options: { variant: "thumbnail", initials_fields: ["first_name", "last_name"] }
+    column :photo, width: "5%", renderer: :avatar, options: { variant: "thumbnail", initials_fields: [ "first_name", "last_name" ] }
     column :full_name, width: "20%", link_to: :show, sortable: true, pinned: :left
     column "organization_unit.name", label: "Organization Unit", width: "15%", renderer: :internal_link, sortable: true
     column "position.title", label: "Position", width: "12%", sortable: true
     column :status, width: "10%", renderer: :badge, options: { color_map: { active: "green", on_leave: "yellow", suspended: "orange", terminated: "red" } }, sortable: true
     column :work_email, width: "15%", renderer: :email_link
-    column :phone, width: "10%", renderer: :phone_link, hidden_on: [:mobile]
+    column :phone, width: "10%", renderer: :phone_link, hidden_on: [ :mobile ]
     column :hire_date, width: "8%", renderer: :relative_date, sortable: true
-    column :salary, width: "10%", renderer: :currency, options: { currency: "CZK" }, hidden_on: [:mobile], summary: :sum
+    column :salary, width: "10%", renderer: :currency, options: { currency: "CZK" }, hidden_on: [ :mobile ], summary: :sum
   end
 
   show do
     copy_url true
 
     section "Overview", columns: 2, responsive: { mobile: { columns: 1 } } do
-      field :photo, renderer: :avatar, options: { variant: "medium", initials_fields: ["first_name", "last_name"] }
+      field :photo, renderer: :avatar, options: { variant: "medium", initials_fields: [ "first_name", "last_name" ] }
       field :full_name, renderer: :heading
       field :status, renderer: :badge, options: { color_map: { active: "green", on_leave: "yellow", suspended: "orange", terminated: "red" } }
       field "organization_unit.name", label: "Organization Unit", renderer: :internal_link, copyable: true
