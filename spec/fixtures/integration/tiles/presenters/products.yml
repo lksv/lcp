@@ -1,0 +1,89 @@
+presenter:
+  name: products
+  model: product
+  label: Products
+  slug: products
+  index:
+    layout: tiles
+    per_page: 12
+    per_page_options: [6, 12, 24]
+    tile:
+      title_field: name
+      subtitle_field: category
+      description_field: description
+      description_max_lines: 2
+      image_field: image_url
+      columns: 3
+      card_link: show
+      actions: dropdown
+      fields:
+        - field: price
+          label: Price
+        - field: status
+          label: Status
+          renderer: badge
+          options:
+            color_map:
+              active: green
+              draft: gray
+              archived: red
+    sort_fields:
+      - field: name
+        label: Name
+      - field: price
+        label: Price
+      - field: created_at
+        label: Date Added
+    summary:
+      enabled: true
+      fields:
+        - field: price
+          function: sum
+          label: Total Value
+        - field: price
+          function: avg
+          label: Average Price
+    table_columns:
+      - field: name
+        link_to: show
+      - field: price
+      - field: status
+  search:
+    enabled: true
+    searchable_fields:
+      - name
+      - category
+  actions:
+    collection:
+      - name: create
+        type: built_in
+    single:
+      - name: show
+        type: built_in
+      - name: edit
+        type: built_in
+      - name: destroy
+        type: built_in
+        confirm: true
+  form:
+    sections:
+      - title: Product Details
+        fields:
+          - field: name
+          - field: description
+          - field: price
+          - field: category
+          - field: status
+          - field: image_url
+          - field: quantity
+  show:
+    layout:
+      - section: Overview
+        fields:
+          - field: name
+          - field: description
+          - field: price
+          - field: category
+          - field: status
+          - field: image_url
+          - field: quantity

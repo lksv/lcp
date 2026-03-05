@@ -626,3 +626,53 @@ th.lcp-drag-column { background: #f8f9fa; }
 .lcp-scope-param { display: flex; align-items: center; gap: 0.5rem; }
 .lcp-scope-param label { font-size: 0.8rem; color: #555; white-space: nowrap; min-width: 80px; }
 .lcp-scope-param input, .lcp-scope-param select { flex: 1; }
+
+/* Tiles grid */
+.lcp-tiles-grid { display: grid; grid-template-columns: repeat(var(--lcp-tile-columns, 3), 1fr); gap: 1rem; margin-bottom: 1rem; }
+@media (max-width: 1200px) { .lcp-tiles-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 768px) { .lcp-tiles-grid { grid-template-columns: 1fr; } }
+
+.lcp-tile-card { border: 1px solid #dee2e6; border-radius: 6px; background: #fff; display: flex; flex-direction: column; transition: box-shadow 0.15s ease; position: relative; }
+.lcp-tile-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+
+.lcp-tile-image { width: 100%; max-height: 180px; overflow: hidden; border-radius: 6px 6px 0 0; }
+.lcp-tile-image img { width: 100%; height: 180px; object-fit: cover; display: block; }
+
+.lcp-tile-body { padding: 0.75rem 1rem; flex: 1; display: flex; flex-direction: column; gap: 0.25rem; }
+
+.lcp-tile-title { font-weight: 600; font-size: 1rem; line-height: 1.3; }
+.lcp-tile-title a { color: #0d6efd; text-decoration: none; }
+.lcp-tile-title a:hover { text-decoration: underline; }
+
+.lcp-tile-subtitle { font-size: 0.85rem; color: #6c757d; }
+
+.lcp-tile-description { font-size: 0.85rem; color: #555; margin-top: 0.25rem; display: -webkit-box; -webkit-line-clamp: var(--lcp-tile-desc-lines, 3); -webkit-box-orient: vertical; overflow: hidden; }
+
+.lcp-tile-fields { display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 0.75rem; font-size: 0.85rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid #f0f0f0; }
+.lcp-tile-field-label { color: #6c757d; font-weight: 500; }
+.lcp-tile-field-value { color: #333; }
+
+.lcp-tile-actions { padding: 0.5rem 1rem; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 0.35rem; align-items: center; }
+.lcp-tile-action-btn { font-size: 0.8rem; padding: 0.25rem 0.6rem; border: 1px solid #dee2e6; border-radius: 4px; background: #fff; color: #333; text-decoration: none; cursor: pointer; display: inline-block; line-height: 1.4; }
+.lcp-tile-action-btn:hover { background: #f8f9fa; border-color: #adb5bd; }
+.lcp-tile-actions form.lcp-tile-action-btn { border: none; padding: 0; background: none; display: inline; }
+.lcp-tile-actions button.lcp-tile-action-btn.btn-danger { background: #fff; color: #dc3545; border-color: #dc3545; font-size: 0.8rem; padding: 0.25rem 0.6rem; line-height: 1.4; }
+.lcp-tile-actions button.lcp-tile-action-btn.btn-danger:hover { background: #dc3545; color: #fff; }
+
+/* Sort dropdown */
+.lcp-sort-dropdown { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.lcp-sort-dropdown label { color: #6c757d; white-space: nowrap; }
+.lcp-sort-dropdown select { padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; border-radius: 4px; font-size: 0.85rem; background: #fff; }
+.lcp-sort-direction-btn { padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; border-radius: 4px; background: #fff; cursor: pointer; font-size: 0.85rem; }
+.lcp-sort-direction-btn:hover { background: #f8f9fa; }
+
+/* Per-page selector */
+.lcp-per-page-selector { display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.85rem; }
+.lcp-per-page-selector label { color: #6c757d; white-space: nowrap; }
+.lcp-per-page-selector select { padding: 0.25rem 0.5rem; border: 1px solid #dee2e6; border-radius: 4px; font-size: 0.85rem; background: #fff; }
+
+/* Summary bar */
+.lcp-summary-bar { display: flex; flex-wrap: wrap; gap: 1.5rem; padding: 0.75rem 1rem; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; margin-bottom: 0.75rem; }
+.lcp-summary-bar-item { display: flex; flex-direction: column; }
+.lcp-summary-bar-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; }
+.lcp-summary-bar-value { font-size: 1.1rem; font-weight: 600; color: #333; }

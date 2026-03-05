@@ -1,6 +1,8 @@
 module LcpRuby
   module Metadata
     class PresenterDefinition
+      TILE_NAMED_FIELD_KEYS = %w[title_field subtitle_field description_field image_field].freeze
+
       attr_reader :name, :model, :label, :slug, :icon,
                   :index_config, :show_config, :form_config, :search_config,
                   :actions_config, :options, :raw_hash
@@ -91,8 +93,50 @@ module LcpRuby
         search_config["enabled"] && advanced_filter_config["enabled"] == true
       end
 
+      def index_layout
+        explicit = index_config["layout"]
+        return explicit.to_sym if explicit
+
+        return :tree if index_config["tree_view"] == true
+        :table
+      end
+
       def tree_view?
-        index_config["tree_view"] == true
+        index_layout == :tree
+      end
+
+      def tiles?
+        index_layout == :tiles
+      end
+
+      def tile_config
+        index_config["tile"] || {}
+      end
+
+      def sort_fields
+        index_config["sort_fields"] || []
+      end
+
+      # Returns all field references from tile config (named slots + fields array).
+      def all_tile_field_refs
+        return [] unless tiles?
+
+        tile = tile_config
+        named = TILE_NAMED_FIELD_KEYS.filter_map { |k| tile[k] }
+        extra = (tile["fields"] || []).filter_map { |f| f["field"] }
+        named + extra
+      end
+
+      def per_page_options
+        index_config["per_page_options"]
+      end
+
+      def summary_config
+        index_config["summary"] || {}
+      end
+
+      def summary_enabled?
+        summary_config["enabled"] == true
       end
 
       def default_expanded

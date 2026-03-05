@@ -177,9 +177,11 @@ module LcpRuby
     class IndexBuilder
       def initialize
         @reorderable_value = nil
+        @layout_value = nil
         @default_view = nil
         @default_sort = nil
         @per_page_value = nil
+        @per_page_options_value = nil
         @views_available = nil
         @columns = []
         @row_click_value = nil
@@ -191,6 +193,9 @@ module LcpRuby
         @tree_view_value = nil
         @default_expanded_value = nil
         @reparentable_value = nil
+        @tile_hash = nil
+        @sort_fields = []
+        @summary_hash = nil
       end
 
       def reorderable(value = true)
@@ -257,15 +262,46 @@ module LcpRuby
         @reparentable_value = value
       end
 
+      def layout(value)
+        @layout_value = value.to_s
+      end
+
+      def tile(&block)
+        builder = TileBuilder.new
+        builder.instance_eval(&block)
+        @tile_hash = builder.to_hash
+      end
+
+      def sort_field(field, label: nil)
+        entry = { "field" => field.to_s }
+        entry["label"] = label if label
+        @sort_fields << entry
+      end
+
+      def per_page_options(*values)
+        @per_page_options_value = values.flatten
+      end
+
+      def summary(&block)
+        builder = SummaryBuilder.new
+        builder.instance_eval(&block)
+        @summary_hash = builder.to_hash
+      end
+
       def to_hash
         hash = {}
+        hash["layout"] = @layout_value if @layout_value
         hash["reorderable"] = @reorderable_value unless @reorderable_value.nil?
         hash["description"] = @description_value if @description_value
         hash["default_view"] = @default_view if @default_view
         hash["views_available"] = @views_available if @views_available
         hash["default_sort"] = @default_sort if @default_sort
         hash["per_page"] = @per_page_value if @per_page_value
+        hash["per_page_options"] = @per_page_options_value if @per_page_options_value
         hash["table_columns"] = @columns unless @columns.empty?
+        hash["tile"] = @tile_hash if @tile_hash
+        hash["sort_fields"] = @sort_fields unless @sort_fields.empty?
+        hash["summary"] = @summary_hash if @summary_hash
         hash["row_click"] = @row_click_value if @row_click_value
         hash["empty_message"] = @empty_message_value if @empty_message_value
         hash["actions_position"] = @actions_position_value if @actions_position_value
@@ -274,6 +310,83 @@ module LcpRuby
         hash["tree_view"] = @tree_view_value unless @tree_view_value.nil?
         hash["default_expanded"] = @default_expanded_value unless @default_expanded_value.nil?
         hash["reparentable"] = @reparentable_value unless @reparentable_value.nil?
+        hash
+      end
+    end
+
+    class TileBuilder
+      def initialize
+        @hash = {}
+        @fields = []
+      end
+
+      def title_field(name)
+        @hash["title_field"] = name.to_s
+      end
+
+      def subtitle_field(name, renderer: nil, options: nil)
+        @hash["subtitle_field"] = name.to_s
+        @hash["subtitle_renderer"] = renderer.to_s if renderer
+        @hash["subtitle_options"] = HashUtils.stringify_deep(options) if options
+      end
+
+      def image_field(name)
+        @hash["image_field"] = name.to_s
+      end
+
+      def description_field(name, max_lines: nil)
+        @hash["description_field"] = name.to_s
+        @hash["description_max_lines"] = max_lines if max_lines
+      end
+
+      def columns(value)
+        @hash["columns"] = value
+      end
+
+      def card_link(value)
+        @hash["card_link"] = value.to_s
+      end
+
+      def actions(value)
+        @hash["actions"] = value.to_s
+      end
+
+      def field(name, **options)
+        f = { "field" => name.to_s }
+        options.each do |k, v|
+          f[k.to_s] = v.is_a?(Symbol) ? v.to_s : HashUtils.stringify_deep(v)
+        end
+        @fields << f
+      end
+
+      def to_hash
+        result = @hash.dup
+        result["fields"] = @fields unless @fields.empty?
+        result
+      end
+    end
+
+    class SummaryBuilder
+      def initialize
+        @enabled_value = true
+        @fields = []
+      end
+
+      def enabled(value = true)
+        @enabled_value = value
+      end
+
+      def field(name, function:, **options)
+        f = { "field" => name.to_s, "function" => function.to_s }
+        f["label"] = options[:label] if options[:label]
+        f["renderer"] = options[:renderer].to_s if options[:renderer]
+        f["options"] = HashUtils.stringify_deep(options[:options]) if options[:options]
+        @fields << f
+      end
+
+      def to_hash
+        hash = { "enabled" => @enabled_value }
+        hash["fields"] = @fields unless @fields.empty?
         hash
       end
     end

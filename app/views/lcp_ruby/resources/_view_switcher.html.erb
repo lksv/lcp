@@ -16,7 +16,7 @@
               class: "btn lcp-view-btn #{active ? 'active' : ''}" %>
       <% else %>
         <%= link_to view["label"] || view["presenter_name"],
-              lcp_ruby.resources_path(lcp_slug: view["slug"], **request.query_parameters.except("lcp_slug")),
+              lcp_ruby.resources_path(lcp_slug: view["slug"], **request.query_parameters.except("lcp_slug", "page")),
               class: "btn lcp-view-btn #{active ? 'active' : ''}" %>
       <% end %>
     <% end %>

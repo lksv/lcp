@@ -2944,6 +2944,134 @@ features = [
     demo_path: "/showcase/showcase-search",
     demo_hint: "Notice the pinned filter buttons in the toolbar — \"Published & Expensive\", \"Critical Priority\", \"All Published\", and \"Engineering: High-Value Items\" appear as direct buttons.",
     status: "stable"
+  },
+
+  # === Tiles View ===
+  {
+    name: "Tiles Layout",
+    category: "tiles",
+    description: "Renders index records as a responsive card grid instead of a table. Each card displays a title, optional subtitle, description, and configurable fields.\n\nSet `layout: tiles` in the index block and define a `tile` block with at least `title_field`.",
+    config_example: "```ruby\nindex do\n  layout :tiles\n  tile do\n    title_field :name\n    subtitle_field :status, renderer: :badge\n    description_field :description, max_lines: 2\n    columns 3\n    card_link :show\n    actions :dropdown\n    field :price, label: \"Price\", renderer: :currency\n  end\nend\n```",
+    demo_path: "/showcase/showcase-fields-tiles",
+    demo_hint: "Switch to the **Tiles** view via the view switcher. Each card shows title, status badge, description, and 6 fields with different renderers (currency, rating, boolean icon, email link, color swatch, date).",
+    status: "stable"
+  },
+  {
+    name: "Tile Title Field",
+    category: "tiles",
+    description: "The `title_field` is the only required tile attribute. It defines the main heading of each card. When combined with `card_link: :show`, the title becomes a clickable link to the record's show page.",
+    config_example: "```ruby\ntile do\n  title_field :name\n  card_link :show   # title becomes a link\nend\n```",
+    demo_path: "/showcase/showcase-fields-tiles",
+    demo_hint: "Each card's title is a clickable link — it navigates to the record's show page.",
+    status: "stable"
+  },
+  {
+    name: "Tile Subtitle with Renderer",
+    category: "tiles",
+    description: "The `subtitle_field` appears below the title. It supports a `renderer` and `options` for formatted display — most commonly used with the `:badge` renderer and a `color_map`.",
+    config_example: "```ruby\ntile do\n  subtitle_field :status, renderer: :badge, options: {\n    color_map: { active: \"green\", draft: \"gray\", archived: \"orange\" }\n  }\nend\n```",
+    demo_path: "/showcase/showcase-fields-tiles",
+    demo_hint: "The subtitle below each title shows the **Status** as a colored badge (green for active, gray for draft, etc.).",
+    status: "stable"
+  },
+  {
+    name: "Tile Description",
+    category: "tiles",
+    description: "The `description_field` adds body text to the card, automatically clamped to `max_lines` (default: 3). Uses CSS `-webkit-line-clamp` for truncation.",
+    config_example: "```ruby\ntile do\n  description_field :description, max_lines: 2\nend\n```",
+    demo_path: "/showcase/showcase-fields-tiles",
+    demo_hint: "Each card shows a description text truncated to 2 lines. Longer text is cut off with an ellipsis.",
+    status: "stable"
+  },
+  {
+    name: "Tile Columns",
+    category: "tiles",
+    description: "The `columns` attribute controls the number of cards per row. Default is 3. Responsive breakpoints automatically reduce columns on smaller screens (2 columns below 1200px, 1 column below 768px).\n\nCompare different column counts across the showcase: Fields (3), Aggregates (2), Employees (4).",
+    config_example: "```ruby\ntile do\n  columns 4  # 4-column grid for compact cards\nend\n```",
+    demo_path: "/showcase/employees-tiles",
+    demo_hint: "The employees tiles use a **4-column** layout for compact cards. Compare with Fields (3 columns) and Aggregates (2 columns).",
+    status: "stable"
+  },
+  {
+    name: "Tile Card Actions",
+    category: "tiles",
+    description: "The `actions` attribute controls per-card action rendering:\n\n- `dropdown` (default) — shows a ⋯ menu button with action items\n- `inline` — renders action buttons directly on the card\n- `none` — hides all per-card actions",
+    config_example: "```ruby\n# Dropdown (default)\ntile do\n  actions :dropdown\nend\n\n# Inline buttons\ntile do\n  actions :inline\nend\n\n# No actions\ntile do\n  actions :none\nend\n```",
+    demo_path: "/showcase/showcase-aggregates-tiles",
+    demo_hint: "Aggregates tiles use `actions: :inline` — action buttons appear directly on each card. Compare with Fields tiles (`dropdown`) and Employees tiles (`none`).",
+    status: "stable"
+  },
+  {
+    name: "Tile Fields with Renderers",
+    category: "tiles",
+    description: "Each `field` entry in the tile block renders as a label-value pair in the card body. Fields support all display renderers: `:currency`, `:badge`, `:boolean_icon`, `:email_link`, `:phone_link`, `:url_link`, `:color_swatch`, `:number`, `:date`, `:datetime`, `:relative_date`, `:rating`, etc.\n\nDot-path fields (e.g., `\"company.name\"`) are also supported for traversing associations.",
+    config_example: "```ruby\ntile do\n  field :price, label: \"Price\", renderer: :currency, options: { currency: \"EUR\" }\n  field :email, label: \"Email\", renderer: :email_link\n  field \"department.name\", label: \"Department\"\n  field :is_active, label: \"Active\", renderer: :boolean_icon\nend\n```",
+    demo_path: "/showcase/showcase-fields-tiles",
+    demo_hint: "Each card shows 6 fields with different renderers: Price (currency), Rating (stars), Active (boolean icon), Email (clickable link), Color (color swatch), Date (formatted).",
+    status: "stable"
+  },
+  {
+    name: "Dot-Path Fields in Tiles",
+    category: "tiles",
+    description: "Tile fields support dot-path notation to display associated record attributes. The engine automatically resolves `belongs_to` associations and applies eager loading to prevent N+1 queries.\n\nExamples: `\"category.name\"`, `\"author.name\"`, `\"department.name\"`.",
+    config_example: "```ruby\ntile do\n  title_field :title\n  subtitle_field \"company.name\"   # association traversal\n  field \"category.name\", label: \"Category\"\n  field \"author.name\", label: \"Author\"\nend\n```",
+    demo_path: "/showcase/articles-tiles",
+    demo_hint: "Each article tile shows **Category** and **Author** as dot-path fields — these resolve through `belongs_to` associations.",
+    status: "stable"
+  },
+  {
+    name: "Sort Dropdown",
+    category: "tiles",
+    description: "The `sort_field` entries create a dropdown for sorting tiles. Each entry specifies a field and an optional label. Users can toggle ascending/descending direction with an arrow button.\n\nSort dropdown appears automatically when any `sort_field` is defined.",
+    config_example: "```ruby\nindex do\n  sort_field :name, label: \"Name\"\n  sort_field :price, label: \"Price\"\n  sort_field :created_at, label: \"Newest\"\nend\n```",
+    demo_path: "/showcase/showcase-fields-tiles",
+    demo_hint: "Use the **Sort by** dropdown above the tiles. Select \"Price\" and click the arrow to toggle ascending/descending order.",
+    status: "stable"
+  },
+  {
+    name: "Per-Page Selector",
+    category: "tiles",
+    description: "The `per_page_options` array creates a dropdown for choosing how many records to show per page. The selector appears near the pagination controls.\n\nValues outside the allowed list are ignored. The default `per_page` value should be included in the options list.",
+    config_example: "```ruby\nindex do\n  per_page 12\n  per_page_options 6, 12, 24, 48\nend\n```",
+    demo_path: "/showcase/showcase-fields-tiles",
+    demo_hint: "Look for the **Show** dropdown near the pagination. Switch between 6, 12, and 24 records per page.",
+    status: "stable"
+  },
+  {
+    name: "Summary Bar",
+    category: "tiles",
+    description: "The `summary` block displays aggregate values computed on the full filtered dataset (before pagination). Supports 5 SQL functions: `sum`, `avg`, `count`, `min`, `max`.\n\nEach field can have a `renderer` and `options` for formatted display (e.g., currency formatting).",
+    config_example: "```ruby\nindex do\n  summary do\n    field :price, function: :sum, label: \"Total\", renderer: :currency\n    field :price, function: :avg, label: \"Average\", renderer: :currency\n    field :title, function: :count, label: \"Count\"\n    field :hours, function: :max, label: \"Max Hours\"\n    field :budget, function: :min, label: \"Min Budget\"\n  end\nend\n```",
+    demo_path: "/showcase/showcase-aggregates-tiles",
+    demo_hint: "The summary bar below the tiles shows all 5 aggregate functions: **Total Budget** (sum), **Avg Budget** (avg), **Project Count** (count), **Max Budget** (max), **Min Budget** (min).",
+    status: "stable"
+  },
+  {
+    name: "Tiles with Inheritance",
+    category: "tiles",
+    description: "Use `inherits:` to create a tiles view alongside an existing table presenter. The child inherits show, form, search, and actions — only the `index` block needs to be redefined.\n\nThis pattern keeps the tiles and table views in sync for non-index functionality.",
+    config_example: "```ruby\ndefine_presenter :products_tiles, inherits: :products do\n  label \"Products (Tiles)\"\n  slug \"products-tiles\"\n\n  index do\n    layout :tiles\n    tile do\n      title_field :name\n      card_link :show\n    end\n  end\nend\n```",
+    demo_path: "/showcase/showcase-fields-tiles",
+    demo_hint: "The tiles view inherits show/form/actions from the table presenter. Click a tile to see the same show page as the table view.",
+    status: "stable"
+  },
+  {
+    name: "Tiles with View Groups",
+    category: "tiles",
+    description: "Tiles presenters integrate with view groups to provide a view switcher in the toolbar. Add the tiles presenter to the view group YAML alongside table and card views.\n\nThe view switcher lets users toggle between layouts without losing their current search/filter context.",
+    config_example: "```yaml\n# config/lcp_ruby/views/products.yml\nview_group:\n  model: product\n  primary: products\n  views:\n    - presenter: products\n      label: \"Table\"\n      icon: grid\n    - presenter: products_tiles\n      label: \"Tiles\"\n      icon: grid-2x2\n```",
+    demo_path: "/showcase/showcase-fields",
+    demo_hint: "Use the view switcher in the toolbar to toggle between **Table View**, **Card View**, and **Tiles**. Notice how the URL changes to the tiles presenter's slug.",
+    status: "stable"
+  },
+  {
+    name: "Tiles with Predefined Filters",
+    category: "tiles",
+    description: "Predefined filters work the same way in tiles as in table layout. Filter buttons appear in the toolbar and filter the card grid.\n\nFilters are inherited from the parent presenter when using `inherits:`.",
+    config_example: "```ruby\nsearch do\n  filter :all, label: \"All\", default: true\n  filter :published, label: \"Published\", scope: :published\n  filter :drafts, label: \"Drafts\", scope: :drafts\nend\n```",
+    demo_path: "/showcase/articles-tiles",
+    demo_hint: "Click the **Published** and **Drafts** filter buttons above the tiles. The card grid updates to show only matching articles.",
+    status: "stable"
   }
 ]
 

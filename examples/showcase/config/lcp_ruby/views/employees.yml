@@ -5,5 +5,8 @@ view_group:
     relation: department
   views:
     - presenter: employees
-      label: "Employees"
+      label: "Table"
       icon: users
+    - presenter: employees_tiles
+      label: "Tiles"
+      icon: grid-2x2

@@ -3,5 +3,8 @@ view_group:
   primary: showcase_aggregates
   views:
     - presenter: showcase_aggregates
-      label: "Projects"
+      label: "Table"
       icon: calculator
+    - presenter: showcase_aggregates_tiles
+      label: "Tiles"
+      icon: grid-2x2

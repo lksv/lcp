@@ -1,0 +1,22 @@
+<% summary_bar = slot_context.locals[:summary_bar] %>
+<% if summary_bar.is_a?(Array) && summary_bar.any? %>
+  <div class="lcp-summary-bar">
+    <% summary_bar.each do |entry| %>
+      <% config = entry[:config] %>
+      <% field_name = config["field"] %>
+      <% label = config["label"] || I18n.t("lcp_ruby.summary.#{entry[:function]}_of", field: field_name.humanize, default: "#{entry[:function].capitalize} of #{field_name.humanize}") %>
+      <div class="lcp-summary-bar-item">
+        <span class="lcp-summary-bar-label"><%= label %></span>
+        <span class="lcp-summary-bar-value">
+          <% if config["renderer"] %>
+            <%= render_display_value(entry[:value], config["renderer"], config["options"] || {}) %>
+          <% elsif entry[:function] == "avg" && entry[:value].present? %>
+            <%= number_with_precision(entry[:value], precision: 2) %>
+          <% else %>
+            <%= entry[:value] %>
+          <% end %>
+        </span>
+      </div>
+    <% end %>
+  </div>
+<% end %>

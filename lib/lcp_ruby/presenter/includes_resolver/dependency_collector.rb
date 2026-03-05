@@ -76,13 +76,18 @@ module LcpRuby
 
         private
 
-        # Index context: scan table_columns for FK fields, dot-paths, and templates.
+        # Index context: scan table_columns (and tile fields when tiles layout) for FK fields, dot-paths, and templates.
         def collect_index_deps(presenter_def, model_def)
           fk_map = model_def.belongs_to_fk_map
           agg_names = model_def.aggregate_names
-          presenter_def.table_columns.each do |col|
-            field = col["field"].to_s
 
+          # Collect fields from table columns
+          field_refs = presenter_def.table_columns.map { |col| col["field"].to_s }
+
+          # Also collect fields from tile config when tiles layout
+          field_refs.concat(presenter_def.all_tile_field_refs) if presenter_def.tiles?
+
+          field_refs.uniq.each do |field|
             # Skip aggregate columns — they are SQL subqueries, not associations
             next if agg_names.include?(field)
 

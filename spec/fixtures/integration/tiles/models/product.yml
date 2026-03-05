@@ -1,0 +1,22 @@
+model:
+  name: product
+  label: Product
+  fields:
+    - name: name
+      type: string
+    - name: description
+      type: text
+    - name: price
+      type: decimal
+    - name: category
+      type: string
+    - name: status
+      type: enum
+      enum_values:
+        - active
+        - draft
+        - archived
+    - name: image_url
+      type: string
+    - name: quantity
+      type: integer

@@ -57,6 +57,7 @@ Complete attribute reference for every YAML configuration file:
 - [Groups](guides/groups.md) — Organizational groups: YAML, DB, host adapter, testing
 - [Hierarchical Authorization](guides/hierarchical-authorization.md) — Multi-level parent-child access control (factory → production line → machine → sensor reading)
 - [Impersonation](guides/impersonation.md) — "View as Role X" for testing permissions
+- [Tiles View](guides/tiles.md) — Card grid layout for index pages: tile configuration, sort dropdown, per-page selector, summary bar
 - [View Slots](guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components, overriding built-ins
 - [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate`, `lcp_ruby:erd`, `lcp_ruby:permissions`, and `lcp_ruby:create_admin` rake tasks
 
@@ -77,6 +78,7 @@ Implemented:
 - [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
 - [Saved Filters & Parameterized Scopes](design/saved_filters.md) — User-persistent named filters with visibility levels, parameterized scopes with typed parameters, generator, CRUD API
 - [Aggregate Columns](design/aggregate_columns.md) — Virtual computed columns (COUNT, SUM, MIN, MAX, AVG) from associated records, custom SQL, service-based aggregates
+- [Tiles View](design/tiles_view.md) — Card grid layout for index pages with sort dropdown, per-page selector, and summary bar
 
 In Progress:
 

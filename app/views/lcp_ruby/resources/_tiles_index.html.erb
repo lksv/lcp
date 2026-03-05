@@ -1,0 +1,103 @@
+<% tile = current_presenter.tile_config %>
+<% tile_columns = tile["columns"] || 3 %>
+<% tile_fields = @column_set.visible_tile_fields(tile) %>
+<% card_link = tile["card_link"] %>
+<% actions_mode = tile["actions"] || "dropdown" %>
+<% desc_max_lines = tile["description_max_lines"] || 3 %>
+
+<% if @records.empty? && current_presenter.index_config["empty_message"] %>
+  <div class="lcp-empty-state">
+    <p><%= current_presenter.index_config["empty_message"] %></p>
+  </div>
+<% else %>
+  <div class="lcp-tiles-grid" style="--lcp-tile-columns: <%= tile_columns %>; --lcp-tile-desc-lines: <%= desc_max_lines %>">
+    <% @records.each do |record| %>
+      <div class="lcp-tile-card" data-record-id="<%= record.id %>">
+        <% # Image zone %>
+        <% if tile["image_field"] %>
+          <% image_value = @field_resolver.resolve(record, tile["image_field"], fk_map: @fk_map) %>
+          <% if image_value.present? %>
+            <div class="lcp-tile-image">
+              <% if image_value.respond_to?(:attached?) && image_value.attached? %>
+                <%= image_tag(image_value, alt: "") %>
+              <% elsif image_value.is_a?(String) && image_value.start_with?("http") %>
+                <%= image_tag(image_value, alt: "") %>
+              <% end %>
+            </div>
+          <% end %>
+        <% end %>
+
+        <div class="lcp-tile-body">
+          <% # Title %>
+          <% if tile["title_field"] %>
+            <% title_value = @field_resolver.resolve(record, tile["title_field"], fk_map: @fk_map) %>
+            <div class="lcp-tile-title">
+              <% if card_link == "show" %>
+                <%= link_to empty_value_placeholder(title_value, current_presenter), resource_path(record) %>
+              <% else %>
+                <%= empty_value_placeholder(title_value, current_presenter) %>
+              <% end %>
+            </div>
+          <% end %>
+
+          <% # Subtitle %>
+          <% if tile["subtitle_field"] %>
+            <% subtitle_value = @field_resolver.resolve(record, tile["subtitle_field"], fk_map: @fk_map) %>
+            <div class="lcp-tile-subtitle">
+              <% if tile["subtitle_renderer"] %>
+                <%= render_display_value(subtitle_value, tile["subtitle_renderer"], tile["subtitle_options"] || {}, nil, record: record) %>
+              <% else %>
+                <%= empty_value_placeholder(subtitle_value, current_presenter) %>
+              <% end %>
+            </div>
+          <% end %>
+
+          <% # Description %>
+          <% if tile["description_field"] %>
+            <% desc_value = @field_resolver.resolve(record, tile["description_field"], fk_map: @fk_map) %>
+            <% if desc_value.present? %>
+              <div class="lcp-tile-description"><%= desc_value %></div>
+            <% end %>
+          <% end %>
+
+          <% # Fields list %>
+          <% if tile_fields.any? %>
+            <div class="lcp-tile-fields">
+              <% tile_fields.each do |field_config| %>
+                <% value = @field_resolver.resolve(record, field_config["field"], fk_map: @fk_map) %>
+                <div class="lcp-tile-field-label"><%= field_config["label"] || field_config["field"].to_s.split(".").last.humanize %></div>
+                <div class="lcp-tile-field-value">
+                  <% if field_config["renderer"] %>
+                    <%= render_display_value(value, field_config["renderer"], field_config["options"] || {}, nil, record: record) %>
+                  <% else %>
+                    <%= empty_value_placeholder(value, current_presenter) %>
+                  <% end %>
+                </div>
+              <% end %>
+            </div>
+          <% end %>
+        </div>
+
+        <% # Actions %>
+        <% if actions_mode != "none" %>
+          <div class="lcp-tile-actions">
+            <% if actions_mode == "dropdown" %>
+              <div class="lcp-actions-dropdown">
+                <button type="button" class="btn lcp-dropdown-toggle">&#8943;</button>
+                <div class="lcp-dropdown-menu">
+                  <% @action_set.single_actions(record).each do |action| %>
+                    <%= render "lcp_ruby/resources/action_button", action: action, record: record, css_class: "lcp-dropdown-item" %>
+                  <% end %>
+                </div>
+              </div>
+            <% else %>
+              <% @action_set.single_actions(record).each do |action| %>
+                <%= render "lcp_ruby/resources/action_button", action: action, record: record, css_class: "lcp-tile-action-btn" %>
+              <% end %>
+            <% end %>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

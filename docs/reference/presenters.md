@@ -158,17 +158,48 @@ Controls the record list view.
 
 ```yaml
 index:
+  layout: tiles          # table (default), tiles, or tree
   description: "Browse and manage all records."
-  default_view: table
-  views_available: [table, tiles]
   default_sort: { field: created_at, direction: desc }
   per_page: 25
+  per_page_options: [10, 25, 50, 100]
   row_click: show
   empty_message: "No records found."
   actions_position: dropdown
   reorderable: false
   table_columns: []
+  tile:
+    title_field: name
+    subtitle_field: status
+    description_field: description
+    image_field: cover_image
+    columns: 3
+    card_link: show
+    actions: dropdown
+    fields:
+      - field: price
+        label: Price
+  sort_fields:
+    - field: name
+      label: Name
+    - field: price
+      label: Price
+  summary:
+    enabled: true
+    fields:
+      - field: price
+        function: sum
+        label: Total Value
 ```
+
+### `layout`
+
+| | |
+|---|---|
+| **Default** | `"table"` |
+| **Type** | string (`table`, `tiles`, `tree`) |
+
+Index page layout mode. `table` renders a standard data table, `tiles` renders a responsive card grid, `tree` renders a tree hierarchy. The `tree_view: true` flag is still supported for backward compatibility but `layout: tree` is preferred.
 
 ### `description`
 
@@ -389,6 +420,82 @@ index:
 ```
 
 See [Tree Structures Reference](tree-structures.md) for full reparenting endpoint details.
+
+### `tile`
+
+| | |
+|---|---|
+| **Required** | when `layout: tiles` |
+| **Type** | hash |
+
+Configuration for tile card rendering. See the [Tiles View Guide](../guides/tiles.md) for complete documentation.
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `title_field` | string | *required* | Field displayed as the card title |
+| `subtitle_field` | string | — | Field displayed below the title |
+| `subtitle_renderer` | string | — | Renderer for the subtitle |
+| `description_field` | string | — | Field for card description (line-clamped) |
+| `description_max_lines` | integer | 3 | Max description lines |
+| `image_field` | string | — | Field containing image URL or attachment |
+| `columns` | integer | 3 | Grid columns (overridden by responsive breakpoints) |
+| `card_link` | string | — | `show` or `edit` — wraps the title in a link |
+| `actions` | string | `dropdown` | `dropdown`, `inline`, or `none` |
+| `fields` | array | — | Additional label-value fields in the card body |
+
+### `sort_fields`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | array of `{ field, label }` objects |
+
+Fields available in the sort dropdown. Shows a `<select>` in the filter bar allowing users to pick a sort field and toggle direction.
+
+```yaml
+sort_fields:
+  - field: name
+    label: Name
+  - field: price
+    label: Price
+```
+
+### `per_page_options`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | array of positive integers |
+
+Selectable page sizes shown in a dropdown near pagination. When set, users can switch between page sizes.
+
+```yaml
+per_page: 25
+per_page_options: [10, 25, 50, 100]
+```
+
+### `summary`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | hash with `enabled` and `fields` |
+
+Horizontal bar below the index content displaying aggregate values computed on the filtered scope (before pagination).
+
+```yaml
+summary:
+  enabled: true
+  fields:
+    - field: price
+      function: sum
+      label: Total Revenue
+    - field: price
+      function: avg
+      label: Average Price
+```
+
+Each field requires `field` and `function` (`sum`, `avg`, `count`, `min`, `max`). Optional `label`, `renderer`, and `options` keys.
 
 ### `table_columns`
 

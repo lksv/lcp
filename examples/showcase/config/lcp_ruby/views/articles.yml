@@ -5,5 +5,8 @@ view_group:
     relation: category
   views:
     - presenter: articles
-      label: "Articles"
+      label: "Table"
       icon: file-text
+    - presenter: articles_tiles
+      label: "Tiles"
+      icon: grid-2x2

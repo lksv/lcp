@@ -53,6 +53,112 @@ RSpec.describe LcpRuby::Metadata::PresenterDefinition do
     end
   end
 
+  describe "#index_layout" do
+    it "returns :table by default" do
+      presenter = described_class.from_hash("name" => "test", "model" => "test")
+      expect(presenter.index_layout).to eq(:table)
+    end
+
+    it "returns :tiles when layout: tiles" do
+      presenter = described_class.from_hash(
+        "name" => "test", "model" => "test",
+        "index" => { "layout" => "tiles" }
+      )
+      expect(presenter.index_layout).to eq(:tiles)
+      expect(presenter.tiles?).to be true
+    end
+
+    it "returns :tree when layout: tree" do
+      presenter = described_class.from_hash(
+        "name" => "test", "model" => "test",
+        "index" => { "layout" => "tree" }
+      )
+      expect(presenter.index_layout).to eq(:tree)
+      expect(presenter.tree_view?).to be true
+    end
+
+    it "returns :tree when tree_view: true (backward compat)" do
+      presenter = described_class.from_hash(
+        "name" => "test", "model" => "test",
+        "index" => { "tree_view" => true }
+      )
+      expect(presenter.index_layout).to eq(:tree)
+      expect(presenter.tree_view?).to be true
+    end
+
+    it "prefers explicit layout over tree_view flag" do
+      presenter = described_class.from_hash(
+        "name" => "test", "model" => "test",
+        "index" => { "layout" => "tiles", "tree_view" => true }
+      )
+      expect(presenter.index_layout).to eq(:tiles)
+    end
+  end
+
+  describe "#tile_config" do
+    it "returns empty hash when not configured" do
+      presenter = described_class.from_hash("name" => "test", "model" => "test")
+      expect(presenter.tile_config).to eq({})
+    end
+
+    it "returns tile configuration" do
+      presenter = described_class.from_hash(
+        "name" => "test", "model" => "test",
+        "index" => { "tile" => { "title_field" => "name", "columns" => 4 } }
+      )
+      expect(presenter.tile_config["title_field"]).to eq("name")
+      expect(presenter.tile_config["columns"]).to eq(4)
+    end
+  end
+
+  describe "#sort_fields" do
+    it "returns empty array by default" do
+      presenter = described_class.from_hash("name" => "test", "model" => "test")
+      expect(presenter.sort_fields).to eq([])
+    end
+
+    it "returns configured sort fields" do
+      presenter = described_class.from_hash(
+        "name" => "test", "model" => "test",
+        "index" => { "sort_fields" => [ { "field" => "name", "label" => "Name" } ] }
+      )
+      expect(presenter.sort_fields.length).to eq(1)
+      expect(presenter.sort_fields.first["field"]).to eq("name")
+    end
+  end
+
+  describe "#per_page_options" do
+    it "returns nil by default" do
+      presenter = described_class.from_hash("name" => "test", "model" => "test")
+      expect(presenter.per_page_options).to be_nil
+    end
+
+    it "returns configured options" do
+      presenter = described_class.from_hash(
+        "name" => "test", "model" => "test",
+        "index" => { "per_page_options" => [ 10, 25, 50 ] }
+      )
+      expect(presenter.per_page_options).to eq([ 10, 25, 50 ])
+    end
+  end
+
+  describe "#summary_config and #summary_enabled?" do
+    it "returns empty hash and false by default" do
+      presenter = described_class.from_hash("name" => "test", "model" => "test")
+      expect(presenter.summary_config).to eq({})
+      expect(presenter.summary_enabled?).to be false
+    end
+
+    it "returns config and true when enabled" do
+      presenter = described_class.from_hash(
+        "name" => "test", "model" => "test",
+        "index" => { "summary" => { "enabled" => true, "fields" => [ { "field" => "price", "function" => "sum" } ] } }
+      )
+      expect(presenter.summary_enabled?).to be true
+      expect(presenter.summary_config["fields"].length).to eq(1)
+    end
+  end
+
   describe "validation" do
     it "raises on missing name" do
       expect {

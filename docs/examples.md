@@ -54,18 +54,29 @@ bundle exec rails s -p 3001
 
 ### Models
 
-- **Company** — has_many contacts, has_many deals
-- **Contact** — belongs_to company, has_many deals; computed `full_name` field
+- **Company** — has_many contacts, has_many deals; aggregate columns (contacts_count, deals_count, total_deal_value)
+- **Contact** — belongs_to company, has_many deals; computed `full_name` field; aggregate columns (activities_count)
 - **Deal** — belongs_to company, belongs_to contact; computed `weighted_value`, dynamic defaults, conditional validations
+- **Activity** — belongs_to company, contact, deal; enum `activity_type` (call, meeting, email, note, task); soft_delete, userstamps
 
 ### Presenters
 
 | Presenter | Purpose |
 |-----------|---------|
-| `company` | Company management |
-| `contact` | Contact management |
-| `deal` | Deal management with custom actions |
+| `company` | Company management (table layout) |
+| `company_short` | Compact company list |
+| `company_tiles` | Company card grid with aggregate counts and deal values |
+| `company_archive` | Archived (soft-deleted) companies |
+| `contact` | Contact management (table layout) |
+| `contact_short` | Compact contact list |
+| `contact_tiles` | Contact card grid (4 columns) with email/phone links |
+| `deal` | Deal management with custom actions (table layout) |
+| `deal_short` | Compact deal list |
+| `deal_tiles` | Deal card grid with stage badges, progress bars, and summary bar |
 | `deal_pipeline` | Read-only pipeline view |
+| `activity` | Activity management (table layout) |
+| `activity_short` | Compact activity list |
+| `activity_tiles` | Activity card grid with type badges and dot-path associations |
 
 ### Roles
 
@@ -90,7 +101,11 @@ bundle exec rails s -p 3001
 | Masked fields | Field overrides with `readable_by` | [Field Overrides](reference/permissions.md#field-overrides) |
 | Enum fields | Deal stage with badge display | [Enum values](reference/models.md#enum_values), [Renderers](reference/presenters.md#renderers) |
 | Decimal fields | Deal value with currency display | [Column options](reference/models.md#column_options) |
-| Multiple presenters | Admin view + read-only pipeline | [Presenters](reference/presenters.md) |
+| Multiple presenters | Admin view + read-only pipeline + tiles views | [Presenters](reference/presenters.md) |
+| View groups | Companies, Contacts, Deals, Activities each have 3 views (Detailed, Short, Tiles) with a view switcher | [View Groups](guides/view-groups.md) |
+| Tiles view | Card grid layout for all 4 main entities with renderers, dot-path fields, sort dropdown, per-page selector | [Tiles](guides/tiles.md) |
+| Summary bar | Deal tiles show total value (sum), average value (avg), and deal count | [Tiles](guides/tiles.md#summary-bar) |
+| Presenter DSL inheritance | All `_tiles` and `_short` presenters use `inherits:` to reuse show/form/actions from the base presenter | [DSL Inheritance](reference/presenter-dsl.md#inheritance) |
 | Action visibility | `close_won` hidden for closed deals | [Action Visibility](reference/presenters.md#action-visibility) |
 | Field-level transforms | `strip` + custom `titlecase` on contact names | [Transforms](reference/models.md#transforms) |
 | Custom transform service | `titlecase` in `app/lcp_services/transforms/` | [Extensibility](guides/extensibility.md#custom-transforms) |
@@ -133,3 +148,17 @@ The **Aggregate Projects** section (`showcase_aggregates`) demonstrates all aggr
 - **COUNT DISTINCT** — `unique_assignees` (distinct assignee names)
 
 All aggregate columns are sortable in the index view and displayed in dedicated sections on the show page.
+
+### Tiles View Demo
+
+Five presenters demonstrate all tiles configuration options:
+
+| Presenter | Model | Key Tiles Features |
+|-----------|-------|--------------------|
+| `showcase_fields_tiles` | showcase_field | All renderer types (currency, rating, boolean_icon, email_link, color_swatch, date), summary bar (sum/avg/count), sort dropdown, per-page selector |
+| `showcase_aggregates_tiles` | showcase_aggregate | 2-column layout, `actions: :inline`, summary bar with all 5 functions (sum, avg, count, max, min) |
+| `articles_tiles` | article | Dot-path fields (`category.name`, `author.name`), predefined filters (Published/Drafts), relative_date renderer |
+| `employees_tiles` | employee | 4-column layout, `actions: :none`, role badge color_map, dot-path `department.name` |
+| `features_tiles` | feature | Description with `max_lines: 2`, category badge with 20-value color_map, status badges |
+
+The Feature Catalog includes 14 entries under the **Tiles** category documenting each configuration option with config examples and demo links.

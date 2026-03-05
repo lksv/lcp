@@ -1,0 +1,21 @@
+<% sort_fields = slot_context.presenter.sort_fields %>
+<% if sort_fields.any? %>
+  <div class="lcp-sort-dropdown">
+    <label><%= I18n.t("lcp_ruby.sort.label", default: "Sort by") %></label>
+    <% current_sort = slot_context.params[:sort] %>
+    <% current_dir = slot_context.params[:direction] || "asc" %>
+    <select onchange="if(this.value) { var u = new window.URL(window.location.href); u.searchParams.set('sort', this.value); u.searchParams.set('direction', '<%= current_dir %>'); window.location.href = u.toString(); }">
+      <option value=""></option>
+      <% sort_fields.each do |sf| %>
+        <% field_name = sf["field"] %>
+        <% label = sf["label"] || field_name.humanize %>
+        <option value="<%= field_name %>" <%= "selected" if current_sort == field_name %>><%= label %></option>
+      <% end %>
+    </select>
+    <% if current_sort.present? %>
+      <% toggle_dir = current_dir == "asc" ? "desc" : "asc" %>
+      <% toggle_label = current_dir == "asc" ? I18n.t("lcp_ruby.sort.direction_asc", default: "\u2191") : I18n.t("lcp_ruby.sort.direction_desc", default: "\u2193") %>
+      <%= link_to toggle_label, url_for(sort: current_sort, direction: toggle_dir), class: "lcp-sort-direction-btn" %>
+    <% end %>
+  </div>
+<% end %>

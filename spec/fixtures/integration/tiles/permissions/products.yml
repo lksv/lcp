@@ -1,0 +1,17 @@
+permissions:
+  model: _default
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+    viewer:
+      crud: [index, show]
+      fields:
+        readable: [name, category, status, description, price, image_url, quantity]
+      presenters: all
+
+  default_role: admin

@@ -248,6 +248,73 @@ index do
 end
 ```
 
+#### `layout(value)`
+
+Sets the index page layout mode: `:table` (default), `:tiles`, or `:tree`.
+
+```ruby
+index do
+  layout :tiles
+end
+```
+
+#### `tile(&block)`
+
+Configures tile card rendering for tiles layout. See [Tiles View Guide](../guides/tiles.md).
+
+```ruby
+index do
+  layout :tiles
+  tile do
+    title_field :name
+    subtitle_field :status, renderer: :badge
+    description_field :description, max_lines: 3
+    image_field :cover_image
+    columns 4
+    card_link :show
+    actions :dropdown
+    field :price, label: "Price", renderer: "currency"
+    field :category
+  end
+end
+```
+
+#### `sort_field(field, label: nil)`
+
+Adds a field to the sort dropdown.
+
+```ruby
+index do
+  sort_field :name, label: "Name"
+  sort_field :price, label: "Price"
+end
+```
+
+#### `per_page_options(*values)`
+
+Selectable page sizes shown in a dropdown near pagination.
+
+```ruby
+index do
+  per_page 25
+  per_page_options 10, 25, 50, 100
+end
+```
+
+#### `summary(&block)`
+
+Configures the summary bar with aggregate values.
+
+```ruby
+index do
+  summary do
+    enabled true
+    field :price, function: :sum, label: "Total Revenue"
+    field :price, function: :avg, label: "Average Price"
+  end
+end
+```
+
 #### `column(field_name, **options)`
 
 Adds a table column.

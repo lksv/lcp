@@ -671,10 +671,167 @@
       "examples": [{ "field": "created_at", "direction": "desc" }]
     },
 
+    "tile_field": {
+      "type": "object",
+      "description": "A field displayed in a tile card.",
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Field name to display. Supports dot-path for associations."
+        },
+        "label": {
+          "type": "string",
+          "description": "Label shown next to the field value."
+        },
+        "renderer": {
+          "type": "string",
+          "description": "Display renderer name."
+        },
+        "options": {
+          "type": "object",
+          "description": "Options passed to the renderer."
+        }
+      },
+      "required": ["field"],
+      "additionalProperties": false
+    },
+
+    "tile_config": {
+      "type": "object",
+      "description": "Configuration for tile card rendering in tiles layout.",
+      "properties": {
+        "title_field": {
+          "type": "string",
+          "description": "Field to display as the card title. Required for tiles layout."
+        },
+        "subtitle_field": {
+          "type": "string",
+          "description": "Field to display as the card subtitle."
+        },
+        "subtitle_renderer": {
+          "type": "string",
+          "description": "Renderer for the subtitle field (e.g., 'badge')."
+        },
+        "subtitle_options": {
+          "type": "object",
+          "description": "Options passed to the subtitle renderer."
+        },
+        "image_field": {
+          "type": "string",
+          "description": "Field containing image URL or attachment for the card image zone."
+        },
+        "description_field": {
+          "type": "string",
+          "description": "Field for card description text, shown with line clamping."
+        },
+        "description_max_lines": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Maximum lines for description text before truncation.",
+          "default": 3
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Number of tile columns in the grid.",
+          "default": 3,
+          "examples": [2, 3, 4]
+        },
+        "card_link": {
+          "type": "string",
+          "description": "Link target for the card title.",
+          "enum": ["show", "edit"],
+          "examples": ["show"]
+        },
+        "actions": {
+          "type": "string",
+          "description": "How to render per-card actions.",
+          "enum": ["dropdown", "inline", "none"],
+          "default": "dropdown"
+        },
+        "fields": {
+          "type": "array",
+          "description": "Additional fields displayed as label-value pairs in the card.",
+          "items": { "$ref": "#/$defs/tile_field" }
+        }
+      },
+      "required": ["title_field"],
+      "additionalProperties": false
+    },
+
+    "sort_field_entry": {
+      "type": "object",
+      "description": "A field available in the sort dropdown.",
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Field name to sort by."
+        },
+        "label": {
+          "type": "string",
+          "description": "Display label in the sort dropdown."
+        }
+      },
+      "required": ["field"],
+      "additionalProperties": false
+    },
+
+    "summary_field": {
+      "type": "object",
+      "description": "A field in the summary bar with an aggregate function.",
+      "properties": {
+        "field": {
+          "type": "string",
+          "description": "Field name to aggregate."
+        },
+        "function": {
+          "type": "string",
+          "description": "SQL aggregate function to apply.",
+          "enum": ["sum", "avg", "count", "min", "max"]
+        },
+        "label": {
+          "type": "string",
+          "description": "Label displayed in the summary bar."
+        },
+        "renderer": {
+          "type": "string",
+          "description": "Display renderer for the aggregate value."
+        },
+        "options": {
+          "type": "object",
+          "description": "Options passed to the renderer."
+        }
+      },
+      "required": ["field", "function"],
+      "additionalProperties": false
+    },
+
+    "summary_config": {
+      "type": "object",
+      "description": "Configuration for the summary bar displayed below the index content.",
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Enable the summary bar."
+        },
+        "fields": {
+          "type": "array",
+          "description": "Fields with aggregate functions to display in the summary bar.",
+          "items": { "$ref": "#/$defs/summary_field" }
+        }
+      },
+      "additionalProperties": false
+    },
+
     "index_config": {
       "type": "object",
       "description": "Configuration for the index (list) page.",
       "properties": {
+        "layout": {
+          "type": "string",
+          "description": "Index page layout mode. 'table' (default), 'tiles' for card grid, 'tree' for tree hierarchy.",
+          "enum": ["table", "tiles", "tree"]
+        },
         "reorderable": {
           "type": "boolean",
           "description": "Enable drag-and-drop row reordering. Requires positioning on the model."
@@ -685,14 +842,14 @@
         },
         "default_view": {
           "type": "string",
-          "description": "Default view mode when multiple views are available.",
+          "description": "Deprecated: use view groups instead.",
           "default": "table",
           "examples": ["table", "card", "tree"]
         },
         "views_available": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "List of available view modes the user can switch between.",
+          "description": "Deprecated: use view groups instead.",
           "examples": [["table", "card"]]
         },
         "default_sort": { "$ref": "#/$defs/default_sort" },
@@ -703,11 +860,24 @@
           "default": 25,
           "examples": [10, 25, 50, 100]
         },
+        "per_page_options": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1 },
+          "description": "Selectable page sizes shown in a dropdown near pagination.",
+          "examples": [[10, 25, 50, 100]]
+        },
         "table_columns": {
           "type": "array",
           "description": "Columns displayed in the index table.",
           "items": { "$ref": "#/$defs/table_column" }
         },
+        "tile": { "$ref": "#/$defs/tile_config" },
+        "sort_fields": {
+          "type": "array",
+          "description": "Fields available in the sort dropdown (auto-derived for tiles if omitted).",
+          "items": { "$ref": "#/$defs/sort_field_entry" }
+        },
+        "summary": { "$ref": "#/$defs/summary_config" },
         "row_click": {
           "type": "string",
           "description": "Action triggered when clicking a table row.",
@@ -735,10 +905,10 @@
         },
         "tree_view": {
           "type": "boolean",
-          "description": "Enable tree-structured index view. Requires tree option on the model."
+          "description": "Deprecated: use layout: tree instead. Enable tree-structured index view."
         },
         "default_expanded": {
-          "description": "For tree_view: how many levels to expand by default. 0 means all collapsed, 'all' means fully expanded.",
+          "description": "For tree layout: how many levels to expand by default. 0 means all collapsed, 'all' means fully expanded.",
           "oneOf": [
             { "type": "integer", "minimum": 0 },
             { "type": "string", "const": "all" }
@@ -748,7 +918,7 @@
         },
         "reparentable": {
           "type": "boolean",
-          "description": "For tree_view: allow drag-and-drop reparenting of tree nodes."
+          "description": "For tree layout: allow drag-and-drop reparenting of tree nodes."
         }
       },
       "additionalProperties": false

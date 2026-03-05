@@ -24,8 +24,11 @@ module LcpRuby
         end
       end
 
-      if current_presenter.tree_view? && current_model_definition.tree?
-        load_tree_index(scope)
+      case current_presenter.index_layout
+      when :tree
+        load_tree_index(scope) if current_model_definition.tree?
+      when :tiles
+        load_flat_index(scope)
       else
         load_flat_index(scope)
       end
@@ -321,12 +324,13 @@ module LcpRuby
       end
 
       @summaries = compute_summaries(scope) if summary_columns_present?
+      compute_summary_bar(scope) if current_presenter.summary_enabled?
 
       strategy = resolve_loading_strategy(:index)
       scope = strategy.apply(scope)
       scope = scope.strict_loading if LcpRuby.configuration.strict_loading_enabled?
 
-      @records = scope.page(params[:page]).per(current_presenter.per_page)
+      @records = scope.page(params[:page]).per(effective_per_page)
 
       setup_index_view_objects
     end
@@ -387,14 +391,53 @@ module LcpRuby
       scope
     end
 
-    # Collect aggregate names referenced by the current presenter's table columns.
+    # Collect aggregate names referenced by the current presenter's table columns and tile fields.
     def index_aggregate_names
       all_agg_names = current_model_definition.aggregate_names
       return [] if all_agg_names.empty?
 
-      current_presenter.table_columns
-        .map { |c| c["field"].to_s }
-        .select { |f| all_agg_names.include?(f) }
+      field_names = current_presenter.table_columns.map { |c| c["field"].to_s }
+
+      field_names.concat(current_presenter.all_tile_field_refs) if current_presenter.tiles?
+
+      field_names.uniq.select { |f| all_agg_names.include?(f) }
+    end
+
+    def effective_per_page
+      options = current_presenter.per_page_options
+      if options.is_a?(Array) && params[:per_page].present?
+        requested = params[:per_page].to_i
+        return requested if options.include?(requested)
+      end
+      current_presenter.per_page
+    end
+
+    def compute_summary_bar(scope)
+      fields = current_presenter.summary_config["fields"]
+      return unless fields.is_a?(Array) && fields.any?
+
+      col_names = @model_class.column_names
+      summary_bar = fields.filter_map do |field_config|
+        field_name = field_config["field"]
+        function = field_config["function"]
+        next unless field_name && function
+        next unless col_names.include?(field_name)
+
+        # Strip aggregate subquery columns that would produce invalid SQL
+        # inside COUNT/SUM/etc.
+        plain = scope.unscope(:select)
+        value = case function
+        when "sum"   then plain.sum(field_name)
+        when "avg"   then plain.average(field_name)
+        when "count" then plain.count
+        when "min"   then plain.minimum(field_name)
+        when "max"   then plain.maximum(field_name)
+        end
+
+        { value: value, function: function, config: field_config }
+      end
+
+      @slot_locals = (@slot_locals || {}).merge(summary_bar: summary_bar)
     end
 
     # Load aggregate values for a show page record.

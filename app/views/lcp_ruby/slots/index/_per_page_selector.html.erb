@@ -1,0 +1,12 @@
+<% options = slot_context.presenter.per_page_options %>
+<% if options.is_a?(Array) && options.any? %>
+  <div class="lcp-per-page-selector">
+    <label><%= I18n.t("lcp_ruby.per_page.label", default: "Show") %></label>
+    <% current_per_page = slot_context.params[:per_page]&.to_i || slot_context.presenter.per_page %>
+    <select onchange="var u = new window.URL(window.location.href); u.searchParams.set('per_page', this.value); u.searchParams.delete('page'); window.location.href = u.toString();">
+      <% options.each do |n| %>
+        <option value="<%= n %>" <%= "selected" if current_per_page == n %>><%= I18n.t("lcp_ruby.per_page.show_n", count: n, default: n.to_s) %></option>
+      <% end %>
+    </select>
+  </div>
+<% end %>

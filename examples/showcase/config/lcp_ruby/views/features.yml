@@ -8,3 +8,6 @@ view_group:
     - presenter: features_table
       label: "Table View"
       icon: grid
+    - presenter: features_tiles
+      label: "Tiles"
+      icon: grid-2x2

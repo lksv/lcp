@@ -11,3 +11,6 @@ view_group:
     - presenter: contact_short
       label: "Short"
       icon: list
+    - presenter: contact_tiles
+      label: "Tiles"
+      icon: grid

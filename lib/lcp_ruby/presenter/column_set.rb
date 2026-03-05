@@ -46,6 +46,16 @@ module LcpRuby
         end
       end
 
+      # Filter tile fields by readable permissions. Returns array of field config hashes.
+      def visible_tile_fields(tile_config)
+        readable = permission_evaluator.readable_fields
+        fields = tile_config["fields"] || []
+
+        fields.select do |field_config|
+          field_visible?(field_config["field"], readable)
+        end
+      end
+
       # Build a mapping from FK field name to the belongs_to AssociationDefinition,
       # filtered to only include FK fields the current user has permission to see.
       # Returns a Hash: { "company_id" => AssociationDefinition, ... }

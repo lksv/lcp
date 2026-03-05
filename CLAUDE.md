@@ -98,6 +98,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Groups Guide](docs/guides/groups.md) — Organizational groups: YAML, DB, host adapter, testing
 - [Hierarchical Authorization](docs/guides/hierarchical-authorization.md) — Multi-level parent-child access control (factory → production line → machine → sensor reading)
 - [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
+- [Tiles View Guide](docs/guides/tiles.md) — Card grid layout: tile configuration, sort dropdown, per-page selector, summary bar
 - [View Slots Guide](docs/guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Host Application Guide](docs/guides/host-application.md) — Creating a new host application from scratch: scaffold, models, presenters, permissions, groups, seeds

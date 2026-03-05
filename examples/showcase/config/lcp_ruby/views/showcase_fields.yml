@@ -8,3 +8,6 @@ view_group:
     - presenter: showcase_fields_card
       label: "Card View"
       icon: layout
+    - presenter: showcase_fields_tiles
+      label: "Tiles"
+      icon: grid-2x2

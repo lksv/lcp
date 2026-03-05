@@ -1572,4 +1572,94 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(dsl_definition.options).to eq(yaml_definition.options)
     end
   end
+
+  describe "tiles layout DSL" do
+    it "produces layout: tiles with tile config" do
+      builder = described_class.new(:products)
+      builder.instance_eval do
+        model :product
+        index do
+          layout :tiles
+          tile do
+            title_field :name
+            subtitle_field :status, renderer: :badge
+            description_field :description, max_lines: 2
+            image_field :image_url
+            columns 4
+            card_link :show
+            actions :dropdown
+            field :price, label: "Price"
+            field :category
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]["layout"]).to eq("tiles")
+      tile = hash["index"]["tile"]
+      expect(tile["title_field"]).to eq("name")
+      expect(tile["subtitle_field"]).to eq("status")
+      expect(tile["subtitle_renderer"]).to eq("badge")
+      expect(tile["description_field"]).to eq("description")
+      expect(tile["description_max_lines"]).to eq(2)
+      expect(tile["image_field"]).to eq("image_url")
+      expect(tile["columns"]).to eq(4)
+      expect(tile["card_link"]).to eq("show")
+      expect(tile["actions"]).to eq("dropdown")
+      expect(tile["fields"].length).to eq(2)
+      expect(tile["fields"][0]["field"]).to eq("price")
+      expect(tile["fields"][0]["label"]).to eq("Price")
+    end
+
+    it "produces sort_fields" do
+      builder = described_class.new(:products)
+      builder.instance_eval do
+        model :product
+        index do
+          sort_field :name, label: "Name"
+          sort_field :price, label: "Price"
+        end
+      end
+      hash = builder.to_hash
+
+      sort = hash["index"]["sort_fields"]
+      expect(sort.length).to eq(2)
+      expect(sort[0]).to eq("field" => "name", "label" => "Name")
+      expect(sort[1]).to eq("field" => "price", "label" => "Price")
+    end
+
+    it "produces per_page_options" do
+      builder = described_class.new(:products)
+      builder.instance_eval do
+        model :product
+        index do
+          per_page_options 10, 25, 50, 100
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]["per_page_options"]).to eq([ 10, 25, 50, 100 ])
+    end
+
+    it "produces summary config" do
+      builder = described_class.new(:products)
+      builder.instance_eval do
+        model :product
+        index do
+          summary do
+            enabled true
+            field :price, function: :sum, label: "Total"
+            field :price, function: :avg, label: "Average"
+          end
+        end
+      end
+      hash = builder.to_hash
+
+      summary = hash["index"]["summary"]
+      expect(summary["enabled"]).to be true
+      expect(summary["fields"].length).to eq(2)
+      expect(summary["fields"][0]).to eq("field" => "price", "function" => "sum", "label" => "Total")
+      expect(summary["fields"][1]).to eq("field" => "price", "function" => "avg", "label" => "Average")
+    end
+  end
 end

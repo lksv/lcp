@@ -11,3 +11,6 @@ view_group:
     - presenter: deal_short
       label: "Short"
       icon: list
+    - presenter: deal_tiles
+      label: "Tiles"
+      icon: grid

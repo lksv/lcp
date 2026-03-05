@@ -648,17 +648,186 @@ module LcpRuby
       end
 
       def validate_presenter_tree_view(presenter, model)
-        if presenter.tree_view? && !model.tree?
-          @errors << "Presenter '#{presenter.name}': index.tree_view is true but model '#{model.name}' does not have tree enabled"
+        if presenter.index_layout == :tree && !model.tree?
+          @errors << "Presenter '#{presenter.name}': layout 'tree' requires model '#{model.name}' to have tree enabled"
+        end
+
+        # Detect layout conflict: explicit layout: tiles/table + tree_view: true
+        explicit_layout = presenter.index_config["layout"]
+        if explicit_layout && explicit_layout != "tree" && presenter.index_config["tree_view"] == true
+          @errors << "Presenter '#{presenter.name}': layout '#{explicit_layout}' conflicts with tree_view: true"
         end
 
         if presenter.reparentable? && !presenter.tree_view?
-          @errors << "Presenter '#{presenter.name}': index.reparentable requires tree_view to be true"
+          @errors << "Presenter '#{presenter.name}': index.reparentable requires tree layout"
         end
 
         if presenter.reparentable? && !model.tree?
           @errors << "Presenter '#{presenter.name}': index.reparentable requires model '#{model.name}' to have tree enabled"
         end
+      end
+
+      def validate_presenter_deprecations(presenter)
+        if presenter.index_config["tree_view"] == true
+          @warnings << "Presenter '#{presenter.name}': index.tree_view is deprecated, use index.layout: tree instead"
+        end
+
+        if presenter.index_config["default_view"].present?
+          @warnings << "Presenter '#{presenter.name}': index.default_view is deprecated, use view groups instead"
+        end
+
+        if presenter.index_config["views_available"].present?
+          @warnings << "Presenter '#{presenter.name}': index.views_available is deprecated, use view groups instead"
+        end
+      end
+
+      VALID_CARD_LINK_VALUES = %w[show edit].freeze
+      VALID_ACTIONS_VALUES = %w[dropdown inline none].freeze
+
+      def validate_presenter_tiles(presenter, model)
+        return unless presenter.tiles?
+
+        tile = presenter.tile_config
+        unless tile["title_field"].present?
+          @errors << "Presenter '#{presenter.name}': layout 'tiles' requires tile.title_field"
+          return
+        end
+
+        valid_fields = build_all_valid_fields(presenter, model)
+
+        # Validate tile field references
+        Metadata::PresenterDefinition::TILE_NAMED_FIELD_KEYS.each do |key|
+          field_name = tile[key]
+          next unless field_name
+          next if Presenter::FieldValueResolver.dot_path?(field_name) || Presenter::FieldValueResolver.template_field?(field_name)
+
+          unless valid_fields.include?(field_name.to_s)
+            @errors << "Presenter '#{presenter.name}', tile.#{key}: " \
+                       "references unknown field '#{field_name}' on model '#{presenter.model}'"
+          end
+        end
+
+        (tile["fields"] || []).each do |f|
+          field_name = f["field"]
+          unless field_name.present?
+            @errors << "Presenter '#{presenter.name}', tile.fields: entry is missing 'field'"
+            next
+          end
+          next if Presenter::FieldValueResolver.dot_path?(field_name) || Presenter::FieldValueResolver.template_field?(field_name)
+
+          unless valid_fields.include?(field_name.to_s)
+            @errors << "Presenter '#{presenter.name}', tile.fields: " \
+                       "references unknown field '#{field_name}' on model '#{presenter.model}'"
+          end
+        end
+
+        # Validate tile.columns
+        columns = tile["columns"]
+        if columns && (!columns.is_a?(Integer) || columns < 1)
+          @errors << "Presenter '#{presenter.name}', tile.columns: must be a positive integer, got '#{columns}'"
+        end
+
+        # Validate tile.card_link
+        card_link = tile["card_link"]
+        if card_link && !VALID_CARD_LINK_VALUES.include?(card_link.to_s)
+          @errors << "Presenter '#{presenter.name}', tile.card_link: " \
+                     "invalid value '#{card_link}'. Valid: #{VALID_CARD_LINK_VALUES.join(', ')}"
+        end
+
+        # Validate tile.actions
+        actions = tile["actions"]
+        if actions && !VALID_ACTIONS_VALUES.include?(actions.to_s)
+          @errors << "Presenter '#{presenter.name}', tile.actions: " \
+                     "invalid value '#{actions}'. Valid: #{VALID_ACTIONS_VALUES.join(', ')}"
+        end
+
+        # Validate tile.description_max_lines
+        max_lines = tile["description_max_lines"]
+        if max_lines && (!max_lines.is_a?(Integer) || max_lines < 1)
+          @errors << "Presenter '#{presenter.name}', tile.description_max_lines: must be a positive integer, got '#{max_lines}'"
+        end
+
+        if presenter.reorderable?
+          @warnings << "Presenter '#{presenter.name}': reorderable with tiles layout may not provide a good user experience"
+        end
+      end
+
+      def validate_presenter_summary(presenter, model)
+        return unless presenter.summary_enabled?
+
+        fields = presenter.summary_config["fields"]
+        return unless fields.is_a?(Array)
+
+        valid_fields = build_all_valid_fields(presenter, model)
+
+        fields.each do |f|
+          field_name = f["field"]
+          function = f["function"]
+
+          unless field_name.present?
+            @errors << "Presenter '#{presenter.name}', summary.fields: entry is missing 'field'"
+            next
+          end
+
+          unless valid_fields.include?(field_name.to_s)
+            @errors << "Presenter '#{presenter.name}', summary.fields: " \
+                       "references unknown field '#{field_name}' on model '#{presenter.model}'"
+          end
+
+          unless function.present? && AggregateDefinition::VALID_FUNCTIONS.include?(function.to_s)
+            @errors << "Presenter '#{presenter.name}', summary.fields: " \
+                       "field '#{field_name}' has invalid function '#{function}'. " \
+                       "Valid: #{AggregateDefinition::VALID_FUNCTIONS.join(', ')}"
+          end
+        end
+      end
+
+      def validate_presenter_sort_fields(presenter, model)
+        sort_fields = presenter.sort_fields
+        return unless sort_fields.any?
+
+        valid_fields = build_all_valid_fields(presenter, model)
+
+        sort_fields.each do |sf|
+          field_name = sf["field"]
+          unless field_name.present?
+            @errors << "Presenter '#{presenter.name}', sort_fields: entry is missing 'field'"
+            next
+          end
+          next if Presenter::FieldValueResolver.dot_path?(field_name)
+
+          unless valid_fields.include?(field_name.to_s)
+            @errors << "Presenter '#{presenter.name}', sort_fields: " \
+                       "references unknown field '#{field_name}' on model '#{presenter.model}'"
+          end
+        end
+      end
+
+      def validate_presenter_per_page_options(presenter)
+        options = presenter.per_page_options
+        return unless options
+
+        unless options.is_a?(Array) && options.all? { |n| n.is_a?(Integer) && n > 0 }
+          @errors << "Presenter '#{presenter.name}': per_page_options must be an array of positive integers"
+          return
+        end
+
+        if !options.include?(presenter.per_page)
+          @warnings << "Presenter '#{presenter.name}': per_page (#{presenter.per_page}) is not in per_page_options #{options}"
+        end
+      end
+
+      def build_all_valid_fields(presenter, model)
+        valid = model.fields.map(&:name)
+        fk = model.associations
+          .select { |a| a.type == "belongs_to" && a.foreign_key }
+          .flat_map { |a| cols = [ a.foreign_key.to_s ]; cols << "#{a.name}_type" if a.polymorphic; cols }
+        collection_ids = model.associations
+          .select(&:through?)
+          .map { |a| "#{a.name.to_s.singularize}_ids" }
+        userstamp = model.userstamp_column_names
+        aggregate = model.aggregate_names
+        valid + fk + collection_ids + userstamp + aggregate + %w[created_at updated_at id]
       end
 
       def validate_positioning_field_not_in_form(presenter, model)
@@ -792,12 +961,17 @@ module LcpRuby
           validate_presenter_scopes(presenter)
           validate_presenter_advanced_filter(presenter)
           validate_presenter_actions(presenter)
+          validate_presenter_deprecations(presenter)
 
           model_def = loader.model_definitions[presenter.model]
           if model_def
             validate_presenter_reorderable(presenter, model_def)
             validate_positioning_field_not_in_form(presenter, model_def)
             validate_presenter_tree_view(presenter, model_def)
+            validate_presenter_tiles(presenter, model_def)
+            validate_presenter_summary(presenter, model_def)
+            validate_presenter_sort_fields(presenter, model_def)
+            validate_presenter_per_page_options(presenter)
           end
         end
       end

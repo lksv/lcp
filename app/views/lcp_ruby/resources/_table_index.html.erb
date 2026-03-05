@@ -1,0 +1,103 @@
+<% if @records.empty? && current_presenter.index_config["empty_message"] %>
+  <div class="lcp-empty-state">
+    <p><%= current_presenter.index_config["empty_message"] %></p>
+  </div>
+<% else %>
+  <% columns = @column_set.visible_table_columns %>
+  <% reorderable = current_presenter.reorderable? &&
+                   current_model_definition.positioned? &&
+                   current_evaluator.can?(:update) &&
+                   current_evaluator.field_writable?(current_model_definition.positioning_field) %>
+  <% reorder_disabled = reorderable && (params[:qs].present? || (params[:sort].present? && params[:sort] != current_model_definition.positioning_field)) %>
+  <table class="lcp-table"
+    <% if reorderable %>
+      data-reorder-url="<%= reorder_resource_path(':id') %>"
+      data-list-version="<%= compute_list_version_from_records(@records) %>"
+      <% if reorder_disabled %>data-reorder-disabled="true"<% end %>
+    <% end %>>
+    <thead>
+      <tr>
+        <% if reorderable %>
+          <th class="lcp-drag-column"></th>
+        <% end %>
+        <% columns.each do |col| %>
+          <th style="<%= "width: #{col['width']}" if col['width'] %>"
+              class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
+            <% if col["sortable"] %>
+              <%= link_to url_for(sort: col["field"], direction: toggle_direction(col["field"])),
+                    class: "#{'lcp-sorted' if current_sort_field == col['field']}" do %>
+                <%= col["label"] || col["field"].to_s.split(".").last.humanize %>
+                <% if current_sort_field == col["field"] %>
+                  <span class="lcp-sort-icon lcp-sort-<%= current_sort_direction %>"></span>
+                <% end %>
+              <% end %>
+            <% else %>
+              <%= col["label"] || col["field"].to_s.split(".").last.humanize %>
+            <% end %>
+          </th>
+        <% end %>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @records.each do |record| %>
+        <tr class="<%= 'lcp-row-clickable' if current_presenter.index_config['row_click'] %>"
+            data-record-id="<%= record.id %>"
+            data-href="<%= resource_path(record) if current_presenter.index_config['row_click'] %>">
+          <% if reorderable %>
+            <td class="lcp-drag-column"><span class="lcp-drag-handle">&#9776;</span></td>
+          <% end %>
+          <% columns.each do |col| %>
+            <td class="<%= hidden_on_classes(col) %> <%= 'lcp-pinned-left' if col['pinned'] == 'left' %>">
+              <% value = @field_resolver.resolve(record, col["field"], fk_map: @fk_map) %>
+              <% if col["link_to"] == "show" %>
+                <%= link_to render_display_value(value, col["renderer"], col["options"], nil, record: record), resource_path(record) %>
+              <% elsif col["partial"] %>
+                <%= render partial: col["partial"], locals: { value: value, record: record, options: col["options"] || {} } %>
+              <% elsif col["renderer"] %>
+                <%= render_display_value(value, col["renderer"], col["options"], nil, record: record) %>
+              <% elsif value.is_a?(Array) %>
+                <%= render_display_value(value, "collection", {}) %>
+              <% else %>
+                <%= empty_value_placeholder(value, current_presenter) %>
+              <% end %>
+            </td>
+          <% end %>
+          <td class="lcp-actions">
+            <% if current_presenter.index_config["actions_position"] == "dropdown" %>
+              <div class="lcp-actions-dropdown">
+                <button type="button" class="btn lcp-dropdown-toggle">Actions</button>
+                <div class="lcp-dropdown-menu">
+                  <% @action_set.single_actions(record).each do |action| %>
+                    <%= render "lcp_ruby/resources/action_button", action: action, record: record, css_class: "lcp-dropdown-item" %>
+                  <% end %>
+                </div>
+              </div>
+            <% else %>
+              <% @action_set.single_actions(record).each do |action| %>
+                <%= render "lcp_ruby/resources/action_button", action: action, record: record, css_class: "" %>
+              <% end %>
+            <% end %>
+          </td>
+        </tr>
+      <% end %>
+    </tbody>
+    <% if @summaries&.any? %>
+      <tfoot>
+        <tr class="lcp-summary-row">
+          <% if reorderable %>
+            <td></td>
+          <% end %>
+          <% columns.each do |col| %>
+            <td>
+              <% if @summaries[col["field"]] %>
+                <strong><%= col["summary"] == "avg" ? number_with_precision(@summaries[col["field"]], precision: 2) : @summaries[col["field"]] %></strong>
+              <% end %>
+            </td>
+          <% end %>
+          <td></td>
+        </tr>
+      </tfoot>
+    <% end %>
+  </table>
+<% end %>
