@@ -27,5 +27,7 @@ define_presenter :contact_tiles, inherits: :contact do
     sort_field :activities_count, label: "Activities"
 
     per_page_options 12, 24, 48
+
+    item_class "lcp-row-muted", when: { field: :active, operator: :eq, value: false }
   end
 end

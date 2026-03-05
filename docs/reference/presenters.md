@@ -497,6 +497,65 @@ summary:
 
 Each field requires `field` and `function` (`sum`, `avg`, `count`, `min`, `max`). Optional `label`, `renderer`, and `options` keys.
 
+### `item_classes`
+
+| | |
+|---|---|
+| **Default** | `[]` |
+| **Type** | array of rule objects |
+
+Conditional CSS classes applied to each row (`<tr>`) or card element based on record field values. All matching rules accumulate — a record matching multiple rules gets all their CSS classes.
+
+```yaml
+index:
+  item_classes:
+    - class: "lcp-row-muted lcp-row-strikethrough"
+      when: { field: status, operator: eq, value: "done" }
+    - class: "lcp-row-danger"
+      when: { field: status, operator: eq, value: "overdue" }
+    - class: "lcp-row-bold"
+      when: { field: priority, operator: eq, value: "critical" }
+```
+
+#### Rule Attributes
+
+| Key | Type | Required | Description |
+|-----|------|----------|-------------|
+| `class` | string | yes | One or more CSS class names (space-separated) to apply when the condition matches |
+| `when` | hash | yes | A [condition](condition-operators.md) (`field`/`operator`/`value` or `service`) evaluated against each record |
+
+#### Cross-Layout Support
+
+`item_classes` applies across all index layouts:
+
+| Layout | Applied to |
+|--------|-----------|
+| `table` | `<tr>` element in the table body |
+| `tree` | `<tr>` element for each tree node |
+| `tiles` | `.lcp-tile-card` container element |
+
+#### Built-in Utility Classes
+
+| Class | Visual Effect |
+|-------|---------------|
+| `lcp-row-danger` | Light red background (`--lcp-row-danger-bg`) |
+| `lcp-row-warning` | Light amber background (`--lcp-row-warning-bg`) |
+| `lcp-row-success` | Light green background (`--lcp-row-success-bg`) |
+| `lcp-row-info` | Light blue background (`--lcp-row-info-bg`) |
+| `lcp-row-muted` | Reduced opacity (`--lcp-row-muted-opacity`) |
+| `lcp-row-bold` | Bold text |
+| `lcp-row-strikethrough` | Line-through text decoration |
+
+All background classes use CSS custom properties for host app theming. Custom CSS classes are also supported.
+
+#### Permissions
+
+Conditions are evaluated regardless of field read permissions. The styling is server-side and does not expose field values — it only adds CSS classes to the HTML element.
+
+#### Validation
+
+`ConfigurationValidator` validates `item_classes` at boot using the same rules as `visible_when`/`disable_when`: field existence, operator validity, and operator-type compatibility.
+
 ### `table_columns`
 
 | | |

@@ -75,6 +75,29 @@ actions:
 
 When the condition is true, the action renders as `<span class="btn lcp-action-disabled">` instead of a clickable link.
 
+## Row-Level Styling (`item_classes`)
+
+Unlike `visible_when` / `disable_when` which control whether an element renders or is interactive, `item_classes` applies CSS classes to entire index rows (or tile cards / tree nodes) based on record field values. The element always renders — only its visual appearance changes.
+
+```yaml
+index:
+  item_classes:
+    - class: "lcp-row-muted lcp-row-strikethrough"
+      when: { field: status, operator: eq, value: "done" }
+    - class: "lcp-row-danger"
+      when: { field: status, operator: eq, value: "overdue" }
+    - class: "lcp-row-bold"
+      when: { field: priority, operator: eq, value: "critical" }
+```
+
+All matching rules accumulate — a done, critical-priority record gets both `lcp-row-muted lcp-row-strikethrough` and `lcp-row-bold`. Conditions use the same `field`/`operator`/`value` format (or `service` for complex logic).
+
+Built-in utility classes: `lcp-row-danger`, `lcp-row-warning`, `lcp-row-success`, `lcp-row-info`, `lcp-row-muted`, `lcp-row-bold`, `lcp-row-strikethrough`. Custom CSS classes are also supported.
+
+Row styling is evaluated server-side regardless of field read permissions — the user sees colored rows but cannot infer exact field values from the CSS class alone.
+
+See [Presenters Reference — item_classes](../reference/presenters.md#item_classes) for the full attribute reference and theming options.
+
 ## Service Conditions
 
 For conditions that require server-side logic (database lookups, API calls, complex business rules), use service conditions instead of field-value conditions.
@@ -100,7 +123,7 @@ module LcpRuby
 end
 ```
 
-Register via auto-discovery in your initializer:
+Register via auto-discovery in your initializer (see [Extensibility Guide — Auto-Discovery Setup](extensibility.md#auto-discovery-setup) for the required Zeitwerk ignore configuration):
 
 ```ruby
 LcpRuby::ConditionServiceRegistry.discover!(Rails.root.join("app").to_s)

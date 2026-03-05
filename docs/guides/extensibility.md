@@ -501,6 +501,32 @@ The `active?` method must exist on the model — either from a model extension o
 
 ## Auto-Discovery Setup
 
+LCP Ruby extension directories (`app/actions/`, `app/event_handlers/`, `app/condition_services/`, `app/lcp_services/`) use their own namespacing conventions (e.g., `LcpRuby::HostActions::*`) which conflict with Rails Zeitwerk autoloader expectations. You **must** exclude these directories from Zeitwerk before any `discover!` calls.
+
+### Step 1: Exclude from Zeitwerk
+
+Add an initializer in `config/application.rb` to ignore LCP extension directories:
+
+```ruby
+# config/application.rb
+module MyApp
+  class Application < Rails::Application
+    # ...
+
+    initializer "my_app.ignore_lcp_services", before: :set_autoload_paths do
+      %w[condition_services lcp_services actions event_handlers].each do |dir|
+        path = Rails.root.join("app", dir)
+        Rails.autoloaders.main.ignore(path) if path.directory?
+      end
+    end
+  end
+end
+```
+
+Without this, Zeitwerk will raise a `NameError` at boot because the file `app/condition_services/my_check.rb` defines `LcpRuby::HostConditionServices::MyCheck` instead of the expected top-level `MyCheck`.
+
+### Step 2: Register Discover Calls
+
 A typical host app registers all extensibility points in a single initializer:
 
 ```ruby

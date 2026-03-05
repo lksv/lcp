@@ -12,7 +12,8 @@
 <% else %>
   <div class="lcp-tiles-grid" style="--lcp-tile-columns: <%= tile_columns %>; --lcp-tile-desc-lines: <%= desc_max_lines %>">
     <% @records.each do |record| %>
-      <div class="lcp-tile-card" data-record-id="<%= record.id %>">
+      <% tile_classes = ["lcp-tile-card", compute_item_classes(record, current_presenter).presence].compact.join(" ") %>
+      <div class="<%= tile_classes %>" data-record-id="<%= record.id %>">
         <% # Image zone %>
         <% if tile["image_field"] %>
           <% image_value = @field_resolver.resolve(record, tile["image_field"], fk_map: @fk_map) %>

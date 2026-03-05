@@ -46,6 +46,16 @@ module MyApp
   class Application < Rails::Application
     config.load_defaults 8.1
     config.autoload_lib(ignore: %w[assets tasks])
+
+    # Exclude LCP extension directories from Zeitwerk autoloading.
+    # These use LcpRuby::Host* namespaces and are loaded via discover! calls.
+    # Without this, Zeitwerk raises NameError at boot.
+    initializer "my_app.ignore_lcp_services", before: :set_autoload_paths do
+      %w[condition_services lcp_services actions event_handlers].each do |dir|
+        path = Rails.root.join("app", dir)
+        Rails.autoloaders.main.ignore(path) if path.directory?
+      end
+    end
   end
 end
 ```

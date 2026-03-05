@@ -19,6 +19,9 @@ define_presenter :deal do
     column :weighted_value, width: "10%", renderer: :currency, options: { currency: "EUR" }
     column :progress, width: "10%", renderer: :progress_bar
     column :priority, width: "10%", sortable: true
+
+    item_class "lcp-row-success", when: { field: :stage, operator: :eq, value: "closed_won" }
+    item_class "lcp-row-muted lcp-row-strikethrough", when: { field: :stage, operator: :eq, value: "closed_lost" }
   end
 
   show do

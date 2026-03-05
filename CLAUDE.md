@@ -80,7 +80,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Presenters Guide](docs/guides/presenters.md) — Step-by-step guide to building presenters with YAML and DSL examples
 - [Custom Types Guide](docs/guides/custom-types.md) — Practical examples of custom business types
 - [Extensibility Guide](docs/guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validations, scopes, condition services
-- [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when` and `disable_when` on fields, sections, and actions
+- [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when`, `disable_when`, and `item_classes` on fields, sections, actions, and rows
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
 - [Custom Renderers Guide](docs/guides/custom-renderers.md) — Custom renderers for host applications

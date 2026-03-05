@@ -752,6 +752,33 @@ module LcpRuby
         end
       end
 
+      VALID_CSS_CLASS_PATTERN = /\A[a-zA-Z0-9\s_-]+\z/
+
+      def validate_presenter_item_classes(presenter, _model_def)
+        rules = presenter.item_classes
+        return if rules.empty?
+
+        rules.each_with_index do |rule, i|
+          css_class = rule["class"]
+          if css_class.nil? || !css_class.is_a?(String) || css_class.strip.empty?
+            @errors << "Presenter '#{presenter.name}', index item_classes[#{i}]: " \
+                       "'class' must be a non-empty string"
+          elsif !css_class.match?(VALID_CSS_CLASS_PATTERN)
+            @errors << "Presenter '#{presenter.name}', index item_classes[#{i}]: " \
+                       "'class' contains invalid characters (only letters, digits, hyphens, underscores, and spaces are allowed)"
+          end
+
+          condition = rule["when"]
+          unless condition.is_a?(Hash)
+            @errors << "Presenter '#{presenter.name}', index item_classes[#{i}]: " \
+                       "'when' must be a condition hash"
+            next
+          end
+
+          validate_condition(presenter, condition, "index item_classes[#{i}]")
+        end
+      end
+
       def validate_presenter_summary(presenter, model)
         return unless presenter.summary_enabled?
 
@@ -969,6 +996,7 @@ module LcpRuby
             validate_positioning_field_not_in_form(presenter, model_def)
             validate_presenter_tree_view(presenter, model_def)
             validate_presenter_tiles(presenter, model_def)
+            validate_presenter_item_classes(presenter, model_def)
             validate_presenter_summary(presenter, model_def)
             validate_presenter_sort_fields(presenter, model_def)
             validate_presenter_per_page_options(presenter)

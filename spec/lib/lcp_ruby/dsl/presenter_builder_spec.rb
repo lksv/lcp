@@ -1662,4 +1662,38 @@ RSpec.describe LcpRuby::Dsl::PresenterBuilder do
       expect(summary["fields"][1]).to eq("field" => "price", "function" => "avg", "label" => "Average")
     end
   end
+
+  describe "item_class DSL" do
+    it "accumulates item_class rules" do
+      builder = described_class.new(:tasks)
+      builder.instance_eval do
+        model :task
+        index do
+          item_class "lcp-row-danger", when: { field: :status, operator: :eq, value: "overdue" }
+          item_class "lcp-row-bold", when: { field: :priority, operator: :eq, value: "high" }
+        end
+      end
+      hash = builder.to_hash
+
+      rules = hash["index"]["item_classes"]
+      expect(rules.length).to eq(2)
+      expect(rules[0]["class"]).to eq("lcp-row-danger")
+      expect(rules[0]["when"]).to eq("field" => "status", "operator" => "eq", "value" => "overdue")
+      expect(rules[1]["class"]).to eq("lcp-row-bold")
+      expect(rules[1]["when"]).to eq("field" => "priority", "operator" => "eq", "value" => "high")
+    end
+
+    it "omits item_classes from hash when empty" do
+      builder = described_class.new(:tasks)
+      builder.instance_eval do
+        model :task
+        index do
+          column :title
+        end
+      end
+      hash = builder.to_hash
+
+      expect(hash["index"]).not_to have_key("item_classes")
+    end
+  end
 end

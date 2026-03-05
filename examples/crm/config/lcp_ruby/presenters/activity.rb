@@ -20,6 +20,8 @@ define_presenter :activity do
     column "deal.title", label: "Deal", width: "15%", renderer: :truncate, options: { max: 25 }
     column :scheduled_at, width: "12%", renderer: :datetime, sortable: true
     column :completed, width: "8%", renderer: :boolean_icon
+
+    item_class "lcp-row-muted", when: { field: :completed, operator: :eq, value: true }
   end
 
   show do

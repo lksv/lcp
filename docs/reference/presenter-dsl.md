@@ -315,6 +315,23 @@ index do
 end
 ```
 
+#### `item_class(classes, when:)`
+
+Adds a conditional CSS class rule for index rows/cards. All matching rules accumulate.
+
+```ruby
+index do
+  item_class "lcp-row-muted lcp-row-strikethrough",
+             when: { field: :status, operator: :eq, value: "done" }
+  item_class "lcp-row-danger",
+             when: { field: :status, operator: :eq, value: "overdue" }
+  item_class "lcp-row-bold",
+             when: { field: :priority, operator: :eq, value: "critical" }
+end
+```
+
+See [Presenters Reference — item_classes](presenters.md#item_classes) for built-in utility classes and detailed attribute reference.
+
 #### `column(field_name, **options)`
 
 Adds a table column.

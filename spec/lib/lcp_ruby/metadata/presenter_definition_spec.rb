@@ -159,6 +159,27 @@ RSpec.describe LcpRuby::Metadata::PresenterDefinition do
     end
   end
 
+  describe "#item_classes" do
+    it "returns empty array when not configured" do
+      presenter = described_class.from_hash("name" => "test", "model" => "test")
+      expect(presenter.item_classes).to eq([])
+    end
+
+    it "returns configured item_classes array" do
+      rules = [
+        { "class" => "lcp-row-danger", "when" => { "field" => "status", "operator" => "eq", "value" => "overdue" } },
+        { "class" => "lcp-row-bold", "when" => { "field" => "priority", "operator" => "eq", "value" => "high" } }
+      ]
+      presenter = described_class.from_hash(
+        "name" => "test", "model" => "test",
+        "index" => { "item_classes" => rules }
+      )
+      expect(presenter.item_classes.length).to eq(2)
+      expect(presenter.item_classes.first["class"]).to eq("lcp-row-danger")
+      expect(presenter.item_classes.last["when"]["field"]).to eq("priority")
+    end
+  end
+
   describe "validation" do
     it "raises on missing name" do
       expect {

@@ -30,5 +30,7 @@ define_presenter :activity_tiles, inherits: :activity do
     sort_field :completed, label: "Completed"
 
     per_page_options 12, 24, 48
+
+    item_class "lcp-row-muted", when: { field: :completed, operator: :eq, value: true }
   end
 end

@@ -4,7 +4,7 @@ puts "Seeding showcase data..."
 # Also reset auto-increment counters so IDs start from 1 (demo_path links use hardcoded IDs)
 connection = ActiveRecord::Base.connection
 %w[
-  saved_filter feature pipeline_stage pipeline showcase_recipe showcase_positioning showcase_userstamps
+  saved_filter feature pipeline_stage pipeline showcase_item_class showcase_recipe showcase_positioning showcase_userstamps
   showcase_soft_delete_item showcase_soft_delete showcase_aggregate_item showcase_aggregate
   showcase_virtual_field showcase_extensibility permission_config role showcase_permission
   showcase_attachment custom_field_definition employee_skill project showcase_search
@@ -2843,6 +2843,89 @@ features = [
     status: "stable"
   },
 
+  # === Row Styling (item_classes) ===
+  {
+    name: "Row Styling — eq Operator",
+    category: "presenter",
+    description: "The `eq` operator applies a CSS class when a field exactly matches a value. This is the most common use-case — styling rows by status, category, or any enum/string field.\n\nMultiple classes can be combined in a single rule (space-separated), e.g., `lcp-row-muted lcp-row-strikethrough` for cancelled records.",
+    config_example: "```ruby\nindex do\n  # Single class\n  item_class \"lcp-row-success\",\n    when: { field: :status, operator: :eq, value: \"completed\" }\n\n  # Multiple classes in one rule\n  item_class \"lcp-row-muted lcp-row-strikethrough\",\n    when: { field: :status, operator: :eq, value: \"cancelled\" }\nend\n```",
+    demo_path: "/showcase/showcase-item-classes",
+    demo_hint: "Look at rows with **Completed** status (green background) and **Cancelled** status (grayed out + strikethrough).",
+    status: "stable"
+  },
+  {
+    name: "Row Styling — in / not_in Operators",
+    category: "presenter",
+    description: "The `in` operator matches when the field value is one of several values. `not_in` is the inverse — matches when the value is NOT in the list.\n\nUseful for grouping multiple statuses (e.g., all \"closed\" states) under a single visual style.",
+    config_example: "```ruby\nindex do\n  # Match any closed state\n  item_class \"lcp-row-muted\",\n    when: { field: :status, operator: :in, value: [\"cancelled\", \"on_hold\"] }\n\n  # Match anything except low/medium\n  item_class \"lcp-row-bold\",\n    when: { field: :priority, operator: :not_in, value: [\"low\", \"medium\"] }\nend\n```",
+    demo_path: "/showcase/showcase-item-classes",
+    demo_hint: "High and critical priority rows appear bold — they match a `not_in: [low, medium]` condition.",
+    status: "stable"
+  },
+  {
+    name: "Row Styling — gt / lt Operators (Numeric)",
+    category: "presenter",
+    description: "Numeric comparison operators `gt`, `gte`, `lt`, `lte` work on integer, float, decimal, date, and datetime fields.\n\nUse cases: highlight high-value records, flag low scores, mark items above/below thresholds.",
+    config_example: "```ruby\nindex do\n  # Score above 90 → blue info highlight\n  item_class \"lcp-row-info\",\n    when: { field: :score, operator: :gt, value: 90 }\n\n  # Score below 20 → custom class\n  item_class \"lcp-item-low-score\",\n    when: { field: :score, operator: :lt, value: 20 }\nend\n```",
+    demo_path: "/showcase/showcase-item-classes",
+    demo_hint: "Look at the **Score** column — records with score > 90 have a blue (info) background. Records with score < 20 have a custom class (inspect the DOM).",
+    status: "stable"
+  },
+  {
+    name: "Row Styling — present / blank Operators",
+    category: "presenter",
+    description: "The `present` operator matches when a field has any non-nil, non-empty value. `blank` matches when the field is nil or empty string.\n\nNo `value` parameter needed — these are unary operators. Useful for flagging incomplete records.",
+    config_example: "```ruby\nindex do\n  # Flag records missing notes\n  item_class \"lcp-item-missing-notes\",\n    when: { field: :notes, operator: :blank }\n\n  # Highlight records with email\n  item_class \"lcp-row-info\",\n    when: { field: :email, operator: :present }\nend\n```",
+    demo_path: "/showcase/showcase-item-classes",
+    demo_hint: "Records without **Notes** have the `lcp-item-missing-notes` custom class applied (inspect the `<tr>` element).",
+    status: "stable"
+  },
+  {
+    name: "Row Styling — matches Operator (Regex)",
+    category: "presenter",
+    description: "The `matches` operator evaluates a regular expression against a string/text field. `not_matches` is the inverse.\n\nOnly compatible with string and text field types. Regex has a 1-second safety timeout to prevent ReDoS.",
+    config_example: "```ruby\nindex do\n  # Highlight temporary codes\n  item_class \"lcp-item-temp-code\",\n    when: { field: :code, operator: :matches, value: \"^TEMP\" }\n\n  # Highlight non-standard codes\n  item_class \"lcp-row-warning\",\n    when: { field: :code, operator: :not_matches, value: \"^[A-Z]+-\\\\d+$\" }\nend\n```",
+    demo_path: "/showcase/showcase-item-classes",
+    demo_hint: "Records with **Code** starting with \"TEMP\" have the `lcp-item-temp-code` class (inspect the DOM).",
+    status: "stable"
+  },
+  {
+    name: "Row Styling — Service Condition",
+    category: "presenter",
+    description: "For complex logic that cannot be expressed as a simple field comparison, use a service condition. The service class receives the record and returns true/false.\n\nService conditions are always evaluated server-side. They support database lookups, date calculations, multi-field logic, and external API calls.",
+    config_example: "```ruby\n# Presenter DSL\nindex do\n  item_class \"lcp-item-overdue\",\n    when: { service: :overdue_check }\nend\n\n# app/condition_services/overdue_check.rb\nmodule LcpRuby\n  module HostConditionServices\n    class OverdueCheck\n      def self.call(record)\n        record.due_date.present? && record.due_date < Date.current\n      end\n    end\n  end\nend\n```",
+    demo_path: "/showcase/showcase-item-classes",
+    demo_hint: "Records with a past **Due Date** have the `lcp-item-overdue` class applied by the `OverdueCheck` service (inspect the DOM).",
+    status: "stable"
+  },
+  {
+    name: "Row Styling — Rule Accumulation",
+    category: "presenter",
+    description: "When a record matches multiple `item_class` rules, **all** matching CSS classes are applied simultaneously. There is no \"first match wins\" logic — classes accumulate.\n\nThis enables layered styling: a record can be both green (completed) and bold (high priority) at the same time. The CSS cascade determines the final visual appearance.",
+    config_example: "```ruby\nindex do\n  # Rule 1: completed → green\n  item_class \"lcp-row-success\",\n    when: { field: :status, operator: :eq, value: \"completed\" }\n\n  # Rule 2: high priority → bold\n  item_class \"lcp-row-bold\",\n    when: { field: :priority, operator: :eq, value: \"high\" }\n\n  # A completed, high-priority record gets BOTH classes:\n  # class=\"lcp-row-success lcp-row-bold\"\nend\n```",
+    demo_path: "/showcase/showcase-item-classes",
+    demo_hint: "Look at **Award-winning campaign** — it is both completed (green) and has score > 90 (info). Inspect the `<tr>` to see multiple classes. Also check **Abandoned experiment** — cancelled + low score + blank notes = 3 rules.",
+    status: "stable"
+  },
+  {
+    name: "Row Styling — Built-in CSS Classes",
+    category: "presenter",
+    description: "Seven built-in utility classes are provided, all using CSS custom properties for easy theming:\n\n| Class | Effect |\n|-------|--------|\n| `lcp-row-danger` | Red background |\n| `lcp-row-warning` | Yellow/amber background |\n| `lcp-row-success` | Green background |\n| `lcp-row-info` | Blue background |\n| `lcp-row-muted` | Reduced opacity (0.55) |\n| `lcp-row-bold` | Bold text |\n| `lcp-row-strikethrough` | Line-through text decoration |\n\nCustom CSS classes are also supported — use any valid class name.",
+    config_example: "```css\n/* Override built-in colors via CSS custom properties */\n:root {\n  --lcp-row-danger-bg: #f8d7da;\n  --lcp-row-warning-bg: #fff3cd;\n  --lcp-row-success-bg: #d1e7dd;\n  --lcp-row-info-bg: #cff4fc;\n  --lcp-row-muted-opacity: 0.55;\n}\n\n/* Add your own custom classes */\n.lcp-item-overdue {\n  border-left: 4px solid #dc3545;\n}\n.lcp-item-temp-code {\n  background: #f0e6ff !important;\n}\n```",
+    demo_path: "/showcase/showcase-item-classes",
+    demo_hint: "The demo page shows all 7 built-in classes in action plus 4 custom classes. Look at the variety of row styles.",
+    status: "stable"
+  },
+  {
+    name: "Row Styling — Tiles & Tree Support",
+    category: "presenter",
+    description: "The `item_classes` feature works identically across all three index layouts:\n\n- **Table** — classes applied to `<tr>` elements\n- **Tiles** — classes applied to `.lcp-tile-card` elements\n- **Tree** — classes applied to tree node `<tr>` elements\n\nThe same `item_classes` configuration works on all layouts — no per-layout configuration needed.",
+    config_example: "```ruby\n# Same config works for table, tiles, and tree:\nindex do\n  item_class \"lcp-row-success\",\n    when: { field: :status, operator: :eq, value: \"completed\" }\nend\n\n# Tiles inherit the same rules\ntiles do\n  title :name\n  subtitle :status\nend\n```",
+    demo_path: "/showcase/showcase-item-classes",
+    demo_hint: "The demo uses table layout. The same rules also apply to tiles and tree views if configured on the same presenter.",
+    status: "stable"
+  },
+
   # === Advanced Search ===
   {
     name: "Advanced Filter Builder",
@@ -3214,5 +3297,55 @@ docs[5].discard!  # Outdated Design Spec
 LcpRuby::Current.user = nil
 
 puts "  Created #{SoftDeleteModel.kept.count} active + #{SoftDeleteModel.discarded.count} archived soft delete documents with #{SoftDeleteItemModel.count} items"
+
+# Phase 14: Row Styling (item_classes) Demo
+ItemClassModel = LcpRuby.registry.model_for("showcase_item_class")
+
+item_class_records = [
+  # USE CASE 1: cancelled + eq → muted + strikethrough
+  { name: "Cancelled project", status: "cancelled", priority: "low", score: 30, amount: 500.00, code: "PROJ-001", email: "alice@example.com", notes: "Was deprioritized.", due_date: 2.months.ago.to_date },
+
+  # USE CASE 2: completed + eq → success (green)
+  { name: "Completed delivery", status: "completed", priority: "medium", score: 85, amount: 2500.00, code: "DEL-042", email: "bob@example.com", notes: "Shipped on time.", due_date: 1.week.ago.to_date },
+
+  # USE CASE 3: critical priority + eq → danger (red)
+  { name: "Server outage fix", status: "active", priority: "critical", score: 95, amount: 0.00, code: "INC-911", email: "ops@example.com", notes: "P1 incident.", due_date: Date.current },
+
+  # USE CASE 4: on_hold + eq → warning (yellow)
+  { name: "Pending approval", status: "on_hold", priority: "medium", score: 60, amount: 1200.00, code: "REQ-007", email: nil, notes: "Waiting for budget sign-off.", due_date: 1.month.from_now.to_date },
+
+  # USE CASE 5: high priority + eq → bold
+  { name: "Urgent feature request", status: "active", priority: "high", score: 75, amount: 8000.00, code: "FEAT-100", email: "pm@example.com", notes: "Board-level priority.", due_date: 2.weeks.from_now.to_date },
+
+  # USE CASE 6: score > 90 → info (blue) — also critical → danger (accumulation demo)
+  { name: "Top performer record", status: "active", priority: "medium", score: 98, amount: 15000.00, code: "PERF-001", email: "star@example.com", notes: "Exceeded all KPIs.", due_date: 3.months.from_now.to_date },
+
+  # USE CASE 7: score < 20 → custom class (lcp-item-low-score)
+  { name: "Underperforming task", status: "draft", priority: "low", score: 12, amount: 100.00, code: "TASK-999", email: nil, notes: nil, due_date: nil },
+
+  # USE CASE 8: blank notes → custom class (lcp-item-missing-notes)
+  { name: "No documentation yet", status: "active", priority: "medium", score: 50, amount: 300.00, code: "DOC-000", email: "writer@example.com", notes: nil, due_date: 1.month.from_now.to_date },
+
+  # USE CASE 9: code matches ^TEMP → custom class (lcp-item-temp-code)
+  { name: "Temporary prototype", status: "draft", priority: "low", score: 40, amount: 0.00, code: "TEMP-alpha", email: nil, notes: "Will be replaced.", due_date: nil },
+
+  # USE CASE 10: overdue (service condition) → custom class (lcp-item-overdue)
+  { name: "Overdue report", status: "active", priority: "high", score: 55, amount: 750.00, code: "RPT-003", email: "analyst@example.com", notes: "Deadline was last week.", due_date: 10.days.ago.to_date },
+
+  # ACCUMULATION: cancelled + low score + blank notes → 3 rules match
+  { name: "Abandoned experiment", status: "cancelled", priority: "low", score: 5, amount: 0.00, code: "EXP-404", email: nil, notes: nil, due_date: 6.months.ago.to_date },
+
+  # ACCUMULATION: completed + high score → success + info
+  { name: "Award-winning campaign", status: "completed", priority: "high", score: 99, amount: 50000.00, code: "MKT-001", email: "cmo@example.com", notes: "Won industry award.", due_date: 1.month.ago.to_date },
+
+  # NO MATCH: plain draft, medium priority, no special conditions
+  { name: "Regular draft item", status: "draft", priority: "medium", score: 50, amount: 200.00, code: "DRAFT-001", email: "user@example.com", notes: "Nothing special here.", due_date: 2.months.from_now.to_date },
+
+  # ACCUMULATION: on_hold + TEMP code + blank notes + overdue
+  { name: "Stalled temp project", status: "on_hold", priority: "medium", score: 45, amount: 0.00, code: "TEMP-stalled", email: nil, notes: nil, due_date: 3.weeks.ago.to_date }
+]
+
+item_class_records.each { |attrs| ItemClassModel.create!(attrs) }
+puts "  Created #{ItemClassModel.count} item_classes demo records"
 
 puts "Seeding complete!"

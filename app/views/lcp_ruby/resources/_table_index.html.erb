@@ -41,7 +41,10 @@
     </thead>
     <tbody>
       <% @records.each do |record| %>
-        <tr class="<%= 'lcp-row-clickable' if current_presenter.index_config['row_click'] %>"
+        <% row_classes = [] %>
+        <% row_classes << "lcp-row-clickable" if current_presenter.index_config['row_click'] %>
+        <% row_classes << compute_item_classes(record, current_presenter) %>
+        <tr class="<%= row_classes.reject(&:blank?).join(' ') %>"
             data-record-id="<%= record.id %>"
             data-href="<%= resource_path(record) if current_presenter.index_config['row_click'] %>">
           <% if reorderable %>

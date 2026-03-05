@@ -7,6 +7,20 @@ module LcpRuby
       renderer ? renderer.render(value, options || {}, record: record, view_context: self) : value
     end
 
+    def compute_item_classes(record, presenter)
+      rules = presenter.item_classes
+      return "" if rules.empty?
+
+      matching = rules.filter_map do |rule|
+        ConditionEvaluator.evaluate_any(record, rule["when"]) ? rule["class"] : nil
+      rescue ConditionError => e
+        raise unless Rails.env.production?
+        Rails.logger.error("[LcpRuby] item_classes condition error: #{e.message} (presenter=#{presenter.name})")
+        nil
+      end
+      matching.join(" ")
+    end
+
     def empty_value_placeholder(value, presenter = nil)
       return value if value == false || value == 0
 

@@ -87,6 +87,14 @@ module LcpRuby
           # Also collect fields from tile config when tiles layout
           field_refs.concat(presenter_def.all_tile_field_refs) if presenter_def.tiles?
 
+          # Collect fields from item_classes conditions
+          presenter_def.item_classes.each do |rule|
+            condition = rule["when"]
+            next unless condition.is_a?(Hash)
+            field = condition["field"]
+            field_refs << field.to_s if field
+          end
+
           field_refs.uniq.each do |field|
             # Skip aggregate columns — they are SQL subqueries, not associations
             next if agg_names.include?(field)

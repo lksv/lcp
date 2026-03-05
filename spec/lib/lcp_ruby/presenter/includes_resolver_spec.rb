@@ -195,6 +195,65 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
       end
     end
 
+    describe "#from_presenter with :index context — item_classes" do
+      it "collects fields from item_classes conditions" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "deal",
+          "model" => "deal",
+          "index" => {
+            "table_columns" => [ { "field" => "title" } ],
+            "item_classes" => [
+              { "class" => "lcp-row-danger", "when" => { "field" => "company_id", "operator" => "present" } }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, deal_model_def, :index)
+
+        expect(collector.dependencies.size).to eq(1)
+        dep = collector.dependencies.first
+        expect(dep.association_name).to eq(:company)
+        expect(dep.reason).to eq(:display)
+      end
+
+      it "collects dot-path fields from item_classes conditions" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "deal",
+          "model" => "deal",
+          "index" => {
+            "table_columns" => [ { "field" => "title" } ],
+            "item_classes" => [
+              { "class" => "lcp-row-bold", "when" => { "field" => "company.name", "operator" => "present" } }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, deal_model_def, :index)
+
+        expect(collector.dependencies.size).to eq(1)
+        dep = collector.dependencies.first
+        expect(dep.association_name).to eq(:company)
+        expect(dep.reason).to eq(:display)
+      end
+
+      it "skips service conditions in item_classes" do
+        presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(
+          "name" => "deal",
+          "model" => "deal",
+          "index" => {
+            "table_columns" => [ { "field" => "title" } ],
+            "item_classes" => [
+              { "class" => "lcp-row-danger", "when" => { "service" => "overdue_checker" } }
+            ]
+          }
+        )
+
+        collector.from_presenter(presenter_def, deal_model_def, :index)
+
+        expect(collector.dependencies).to be_empty
+      end
+    end
+
     describe "#from_presenter with :show context" do
       it "detects association_list sections" do
         presenter_def = LcpRuby::Metadata::PresenterDefinition.from_hash(

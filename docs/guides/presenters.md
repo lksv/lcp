@@ -261,6 +261,58 @@ index do
 end
 ```
 
+### Conditional Row Styling (`item_classes`)
+
+Apply CSS classes to table rows, tile cards, or tree nodes based on record field values. This provides immediate visual cues — red rows for overdue items, strikethrough for completed records, bold for high priority.
+
+**YAML:**
+
+```yaml
+index:
+  table_columns:
+    - { field: title, link_to: show }
+    - { field: status, renderer: badge }
+    - { field: priority }
+  item_classes:
+    - class: "lcp-row-muted lcp-row-strikethrough"
+      when: { field: status, operator: eq, value: "done" }
+    - class: "lcp-row-danger"
+      when: { field: status, operator: eq, value: "overdue" }
+    - class: "lcp-row-bold"
+      when: { field: priority, operator: eq, value: "critical" }
+```
+
+**DSL:**
+
+```ruby
+index do
+  column :title, link_to: :show
+  column :status, renderer: :badge
+  column :priority
+
+  item_class "lcp-row-muted lcp-row-strikethrough",
+             when: { field: :status, operator: :eq, value: "done" }
+  item_class "lcp-row-danger",
+             when: { field: :status, operator: :eq, value: "overdue" }
+  item_class "lcp-row-bold",
+             when: { field: :priority, operator: :eq, value: "critical" }
+end
+```
+
+All matching rules accumulate — a record can be both bold and red at the same time. Rules work across all index layouts (table, tiles, tree).
+
+Built-in utility classes: `lcp-row-danger`, `lcp-row-warning`, `lcp-row-success`, `lcp-row-info`, `lcp-row-muted`, `lcp-row-bold`, `lcp-row-strikethrough`. All background classes use CSS custom properties for theming. Custom CSS classes are also supported.
+
+For complex conditions that require server-side logic, use service conditions:
+
+```yaml
+item_classes:
+  - class: "lcp-row-danger"
+    when: { service: overdue_checker }
+```
+
+See [Presenters Reference — item_classes](../reference/presenters.md#item_classes) for the full attribute reference.
+
 ### Reorderable Index (Record Positioning)
 
 For models with [`positioning`](../reference/models.md#positioning), you can enable drag-and-drop reordering:

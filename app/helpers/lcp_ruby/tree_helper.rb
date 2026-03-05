@@ -24,8 +24,10 @@ module LcpRuby
 
       parent_field = current_model_definition.tree_parent_field
 
+      item_classes = compute_item_classes(record, current_presenter)
+
       row = content_tag(:tr,
-        class: "lcp-tree-row #{context_class}".strip,
+        class: ["lcp-tree-row", context_class.presence, item_classes.presence].compact.join(" "),
         data: {
           record_id: record.id,
           parent_id: record[parent_field],

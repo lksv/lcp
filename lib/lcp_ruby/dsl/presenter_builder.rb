@@ -196,6 +196,7 @@ module LcpRuby
         @tile_hash = nil
         @sort_fields = []
         @summary_hash = nil
+        @item_classes = []
       end
 
       def reorderable(value = true)
@@ -288,6 +289,12 @@ module LcpRuby
         @summary_hash = builder.to_hash
       end
 
+      def item_class(classes, **kwargs)
+        condition = kwargs[:when]
+        rule = { "class" => classes.to_s, "when" => HashUtils.stringify_deep(condition) }
+        @item_classes << rule
+      end
+
       def to_hash
         hash = {}
         hash["layout"] = @layout_value if @layout_value
@@ -310,6 +317,7 @@ module LcpRuby
         hash["tree_view"] = @tree_view_value unless @tree_view_value.nil?
         hash["default_expanded"] = @default_expanded_value unless @default_expanded_value.nil?
         hash["reparentable"] = @reparentable_value unless @reparentable_value.nil?
+        hash["item_classes"] = @item_classes unless @item_classes.empty?
         hash
       end
     end

@@ -20,5 +20,12 @@ module TodoApp
 
     config.secret_key_base = "todo_app_secret_key_base_for_development_only"
     config.active_storage.service = :local
+
+    initializer "todo_app.ignore_lcp_services", before: :set_autoload_paths do
+      %w[condition_services lcp_services actions event_handlers].each do |dir|
+        path = Rails.root.join("app", dir)
+        Rails.autoloaders.main.ignore(path) if path.directory?
+      end
+    end
   end
 end

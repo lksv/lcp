@@ -676,3 +676,12 @@ th.lcp-drag-column { background: #f8f9fa; }
 .lcp-summary-bar-item { display: flex; flex-direction: column; }
 .lcp-summary-bar-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; }
 .lcp-summary-bar-value { font-size: 1.1rem; font-weight: 600; color: #333; }
+
+/* Row styling utility classes */
+.lcp-row-danger { background: var(--lcp-row-danger-bg, #f8d7da) !important; }
+.lcp-row-warning { background: var(--lcp-row-warning-bg, #fff3cd) !important; }
+.lcp-row-success { background: var(--lcp-row-success-bg, #d1e7dd) !important; }
+.lcp-row-info { background: var(--lcp-row-info-bg, #cff4fc) !important; }
+.lcp-row-muted { opacity: var(--lcp-row-muted-opacity, 0.55); }
+.lcp-row-bold { font-weight: bold; }
+.lcp-row-strikethrough { text-decoration: line-through; }

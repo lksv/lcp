@@ -96,6 +96,24 @@
       "examples": ["mobile", ["mobile", "tablet"]]
     },
 
+    "item_class_rule": {
+      "type": "object",
+      "description": "A conditional CSS class rule for index rows/cards. When the condition matches, the CSS class is applied to the element.",
+      "properties": {
+        "class": {
+          "type": "string",
+          "description": "One or more CSS class names (space-separated) to apply when the condition matches.",
+          "examples": ["lcp-row-danger", "lcp-row-muted lcp-row-strikethrough"]
+        },
+        "when": {
+          "$ref": "#/$defs/condition",
+          "description": "Condition evaluated against each record to determine if the class should be applied."
+        }
+      },
+      "required": ["class", "when"],
+      "additionalProperties": false
+    },
+
     "table_column": {
       "type": "object",
       "description": "A column in the index table view.",
@@ -919,6 +937,11 @@
         "reparentable": {
           "type": "boolean",
           "description": "For tree layout: allow drag-and-drop reparenting of tree nodes."
+        },
+        "item_classes": {
+          "type": "array",
+          "description": "Conditional CSS classes applied to each row/card element based on record field values. All matching rules accumulate.",
+          "items": { "$ref": "#/$defs/item_class_rule" }
         }
       },
       "additionalProperties": false

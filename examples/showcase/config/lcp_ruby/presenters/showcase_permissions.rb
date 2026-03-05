@@ -18,6 +18,10 @@ define_presenter :showcase_permissions do
     }
     column :confidential, renderer: :boolean_icon
     column :owner_id, renderer: :number
+
+    item_class "lcp-row-muted", when: { field: :status, operator: :eq, value: "archived" }
+    item_class "lcp-row-danger", when: { field: :priority, operator: :eq, value: "critical" }
+    item_class "lcp-row-bold", when: { field: :status, operator: :eq, value: "locked" }
   end
 
   show do

@@ -1,6 +1,6 @@
 # Feature Specification: Row Styling (Index Pages)
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2026-03-04
 
 ## Problem / Motivation
@@ -266,4 +266,4 @@ The presenter JSON schema is updated to include `item_classes` under the `index`
 
 ## Open Questions
 
-1. **Hover/tooltip on styled rows?** Should styled rows show a tooltip explaining why they are highlighted (e.g., "Overdue: due date is past")? This would improve discoverability but requires additional i18n configuration per rule. Could be a v2 addition with an optional `tooltip` key per rule.
+1. ~~**Hover/tooltip on styled rows?**~~ **No hover/tooltip needed.** Row styling is a visual cue only — no tooltip explaining why the row is highlighted. The CSS class communicates the state; users learn the color meaning from context (column values are visible in the same row). Adding tooltips would require extra i18n config per rule with little practical benefit.

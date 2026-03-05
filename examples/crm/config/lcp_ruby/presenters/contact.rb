@@ -18,6 +18,8 @@ define_presenter :contact do
     column :activities_count, width: "10%", sortable: true
     column :completed_activities_count, width: "10%", sortable: true
     column :active, width: "10%", renderer: :boolean_icon
+
+    item_class "lcp-row-muted", when: { field: :active, operator: :eq, value: false }
   end
 
   show do

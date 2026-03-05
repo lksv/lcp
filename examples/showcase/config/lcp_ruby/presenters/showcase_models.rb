@@ -19,6 +19,10 @@ define_presenter :showcase_models do
     column :computed_label
     column :computed_score, renderer: :number
     column :due_date, renderer: :date
+
+    item_class "lcp-row-muted lcp-row-strikethrough", when: { field: :status, operator: :eq, value: "cancelled" }
+    item_class "lcp-row-success", when: { field: :status, operator: :eq, value: "completed" }
+    item_class "lcp-row-warning", when: { field: :status, operator: :eq, value: "active" }
   end
 
   show do

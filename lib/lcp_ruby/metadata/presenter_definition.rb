@@ -155,6 +155,10 @@ module LcpRuby
         advanced_filter_config["saved_filters"] || {}
       end
 
+      def item_classes
+        @item_classes ||= index_config["item_classes"] || []
+      end
+
       private
 
       def validate!

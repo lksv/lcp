@@ -20,6 +20,7 @@ menu:
         - view_group: showcase_positioning
         - view_group: showcase_aggregates
         - view_group: showcase_aggregate_items
+        - view_group: showcase_item_classes
         - view_group: showcase_userstamps
         - view_group: showcase_soft_delete
 

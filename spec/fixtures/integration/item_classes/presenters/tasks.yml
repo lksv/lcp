@@ -1,0 +1,52 @@
+presenter:
+  name: tasks
+  model: task
+  label: Tasks
+  slug: tasks
+  index:
+    table_columns:
+      - field: title
+        link_to: show
+      - field: status
+      - field: priority
+    item_classes:
+      - class: "lcp-row-muted lcp-row-strikethrough"
+        when:
+          field: status
+          operator: eq
+          value: "done"
+      - class: "lcp-row-bold"
+        when:
+          field: priority
+          operator: eq
+          value: "high"
+  search:
+    enabled: true
+    searchable_fields:
+      - title
+  actions:
+    collection:
+      - name: create
+        type: built_in
+    single:
+      - name: show
+        type: built_in
+      - name: edit
+        type: built_in
+      - name: destroy
+        type: built_in
+        confirm: true
+  form:
+    sections:
+      - title: Details
+        fields:
+          - field: title
+          - field: status
+          - field: priority
+  show:
+    layout:
+      - section: Details
+        fields:
+          - field: title
+          - field: status
+          - field: priority

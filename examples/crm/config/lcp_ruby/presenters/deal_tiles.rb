@@ -38,5 +38,8 @@ define_presenter :deal_tiles, inherits: :deal do
       field :value, function: :avg, label: "Avg Value", renderer: :currency, options: { currency: "EUR" }
       field :title, function: :count, label: "Deal Count"
     end
+
+    item_class "lcp-row-success", when: { field: :stage, operator: :eq, value: "closed_won" }
+    item_class "lcp-row-muted lcp-row-strikethrough", when: { field: :stage, operator: :eq, value: "closed_lost" }
   end
 end

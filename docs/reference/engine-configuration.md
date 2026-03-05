@@ -470,6 +470,8 @@ app/
     conditional_badge.rb  # LcpRuby::HostRenderers::ConditionalBadge
 ```
 
+These directories use `LcpRuby::Host*` namespaces which conflict with Zeitwerk autoloading. You must exclude them — see [Extensibility Guide — Auto-Discovery Setup](../guides/extensibility.md#auto-discovery-setup) for the required `config/application.rb` initializer.
+
 Each registry requires its own `discover!` call in the initializer:
 
 ```ruby

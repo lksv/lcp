@@ -1,0 +1,14 @@
+model:
+  name: task
+  label: Task
+  fields:
+    - name: title
+      type: string
+    - name: status
+      type: enum
+      enum_values:
+        - open
+        - in_progress
+        - done
+    - name: priority
+      type: string

@@ -5209,6 +5209,259 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       expect(agg_errors).to be_empty
     end
   end
+
+  describe "item_classes validation" do
+    let(:metadata_path) { "" }
+
+    it "passes for valid item_classes" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - name: title
+                type: string
+              - name: status
+                type: enum
+                enum_values: [open, done]
+              - name: priority
+                type: string
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            index:
+              table_columns:
+                - { field: title }
+                - { field: status }
+              item_classes:
+                - class: "lcp-row-muted"
+                  when: { field: status, operator: eq, value: "done" }
+                - class: "lcp-row-bold"
+                  when: { field: priority, operator: eq, value: "high" }
+        YAML
+      )
+
+      result = v.validate
+      item_errors = result.errors.select { |e| e.include?("item_classes") }
+      expect(item_errors).to be_empty
+    end
+
+    it "reports error for missing class" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - name: status
+                type: string
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            index:
+              item_classes:
+                - when: { field: status, operator: eq, value: "done" }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/item_classes\[0\].*'class' must be a non-empty string/)
+      )
+    end
+
+    it "reports error for empty class string" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - name: status
+                type: string
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            index:
+              item_classes:
+                - class: "  "
+                  when: { field: status, operator: eq, value: "done" }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/item_classes\[0\].*'class' must be a non-empty string/)
+      )
+    end
+
+    it "reports error for class with invalid characters" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - name: status
+                type: string
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            index:
+              item_classes:
+                - class: 'lcp-row" onclick="alert(1)'
+                  when: { field: status, operator: eq, value: "done" }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/item_classes\[0\].*'class' contains invalid characters/)
+      )
+    end
+
+    it "reports error for missing when" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - name: status
+                type: string
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            index:
+              item_classes:
+                - class: "lcp-row-danger"
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/item_classes\[0\].*'when' must be a condition hash/)
+      )
+    end
+
+    it "reports error for unknown field in condition" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - name: title
+                type: string
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            index:
+              item_classes:
+                - class: "lcp-row-danger"
+                  when: { field: nonexistent, operator: eq, value: "x" }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/item_classes\[0\].*references unknown field 'nonexistent'/)
+      )
+    end
+
+    it "reports error for invalid operator" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - name: status
+                type: string
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            index:
+              item_classes:
+                - class: "lcp-row-danger"
+                  when: { field: status, operator: invalid_op, value: "x" }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/item_classes\[0\].*unknown operator 'invalid_op'/)
+      )
+    end
+
+    it "reports error for operator-type incompatibility" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - name: title
+                type: string
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            index:
+              item_classes:
+                - class: "lcp-row-danger"
+                  when: { field: title, operator: gt, value: 10 }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/item_classes\[0\].*operator 'gt' is not compatible with field 'title'/)
+      )
+    end
+
+    it "passes for service condition" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - name: title
+                type: string
+        YAML
+        presenters: [ <<~YAML ]
+          presenter:
+            name: tasks
+            model: task
+            slug: tasks
+            index:
+              item_classes:
+                - class: "lcp-row-danger"
+                  when: { service: overdue_checker }
+        YAML
+      )
+
+      result = v.validate
+      item_errors = result.errors.select { |e| e.include?("item_classes") }
+      expect(item_errors).to be_empty
+    end
+  end
 end
 
 RSpec.describe LcpRuby::Metadata::ConfigurationValidator::ValidationResult do
