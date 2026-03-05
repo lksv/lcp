@@ -9,7 +9,7 @@ module LcpRuby
       # @param current_user [Object, nil] the current user (for :current_user placeholder)
       # @return [Array(ActiveRecord::Relation, Array<String>)] modified scope and list of service-only aggregate names
       def self.apply(scope, model_definition, aggregate_names, current_user: nil)
-        return [scope, []] if aggregate_names.empty?
+        return [ scope, [] ] if aggregate_names.empty?
 
         conn = ActiveRecord::Base.connection
         parent_table = conn.quote_table_name(model_definition.table_name)
@@ -32,7 +32,7 @@ module LcpRuby
           scope = scope.select("#{parent_table}.*", *subqueries)
         end
 
-        [scope, service_only]
+        [ scope, service_only ]
       end
 
       def self.build_subquery(agg_def, model_definition, parent_table, conn, current_user: nil)
@@ -71,7 +71,7 @@ module LcpRuby
         select_expr = build_function_expression(agg_def, target_table, conn)
 
         # Build WHERE clause
-        conditions = ["#{quoted_fk} = #{parent_table}.#{conn.quote_column_name('id')}"]
+        conditions = [ "#{quoted_fk} = #{parent_table}.#{conn.quote_column_name('id')}" ]
 
         # Polymorphic type condition
         if assoc_def.as.present?

@@ -12,7 +12,7 @@ RSpec.describe LcpRuby::ModelFactory::AggregateApplicator do
     it "does nothing for declarative aggregates" do
       model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
         "name" => "test_agg_declarative",
-        "fields" => [{ "name" => "name", "type" => "string" }],
+        "fields" => [ { "name" => "name", "type" => "string" } ],
         "associations" => [
           { "type" => "has_many", "name" => "items", "target_model" => "item", "foreign_key" => "test_agg_declarative_id" }
         ],
@@ -29,7 +29,7 @@ RSpec.describe LcpRuby::ModelFactory::AggregateApplicator do
     it "raises for service aggregate with unregistered service" do
       model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
         "name" => "test_agg_service",
-        "fields" => [{ "name" => "name", "type" => "string" }],
+        "fields" => [ { "name" => "name", "type" => "string" } ],
         "aggregates" => {
           "health_score" => { "service" => "nonexistent_service", "type" => "integer" }
         }
@@ -55,7 +55,7 @@ RSpec.describe LcpRuby::ModelFactory::AggregateApplicator do
 
       model_def = LcpRuby::Metadata::ModelDefinition.from_hash({
         "name" => "test_agg_service_ok",
-        "fields" => [{ "name" => "name", "type" => "string" }],
+        "fields" => [ { "name" => "name", "type" => "string" } ],
         "aggregates" => {
           "health_score" => { "service" => "test_health", "type" => "integer" }
         }

@@ -18,7 +18,7 @@ RSpec.describe LcpRuby::Aggregates::QueryBuilder do
     builder = LcpRuby::ModelFactory::Builder.new(model_def)
     model_class = builder.build
     LcpRuby.registry.register(name, model_class)
-    [model_def, model_class]
+    [ model_def, model_class ]
   end
 
   let!(:issue_setup) do
@@ -78,7 +78,7 @@ RSpec.describe LcpRuby::Aggregates::QueryBuilder do
 
     it "injects COUNT subquery for count aggregate" do
       scope = project_class.all
-      result_scope, _ = described_class.apply(scope, project_model_def, ["issues_count"])
+      result_scope, _ = described_class.apply(scope, project_model_def, [ "issues_count" ])
 
       sql = result_scope.to_sql
       expect(sql).to include("COUNT(*)")
@@ -87,7 +87,7 @@ RSpec.describe LcpRuby::Aggregates::QueryBuilder do
 
     it "applies where conditions in subquery" do
       scope = project_class.all
-      result_scope, _ = described_class.apply(scope, project_model_def, ["open_issues_count"])
+      result_scope, _ = described_class.apply(scope, project_model_def, [ "open_issues_count" ])
 
       sql = result_scope.to_sql
       expect(sql).to include("open")
@@ -95,7 +95,7 @@ RSpec.describe LcpRuby::Aggregates::QueryBuilder do
 
     it "applies MAX function with default COALESCE" do
       scope = project_class.all
-      result_scope, _ = described_class.apply(scope, project_model_def, ["max_priority"])
+      result_scope, _ = described_class.apply(scope, project_model_def, [ "max_priority" ])
 
       sql = result_scope.to_sql
       expect(sql).to include("MAX")
@@ -110,7 +110,7 @@ RSpec.describe LcpRuby::Aggregates::QueryBuilder do
 
       scope = project_class.all
       result_scope, _ = described_class.apply(
-        scope, project_model_def, ["issues_count", "open_issues_count", "max_priority"]
+        scope, project_model_def, [ "issues_count", "open_issues_count", "max_priority" ]
       )
 
       record = result_scope.find(project.id)
@@ -168,7 +168,7 @@ RSpec.describe LcpRuby::Aggregates::QueryBuilder do
 
         scope = board_class.all
         result_scope, _ = described_class.apply(
-          scope, board_model_def, ["my_issues_count"], current_user: current_user
+          scope, board_model_def, [ "my_issues_count" ], current_user: current_user
         )
 
         record = result_scope.find(board.id)
@@ -203,7 +203,7 @@ RSpec.describe LcpRuby::Aggregates::QueryBuilder do
 
     it "expands %{table} placeholder in SQL" do
       scope = sql_project_class.all
-      result_scope, _ = described_class.apply(scope, sql_project_model_def, ["custom_calc"])
+      result_scope, _ = described_class.apply(scope, sql_project_model_def, [ "custom_calc" ])
 
       sql = result_scope.to_sql
       expect(sql).to include("agg_issues")
