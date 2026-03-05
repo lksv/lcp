@@ -2,7 +2,7 @@ define_model :showcase_aggregate_item do
   label "Aggregate Task"
   label_plural "Aggregate Tasks"
 
-  field :title, :string, label: "Title", limit: 200, null: false, transforms: [:strip] do
+  field :title, :string, label: "Title", limit: 200, null: false, transforms: [ :strip ] do
     validates :presence
     validates :length, maximum: 200
   end

@@ -20,7 +20,7 @@ define_presenter :features_card do
         groups: "violet", extensibility: "pink",
         navigation: "gray", attachments: "yellow", authentication: "indigo",
         custom_fields: "cyan", virtual_fields: "emerald",
-        positioning: "lime", search: "sky"
+        positioning: "lime", search: "sky", tiles: "amber"
       }
     }, sortable: true
     column :status, renderer: :badge, options: {
@@ -42,7 +42,7 @@ define_presenter :features_card do
           groups: "violet", extensibility: "pink",
           navigation: "gray", attachments: "yellow", authentication: "indigo",
           custom_fields: "cyan", virtual_fields: "emerald",
-          positioning: "lime", search: "sky"
+          positioning: "lime", search: "sky", tiles: "amber"
         }
       }
       field :status, renderer: :badge, options: {
@@ -107,6 +107,7 @@ define_presenter :features_card do
     filter :virtual_fields, label: "Virtual Fields", scope: :by_category_virtual_fields
     filter :positioning, label: "Positioning", scope: :by_category_positioning
     filter :search, label: "Search", scope: :by_category_search
+    filter :tiles, label: "Tiles", scope: :by_category_tiles
   end
 
   action :create, type: :built_in, on: :collection, label: "New Feature", icon: "plus"

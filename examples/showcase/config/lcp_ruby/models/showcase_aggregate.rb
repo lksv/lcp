@@ -2,7 +2,7 @@ define_model :showcase_aggregate do
   label "Aggregate Project"
   label_plural "Aggregate Projects"
 
-  field :name, :string, label: "Name", limit: 200, null: false, transforms: [:strip] do
+  field :name, :string, label: "Name", limit: 200, null: false, transforms: [ :strip ] do
     validates :presence
     validates :length, maximum: 200
   end
