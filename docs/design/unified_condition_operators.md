@@ -1,6 +1,8 @@
 # Unified Condition Operators — Design Document
 
 > **Status: Implemented.** `ConditionError` added, `ConditionEvaluator` made strict (raises on unknown operator/missing field/nil), `matches_condition?` removed, `can_for_record?` alias bug fixed, operator-type validation added to `ConfigurationValidator`, custom fields skip added for condition validation.
+>
+> The "Forward Compatibility" section of this document (compound conditions, dot-path fields, collection conditions, dynamic value references, value services, additional operators) has been extracted into a separate feature specification: [Advanced Conditions](docs/design/advanced_conditions.md).
 
 ## Overview
 

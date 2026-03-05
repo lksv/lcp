@@ -37,7 +37,7 @@ Complete attribute reference for every YAML configuration file:
 
 - [Presenters](guides/presenters.md) — Step-by-step guide to building presenters (index, show, form, search, actions) with YAML and DSL examples
 - [Extensibility](guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validators, defaults, computed fields, condition services, scopes, model extensions
-- [Conditional Rendering](guides/conditional-rendering.md) — `visible_when` and `disable_when` on fields, sections, and actions
+- [Conditional Rendering](guides/conditional-rendering.md) — `visible_when`, `disable_when`, and `item_classes` on fields, sections, actions, and rows
 - [Custom Actions](guides/custom-actions.md) — Writing domain-specific operations beyond CRUD
 - [Event Handlers](guides/event-handlers.md) — Responding to lifecycle events and field changes
 - [Custom Types](guides/custom-types.md) — Defining custom business types (percentage, postal_code, slug, hex_color)
@@ -79,6 +79,7 @@ Implemented:
 - [Saved Filters & Parameterized Scopes](design/saved_filters.md) — User-persistent named filters with visibility levels, parameterized scopes with typed parameters, generator, CRUD API
 - [Aggregate Columns](design/aggregate_columns.md) — Virtual computed columns (COUNT, SUM, MIN, MAX, AVG) from associated records, custom SQL, service-based aggregates
 - [Tiles View](design/tiles_view.md) — Card grid layout for index pages with sort dropdown, per-page selector, and summary bar
+- [Row Styling](design/row_styling.md) — Conditional CSS classes on index rows (tables, trees, tiles) based on field conditions or services
 
 In Progress:
 
@@ -87,6 +88,8 @@ In Progress:
 - [Deep Filter Enhancements](design/recursive_association_field_picker.md) — Recursive association field picker and recursive condition nesting (AND/OR tree)
 
 Proposed:
+- [Advanced Conditions](design/advanced_conditions.md) — Compound conditions (all/any/not), dynamic value references, dot-path fields, collection quantifiers, value services
+- [Virtual Columns](design/virtual_columns.md) — Generalized query extensions: raw SQL, JOINs, EXISTS, window functions, LATERAL JOINs, service-based with Arel
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments
 - [Multiselect and Batch Actions](design/multiselect_and_batch_actions.md) — Checkbox selection and bulk operations on index pages
 - [Array Field Type](design/array_field_type.md) — Native array fields with typed items and array-specific operators
