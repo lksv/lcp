@@ -36,6 +36,7 @@ Complete attribute reference for every YAML configuration file:
 ## Guides
 
 - [Presenters](guides/presenters.md) — Step-by-step guide to building presenters (index, show, form, search, actions) with YAML and DSL examples
+- [Selectbox](guides/selectbox.md) — Association select, cascading selects, remote search, multi-select, tree select, scoping, disabled options, legacy records, codelists
 - [Computed Fields](guides/computed-fields.md) — Auto-calculated persisted fields: template interpolation, service logic, arithmetic, comparison with aggregates
 - [Extensibility](guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validators, defaults, computed fields, condition services, scopes, model extensions
 - [Conditional Rendering](guides/conditional-rendering.md) — `visible_when`, `disable_when`, and `item_classes` on fields, sections, actions, and rows
@@ -100,7 +101,9 @@ Proposed:
 - [Scoped Permissions](design/scoped_permissions.md) — Context-dependent permission definitions for polymorphic sub-resources
 - [Context-Aware View Switcher](design/view_switcher_context.md) — View switcher integration with context-aware presenters
 - [Document Management](design/document_management.md) — File-centric document management (versioning, preview, metadata, workflows)
-- [Workflow & Approvals](design/workflow_and_approvals.md) — Metadata-driven state machines and approval processes
+- [Workflow State Machine](design/workflow_state_machine.md) — Metadata-driven state machine: states, transitions, guards, audit log, three definition sources
+- [Workflow Approvals](design/workflow_approvals.md) — Multi-step approval engine on top of the state machine: steps, strategies, delegation, rework
+- [~~Workflow & Approvals~~](design/workflow_and_approvals.md) — Outdated, superseded by the two documents above
 
 Research:
 

@@ -78,6 +78,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
 - [Presenter DSL Reference](docs/reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenters (with inheritance)
 - [Presenters Guide](docs/guides/presenters.md) — Step-by-step guide to building presenters with YAML and DSL examples
+- [Selectbox Guide](docs/guides/selectbox.md) — Association select, cascading selects, remote search, multi-select, tree select, scoping, disabled options, legacy records, codelists
 - [Custom Types Guide](docs/guides/custom-types.md) — Practical examples of custom business types
 - [Computed Fields Guide](docs/guides/computed-fields.md) — Auto-calculated persisted fields: template interpolation, service logic, arithmetic
 - [Extensibility Guide](docs/guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validations, scopes, condition services
