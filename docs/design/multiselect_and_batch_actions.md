@@ -666,7 +666,13 @@ end
 
 When a batch action has `param_schema`, clicking the toolbar button opens a modal dialog with the specified fields. The form is submitted with both the selected IDs and the action parameters.
 
-**Initial implementation:** The modal renders a simple form based on `param_schema`. A future enhancement could reuse the platform's form builder for full field rendering (validation, conditional visibility, etc.).
+**Initial implementation:** The modal renders a simple form based on `param_schema`.
+
+**Future migration to presenter-based dialogs:** Once the [Modal Dialogs](modal_dialogs.md) feature is implemented, all batch action parameter forms (including the built-in bulk update modal and custom action `param_schema` modals) should be replaced by standard presenter-rendered dialogs. A batch update action would reference a dialog presenter (e.g., a virtual model with the updatable fields) instead of inline `param_schema` / `fields` configuration. To make this migration smooth, the initial implementation should:
+
+- Keep the modal rendering logic isolated (a single partial/helper responsible for rendering `param_schema` forms) so it can be swapped for the presenter dialog renderer in one place.
+- Avoid coupling batch action execution logic to the modal form's structure — the controller should receive field/value params the same way regardless of whether they come from a `param_schema` modal or a presenter dialog.
+- Use the same submit endpoint and response contract (success → close dialog + trigger `on_success`, error → re-render with errors) that the modal dialogs spec defines, so the transition is a rendering change only, not a protocol change.
 
 ### Keyboard Shortcuts
 
@@ -1071,3 +1077,4 @@ presenter:
 - **[Soft Delete](soft_delete.md):** Batch `destroy` calls `discard!` on soft-deletable models. Archive presenters support batch `restore` and `permanently_destroy`.
 - **[Auditing](auditing.md):** Batch operations create per-record audit entries via callbacks. `discard!` dispatches `AuditWriter.log` explicitly.
 - **[Userstamps](userstamps.md):** Per-record `update` fires callbacks, so userstamps work normally. `BulkUpdater.tracked_update_all` bypasses userstamps by design.
+- **[Modal Dialogs](modal_dialogs.md):** Batch action parameter forms (bulk update, custom actions with `param_schema`) are future candidates for presenter-rendered modal dialogs. The initial `param_schema`-based implementation should be designed for easy replacement — see [Batch Action with Parameters](#batch-action-with-parameters-modal-form).
