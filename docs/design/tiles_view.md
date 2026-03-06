@@ -1,6 +1,6 @@
 # Feature Specification: Tiles View (Index Layout)
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2026-03-04
 
 ## Problem / Motivation
