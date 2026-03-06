@@ -5,6 +5,7 @@ puts "Seeding showcase data..."
 connection = ActiveRecord::Base.connection
 %w[
   saved_filter feature pipeline_stage pipeline showcase_item_class showcase_recipe showcase_positioning showcase_userstamps
+  showcase_sequence gapfree_sequence
   showcase_soft_delete_item showcase_soft_delete showcase_aggregate_item showcase_aggregate showcase_aggregate_company
   showcase_virtual_field showcase_extensibility permission_config role showcase_permission
   showcase_attachment custom_field_definition employee_skill project showcase_search showcase_array
@@ -3584,6 +3585,27 @@ LcpRuby::Current.user = admin_user
 LcpRuby::Current.user = nil
 
 puts "  Created #{UserstampsModel.count} tracked documents (userstamps showcase)"
+
+# Phase: Sequences Showcase
+SequenceModel = LcpRuby.registry.model_for("showcase_sequence")
+
+# Create records across categories to demonstrate all sequence types
+[
+  { title: "Server outage report", category: "support", description: "Production server went down at 3am" },
+  { title: "New feature request", category: "engineering", description: "Add dark mode support" },
+  { title: "Q1 invoice", category: "billing", description: "Quarterly billing for Enterprise plan" },
+  { title: "API rate limit issue", category: "support", description: "Customer hitting rate limits" },
+  { title: "Database migration plan", category: "engineering", description: "Migrate from MySQL to PostgreSQL" },
+  { title: "Annual subscription renewal", category: "billing", description: "Renewal for 2026" },
+  { title: "General inquiry", category: "general", description: "Prospective customer questions" },
+  { title: "CI/CD pipeline redesign", category: "engineering", description: "Move to GitHub Actions" },
+  { title: "Password reset not working", category: "support", description: "Users reporting 500 errors" },
+  { title: "Credit note CN-2025-001", category: "billing", description: "Refund for overpayment" },
+  { title: "Security audit findings", category: "general", description: "Penetration test results review" },
+  { title: "Mobile app crash on login", category: "support", description: "iOS 18 compatibility issue" }
+].each { |attrs| SequenceModel.create!(attrs) }
+
+puts "  Created #{SequenceModel.count} sequenced records (sequences showcase)"
 
 # Phase: Soft Delete Showcase
 # Phase: Aggregates

@@ -165,6 +165,45 @@ When `positioning` is set:
 
 See [Record Positioning](../design/record_positioning.md) for the full design.
 
+### `indexes`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `[]` |
+| **Type** | array of index objects |
+
+Declares database indexes on the model's table. Each index specifies columns, optional uniqueness, and optional custom name.
+
+```yaml
+indexes:
+  - columns: [seq_model, seq_field, scope_key]
+    unique: true
+  - columns: [department_id, created_at]
+  - columns: [email]
+    unique: true
+    name: idx_users_email_uniq
+```
+
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+| `columns` | array of strings | (required) | Column names to include in the index |
+| `unique` | boolean | `false` | Create a unique constraint index |
+| `name` | string | auto-generated | Custom index name |
+
+Indexes are created at boot by `SchemaManager` (idempotent — existing indexes are skipped). All referenced columns must be defined fields on the model.
+
+**DSL:**
+
+```ruby
+define_model :gapfree_sequence do
+  field :seq_model, :string
+  field :seq_field, :string
+  field :scope_key, :string
+  index %i[seq_model seq_field scope_key], unique: true
+end
+```
+
 ## Fields
 
 Each field defines a database column and its metadata.
@@ -520,6 +559,55 @@ field :weighted_value, :decimal, computed: { service: "weighted_deal_value" }
 ```
 
 Service contract: `def self.call(record) -> value`. Register in `app/lcp_services/computed/`. See [Extensibility Guide](../guides/extensibility.md).
+
+#### `sequence`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Default** | `nil` |
+| **Type** | boolean (`true`) or hash |
+
+Auto-numbering sequence field. Assigns a unique sequential value from a gap-free counter on record creation. Requires the `gapfree_sequence` model (run `rails generate lcp_ruby:gapfree_sequences`).
+
+**Shorthand** — all defaults (global scope, raw counter, start 1, step 1, readonly):
+
+```yaml
+- name: seq
+  type: integer
+  sequence: true
+```
+
+**Full form:**
+
+```yaml
+- name: invoice_number
+  type: string
+  sequence:
+    scope: [_year]
+    format: "INV-%{_year}-%{sequence:04d}"
+    start: 1
+    step: 1
+    readonly: true
+    assign_on: create
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `scope` | array of strings | `[]` (global) | Scope columns or virtual keys (`_year`, `_month`, `_day`). Counter resets per unique scope combination. |
+| `format` | string | none (raw integer) | Template with `%{sequence}`, `%{sequence:Nd}`, `%{_year}`, `%{_month}`, `%{_day}`, `%{field_name}`. |
+| `start` | integer | `1` | Initial counter value for a new scope. |
+| `step` | integer | `1` | Increment per record. |
+| `readonly` | boolean | `true` | Render as disabled input in forms. |
+| `assign_on` | string | `"create"` | `"create"` (before_create only) or `"always"` (also fills blank on update). |
+
+```ruby
+# DSL
+field :invoice_number, :string,
+  sequence: { scope: [:_year], format: "INV-%{_year}-%{sequence:04d}" }
+```
+
+A field cannot have both `sequence` and `computed` (or `source`) — these are mutually exclusive. See [Sequence Fields Guide](../guides/sequences.md) for scoping, format templates, and counter management.
 
 #### `validations`
 

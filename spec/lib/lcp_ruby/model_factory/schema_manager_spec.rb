@@ -113,6 +113,141 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
     end
   end
 
+  describe "sequence indexes" do
+    let(:table_name) { "seq_test_records" }
+
+    after do
+      ActiveRecord::Base.connection.drop_table(table_name) if ActiveRecord::Base.connection.table_exists?(table_name)
+    end
+
+    def build_seq_model(sequence_config, extra_fields: [], table: table_name)
+      fields = [{ "name" => "code", "type" => "string", "sequence" => sequence_config }] + extra_fields
+      hash = {
+        "name" => "seq_test_record",
+        "table_name" => table,
+        "fields" => fields,
+        "options" => { "timestamps" => false }
+      }
+      LcpRuby::Metadata::ModelDefinition.from_hash(hash)
+    end
+
+    it "creates a unique index on the sequence field when there is no scope" do
+      definition = build_seq_model({})
+      described_class.new(definition).ensure_table!
+
+      index = ActiveRecord::Base.connection.indexes(table_name).find { |i| i.name == "idx_#{table_name}_seq_code" }
+      expect(index).to be_present
+      expect(index.columns).to eq(["code"])
+      expect(index.unique).to be true
+    end
+
+    it "creates a unique compound index with real scope columns" do
+      extra = [{ "name" => "department_id", "type" => "integer" }]
+      definition = build_seq_model({ "scope" => ["department_id"] }, extra_fields: extra)
+      described_class.new(definition).ensure_table!
+
+      index = ActiveRecord::Base.connection.indexes(table_name).find { |i| i.name == "idx_#{table_name}_seq_code" }
+      expect(index).to be_present
+      expect(index.columns).to eq(["department_id", "code"])
+      expect(index.unique).to be true
+    end
+
+    it "creates a non-unique index when scope contains only virtual keys" do
+      definition = build_seq_model({ "scope" => ["_year"] })
+      described_class.new(definition).ensure_table!
+
+      index = ActiveRecord::Base.connection.indexes(table_name).find { |i| i.name == "idx_#{table_name}_seq_code" }
+      expect(index).to be_present
+      expect(index.columns).to eq(["code"])
+      expect(index.unique).to be false
+    end
+
+    it "creates a non-unique index on real columns when scope mixes real and virtual keys" do
+      extra = [{ "name" => "department_id", "type" => "integer" }]
+      definition = build_seq_model({ "scope" => ["department_id", "_year"] }, extra_fields: extra)
+      described_class.new(definition).ensure_table!
+
+      index = ActiveRecord::Base.connection.indexes(table_name).find { |i| i.name == "idx_#{table_name}_seq_code" }
+      expect(index).to be_present
+      expect(index.columns).to eq(["department_id", "code"])
+      expect(index.unique).to be false
+    end
+  end
+
+  describe "user-defined indexes" do
+    let(:table_name) { "idx_test_records" }
+
+    after do
+      ActiveRecord::Base.connection.drop_table(table_name) if ActiveRecord::Base.connection.table_exists?(table_name)
+    end
+
+    it "creates a unique index from the indexes configuration" do
+      hash = {
+        "name" => "idx_test_record",
+        "table_name" => table_name,
+        "fields" => [
+          { "name" => "email", "type" => "string" },
+          { "name" => "name", "type" => "string" }
+        ],
+        "indexes" => [
+          { "columns" => ["email"], "unique" => true }
+        ],
+        "options" => { "timestamps" => false }
+      }
+      definition = LcpRuby::Metadata::ModelDefinition.from_hash(hash)
+      described_class.new(definition).ensure_table!
+
+      indexes = ActiveRecord::Base.connection.indexes(table_name)
+      email_index = indexes.find { |i| i.columns == ["email"] }
+      expect(email_index).to be_present
+      expect(email_index.unique).to be true
+    end
+
+    it "creates a non-unique index when unique is not set" do
+      hash = {
+        "name" => "idx_test_record",
+        "table_name" => table_name,
+        "fields" => [
+          { "name" => "email", "type" => "string" },
+          { "name" => "name", "type" => "string" }
+        ],
+        "indexes" => [
+          { "columns" => ["name"] }
+        ],
+        "options" => { "timestamps" => false }
+      }
+      definition = LcpRuby::Metadata::ModelDefinition.from_hash(hash)
+      described_class.new(definition).ensure_table!
+
+      indexes = ActiveRecord::Base.connection.indexes(table_name)
+      name_index = indexes.find { |i| i.columns == ["name"] }
+      expect(name_index).to be_present
+      expect(name_index.unique).to be false
+    end
+
+    it "uses a custom index name when provided" do
+      hash = {
+        "name" => "idx_test_record",
+        "table_name" => table_name,
+        "fields" => [
+          { "name" => "email", "type" => "string" }
+        ],
+        "indexes" => [
+          { "columns" => ["email"], "unique" => true, "name" => "custom_email_idx" }
+        ],
+        "options" => { "timestamps" => false }
+      }
+      definition = LcpRuby::Metadata::ModelDefinition.from_hash(hash)
+      described_class.new(definition).ensure_table!
+
+      indexes = ActiveRecord::Base.connection.indexes(table_name)
+      custom_index = indexes.find { |i| i.name == "custom_email_idx" }
+      expect(custom_index).to be_present
+      expect(custom_index.columns).to eq(["email"])
+      expect(custom_index.unique).to be true
+    end
+  end
+
   describe "#custom_data_index_name" do
     it "returns short name for normal table names" do
       name = schema_manager.send(:custom_data_index_name, "projects")

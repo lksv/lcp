@@ -68,6 +68,8 @@ module LcpRuby
         end
 
         apply_positioning_constraints!(table) if model_definition.positioned?
+        apply_sequence_indexes!(table)
+        apply_user_indexes!(table) if model_definition.indexes.any?
       end
 
       def update_table!
@@ -131,6 +133,8 @@ module LcpRuby
         apply_soft_delete_columns_update!(table, connection, existing_columns) if model_definition.soft_delete?
 
         apply_positioning_constraints!(table) if model_definition.positioned?
+        apply_sequence_indexes!(table)
+        apply_user_indexes!(table) if model_definition.indexes.any?
       end
 
       def apply_userstamp_columns_create!(t)
@@ -201,6 +205,50 @@ module LcpRuby
 
         unless connection.index_exists?(table, [ by_type, by_id ])
           connection.add_index(table, [ by_type, by_id ])
+        end
+      end
+
+      def apply_sequence_indexes!(table)
+        sequence_fields = model_definition.fields.select(&:sequence?)
+        return if sequence_fields.empty?
+
+        connection = ActiveRecord::Base.connection
+
+        sequence_fields.each do |field|
+          config = field.sequence
+          scope_cols = Array(config["scope"])
+
+          # Only include real DB columns in the index (skip virtual keys like _year, _month, _day)
+          real_scope_cols = scope_cols.reject { |c| c.start_with?("_") }
+          has_virtual_scope = real_scope_cols.size < scope_cols.size
+          index_columns = real_scope_cols + [field.name]
+          index_name = "idx_#{table}_seq_#{field.name}"
+
+          # When virtual scope keys are present, uniqueness cannot be enforced at the DB level
+          # because the virtual values (_year, _month, _day) are not stored as columns.
+          # Use a non-unique index for query performance only.
+          unique = !has_virtual_scope
+
+          next if connection.index_exists?(table, index_columns)
+
+          connection.add_index(table, index_columns, unique: unique, name: index_name)
+        end
+      end
+
+      def apply_user_indexes!(table)
+        connection = ActiveRecord::Base.connection
+        model_definition.indexes.each do |idx|
+          columns = idx["columns"]
+          next if columns.blank?
+
+          unique = idx["unique"] == true
+          name = idx["name"]
+
+          next if connection.index_exists?(table, columns, unique: unique)
+
+          options = { unique: unique }
+          options[:name] = name if name.present?
+          connection.add_index(table, columns, **options)
         end
       end
 

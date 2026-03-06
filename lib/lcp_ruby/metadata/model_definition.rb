@@ -3,7 +3,7 @@ module LcpRuby
     class ModelDefinition
       attr_reader :name, :label, :label_plural, :table_name, :fields,
                   :validations, :associations, :scopes, :events, :options,
-                  :display_templates, :virtual_columns, :raw_hash, :data_source_config
+                  :display_templates, :virtual_columns, :indexes, :raw_hash, :data_source_config
       attr_accessor :positioning_config
 
       # Backward compatibility alias
@@ -22,6 +22,7 @@ module LcpRuby
         @options = attrs[:options] || {}
         @display_templates = attrs[:display_templates] || {}
         @virtual_columns = attrs[:virtual_columns] || attrs[:aggregates] || {}
+        @indexes = attrs[:indexes] || []
         @positioning_config = attrs[:positioning_config]
         @data_source_config = attrs[:data_source_config]
         @raw_hash = attrs[:raw_hash]
@@ -43,6 +44,7 @@ module LcpRuby
           options: hash["options"] || {},
           display_templates: parse_display_templates(hash["display_templates"]),
           virtual_columns: parse_virtual_columns(hash),
+          indexes: parse_indexes(hash["indexes"]),
           positioning_config: normalize_positioning(hash["positioning"]),
           data_source_config: hash["data_source"],
           raw_hash: hash
@@ -351,6 +353,11 @@ module LcpRuby
         data.each_with_object({}) do |(name, hash), result|
           result[name.to_s] = DisplayTemplateDefinition.from_hash(name, hash)
         end
+      end
+
+      def self.parse_indexes(data)
+        return [] unless data.is_a?(Array)
+        data.map { |idx| HashUtils.stringify_deep(idx) }
       end
     end
   end

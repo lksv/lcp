@@ -17,6 +17,7 @@ module LcpRuby
         @virtual_columns = {}
         @positioning_config = nil
         @data_source_config = nil
+        @indexes = []
         @options = {}
       end
 
@@ -55,6 +56,7 @@ module LcpRuby
         field_hash["default"] = options[:default] if options.key?(:default)
         field_hash["transforms"] = options[:transforms].map(&:to_s) if options[:transforms]
         field_hash["computed"] = options[:computed] if options.key?(:computed)
+        field_hash["sequence"] = stringify_keys(options[:sequence]) if options.key?(:sequence)
 
         if options.key?(:source)
           src = options[:source]
@@ -213,6 +215,13 @@ module LcpRuby
         @data_source_config = stringify_keys({ type: type }.merge(options))
       end
 
+      def index(columns, unique: false, name: nil)
+        idx = { "columns" => Array(columns).map(&:to_s) }
+        idx["unique"] = true if unique
+        idx["name"] = name.to_s if name
+        @indexes << idx
+      end
+
       def positioning(field: :position, scope: nil)
         config = { "field" => field.to_s }
         config["scope"] = Array(scope).map(&:to_s) if scope
@@ -295,6 +304,7 @@ module LcpRuby
         hash["virtual_columns"] = @virtual_columns unless @virtual_columns.empty?
         hash["positioning"] = @positioning_config if @positioning_config
         hash["data_source"] = @data_source_config if @data_source_config
+        hash["indexes"] = @indexes unless @indexes.empty?
         hash["options"] = @options unless @options.empty?
 
         hash

@@ -1,0 +1,17 @@
+name: gapfree_sequence
+table_name: lcp_gapfree_sequences
+fields:
+  - { name: seq_model, type: string }
+  - { name: seq_field, type: string }
+  - { name: scope_key, type: string }
+  - { name: current_value, type: integer, default: 0 }
+validations:
+  - { field: seq_model, type: presence }
+  - { field: seq_field, type: presence }
+  - { field: scope_key, type: presence }
+indexes:
+  - columns: [seq_model, seq_field, scope_key]
+    unique: true
+options:
+  timestamps: true
+  label_method: seq_model

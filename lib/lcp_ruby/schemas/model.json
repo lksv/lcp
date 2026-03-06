@@ -311,6 +311,57 @@
           "description": "Read-only computed field. String form is a Ruby expression; object form uses a service.",
           "examples": ["first_name + ' ' + last_name"]
         },
+        "sequence": {
+          "description": "Auto-numbering sequence field. Assigns a unique sequential value on record creation. Requires the gapfree_sequences generator. Use `true` as shorthand for all defaults (global scope, raw counter, start 1, step 1).",
+          "oneOf": [
+            { "type": "boolean", "const": true },
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "type": "array",
+                  "items": { "type": "string" },
+                  "description": "Scope columns or virtual keys (_year, _month, _day). Counter resets independently per unique scope combination.",
+                  "examples": [["_year"], ["department_id", "_year"]]
+                },
+                "format": {
+                  "type": "string",
+                  "description": "Template for the final value. Supports %{sequence}, %{sequence:Nd} (zero-padded), %{_year}, %{_month}, %{_day}, and %{field_name}.",
+                  "examples": ["INV-%{_year}-%{sequence:04d}", "TKT-%{sequence:06d}"]
+                },
+                "start": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "Initial counter value for a new scope.",
+                  "default": 1
+                },
+                "step": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "Increment per record.",
+                  "default": 1
+                },
+                "readonly": {
+                  "type": "boolean",
+                  "description": "When true, the field is rendered as a disabled input in forms (visible but not editable).",
+                  "default": true
+                },
+                "assign_on": {
+                  "type": "string",
+                  "description": "When to assign: 'create' (before_create only) or 'always' (also fills blank values on update).",
+                  "enum": ["create", "always"],
+                  "default": "create"
+                }
+              },
+              "additionalProperties": false
+            }
+          ],
+          "examples": [
+            true,
+            { "format": "TKT-%{sequence:06d}" },
+            { "scope": ["_year"], "format": "INV-%{_year}-%{sequence:04d}" }
+          ]
+        },
         "options": {
           "type": "object",
           "description": "Type-specific options. For attachments: content_type, max_size, max_files, variants. For other types: custom options passed to the type handler.",

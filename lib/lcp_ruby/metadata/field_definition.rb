@@ -14,7 +14,7 @@ module LcpRuby
 
       attr_reader :name, :type, :label, :column_options, :validations,
                   :enum_values, :default, :type_definition, :transforms, :computed,
-                  :attachment_options, :source, :item_type
+                  :attachment_options, :source, :item_type, :sequence
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -29,6 +29,7 @@ module LcpRuby
         @attachment_options = attrs[:attachment_options] || {}
         @source = attrs[:source]
         @item_type = attrs[:item_type]&.to_s
+        @sequence = normalize_sequence(attrs[:sequence])
 
         validate!
         resolve_type_definition!
@@ -47,12 +48,17 @@ module LcpRuby
           computed: hash["computed"],
           attachment_options: hash["options"] || {},
           source: hash["source"],
-          item_type: hash["item_type"]
+          item_type: hash["item_type"],
+          sequence: hash["sequence"]
         )
       end
 
       def computed?
         !!@computed
+      end
+
+      def sequence?
+        !!@sequence
       end
 
       def virtual?
@@ -137,6 +143,16 @@ module LcpRuby
           raise MetadataError,
             "Field '#{@name}': cannot have both 'source' and 'computed' — use one or the other"
         end
+
+        if @sequence && @computed
+          raise MetadataError,
+            "Field '#{@name}': cannot have both 'sequence' and 'computed' — use one or the other"
+        end
+
+        if @sequence && @source
+          raise MetadataError,
+            "Field '#{@name}': cannot have both 'sequence' and 'source' — use one or the other"
+        end
       end
 
       def pg_array_column_type
@@ -149,6 +165,12 @@ module LcpRuby
 
       def resolve_type_definition!
         @type_definition = Types::TypeRegistry.resolve(@type)
+      end
+
+      def normalize_sequence(value)
+        return nil if value.nil?
+
+        value.is_a?(Hash) ? value : {}
       end
 
       def self.symbolize_keys(hash)

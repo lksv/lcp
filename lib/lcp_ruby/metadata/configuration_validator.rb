@@ -172,6 +172,7 @@ module LcpRuby
             validate_tree(model)
             validate_label_method(model)
             validate_model_virtual_columns(model)
+            validate_indexes(model)
           end
         end
       end
@@ -273,6 +274,7 @@ module LcpRuby
           validate_enum_field(model, field) if field.enum?
           validate_virtual_field(model, field) if field.virtual?
           validate_array_field(model, field) if field.array?
+          validate_sequence_field(model, field) if field.sequence?
         end
       end
 
@@ -315,6 +317,55 @@ module LcpRuby
         if field.default && !field.default.is_a?(Array)
           @errors << "Model '#{model.name}', field '#{field.name}': " \
                      "array field default must be an array, got #{field.default.class}"
+        end
+      end
+
+      def validate_sequence_field(model, field)
+        config = field.sequence
+        return unless config.is_a?(Hash)
+
+        # Validate counter table exists
+        unless loader.model_definitions.key?("gapfree_sequence")
+          @errors << "Model '#{model.name}', field '#{field.name}': " \
+                     "sequence fields require the gapfree_sequence model. " \
+                     "Run: rails generate lcp_ruby:gapfree_sequences"
+        end
+
+        # Validate scope fields exist
+        scope = config["scope"] || []
+        virtual_keys = ModelFactory::SequenceApplicator::VIRTUAL_SCOPE_KEYS
+        field_names = model_field_names(model.name)
+        fk_names = model.associations
+          .select { |a| a.type == "belongs_to" && a.foreign_key }
+          .map { |a| a.foreign_key.to_s }
+
+        scope.each do |scope_col|
+          next if virtual_keys.include?(scope_col)
+
+          unless field_names.include?(scope_col) || fk_names.include?(scope_col)
+            @errors << "Model '#{model.name}', field '#{field.name}': " \
+                       "sequence scope '#{scope_col}' is not a defined field or FK"
+          end
+        end
+
+        # Validate assign_on
+        assign_on = config["assign_on"]
+        if assign_on && !ModelFactory::SequenceApplicator::VALID_ASSIGN_ON.include?(assign_on)
+          @errors << "Model '#{model.name}', field '#{field.name}': " \
+                     "invalid assign_on '#{assign_on}' — must be one of: #{ModelFactory::SequenceApplicator::VALID_ASSIGN_ON.join(', ')}"
+        end
+
+        # Validate format placeholders
+        format = config["format"]
+        if format
+          placeholders = format.scan(/%\{(\w+)(?::\d+d)?\}/).flatten
+          valid_placeholders = %w[sequence _year _month _day] + field_names + fk_names
+          placeholders.each do |placeholder|
+            unless valid_placeholders.include?(placeholder)
+              @warnings << "Model '#{model.name}', field '#{field.name}': " \
+                           "sequence format references unknown placeholder '%{#{placeholder}}'"
+            end
+          end
         end
       end
 
@@ -612,6 +663,26 @@ module LcpRuby
           scope_fk = model.associations.any? { |a| a.foreign_key == scope_col }
           unless scope_field || scope_fk
             @errors << "Model '#{model.name}': positioning scope '#{scope_col}' is not a defined field or FK"
+          end
+        end
+      end
+
+      def validate_indexes(model)
+        return if model.indexes.empty?
+
+        all_columns = model_all_field_names(model.name)
+
+        model.indexes.each_with_index do |idx, i|
+          columns = idx["columns"]
+          unless columns.is_a?(Array) && columns.any?
+            @errors << "Model '#{model.name}': index ##{i + 1} must have a non-empty 'columns' array"
+            next
+          end
+
+          columns.each do |col|
+            unless all_columns.include?(col)
+              @errors << "Model '#{model.name}': index ##{i + 1} references undefined column '#{col}'"
+            end
           end
         end
       end

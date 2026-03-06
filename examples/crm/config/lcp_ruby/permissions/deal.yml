@@ -22,7 +22,7 @@ permissions:
 
     viewer:
       crud: [index, show]
-      fields: { readable: [title, stage, value, tags], writable: [] }
+      fields: { readable: [deal_number, title, stage, value, tags], writable: [] }
       actions: { allowed: [] }
       scope: all
       presenters: [deal_pipeline]

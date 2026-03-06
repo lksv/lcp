@@ -1,0 +1,7 @@
+view_group:
+  model: showcase_sequence
+  primary: showcase_sequences
+  views:
+    - presenter: showcase_sequences
+      label: "Sequences"
+      icon: hash

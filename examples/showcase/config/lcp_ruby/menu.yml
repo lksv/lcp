@@ -24,6 +24,7 @@ menu:
         - view_group: showcase_arrays
         - view_group: showcase_conditions
         - view_group: showcase_userstamps
+        - view_group: showcase_sequences
         - view_group: showcase_soft_delete
         - separator: true
         - view_group: weather_stations

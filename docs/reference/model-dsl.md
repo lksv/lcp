@@ -156,6 +156,26 @@ positioning scope: :pipeline_id
 positioning field: :sort_order, scope: [:pipeline_id, :category]
 ```
 
+### `index`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | positional + keyword arguments |
+
+Declares a database index on one or more columns. See [Models Reference — `indexes`](models.md#indexes) for semantics.
+
+```ruby
+# Simple index
+index :email
+
+# Compound unique index
+index %i[seq_model seq_field scope_key], unique: true
+
+# With custom name
+index :email, unique: true, name: "idx_users_email_uniq"
+```
+
 ### `soft_delete`
 
 | | |
@@ -333,6 +353,7 @@ See [Types Reference](types.md) for the full list of built-in types and how to d
 | `null:` | `column_options[:null]` | Allow NULL values. |
 | `item_type:` | `FieldDefinition.item_type` | Element type for array fields (`:string`, `:integer`, `:float`). Required for `:array` type. |
 | `options:` | `FieldDefinition.options` | Additional type-specific options (used by `attachment` fields). |
+| `sequence:` | `FieldDefinition.sequence` | Auto-numbering config hash. See [Models Reference — `sequence`](models.md#sequence). |
 
 Column options (`limit`, `precision`, `scale`, `null`) are flattened to top-level keyword arguments for conciseness. The builder separates them back into a `column_options` hash internally.
 

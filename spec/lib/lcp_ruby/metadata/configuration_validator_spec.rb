@@ -216,6 +216,152 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
   end
 
+  # --- Sequence field validations ---
+
+  context "sequence field without gapfree_sequence model" do
+    let(:metadata_path) { "" }
+
+    it "reports error when gapfree_sequence model is missing" do
+      v = with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: ticket
+            fields:
+              - { name: code, type: string, sequence: { format: "TKT-%{sequence:06d}" } }
+              - { name: title, type: string }
+        YAML
+      )
+
+      result = v.validate
+      expect(result.errors).to include(a_string_matching(/gapfree_sequence model/))
+    end
+  end
+
+  context "sequence field with invalid scope reference" do
+    let(:metadata_path) { "" }
+
+    it "reports error for unknown scope field" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: gapfree_sequence
+              table_name: lcp_gapfree_sequences
+              fields:
+                - { name: seq_model, type: string }
+                - { name: seq_field, type: string }
+                - { name: scope_key, type: string }
+                - { name: current_value, type: integer }
+          YAML
+          <<~YAML
+            model:
+              name: ticket
+              fields:
+                - { name: code, type: string, sequence: { scope: [nonexistent_field], format: "TKT-%{sequence:06d}" } }
+                - { name: title, type: string }
+          YAML
+        ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(a_string_matching(/scope 'nonexistent_field' is not a defined field/))
+    end
+  end
+
+  context "sequence field with valid virtual scope keys" do
+    let(:metadata_path) { "" }
+
+    it "accepts _year, _month, _day as scope keys" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: gapfree_sequence
+              table_name: lcp_gapfree_sequences
+              fields:
+                - { name: seq_model, type: string }
+                - { name: seq_field, type: string }
+                - { name: scope_key, type: string }
+                - { name: current_value, type: integer }
+          YAML
+          <<~YAML
+            model:
+              name: ticket
+              fields:
+                - { name: code, type: string, sequence: { scope: [_year], format: "INV-%{_year}-%{sequence:04d}" } }
+                - { name: title, type: string }
+          YAML
+        ]
+      )
+
+      result = v.validate
+      scope_errors = result.errors.select { |e| e.include?("scope") }
+      expect(scope_errors).to be_empty
+    end
+  end
+
+  context "sequence field with invalid format placeholder" do
+    let(:metadata_path) { "" }
+
+    it "warns about unknown placeholder" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: gapfree_sequence
+              table_name: lcp_gapfree_sequences
+              fields:
+                - { name: seq_model, type: string }
+                - { name: seq_field, type: string }
+                - { name: scope_key, type: string }
+                - { name: current_value, type: integer }
+          YAML
+          <<~YAML
+            model:
+              name: ticket
+              fields:
+                - { name: code, type: string, sequence: { format: "TKT-%{nonexistent}-%{sequence:06d}" } }
+                - { name: title, type: string }
+          YAML
+        ]
+      )
+
+      result = v.validate
+      expect(result.warnings).to include(a_string_matching(/unknown placeholder.*nonexistent/))
+    end
+  end
+
+  context "sequence field with invalid assign_on" do
+    let(:metadata_path) { "" }
+
+    it "reports error for invalid assign_on value" do
+      v = with_metadata(
+        models: [
+          <<~YAML,
+            model:
+              name: gapfree_sequence
+              table_name: lcp_gapfree_sequences
+              fields:
+                - { name: seq_model, type: string }
+                - { name: seq_field, type: string }
+                - { name: scope_key, type: string }
+                - { name: current_value, type: integer }
+          YAML
+          <<~YAML
+            model:
+              name: ticket
+              fields:
+                - { name: code, type: string, sequence: { format: "TKT-%{sequence:06d}", assign_on: invalid } }
+                - { name: title, type: string }
+          YAML
+        ]
+      )
+
+      result = v.validate
+      expect(result.errors).to include(a_string_matching(/invalid assign_on/))
+    end
+  end
+
   # --- Event validations ---
 
   context "event field_change references unknown field" do
