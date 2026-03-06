@@ -87,6 +87,7 @@ require "lcp_ruby/model_factory/tree_applicator"
 require "lcp_ruby/model_factory/auditing_applicator"
 require "lcp_ruby/model_factory/ransack_applicator"
 require "lcp_ruby/model_factory/aggregate_applicator"
+require "lcp_ruby/model_factory/sequence_applicator"
 require "lcp_ruby/model_factory/builder"
 
 # Aggregates
@@ -118,6 +119,9 @@ require "lcp_ruby/permissions/change_handler"
 require "lcp_ruby/permissions/definition_validator"
 require "lcp_ruby/permissions/source_resolver"
 require "lcp_ruby/permissions/setup"
+
+# Sequences
+require "lcp_ruby/sequences/sequence_manager"
 
 # Auditing
 require "lcp_ruby/auditing/registry"

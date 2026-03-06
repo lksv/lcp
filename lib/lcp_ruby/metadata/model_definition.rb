@@ -3,7 +3,7 @@ module LcpRuby
     class ModelDefinition
       attr_reader :name, :label, :label_plural, :table_name, :fields,
                   :validations, :associations, :scopes, :events, :options,
-                  :display_templates, :aggregates, :raw_hash
+                  :display_templates, :aggregates, :indexes, :raw_hash
       attr_accessor :positioning_config
 
       def initialize(attrs = {})
@@ -19,6 +19,7 @@ module LcpRuby
         @options = attrs[:options] || {}
         @display_templates = attrs[:display_templates] || {}
         @aggregates = attrs[:aggregates] || {}
+        @indexes = attrs[:indexes] || []
         @positioning_config = attrs[:positioning_config]
         @raw_hash = attrs[:raw_hash]
 
@@ -39,6 +40,7 @@ module LcpRuby
           options: hash["options"] || {},
           display_templates: parse_display_templates(hash["display_templates"]),
           aggregates: parse_aggregates(hash["aggregates"]),
+          indexes: parse_indexes(hash["indexes"]),
           positioning_config: normalize_positioning(hash["positioning"]),
           raw_hash: hash
         )
@@ -301,6 +303,11 @@ module LcpRuby
         data.each_with_object({}) do |(name, hash), result|
           result[name.to_s] = DisplayTemplateDefinition.from_hash(name, hash)
         end
+      end
+
+      def self.parse_indexes(data)
+        return [] unless data.is_a?(Array)
+        data.map { |idx| HashUtils.stringify_deep(idx) }
       end
     end
   end

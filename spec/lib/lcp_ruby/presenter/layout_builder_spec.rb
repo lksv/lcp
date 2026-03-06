@@ -403,6 +403,61 @@ RSpec.describe LcpRuby::Presenter::LayoutBuilder do
     end
   end
 
+  describe "#form_sections with sequence fields" do
+    let(:seq_model_hash) do
+      {
+        "name" => "ticket",
+        "fields" => [
+          { "name" => "title", "type" => "string" },
+          { "name" => "code", "type" => "string", "sequence" => { "format" => "TKT-%{sequence:06d}" } }
+        ]
+      }
+    end
+    let(:seq_model_def) { LcpRuby::Metadata::ModelDefinition.from_hash(seq_model_hash) }
+
+    let(:seq_presenter_hash) do
+      {
+        "name" => "ticket",
+        "model" => "ticket",
+        "label" => "Tickets",
+        "slug" => "tickets",
+        "index" => { "default_view" => "table", "per_page" => 25, "table_columns" => [] },
+        "show" => { "layout" => [] },
+        "form" => {
+          "sections" => [
+            {
+              "title" => "Details",
+              "columns" => 1,
+              "fields" => [
+                { "field" => "title" },
+                { "field" => "code" }
+              ]
+            }
+          ]
+        },
+        "search" => { "enabled" => false },
+        "actions" => { "collection" => [], "single" => [] }
+      }
+    end
+    let(:seq_presenter_def) { LcpRuby::Metadata::PresenterDefinition.from_hash(seq_presenter_hash) }
+
+    subject(:seq_builder) { described_class.new(seq_presenter_def, seq_model_def) }
+
+    it "marks sequence fields as readonly in forms" do
+      sections = seq_builder.form_sections
+      code_field = sections.first["fields"].find { |f| f["field"] == "code" }
+
+      expect(code_field["readonly"]).to eq(true)
+    end
+
+    it "does not mark non-sequence fields as readonly" do
+      sections = seq_builder.form_sections
+      title_field = sections.first["fields"].find { |f| f["field"] == "title" }
+
+      expect(title_field).not_to have_key("readonly")
+    end
+  end
+
   describe "#form_sections with multi_select" do
     let(:through_model_hash) do
       {

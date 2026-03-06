@@ -12,7 +12,7 @@ module LcpRuby
 
       attr_reader :name, :type, :label, :column_options, :validations,
                   :enum_values, :default, :type_definition, :transforms, :computed,
-                  :attachment_options, :source
+                  :attachment_options, :source, :sequence
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -26,6 +26,7 @@ module LcpRuby
         @computed = attrs[:computed]
         @attachment_options = attrs[:attachment_options] || {}
         @source = attrs[:source]
+        @sequence = normalize_sequence(attrs[:sequence])
 
         validate!
         resolve_type_definition!
@@ -43,12 +44,17 @@ module LcpRuby
           transforms: hash["transforms"],
           computed: hash["computed"],
           attachment_options: hash["options"] || {},
-          source: hash["source"]
+          source: hash["source"],
+          sequence: hash["sequence"]
         )
       end
 
       def computed?
         !!@computed
+      end
+
+      def sequence?
+        !!@sequence
       end
 
       def virtual?
@@ -118,10 +124,26 @@ module LcpRuby
           raise MetadataError,
             "Field '#{@name}': cannot have both 'source' and 'computed' — use one or the other"
         end
+
+        if @sequence && @computed
+          raise MetadataError,
+            "Field '#{@name}': cannot have both 'sequence' and 'computed' — use one or the other"
+        end
+
+        if @sequence && @source
+          raise MetadataError,
+            "Field '#{@name}': cannot have both 'sequence' and 'source' — use one or the other"
+        end
       end
 
       def resolve_type_definition!
         @type_definition = Types::TypeRegistry.resolve(@type)
+      end
+
+      def normalize_sequence(value)
+        return nil if value.nil?
+
+        value.is_a?(Hash) ? value : {}
       end
 
       def self.symbolize_keys(hash)

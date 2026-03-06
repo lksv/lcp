@@ -12,8 +12,9 @@ define_presenter :deal do
     empty_message "No deals found"
     actions_position :dropdown
 
-    column :title, width: "25%", link_to: :show, sortable: true, renderer: :truncate, options: { max: 40 }
-    column "company.name", label: "Company", width: "15%", sortable: true
+    column :deal_number, width: "12%", sortable: true
+    column :title, width: "20%", link_to: :show, sortable: true, renderer: :truncate, options: { max: 40 }
+    column "company.name", label: "Company", width: "13%", sortable: true
     column :stage, width: "10%", renderer: :badge, options: { color_map: { lead: "blue", qualified: "cyan", proposal: "orange", negotiation: "purple", closed_won: "green", closed_lost: "red" } }, sortable: true
     column :value, width: "15%", renderer: :currency, options: { currency: "EUR" }, sortable: true, summary: "sum"
     column :weighted_value, width: "10%", renderer: :currency, options: { currency: "EUR" }
@@ -36,6 +37,7 @@ define_presenter :deal do
 
   show do
     section "Deal Information", columns: 2, responsive: { mobile: { columns: 1 } } do
+      field :deal_number
       field :title, renderer: :heading
       field :stage, renderer: :conditional_badge, options: {
         rules: [
@@ -105,7 +107,7 @@ define_presenter :deal do
   end
 
   search do
-    searchable_fields :title
+    searchable_fields :title, :deal_number
     placeholder "Search deals..."
     filter :all, label: "All", default: true
     filter :open, label: "Open", scope: :open_deals
@@ -120,7 +122,7 @@ define_presenter :deal do
       allow_or_groups true
       query_language true
 
-      filterable_fields :title, :stage, :value, :priority, :progress,
+      filterable_fields :deal_number, :title, :stage, :value, :priority, :progress,
                         :expected_close_date, :created_at,
                         "company.name", "company.industry",
                         "contact.last_name", "contact.email",

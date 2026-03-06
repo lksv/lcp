@@ -38,6 +38,7 @@ Complete attribute reference for every YAML configuration file:
 - [Presenters](guides/presenters.md) — Step-by-step guide to building presenters (index, show, form, search, actions) with YAML and DSL examples
 - [Selectbox](guides/selectbox.md) — Association select, cascading selects, remote search, multi-select, tree select, scoping, disabled options, legacy records, codelists
 - [Computed Fields](guides/computed-fields.md) — Auto-calculated persisted fields: template interpolation, service logic, arithmetic, comparison with aggregates
+- [Sequence Fields](guides/sequences.md) — Gap-free auto-numbering: scoped counters, format templates, counter management, rake tasks
 - [Extensibility](guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validators, defaults, computed fields, condition services, scopes, model extensions
 - [Conditional Rendering](guides/conditional-rendering.md) — `visible_when`, `disable_when`, `item_classes`: simple, compound (all/any/not), dot-path, dynamic references, collection conditions, lookup value references, DSL builder
 - [Custom Actions](guides/custom-actions.md) — Writing domain-specific operations beyond CRUD
@@ -85,6 +86,7 @@ Implemented:
 
 In Progress:
 
+- [Sequence Fields](design/sequences.md) — Gap-free auto-numbering with scoped counters, format templates, and counter management
 - [Advanced Search & Filter Builder](design/advanced_search.md) — Type-aware quick search, Ransack-based filter builder, custom filter methods, query language (Phase 0–4 implemented)
 - [Page Layouts & View Slots](design/page_layout_and_slots.md) — Extensible page layout system: slot registry (Phase 1 implemented), layout variants (planned)
 - [Deep Filter Enhancements](design/recursive_association_field_picker.md) — Recursive association field picker and recursive condition nesting (AND/OR tree)

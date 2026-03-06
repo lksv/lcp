@@ -1017,6 +1017,70 @@ RSpec.describe LcpRuby::Dsl::ModelBuilder do
     end
   end
 
+  describe "sequence fields" do
+    it "produces hash with sequence format config" do
+      builder = described_class.new(:ticket)
+      builder.instance_eval do
+        field :code, :string, sequence: { format: "TKT-%{sequence:06d}" }
+      end
+
+      field = builder.to_hash["fields"].first
+      expect(field["sequence"]).to eq({ "format" => "TKT-%{sequence:06d}" })
+    end
+
+    it "produces hash with sequence: true for simple auto-increment" do
+      builder = described_class.new(:ticket)
+      builder.instance_eval do
+        field :seq, :integer, sequence: true
+      end
+
+      field = builder.to_hash["fields"].first
+      expect(field["sequence"]).to eq(true)
+    end
+  end
+
+  describe "index declarations" do
+    it "adds a multi-column unique index" do
+      builder = described_class.new(:sequence_value)
+      builder.instance_eval do
+        field :seq_model, :string
+        field :seq_field, :string
+        field :scope_key, :string
+        index %i[seq_model seq_field scope_key], unique: true
+      end
+
+      hash = builder.to_hash
+      expect(hash["indexes"].length).to eq(1)
+      idx = hash["indexes"].first
+      expect(idx["columns"]).to eq(%w[seq_model seq_field scope_key])
+      expect(idx["unique"]).to eq(true)
+    end
+
+    it "adds a single-column index" do
+      builder = described_class.new(:user)
+      builder.instance_eval do
+        field :email, :string
+        index :email
+      end
+
+      hash = builder.to_hash
+      expect(hash["indexes"].length).to eq(1)
+      idx = hash["indexes"].first
+      expect(idx["columns"]).to eq(%w[email])
+      expect(idx).not_to have_key("unique")
+    end
+
+    it "omits indexes key when none defined" do
+      builder = described_class.new(:simple)
+      builder.instance_eval do
+        field :title, :string
+      end
+      hash = builder.to_hash
+
+      expect(hash).not_to have_key("indexes")
+    end
+  end
+
   describe "full model parity with YAML" do
     let(:fixtures_path) { File.expand_path("../../../fixtures/metadata", __dir__) }
     let(:yaml_hash) { YAML.safe_load_file(File.join(fixtures_path, "models/project.yml"))["model"] }

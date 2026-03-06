@@ -23,6 +23,7 @@ menu:
         - view_group: showcase_item_classes
         - view_group: showcase_conditions
         - view_group: showcase_userstamps
+        - view_group: showcase_sequences
         - view_group: showcase_soft_delete
 
     - label: "Blog"

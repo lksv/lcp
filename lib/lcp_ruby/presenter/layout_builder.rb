@@ -178,8 +178,11 @@ module LcpRuby
             end
           else
             f = f.merge("field_definition" => field_def)
-            # Computed fields are readonly in forms
+            # Computed and sequence fields are readonly in forms
             f = f.merge("readonly" => true) if field_def.computed?
+            if field_def.sequence?
+              f = f.merge("readonly" => true) if field_def.sequence.fetch("readonly", true)
+            end
 
             # Attach association metadata for FK fields that are also declared as fields
             # (e.g., tree parent_id declared in fields + tree generates belongs_to :parent)

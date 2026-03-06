@@ -21,6 +21,7 @@ module LcpRuby
         apply_tree(model_class)
         apply_ransack(model_class)
         apply_callbacks(model_class)
+        apply_sequences(model_class)
         apply_auditing(model_class)
         apply_defaults(model_class)
         apply_computed(model_class)
@@ -108,6 +109,10 @@ module LcpRuby
 
       def apply_callbacks(model_class)
         CallbackApplicator.new(model_class, model_definition).apply!
+      end
+
+      def apply_sequences(model_class)
+        SequenceApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_defaults(model_class)

@@ -1,6 +1,6 @@
 # Feature Specification: Sequence Fields (Auto-Numbering)
 
-**Status:** Proposed
+**Status:** In Progress
 **Date:** 2026-03-06
 
 ## Problem / Motivation
@@ -45,6 +45,10 @@ fields:
       step: 1
 ```
 
+The shorthand `sequence: true` is equivalent to `sequence: {}` — all options use their defaults (global scope, raw counter, start 1, step 1, readonly).
+
+A sequence field **cannot** be combined with `computed` or `source` — these are mutually exclusive. Attempting to use both raises a `MetadataError` at boot.
+
 ### Sequence options
 
 | Option | Type | Default | Description |
@@ -53,8 +57,8 @@ fields:
 | `format` | string | `"%{sequence}"` | Template for the final value. Supports `%{sequence}`, `%{sequence:Nd}` (zero-padded), `%{_year}`, `%{_month}`, `%{_day}`, and any field name from the record via `%{field_name}`. |
 | `start` | integer | `1` | Initial counter value for a new scope. |
 | `step` | integer | `1` | Increment per record. |
-| `readonly` | boolean | `true` | When true, the field is excluded from forms and rejected in `permitted_params`. |
-| `assign_on` | string | `"create"` | When to assign: `create` (before_create only) or `always` (also fills blank values on update — for migration/import scenarios). |
+| `readonly` | boolean | `true` | When true, the field is rendered as a disabled input in forms (visible but not editable). |
+| `assign_on` | string | `"create"` | When to assign: `create` (before_create only) or `always` (also fills blank values on update — for migration/import scenarios). Invalid values raise `MetadataError` at boot. |
 
 ### Scope types
 
@@ -92,11 +96,8 @@ sequence:
 
 ```ruby
 LcpRuby.define_model :invoice do
-  field :invoice_number, :string do
-    sequence scope: [:_year],
-             format: "INV-%{_year}-%{sequence:04d}",
-             start: 1
-  end
+  field :invoice_number, :string,
+    sequence: { scope: [:_year], format: "INV-%{_year}-%{sequence:04d}", start: 1 }
 end
 ```
 
@@ -117,15 +118,14 @@ When `format` is omitted, the raw integer counter value is stored. The field typ
 
 ### Presenter behavior
 
-Sequence fields with `readonly: true`:
-- Are **excluded from form views** (new/edit) — the value is assigned automatically, the field is rejected in `permitted_params`
+Sequence fields with `readonly: true` (the default):
+- Are rendered as **disabled inputs** in form views (new/edit) — visible but not editable. The value appears blank on the new form (assigned on save) and read-only on the edit form.
 - Must be **explicitly listed in presenter** columns/sections to appear on show and index views (like any other field — the presenter controls layout and ordering)
 - Are **searchable** via quick search and advanced filters (type: string) when included in the presenter
-- Support **copy-to-clipboard** (useful for sharing ticket numbers)
 
 ### Validation
 
-A unique index is automatically created on the sequence field (compound with scope columns if scoped). This serves as a safety net — if the application-level counter ever produces a duplicate (e.g., due to a bug), the database rejects the insert rather than creating a duplicate business number.
+An index is automatically created on the sequence field (compound with real scope columns). When the scope contains only real DB columns (e.g., `[department_id]`), the index is **unique** — a safety net against duplicate business numbers. When the scope contains virtual keys (`_year`, `_month`, `_day`), the index is **non-unique** (for query performance only), because virtual scope values are not stored as columns in the target table and cannot be included in a DB index. In that case, uniqueness is guaranteed by the atomic counter increment in the `gapfree_sequences` table.
 
 ## Usage Examples
 
@@ -212,19 +212,19 @@ The chosen approach uses a dedicated counter table that works identically across
 The counter table is a regular platform model defined in YAML, not internal infrastructure. A generator (`lcp_ruby:gapfree_sequences`) creates the model YAML and permissions for the configurator, similar to how `lcp_ruby:custom_fields` and `lcp_ruby:roles` generators work. The configurator is responsible for including the generated YAML in their configuration and setting appropriate permissions.
 
 ```
-gapfree_sequences (default, configurable by generator)
+lcp_gapfree_sequences
   id:            bigint (PK)
-  model_name:    string (NOT NULL)     — e.g., "invoice"
-  field_name:    string (NOT NULL)     — e.g., "invoice_number"
+  seq_model:     string (NOT NULL)     — e.g., "invoice"
+  seq_field:     string (NOT NULL)     — e.g., "invoice_number"
   scope_key:     string (NOT NULL)     — e.g., "_year:2026" or "_global"
-  current_value: bigint (NOT NULL)     — last assigned number
+  current_value: integer (NOT NULL)    — last assigned number
   created_at:    datetime
   updated_at:    datetime
 
-  UNIQUE INDEX on (model_name, field_name, scope_key)
+  UNIQUE INDEX on (seq_model, seq_field, scope_key)
 ```
 
-**Note:** The UNIQUE INDEX on `(model_name, field_name, scope_key)` is essential for correctness. The platform must support compound unique indexes in model YAML — if not yet supported, this needs to be extended. The generator should produce the YAML with the correct unique constraint.
+The generator produces a model YAML with presence validations and the compound unique index using the `indexes` feature.
 
 #### Assignment flow
 
@@ -232,17 +232,15 @@ When a new record is created:
 
 1. **Resolve scope key** — build the scope string from the record's field values and virtual keys. E.g., for `scope: [_year]` on an invoice created in 2026: `"_year:2026"`. For global scope: `"_global"`.
 
-2. **Increment counter atomically** — in a single SQL statement:
-   - PostgreSQL / MySQL: `UPDATE gapfree_sequences SET current_value = current_value + :step, updated_at = NOW() WHERE model_name = :model AND scope_key = :scope RETURNING current_value` (PostgreSQL) or `UPDATE ... ; SELECT current_value ...` (MySQL, in transaction with `FOR UPDATE`).
-   - SQLite: Same UPDATE + SELECT in an exclusive transaction.
+2. **Increment counter atomically** — `UPDATE lcp_gapfree_sequences SET current_value = current_value + :step, updated_at = NOW() WHERE seq_model = :model AND seq_field = :field AND scope_key = :scope` inside a transaction. The UPDATE acquires an implicit row lock, then a SELECT reads the new value within the same transaction.
 
-3. **Handle new scope** — if the UPDATE affects zero rows (new scope combination), INSERT with `start` value. Use `INSERT ... ON CONFLICT DO UPDATE` (upsert) on PG/SQLite, `INSERT ... ON DUPLICATE KEY UPDATE` on MySQL to handle concurrent first-inserts.
+3. **Handle new scope** — if the UPDATE affects zero rows (new scope combination), INSERT with `start` value. On `RecordNotUnique` (concurrent INSERT race), retry with UPDATE + SELECT. The losing thread gets `start + step` (the winner got `start`).
 
 4. **Format** — interpolate the counter value and record fields into the format template.
 
 5. **Assign** — set the field value on the record (in a `before_create` callback).
 
-The entire increment is one atomic SQL statement (no SELECT-then-UPDATE). The row lock on the `gapfree_sequences` row serializes concurrent inserts within the same scope, preventing duplicates.
+The UPDATE + SELECT pair runs inside a single transaction. The row lock on the counter row serializes concurrent inserts within the same scope, preventing duplicates.
 
 #### Gap-free guarantee
 
@@ -266,9 +264,9 @@ The counter table row acts as a serialization point — concurrent inserts to th
 
 At boot, when `Metadata::Loader` encounters a field with `sequence:` config:
 
-1. `ConfigurationValidator` verifies that the counter table model exists in the configuration, that scope fields exist on the model, and that the format template references only valid placeholders
-2. `SequenceApplicator` installs a `before_create` callback on the dynamic model
-3. A unique index is added on the sequence field (compound with scope columns)
+1. `ConfigurationValidator` verifies that the `gapfree_sequence` model exists in the configuration, that scope fields exist on the model (virtual keys like `_year` are allowed), that the format template references only valid placeholders, and that `assign_on` is a valid value (`create` or `always`)
+2. `SequenceApplicator` installs `before_create` (and optionally `before_update` for `assign_on: "always"`) callbacks on the dynamic model
+3. `SchemaManager` adds an index on the sequence field (unique when scope has no virtual keys, non-unique otherwise)
 
 The counter table itself is created by `SchemaManager` like any other YAML-defined model — no special handling needed.
 
@@ -276,8 +274,10 @@ The counter table itself is created by `SchemaManager` like any other YAML-defin
 
 For administrative tasks (setting initial value after migration, inspecting current counters), the platform provides:
 
-- A `SequenceManager` service class: `SequenceManager.set(model: :invoice, field: :invoice_number, scope: { _year: 2026 }, value: 3500)`
-- A rake task: `bundle exec rake lcp_ruby:gapfree_sequences:list` (shows all counters), `bundle exec rake lcp_ruby:gapfree_sequences:set MODEL=invoice FIELD=invoice_number SCOPE=_year:2026 VALUE=3500`
+- `SequenceManager.set(model: :invoice, field: :invoice_number, scope: { _year: 2026 }, value: 3500)` — set counter value
+- `SequenceManager.current(model: :invoice, field: :invoice_number, scope: { _year: 2026 })` — read current value
+- `SequenceManager.list(model: :invoice)` — list all counters (optionally filtered by model)
+- Rake tasks: `bundle exec rake lcp_ruby:gapfree_sequences:list` and `bundle exec rake lcp_ruby:gapfree_sequences:set MODEL=invoice FIELD=invoice_number SCOPE=_year:2026 VALUE=3500`
 
 Since the counter table is a regular platform model, administrators can also manage counter values directly through the platform's UI (if the configurator exposes a presenter for it).
 
@@ -291,11 +291,11 @@ Since the counter table is a regular platform model, administrators can also man
 
 4. **Counter table as regular YAML model via generator.** Following the Configuration Source Principle and the "all tables via YAML" rule, the counter table is a standard platform model created by a generator (`lcp_ruby:gapfree_sequences`). The configurator runs the generator, which produces model YAML with the correct schema and unique constraints. This is consistent with how `lcp_ruby:custom_fields`, `lcp_ruby:roles`, and `lcp_ruby:saved_filters` generators work. The configurator is responsible for permissions and can optionally expose a presenter for administrative access to counter values.
 
-5. **Table name: `gapfree_sequences`.** The default generator model name is `gapfree_sequences`. This is descriptive (gap-free is the key property) and leaves room for a hypothetical future `native_sequences` type (PostgreSQL sequences, which have gaps). The configurator can rename via generator options.
+5. **Model name: `gapfree_sequence`, table: `lcp_gapfree_sequences`.** The model name is singular (`gapfree_sequence`) following the platform convention. The `lcp_` table prefix avoids collisions with host app tables. Column names use `seq_model`/`seq_field` to avoid conflicts with ActiveRecord internals (`model_name` is an AR method).
 
 6. **Multiple sequence fields per model.** Supported from the start. A document can have both `reg_number` (per department) and `global_seq` (system-wide). The counter table keys rows by `(model_name, field_name, scope_key)`.
 
-7. **Bulk import.** Supported from the start. When importing N records, the platform locks once and increments by N: `UPDATE ... SET current_value = current_value + N RETURNING current_value`. The importer assigns `end - N + 1` through `end` to the records.
+7. **Bulk import.** Not yet implemented. Planned: lock once and increment by N, assign `end - N + 1` through `end`.
 
 8. **Soft delete behavior.** When a record is soft-deleted, its sequence number is preserved. New records get the next number — soft-deleted numbers are not reused. Restored records keep their original number. This is not configurable.
 
@@ -303,14 +303,7 @@ Since the counter table is a regular platform model, administrators can also man
 
 ## Prerequisites
 
-**Compound unique index support.** The model JSON schema already defines `indexes` with `columns` array and `unique` flag (`lib/lcp_ruby/schemas/model.json:86`), but `ModelDefinition` and `SchemaManager` do not yet process them. Implementation is trivial:
-
-1. `ModelDefinition.from_hash` — parse `hash["indexes"]` into an array of hashes (columns, unique, name), expose via `attr_reader :indexes`
-2. `SchemaManager#create_table!` — after creating the table, iterate `model_definition.indexes` and call `connection.add_index(table, idx[:columns], unique: idx[:unique], name: idx[:name])`
-3. `SchemaManager#update_table!` — same loop, guarded by `connection.index_exists?(table, idx[:columns], unique: idx[:unique])`
-4. `ConfigurationValidator` — validate that `indexes[].columns` reference existing fields
-
-This is a general-purpose feature (not sequence-specific) that unblocks the gapfree_sequences generator and benefits any model needing compound indexes.
+**Compound unique index support** — implemented as part of this feature. `ModelDefinition` parses `indexes` from YAML, `SchemaManager` creates them at boot (with `index_exists?` guard for idempotency), `ConfigurationValidator` validates column references, and the DSL supports `index` declarations. This is a general-purpose feature (not sequence-specific) that benefits any model needing compound indexes.
 
 ## Open Questions
 

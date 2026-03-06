@@ -121,4 +121,46 @@ RSpec.describe LcpRuby::Metadata::FieldDefinition do
       end
     end
   end
+
+  describe "sequence fields" do
+    it "parses sequence: true shorthand" do
+      field = described_class.from_hash(
+        "name" => "seq", "type" => "integer", "sequence" => true
+      )
+      expect(field.sequence?).to be true
+      expect(field.sequence).to eq({})
+    end
+
+    it "parses sequence hash" do
+      field = described_class.from_hash(
+        "name" => "code", "type" => "string",
+        "sequence" => { "format" => "TKT-%{sequence:06d}" }
+      )
+      expect(field.sequence?).to be true
+      expect(field.sequence).to eq({ "format" => "TKT-%{sequence:06d}" })
+    end
+
+    it "returns false for sequence? when no sequence" do
+      field = described_class.from_hash("name" => "title", "type" => "string")
+      expect(field.sequence?).to be false
+    end
+
+    it "raises when both sequence and computed are set" do
+      expect {
+        described_class.from_hash(
+          "name" => "x", "type" => "integer",
+          "sequence" => true, "computed" => "{y}"
+        )
+      }.to raise_error(LcpRuby::MetadataError, /cannot have both 'sequence' and 'computed'/)
+    end
+
+    it "raises when both sequence and source are set" do
+      expect {
+        described_class.from_hash(
+          "name" => "x", "type" => "integer",
+          "sequence" => true, "source" => "external"
+        )
+      }.to raise_error(LcpRuby::MetadataError, /cannot have both 'sequence' and 'source'/)
+    end
+  end
 end
