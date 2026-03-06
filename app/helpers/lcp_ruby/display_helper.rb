@@ -11,8 +11,9 @@ module LcpRuby
       rules = presenter.item_classes
       return "" if rules.empty?
 
+      ctx = condition_context
       matching = rules.filter_map do |rule|
-        ConditionEvaluator.evaluate_any(record, rule["when"]) ? rule["class"] : nil
+        ConditionEvaluator.evaluate_any(record, rule["when"], context: ctx) ? rule["class"] : nil
       rescue ConditionError => e
         raise unless Rails.env.production?
         Rails.logger.error("[LcpRuby] item_classes condition error: #{e.message} (presenter=#{presenter.name})")

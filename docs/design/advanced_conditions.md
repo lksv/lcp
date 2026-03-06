@@ -1,7 +1,7 @@
 # Feature Specification: Advanced Conditions
 
-**Status:** Proposed
-**Date:** 2026-03-05
+**Status:** Implemented
+**Date:** 2026-03-06
 
 ## Problem / Motivation
 
@@ -507,7 +507,9 @@ All callers that invoke `ConditionEvaluator` must pass the evaluation context. T
 
 6. **The `not` key accepts a single condition, not an array.** For negating multiple conditions, use `not: { all: [...] }` or `not: { any: [...] }`.
 
-7. **No auto-preloading of associations from conditions.** The configurator must explicitly declare `includes` for associations referenced in conditions. The `ConfigurationValidator` enforces this at boot time with actionable error messages. Rationale: explicit is better than implicit — the configurator sees what is loaded, different presenters over the same model have different needs, and `strict_loading: :development` provides a runtime safety net.
+7. **No auto-preloading of associations from conditions.** The configurator must explicitly declare `includes` for associations referenced in conditions. The `ConfigurationValidator` emits warnings at boot time with actionable fix suggestions. `DependencyCollector` auto-includes associations at runtime as a safety net. Rationale: explicit is better than implicit — the configurator sees what is loaded, different presenters over the same model have different needs, and `strict_loading: :development` provides an additional runtime safety net.
+
+8. **`lookup` value reference implemented.** Syntax: `{ lookup: tax_limit, match: { key: vat_a }, pick: threshold }`. Resolves by calling `find_by` on the target model. Match values support dynamic references (`field_ref`, `current_user`, `date`) but NOT nested lookups. The `ConfigurationValidator` validates that the target model, match keys, and pick field all exist. The DSL provides `ConditionBuilder.lookup(model, match:, pick:)` helper.
 
 8. **`all` with an empty list returns true (vacuous truth).** Mathematically correct and consistent with Ruby's `[].all?`. The `ConfigurationValidator` emits a warning for empty `all` / `any` lists since they likely indicate a configuration mistake.
 

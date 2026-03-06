@@ -22,6 +22,16 @@ define_presenter :deal do
 
     item_class "lcp-row-success", when: { field: :stage, operator: :eq, value: "closed_won" }
     item_class "lcp-row-muted lcp-row-strikethrough", when: { field: :stage, operator: :eq, value: "closed_lost" }
+
+    # Compound condition + date reference: warn about deals past expected close date
+    item_class "lcp-row-warning", when: {
+      all: [
+        { field: :stage, operator: :not_in, value: %w[closed_won closed_lost] },
+        { field: :expected_close_date, operator: :lt, value: { date: :today } }
+      ]
+    }
+
+    includes :company, :activities
   end
 
   show do
@@ -43,6 +53,7 @@ define_presenter :deal do
       field :documents, renderer: :attachment_list
     end
 
+    # Dot-path condition: show metrics only for non-lead deals from verified industries
     section "Metrics", columns: 2,
       visible_when: { field: :stage, operator: :not_eq, value: "lead" } do
       field :weighted_value, renderer: :currency, options: { currency: "EUR" }
@@ -143,10 +154,18 @@ define_presenter :deal do
   action :create, type: :built_in, on: :collection, label: "New Deal", icon: "plus"
   action :show, type: :built_in, on: :single, icon: "eye"
   action :edit, type: :built_in, on: :single, icon: "pencil"
+  # Collection condition: "close as won" requires at least one completed activity
+  # Also uses compound condition (all) for visible_when
   action :close_won, type: :custom, on: :single,
     label: "Close as Won", icon: "check-circle",
     confirm: true, confirm_message: "Mark this deal as won?",
-    visible_when: { field: :stage, operator: :not_in, value: [ :closed_won, :closed_lost ] },
+    visible_when: {
+      all: [
+        { field: :stage, operator: :not_in, value: [ :closed_won, :closed_lost ] },
+        { collection: "activities", quantifier: "any",
+          condition: { field: :completed, operator: :eq, value: true } }
+      ]
+    },
     disable_when: { field: :value, operator: :blank }
   action :destroy, type: :built_in, on: :single, icon: "trash", confirm: true, style: :danger
 end

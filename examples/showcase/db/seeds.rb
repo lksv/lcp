@@ -11,6 +11,7 @@ connection = ActiveRecord::Base.connection
   employee skill department showcase_form comment article_tag tag article
   author category showcase_model showcase_field
   group_role_mapping group_membership group
+  showcase_condition_task showcase_condition_threshold showcase_condition showcase_condition_category
 ].each do |model_name|
   next unless LcpRuby.registry.registered?(model_name)
   model = LcpRuby.registry.model_for(model_name)
@@ -2926,6 +2927,116 @@ features = [
     status: "stable"
   },
 
+  # === Advanced Conditions ===
+  {
+    name: "Compound Conditions (all / any / not)",
+    category: "permissions",
+    description: "Combine multiple conditions with logical operators. `all` requires every child to be true (AND), `any` requires at least one (OR), `not` negates a single child.\n\nNesting is unlimited — combine `all`, `any`, and `not` to express arbitrarily complex rules.\n\nUsable in: `record_rules.condition`, `visible_when`, `disable_when`, `item_classes.when` — anywhere the platform accepts a condition hash.",
+    config_example: "```ruby\n# DSL: all conditions must be true\nvisible_when: -> {\n  all do\n    field(:status).not_eq(\"closed\")\n    field(:due_date).lt({ \"date\" => \"today\" })\n    any do\n      field(:priority).eq(\"high\")\n      field(:priority).eq(\"critical\")\n    end\n  end\n}\n\n# YAML equivalent:\nvisible_when:\n  all:\n    - { field: status, operator: not_eq, value: closed }\n    - { field: due_date, operator: lt, value: { date: today } }\n    - any:\n      - { field: priority, operator: eq, value: high }\n      - { field: priority, operator: eq, value: critical }\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "Look at the **item_classes** on the index: overdue active records (all: status != closed AND due_date < today) get a red row. Draft or review records (any: draft OR review) get a blue row. The **Description** form section uses compound visible_when.",
+    status: "stable"
+  },
+  {
+    name: "Dynamic Value References (field_ref)",
+    category: "permissions",
+    description: "Compare a field against another field on the same record instead of a hardcoded value. Use `{ field_ref: other_field }` as the `value` in a condition.\n\nSupports dot-path references too: `{ field_ref: \"company.credit_limit\" }`.",
+    config_example: "```ruby\n# Row styling: amount exceeds budget_limit → bold\nitem_class \"lcp-row-bold\",\n  when: { field: :amount, operator: :gt,\n          value: { \"field_ref\" => \"budget_limit\" } }\n\n# YAML permission rule:\nrecord_rules:\n  - name: over_budget\n    condition:\n      field: approved_amount\n      operator: gt\n      value: { field_ref: budget_limit }\n    effect:\n      deny_crud: [update]\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "Records where **Amount** exceeds **Budget Limit** appear **bold** in the index. Look at \"Over-budget project\" (amount: $25,000, budget: $15,000).",
+    status: "stable"
+  },
+  {
+    name: "Dynamic Value References (current_user)",
+    category: "permissions",
+    description: "Compare a field against an attribute of the current user. Use `{ current_user: attribute }` as the `value` in a condition.\n\nCommon use case: owner-only editing where `author_id` must match the logged-in user's ID.",
+    config_example: "```yaml\n# Only the record author can destroy\nrecord_rules:\n  - name: owner_only_destroy\n    condition:\n      not:\n        field: author_id\n        operator: eq\n        value: { current_user: id }\n    effect:\n      deny_crud: [destroy]\n      except_roles: [admin]\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "Records with **Author ID** different from the current user's ID hide the **Delete** button (record rule: `owner_only_destroy`). Switch to admin role to override.",
+    status: "stable"
+  },
+  {
+    name: "Dynamic Value References (date)",
+    category: "permissions",
+    description: "Compare a field against a dynamic date constant. Use `{ date: today }` or `{ date: now }` as the `value` in a condition.\n\n`today` resolves to `Date.current`, `now` resolves to `Time.current`. No date arithmetic — complex date computations use value services instead.",
+    config_example: "```ruby\n# Item class: overdue active items\nitem_class \"lcp-row-danger\", when: -> {\n  all do\n    field(:status).not_eq(\"closed\")\n    field(:due_date).lt({ \"date\" => \"today\" })\n    field(:due_date).present\n  end\n}\n\n# YAML:\nitem_classes:\n  - class: lcp-row-danger\n    when:\n      all:\n        - { field: status, operator: not_eq, value: closed }\n        - { field: due_date, operator: lt, value: { date: today } }\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "Records with a past **Due Date** and non-closed status get a **red** row highlight. Compare \"Overdue budget review\" (past due) vs \"Upcoming deadline\" (future due).",
+    status: "stable"
+  },
+  {
+    name: "Dot-Path Fields in Conditions",
+    category: "permissions",
+    description: "Reference fields on associated records using dot-path syntax (e.g., `company.country.code`). Each segment must be a `belongs_to` or `has_one` association — `has_many` segments are invalid (use collection conditions instead).\n\nThe referenced associations must be included in the presenter's `includes` configuration to avoid N+1 queries.",
+    config_example: "```ruby\n# Item class: unverified category → warning row\nitem_class \"lcp-row-warning\",\n  when: { field: \"showcase_condition_category.verified\",\n          operator: :eq, value: \"false\" }\n\n# Show section: only visible when category is verified\nsection \"Category Info\",\n  visible_when: { field: \"showcase_condition_category.verified\",\n                  operator: :eq, value: \"true\" } do\n  field \"showcase_condition_category.name\"\n  field \"showcase_condition_category.industry\"\nend\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "Records with an **unverified category** (\"New Vendor\") get a yellow **warning** row. On the show page, the \"Category Info\" section only appears when the category is verified.",
+    status: "stable"
+  },
+  {
+    name: "Collection Conditions (has_many Quantifiers)",
+    category: "permissions",
+    description: "Express conditions over `has_many` associations using quantifier syntax. Three quantifiers are supported:\n\n| Quantifier | Meaning |\n|------------|---|\n| `any` | At least one child matches |\n| `all` | Every child matches |\n| `none` | No child matches |\n\nCollection conditions can be nested inside compound conditions and the inner condition supports all features (dot-paths, operators, value references).",
+    config_example: "```ruby\n# DSL: visible when at least one task is approved\nvisible_when: -> {\n  all do\n    field(:status).eq(\"review\")\n    collection(:tasks, quantifier: :any) do\n      field(:status).eq(\"approved\")\n    end\n  end\n}\n\n# YAML equivalent:\nvisible_when:\n  all:\n    - { field: status, operator: eq, value: review }\n    - collection: tasks\n      quantifier: any\n      condition: { field: status, operator: eq, value: approved }\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "Records with at least one **approved task** get a **green** (success) row. The **Approve** action button is only visible when status is \"review\" AND there is an approved task. Compare \"Pending approval with tasks\" (has approved task) vs \"Architecture review\" (no approved tasks).",
+    status: "stable"
+  },
+  {
+    name: "Value Services (Parameterized)",
+    category: "extensibility",
+    description: "Value services provide a **computed value** for the `value` side of a condition. Unlike condition services (which return a boolean), value services return a comparable value.\n\nThe `params:` hash supports typed value references (`field_ref`, `current_user`, etc.) — the evaluator resolves all references before calling the service.",
+    config_example: "```ruby\n# YAML: compare amount against a computed threshold\ncondition:\n  field: amount\n  operator: gt\n  value:\n    service: budget_threshold\n    params:\n      priority: { field_ref: priority }\n\n# app/condition_services/budget_threshold.rb\nmodule LcpRuby\n  module HostConditionServices\n    class BudgetThreshold\n      def self.call(record, **params)\n        case params[:priority].to_s\n        when \"critical\" then 50_000\n        when \"high\" then 25_000\n        else 10_000\n        end\n      end\n    end\n  end\nend\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "The `budget_threshold` value service is registered and available. It returns a priority-dependent threshold value that can be used in conditions.",
+    status: "stable"
+  },
+  {
+    name: "String Operators (starts_with / ends_with / contains)",
+    category: "permissions",
+    description: "Three new string operators reduce the need for regex patterns:\n\n| Operator | Description |\n|----------|---|\n| `starts_with` | String prefix match |\n| `ends_with` | String suffix match |\n| `contains` | Case-insensitive substring match |\n\nCompatible with string, text, email, phone, url, and color field types.",
+    config_example: "```ruby\n# Highlight urgent codes\nitem_class \"lcp-item-urgent-code\",\n  when: { field: :code, operator: :starts_with, value: \"URGENT\" }\n\n# Highlight temp codes (case-insensitive)\nitem_class \"lcp-item-temp-code\",\n  when: { field: :code, operator: :contains, value: \"temp\" }\n\n# Match file extensions\nvisible_when:\n  field: filename\n  operator: ends_with\n  value: \".pdf\"\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "Records with **Code** starting with \"URGENT\" have a custom CSS class. Records with code containing \"temp\" (case-insensitive) also get highlighted. Inspect the `<tr>` elements to see the classes.",
+    status: "stable"
+  },
+  {
+    name: "Condition DSL Builder",
+    category: "extensibility",
+    description: "Ruby DSL for building conditions in presenter files. The `field(:name)` proxy returns a chainable object with operator methods (`.eq`, `.gt`, `.present`, etc.) that emit condition hashes.\n\nSupports `all`, `any`, `not_condition`, `collection`, and `service` blocks for building complex condition trees.",
+    config_example: "```ruby\n# DSL: compound condition with collection\nvisible_when: -> {\n  all do\n    field(:status).eq(\"review\")\n    field(:amount).gt(0)\n    any do\n      field(:priority).eq(\"high\")\n      field(:priority).eq(\"critical\")\n    end\n    collection(:tasks, quantifier: :any) do\n      field(:status).eq(\"approved\")\n    end\n    not_condition do\n      field(:stage).eq(\"cancelled\")\n    end\n  end\n}\n\n# Available operators:\n# .eq .not_eq .gt .gte .lt .lte\n# .in .not_in .present .blank\n# .starts_with .ends_with .contains\n# .matches .not_matches\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "The showcase presenter uses the DSL extensively. Look at the source code to see how compound conditions, collection quantifiers, and value references are expressed in Ruby DSL.",
+    status: "stable"
+  },
+  {
+    name: "Lookup Value Reference",
+    category: "permissions",
+    description: "Compare a field against a value fetched from another model at evaluation time. Use `{ lookup, match, pick }` as the `value` in a condition.\n\n`lookup` names the target model, `match` provides `find_by` criteria (supports dynamic refs like `field_ref`), and `pick` names the field to return from the matched record.\n\nConstraints: target model must be defined in `config/lcp_ruby/models/`, nested lookups are not supported, and a `ConditionError` is raised if no record matches.",
+    config_example: "```yaml\n# Item class: amount exceeds threshold from another model\nitem_classes:\n  - class: lcp-row-highlight\n    when:\n      field: amount\n      operator: gt\n      value:\n        lookup: condition_threshold\n        match: { key: high_amount }\n        pick: threshold\n\n# DSL equivalent:\nitem_class \"lcp-row-highlight\",\n  when: { field: :amount, operator: :gt,\n          value: { \"lookup\" => \"condition_threshold\",\n                   \"match\" => { \"key\" => \"high_amount\" },\n                   \"pick\" => \"threshold\" } }\n\n# DSL helper:\nfield(:price).lt(\n  ConditionBuilder.lookup(:tax_limit,\n    match: { key: \"vat_a\" },\n    pick: :threshold))\n\n# Dynamic match values (field_ref, current_user):\nvalue:\n  lookup: tax_limit\n  match:\n    key: { field_ref: tax_key }\n  pick: threshold\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "Records where **Amount** exceeds the `high_amount` threshold (10,000) from the `showcase_condition_threshold` table get a highlighted row. Compare \"Above lookup threshold\" (amount: $15,000 — highlighted) vs \"Below lookup threshold\" (amount: $8,000 — not highlighted).",
+    status: "stable"
+  },
+  {
+    name: "Eager Loading Validation for Conditions",
+    category: "permissions",
+    description: "The `ConfigurationValidator` now warns at boot time when index-context conditions (item_classes, action visible_when/disable_when) reference associations not covered by explicit `includes`.\n\nThe `DependencyCollector` auto-includes these associations at runtime as a safety net, so functionality is not affected. The warnings guide configurators to declare explicit `includes` for clarity and intentionality.\n\nValidation covers: dot-path field first segments, collection condition names, and value `field_ref` dot-paths.",
+    config_example: "```yaml\n# Without explicit includes — validator warns:\nindex:\n  table_columns:\n    - { field: title }\n  item_classes:\n    - class: verified-row\n      when: { field: \"company.verified\", operator: eq, value: true }\n\n# Warning: Presenter 'tasks' index: item_classes[0] references\n# 'company' but index.includes does not contain 'company'.\n# Add 'includes: [company]' to the index configuration.\n\n# With explicit includes — no warning:\nindex:\n  includes: [company]\n  table_columns:\n    - { field: title }\n  item_classes:\n    - class: verified-row\n      when: { field: \"company.verified\", operator: eq, value: true }\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "The showcase conditions presenter declares `includes: [:showcase_condition_category, :showcase_condition_tasks]` to cover dot-path and collection conditions. Remove an entry and run `rake lcp_ruby:validate` to see the warning.",
+    status: "stable"
+  },
+  {
+    name: "Compound Record Rules",
+    category: "permissions",
+    description: "Permission `record_rules` support compound conditions — combine multiple criteria to determine when CRUD operations should be denied.\n\nExample: deny update/destroy when status is \"closed\" AND amount exceeds 10,000, except for admin role.",
+    config_example: "```yaml\nrecord_rules:\n  - name: high_value_closed_locked\n    condition:\n      all:\n        - { field: status, operator: eq, value: closed }\n        - { field: amount, operator: gt, value: 10000 }\n    effect:\n      deny_crud: [update, destroy]\n      except_roles: [admin]\n\n  - name: owner_only_destroy\n    condition:\n      not:\n        field: author_id\n        operator: eq\n        value: { current_user: id }\n    effect:\n      deny_crud: [destroy]\n      except_roles: [admin]\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "\"Big closed deal\" (closed + amount $50,000) has **Edit** and **Delete** buttons hidden for non-admin roles. \"Closed procurement\" (closed + amount $3,000) is still editable because it doesn't meet the compound threshold.",
+    status: "stable"
+  },
+
   # === Advanced Search ===
   {
     name: "Advanced Filter Builder",
@@ -3347,5 +3458,125 @@ item_class_records = [
 
 item_class_records.each { |attrs| ItemClassModel.create!(attrs) }
 puts "  Created #{ItemClassModel.count} item_classes demo records"
+
+# Phase 15: Advanced Conditions Demo
+ConditionCategoryModel = LcpRuby.registry.model_for("showcase_condition_category")
+ConditionModel = LcpRuby.registry.model_for("showcase_condition")
+ConditionTaskModel = LcpRuby.registry.model_for("showcase_condition_task")
+ConditionThresholdModel = LcpRuby.registry.model_for("showcase_condition_threshold")
+
+# Categories (for dot-path condition demos)
+cat_finance = ConditionCategoryModel.create!(name: "Finance", industry: "finance", country_code: "CZ", verified: true)
+cat_tech = ConditionCategoryModel.create!(name: "Technology", industry: "technology", country_code: "US", verified: true)
+cat_unverified = ConditionCategoryModel.create!(name: "New Vendor", industry: "retail", country_code: "DE", verified: false)
+cat_healthcare = ConditionCategoryModel.create!(name: "Healthcare", industry: "healthcare", country_code: "UK", verified: true)
+
+# Thresholds (for lookup value reference demos)
+ConditionThresholdModel.create!(key: "high_amount", threshold: 10000, label: "High Amount Threshold")
+ConditionThresholdModel.create!(key: "critical_amount", threshold: 40000, label: "Critical Amount Threshold")
+ConditionThresholdModel.create!(key: "min_budget", threshold: 3000, label: "Minimum Budget")
+
+conditions = [
+  # 1. COMPOUND (all): active + overdue → danger row
+  { title: "Overdue budget review", status: "active", priority: "high", amount: 5000, budget_limit: 10000,
+    author_id: 1, due_date: 2.weeks.ago.to_date, code: "FIN-001", description: "Quarterly review is past due.",
+    showcase_condition_category_id: cat_finance.id },
+
+  # 2. COMPOUND (any): draft → info row
+  { title: "Draft proposal", status: "draft", priority: "medium", amount: 2000, budget_limit: 10000,
+    author_id: 1, due_date: 1.month.from_now.to_date, code: "PROP-001", description: "Initial proposal.",
+    showcase_condition_category_id: cat_tech.id },
+
+  # 3. COMPOUND (any): review → info row
+  { title: "Architecture review", status: "review", priority: "high", amount: 8000, budget_limit: 15000,
+    author_id: 2, due_date: 1.week.from_now.to_date, code: "ARCH-010", description: "Waiting for peer review.",
+    showcase_condition_category_id: cat_tech.id },
+
+  # 4. NOT: closed → muted + strikethrough
+  { title: "Closed procurement", status: "closed", priority: "low", amount: 3000, budget_limit: 5000,
+    author_id: 1, due_date: 3.months.ago.to_date, code: "PROC-099", description: "Completed and archived.",
+    showcase_condition_category_id: cat_finance.id },
+
+  # 5. DOT-PATH: unverified category → warning row
+  { title: "New vendor onboarding", status: "active", priority: "medium", amount: 1500, budget_limit: 5000,
+    author_id: 1, due_date: 2.weeks.from_now.to_date, code: "VEND-003", description: "Vendor not yet verified.",
+    showcase_condition_category_id: cat_unverified.id },
+
+  # 6. FIELD_REF: amount > budget_limit → bold row
+  { title: "Over-budget project", status: "active", priority: "critical", amount: 25000, budget_limit: 15000,
+    author_id: 2, due_date: 1.month.from_now.to_date, code: "PROJ-777", description: "Spending exceeds budget limit.",
+    showcase_condition_category_id: cat_tech.id },
+
+  # 7. STARTS_WITH: code starts with URGENT
+  { title: "Urgent compliance fix", status: "active", priority: "critical", amount: 12000, budget_limit: 20000,
+    author_id: 1, due_date: 3.days.from_now.to_date, code: "URGENT-SEC-01", description: "Security compliance issue.",
+    showcase_condition_category_id: cat_healthcare.id },
+
+  # 8. CONTAINS: code contains "temp" (case-insensitive)
+  { title: "Temporary workaround", status: "draft", priority: "low", amount: 500, budget_limit: 5000,
+    author_id: 1, due_date: nil, code: "fix-temp-patch", description: "Short-term fix, needs permanent solution.",
+    showcase_condition_category_id: cat_tech.id },
+
+  # 9. High-value closed: triggers compound record_rule (deny update/destroy)
+  { title: "Big closed deal", status: "closed", priority: "high", amount: 50000, budget_limit: 30000,
+    author_id: 2, due_date: 2.months.ago.to_date, code: "DEAL-100", description: "High-value closed contract.",
+    showcase_condition_category_id: cat_finance.id },
+
+  # 10. Approved record (collection condition demo target)
+  { title: "Approved initiative", status: "approved", priority: "medium", amount: 7500, budget_limit: 10000,
+    author_id: 1, due_date: 2.months.from_now.to_date, code: "INIT-042", description: "Approved after task reviews.",
+    showcase_condition_category_id: cat_healthcare.id },
+
+  # 11. Review with tasks (collection condition: has approved task → success)
+  { title: "Pending approval with tasks", status: "review", priority: "high", amount: 9000, budget_limit: 12000,
+    author_id: 1, due_date: 3.weeks.from_now.to_date, code: "REV-005", description: "Has tasks for review.",
+    showcase_condition_category_id: cat_finance.id },
+
+  # 12. ACCUMULATION: draft + contains "temp" + overdue
+  { title: "Stale temp draft", status: "draft", priority: "low", amount: 100, budget_limit: 5000,
+    author_id: 1, due_date: 1.month.ago.to_date, code: "TEMP-old-draft", description: "Draft with temp code, past due.",
+    showcase_condition_category_id: cat_unverified.id },
+
+  # 13. Plain record — no rules match
+  { title: "Normal active project", status: "active", priority: "medium", amount: 4000, budget_limit: 10000,
+    author_id: 1, due_date: 3.months.from_now.to_date, code: "PROJ-STD-01", description: "Regular project, no special conditions.",
+    showcase_condition_category_id: cat_tech.id },
+
+  # 14. DATE reference demo: future due date, active
+  { title: "Upcoming deadline", status: "active", priority: "high", amount: 6000, budget_limit: 10000,
+    author_id: 2, due_date: 2.days.from_now.to_date, code: "DEAD-001", description: "Due date is in the future — no overdue highlight.",
+    showcase_condition_category_id: cat_finance.id },
+
+  # 15. LOOKUP: amount (15000) exceeds high_amount threshold (10000) → highlighted row
+  { title: "Above lookup threshold", status: "active", priority: "medium", amount: 15000, budget_limit: 20000,
+    author_id: 1, due_date: 1.month.from_now.to_date, code: "LOOK-001", description: "Amount exceeds the 'high_amount' threshold from showcase_condition_threshold table (lookup value reference).",
+    showcase_condition_category_id: cat_finance.id },
+
+  # 16. LOOKUP: amount (8000) below high_amount threshold (10000) → no highlight
+  { title: "Below lookup threshold", status: "active", priority: "low", amount: 8000, budget_limit: 20000,
+    author_id: 1, due_date: 2.months.from_now.to_date, code: "LOOK-002", description: "Amount is below the lookup threshold — no highlight.",
+    showcase_condition_category_id: cat_tech.id }
+]
+
+condition_records = conditions.map { |attrs| ConditionModel.create!(attrs) }
+
+# Tasks for collection condition demos
+# Record 11 ("Pending approval with tasks") — has approved task → success row
+ConditionTaskModel.create!(title: "Technical review", status: "approved", reviewer_name: "Alice", showcase_condition_id: condition_records[10].id)
+ConditionTaskModel.create!(title: "Budget review", status: "pending", reviewer_name: "Bob", showcase_condition_id: condition_records[10].id)
+
+# Record 10 ("Approved initiative") — all tasks approved
+ConditionTaskModel.create!(title: "Compliance check", status: "approved", reviewer_name: "Carol", showcase_condition_id: condition_records[9].id)
+ConditionTaskModel.create!(title: "Legal review", status: "approved", reviewer_name: "Dave", showcase_condition_id: condition_records[9].id)
+
+# Record 3 ("Architecture review") — has tasks but none approved yet
+ConditionTaskModel.create!(title: "Code review", status: "pending", reviewer_name: "Eve", showcase_condition_id: condition_records[2].id)
+ConditionTaskModel.create!(title: "Security audit", status: "rejected", reviewer_name: "Frank", showcase_condition_id: condition_records[2].id)
+
+# Record 6 ("Over-budget project") — mixed tasks
+ConditionTaskModel.create!(title: "Vendor sign-off", status: "approved", reviewer_name: "Grace", showcase_condition_id: condition_records[5].id)
+ConditionTaskModel.create!(title: "Finance approval", status: "rejected", reviewer_name: "Hank", showcase_condition_id: condition_records[5].id)
+
+puts "  Created #{ConditionCategoryModel.count} condition categories, #{ConditionThresholdModel.count} condition thresholds, #{ConditionModel.count} condition records, #{ConditionTaskModel.count} condition tasks"
 
 puts "Seeding complete!"

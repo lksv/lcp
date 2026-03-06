@@ -1,0 +1,93 @@
+presenter:
+  name: task
+  model: task
+  label: "Tasks"
+  slug: tasks
+  includes: [project, comments]
+
+  index:
+    default_view: table
+    default_sort: { field: created_at, direction: desc }
+    table_columns:
+      - { field: title, link_to: show }
+      - { field: "project.name", label: "Project" }
+      - { field: status }
+      - { field: priority }
+      - { field: due_date }
+    # Dot-path item_classes: highlight tasks from archived projects
+    item_classes:
+      - class: "lcp-row-muted"
+        when:
+          field: "project.status"
+          operator: eq
+          value: "archived"
+      # Compound condition: overdue open tasks
+      - class: "lcp-row-danger"
+        when:
+          all:
+            - { field: status, operator: not_eq, value: "done" }
+            - { field: due_date, operator: lt, value: { date: today } }
+      # Simple condition: done tasks
+      - class: "lcp-row-success"
+        when: { field: status, operator: eq, value: "done" }
+
+  show:
+    layout:
+      - section: "Task Details"
+        columns: 2
+        fields:
+          - { field: title }
+          - { field: status }
+          - { field: priority }
+          - { field: due_date }
+          - { field: "project.name", label: "Project" }
+          - { field: "project.industry", label: "Industry" }
+      # Dot-path visible_when: only show for tasks in 'technology' projects
+      - section: "Tech Details"
+        visible_when:
+          field: "project.industry"
+          operator: eq
+          value: "technology"
+        fields:
+          - { field: "project.name", label: "Tech Project" }
+      # Compound visible_when: show only for high-priority open tasks
+      - section: "Urgent Notes"
+        visible_when:
+          all:
+            - { field: status, operator: not_eq, value: "done" }
+            - { field: priority, operator: gte, value: 80 }
+        fields:
+          - { field: title }
+
+  form:
+    sections:
+      - title: "Task Info"
+        fields:
+          - { field: title }
+          - { field: status }
+          - { field: priority }
+          - { field: due_date }
+          - { field: project_id, input_type: association_select }
+
+  search:
+    enabled: true
+    searchable_fields: [title]
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      # Action with collection condition: only visible when task has approved comments
+      - name: publish
+        type: custom
+        label: "Publish"
+        icon: "send"
+        visible_when:
+          all:
+            - { field: status, operator: not_eq, value: "done" }
+            - collection: comments
+              quantifier: any
+              condition: { field: approved, operator: eq, value: true }
+      - { name: destroy, type: built_in, confirm: true }

@@ -20,7 +20,7 @@ Complete attribute reference for every YAML configuration file:
 - [Permission Source](reference/permission-source.md) — DB-backed permissions: JSON definitions, registry, cache invalidation, generator
 - [Groups](reference/groups.md) — Organizational groups: YAML, DB, host adapter, role mapping, resolution strategies
 - [Permissions](reference/permissions.md) — Roles, CRUD, field access, scopes, record rules
-- [Condition Operators](reference/condition-operators.md) — Shared operator reference for `visible_when`, `record_rules`, etc.
+- [Condition Operators](reference/condition-operators.md) — Shared operator reference for `visible_when`, `record_rules`, `item_classes`, etc. Includes dynamic value references (field_ref, current_user, date, service, lookup)
 - [Auditing](reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading](reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Tree Structures](reference/tree-structures.md) — Declarative tree hierarchies: model options, traversal, reparenting, tree index view
@@ -39,7 +39,7 @@ Complete attribute reference for every YAML configuration file:
 - [Selectbox](guides/selectbox.md) — Association select, cascading selects, remote search, multi-select, tree select, scoping, disabled options, legacy records, codelists
 - [Computed Fields](guides/computed-fields.md) — Auto-calculated persisted fields: template interpolation, service logic, arithmetic, comparison with aggregates
 - [Extensibility](guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validators, defaults, computed fields, condition services, scopes, model extensions
-- [Conditional Rendering](guides/conditional-rendering.md) — `visible_when`, `disable_when`, and `item_classes` on fields, sections, actions, and rows
+- [Conditional Rendering](guides/conditional-rendering.md) — `visible_when`, `disable_when`, `item_classes`: simple, compound (all/any/not), dot-path, dynamic references, collection conditions, lookup value references, DSL builder
 - [Custom Actions](guides/custom-actions.md) — Writing domain-specific operations beyond CRUD
 - [Event Handlers](guides/event-handlers.md) — Responding to lifecycle events and field changes
 - [Custom Types](guides/custom-types.md) — Defining custom business types (percentage, postal_code, slug, hex_color)
@@ -89,8 +89,8 @@ In Progress:
 - [Page Layouts & View Slots](design/page_layout_and_slots.md) — Extensible page layout system: slot registry (Phase 1 implemented), layout variants (planned)
 - [Deep Filter Enhancements](design/recursive_association_field_picker.md) — Recursive association field picker and recursive condition nesting (AND/OR tree)
 
-Proposed:
-- [Advanced Conditions](design/advanced_conditions.md) — Compound conditions (all/any/not), dynamic value references, dot-path fields, collection quantifiers, value services
+Partially Implemented:
+- [Advanced Conditions](design/advanced_conditions.md) — Compound conditions (all/any/not), dynamic value references, dot-path fields, collection quantifiers, value services, lookup value references
 - [Virtual Columns](design/virtual_columns.md) — Generalized query extensions: raw SQL, JOINs, EXISTS, window functions, LATERAL JOINs, service-based with Arel
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments
 - [Multiselect and Batch Actions](design/multiselect_and_batch_actions.md) — Checkbox selection and bulk operations on index pages

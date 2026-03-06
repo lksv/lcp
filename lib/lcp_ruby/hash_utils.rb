@@ -4,6 +4,8 @@ module LcpRuby
     # Recurses into Arrays. Passes through primitives unchanged.
     def self.stringify_deep(value)
       case value
+      when Proc
+        stringify_deep(Dsl::ConditionBuilder.build(&value))
       when Hash
         value.transform_keys(&:to_s).transform_values { |v| stringify_deep(v) }
       when Symbol

@@ -14,8 +14,8 @@
 
   <% @layout_builder.show_sections.each do |section| %>
     <%
-      section_visible = section["visible_when"].is_a?(Hash) ? condition_met?(@record, section["visible_when"]) : true
-      section_disabled = section["disable_when"].is_a?(Hash) ? condition_met?(@record, section["disable_when"]) : false
+      section_visible = condition_visible?(section, @record)
+      section_disabled = condition_disabled?(section, @record)
     %>
     <% next unless section_visible %>
     <div class="lcp-section <%= 'lcp-conditionally-disabled' if section_disabled %>">

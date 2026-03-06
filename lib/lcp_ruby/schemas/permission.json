@@ -229,27 +229,137 @@
       }]
     },
 
-    "rule_condition": {
-      "type": "object",
-      "description": "Field condition evaluated per-record. Supports all 12 condition operators.",
-      "properties": {
-        "field": {
-          "type": "string",
-          "description": "Field name on the record to evaluate.",
-          "examples": ["status", "locked", "approved_at"]
-        },
-        "operator": {
-          "type": "string",
-          "description": "Comparison operator.",
-          "enum": ["eq", "not_eq", "neq", "in", "not_in", "gt", "gte", "lt", "lte", "present", "blank", "matches", "not_matches"]
-        },
-        "value": {
-          "description": "Value to compare against. Type depends on the operator (string, number, array for 'in'/'not_in', omitted for 'present'/'blank').",
-          "examples": ["archived", true, ["draft", "pending"]]
+    "condition_operator": {
+      "type": "string",
+      "description": "Comparison operator.",
+      "enum": ["eq", "not_eq", "neq", "in", "not_in", "gt", "gte", "lt", "lte", "present", "blank", "matches", "not_matches", "starts_with", "ends_with", "contains"]
+    },
+
+    "condition_value": {
+      "description": "Value to compare against. Can be a literal, or a dynamic reference (field_ref, current_user, date, service).",
+      "oneOf": [
+        { "type": "string" },
+        { "type": "number" },
+        { "type": "boolean" },
+        { "type": "array" },
+        {
+          "type": "object",
+          "description": "Dynamic value reference.",
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": { "field_ref": { "type": "string" } },
+              "required": ["field_ref"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "current_user": { "type": "string" }
+              },
+              "required": ["current_user"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "date": { "type": "string", "enum": ["today", "now"] }
+              },
+              "required": ["date"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "service": { "type": "string" },
+                "params": { "type": "object" }
+              },
+              "required": ["service"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "lookup": { "type": "string" },
+                "match": { "type": "object" },
+                "pick": { "type": "string" }
+              },
+              "required": ["lookup", "match", "pick"],
+              "additionalProperties": false
+            }
+          ]
         }
-      },
-      "required": ["field", "operator"],
-      "additionalProperties": false
+      ]
+    },
+
+    "rule_condition": {
+      "description": "Condition evaluated per-record. Supports simple field-value, compound (all/any/not), collection, and service conditions.",
+      "oneOf": [
+        {
+          "type": "object",
+          "description": "Simple field-value condition.",
+          "properties": {
+            "field": { "type": "string" },
+            "operator": { "$ref": "#/$defs/condition_operator" },
+            "value": { "$ref": "#/$defs/condition_value" }
+          },
+          "required": ["field", "operator"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "AND compound condition — all children must be true.",
+          "properties": {
+            "all": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/rule_condition" }
+            }
+          },
+          "required": ["all"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "OR compound condition — at least one child must be true.",
+          "properties": {
+            "any": {
+              "type": "array",
+              "items": { "$ref": "#/$defs/rule_condition" }
+            }
+          },
+          "required": ["any"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "NOT compound condition — negates the child.",
+          "properties": {
+            "not": { "$ref": "#/$defs/rule_condition" }
+          },
+          "required": ["not"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Collection condition with quantifier over has_many associations.",
+          "properties": {
+            "collection": { "type": "string" },
+            "quantifier": { "type": "string", "enum": ["any", "all", "none"] },
+            "condition": { "$ref": "#/$defs/rule_condition" }
+          },
+          "required": ["collection", "condition"],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "description": "Service condition (opaque, delegates to registered service).",
+          "properties": {
+            "service": { "type": "string" }
+          },
+          "required": ["service"],
+          "additionalProperties": false
+        }
+      ]
     },
 
     "rule_effect": {

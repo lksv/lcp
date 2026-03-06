@@ -30,7 +30,7 @@
           <% next if section["type"] == "nested_fields" && i != sections.index(section) %>
           <%
             tab_cond_attrs = conditional_data(section)
-            tab_visible = section["visible_when"].is_a?(Hash) ? condition_met?(@record, section["visible_when"]) : true
+            tab_visible = condition_visible?(section, @record)
           %>
           <button type="button" data-lcp-tab="<%= i %>" class="btn <%= 'active' if i == 0 %>"
                   <% if tab_cond_attrs.any? %>data-lcp-conditional="tab"<% end %>

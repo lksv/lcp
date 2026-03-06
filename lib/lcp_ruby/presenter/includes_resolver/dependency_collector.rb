@@ -87,12 +87,22 @@ module LcpRuby
           # Also collect fields from tile config when tiles layout
           field_refs.concat(presenter_def.all_tile_field_refs) if presenter_def.tiles?
 
-          # Collect fields from item_classes conditions
+          # Collect association deps from item_classes conditions (recursive)
           presenter_def.item_classes.each do |rule|
             condition = rule["when"]
             next unless condition.is_a?(Hash)
-            field = condition["field"]
-            field_refs << field.to_s if field
+            collect_condition_deps(condition, model_def)
+            # Also collect direct field refs for FK resolution
+            collect_condition_field_refs(condition, field_refs)
+          end
+
+          # Collect association deps from action visible_when/disable_when
+          all_actions = presenter_def.single_actions + presenter_def.collection_actions + presenter_def.batch_actions
+          all_actions.each do |action|
+            %w[visible_when disable_when].each do |key|
+              cond = action[key]
+              collect_condition_deps(cond, model_def) if cond.is_a?(Hash)
+            end
           end
 
           field_refs.uniq.each do |field|
@@ -183,6 +193,75 @@ module LcpRuby
             .uniq
         rescue LcpRuby::MetadataError
           []
+        end
+
+        # Recursively collects direct (non-dot-path) field names from a condition tree.
+        # Used for FK resolution in the index field_refs processing.
+        def collect_condition_field_refs(condition, field_refs)
+          walk_condition_tree(condition) do |normalized|
+            field = normalized["field"].to_s
+            field_refs << field unless field.include?(".")
+          end
+        end
+
+        # Recursively extracts association dependencies from a condition tree.
+        def collect_condition_deps(condition, model_def)
+          walk_condition_tree(condition, on_collection: ->(normalized) {
+            collection_name = normalized["collection"].to_s
+            assoc = find_association(model_def, collection_name)
+            if assoc
+              inner = normalized["condition"]
+              if inner.is_a?(Hash)
+                inner_deps = collect_inner_condition_assocs(inner)
+                if inner_deps.any?
+                  nested = inner_deps.map(&:to_sym)
+                  nested_path = nested.size == 1 ? { collection_name.to_sym => nested.first } : { collection_name.to_sym => nested }
+                  add_dependency(path: nested_path, reason: :display)
+                else
+                  add_dependency(path: collection_name.to_sym, reason: :display)
+                end
+              else
+                add_dependency(path: collection_name.to_sym, reason: :display)
+              end
+            end
+          }) do |normalized|
+            field = normalized["field"].to_s
+            collect_dot_path_dep(field, model_def) if field.include?(".")
+            # Also check value references with dot-paths
+            value = normalized["value"]
+            if value.is_a?(Hash)
+              ref = value.transform_keys(&:to_s)["field_ref"]
+              collect_dot_path_dep(ref.to_s, model_def) if ref && ref.to_s.include?(".")
+            end
+          end
+        end
+
+        # Extracts top-level association names from dot-path fields inside a condition tree.
+        # Used for building nested includes for collection conditions.
+        def collect_inner_condition_assocs(condition)
+          assocs = []
+          walk_condition_tree(condition) do |normalized|
+            field = normalized["field"].to_s
+            assocs << field.split(".").first if field.include?(".")
+          end
+          assocs.uniq
+        end
+
+        # Generic condition tree walker. Yields normalized leaf nodes (field conditions).
+        # Accepts an optional on_collection callback for collection conditions.
+        def walk_condition_tree(condition, on_collection: nil, &on_field)
+          return unless condition.is_a?(Hash)
+
+          normalized = condition.transform_keys(&:to_s)
+          if normalized.key?("all") || normalized.key?("any")
+            Array(normalized["all"] || normalized["any"]).each { |child| walk_condition_tree(child, on_collection: on_collection, &on_field) }
+          elsif normalized.key?("not")
+            walk_condition_tree(normalized["not"], on_collection: on_collection, &on_field)
+          elsif normalized.key?("collection")
+            on_collection&.call(normalized)
+          elsif normalized.key?("field")
+            on_field.call(normalized)
+          end
         end
 
         def collect_dot_path_dep(field_path, model_def)

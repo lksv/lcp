@@ -1,0 +1,41 @@
+permissions:
+  model: task
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    editor:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: [title, status, priority, due_date, project_id] }
+      actions:
+        allowed: [publish]
+      scope: all
+      presenters: all
+
+  default_role: editor
+
+  record_rules:
+    # Compound: deny update/destroy for done tasks with high priority
+    - name: done_high_priority_locked
+      condition:
+        all:
+          - { field: status, operator: eq, value: "done" }
+          - { field: priority, operator: gte, value: 80 }
+      effect:
+        deny_crud: [update, destroy]
+        except_roles: [admin]
+
+    # Compound with date: deny destroy for overdue open tasks
+    - name: overdue_no_destroy
+      condition:
+        all:
+          - { field: status, operator: not_eq, value: "done" }
+          - { field: due_date, operator: lt, value: { date: today } }
+      effect:
+        deny_crud: [destroy]
+        except_roles: [admin]

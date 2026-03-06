@@ -1,6 +1,12 @@
 module LcpRuby
   module Dsl
     class PresenterBuilder
+      # Builds a condition hash from a DSL block.
+      # Usage: condition = PresenterBuilder.condition { field(:status).eq("active") }
+      def self.condition(&block)
+        ConditionBuilder.build(&block)
+      end
+
       def initialize(name)
         @name = name.to_s
         @model_name = nil
@@ -95,8 +101,8 @@ module LcpRuby
         action_hash["confirm"] = options[:confirm] if options.key?(:confirm)
         action_hash["confirm_message"] = options[:confirm_message] if options.key?(:confirm_message)
         action_hash["style"] = options[:style].to_s if options.key?(:style)
-        action_hash["visible_when"] = stringify_visible_when(options[:visible_when]) if options.key?(:visible_when)
-        action_hash["disable_when"] = stringify_visible_when(options[:disable_when]) if options.key?(:disable_when)
+        action_hash["visible_when"] = resolve_condition(options[:visible_when]) if options.key?(:visible_when)
+        action_hash["disable_when"] = resolve_condition(options[:disable_when]) if options.key?(:disable_when)
 
         @actions << { on: on.to_s, hash: action_hash }
       end
@@ -157,6 +163,18 @@ module LcpRuby
         grouped
       end
 
+      # Resolves a condition from either a Hash or a ConditionBuilder block (Proc)
+      def resolve_condition(value)
+        case value
+        when Proc
+          ConditionBuilder.build(&value)
+        when Hash
+          stringify_visible_when(value)
+        else
+          value
+        end
+      end
+
       def stringify_visible_when(condition)
         return nil unless condition.is_a?(Hash)
 
@@ -165,7 +183,13 @@ module LcpRuby
           key = k.to_s
           result[key] = case v
           when Symbol then v.to_s
-          when Array then v.map { |item| item.is_a?(Symbol) ? item.to_s : item }
+          when Array then v.map { |item|
+            case item
+            when Symbol then item.to_s
+            when Hash then stringify_visible_when(item)
+            else item
+            end
+          }
           when Hash then stringify_visible_when(v)
           else v
           end

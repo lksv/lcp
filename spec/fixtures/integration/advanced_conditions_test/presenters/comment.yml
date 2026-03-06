@@ -1,0 +1,41 @@
+presenter:
+  name: comment
+  model: comment
+  label: "Comments"
+  slug: comments
+
+  index:
+    default_view: table
+    table_columns:
+      - { field: body, link_to: show }
+      - { field: approved }
+      - { field: author_name }
+
+  show:
+    layout:
+      - section: "Comment"
+        fields:
+          - { field: body }
+          - { field: approved }
+          - { field: author_name }
+
+  form:
+    sections:
+      - title: "Comment"
+        fields:
+          - { field: body }
+          - { field: approved }
+          - { field: author_name }
+          - { field: task_id, input_type: association_select }
+
+  search:
+    enabled: true
+    searchable_fields: [body]
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

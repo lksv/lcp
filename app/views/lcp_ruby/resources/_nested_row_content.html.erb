@@ -9,8 +9,8 @@
   <%# Sub-section mode: render grouped fieldsets within the row %>
   <% section["sub_sections"].each do |sub_section| %>
     <%
-      ss_visible = sub_section["visible_when"].is_a?(Hash) ? condition_met?(record_or_item, sub_section["visible_when"]) : true
-      ss_disabled = sub_section["disable_when"].is_a?(Hash) ? condition_met?(record_or_item, sub_section["disable_when"]) : false
+      ss_visible = condition_visible?(sub_section, record_or_item)
+      ss_disabled = condition_disabled?(sub_section, record_or_item)
       ss_cond_attrs = conditional_data(sub_section)
       ss_style = []
       ss_style << "display: none" unless ss_visible

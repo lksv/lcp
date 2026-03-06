@@ -1,0 +1,33 @@
+model:
+  name: project
+  label: "Project"
+  label_plural: "Projects"
+
+  fields:
+    - name: name
+      type: string
+      column_options: { "null": false }
+      validations:
+        - type: presence
+
+    - name: status
+      type: enum
+      enum_values:
+        - { value: active, label: "Active" }
+        - { value: archived, label: "Archived" }
+        - { value: completed, label: "Completed" }
+      default: active
+
+    - name: industry
+      type: string
+
+  associations:
+    - type: has_many
+      name: tasks
+      target_model: task
+      foreign_key: project_id
+      dependent: destroy
+
+  options:
+    timestamps: true
+    label_method: name

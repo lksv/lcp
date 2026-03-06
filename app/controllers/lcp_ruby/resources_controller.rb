@@ -41,7 +41,7 @@ module LcpRuby
       preload_associations(@record, :show)
       @record.strict_loading! if LcpRuby.configuration.strict_loading_enabled?
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
-      @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
+      @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator, context: condition_context)
       @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
     end
 
@@ -375,7 +375,7 @@ module LcpRuby
     def setup_index_view_objects
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
       @fk_map = @column_set.fk_association_map(current_model_definition)
-      @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator)
+      @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator, context: condition_context)
       @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
     end
 
@@ -1039,15 +1039,16 @@ module LcpRuby
     end
 
     def evaluate_service_conditions(record)
+      ctx = condition_context
       results = {}
       sections = current_presenter.form_config["sections"] || []
       sections.each_with_index do |section, idx|
         %w[visible_when disable_when].each do |cond_key|
           cond = section[cond_key]
-          next unless cond.is_a?(Hash) && ConditionEvaluator.condition_type(cond) == :service
+          next unless cond.is_a?(Hash) && !ConditionEvaluator.client_evaluable?(cond)
 
           result_key = "section_#{idx}_#{cond_key == 'visible_when' ? 'visible' : 'disable'}"
-          results[result_key] = ConditionEvaluator.evaluate_service(record, cond)
+          results[result_key] = ConditionEvaluator.evaluate_any(record, cond, context: ctx)
         end
 
         (section["fields"] || []).each do |field_config|
@@ -1056,10 +1057,10 @@ module LcpRuby
 
           %w[visible_when disable_when].each do |cond_key|
             cond = field_config[cond_key]
-            next unless cond.is_a?(Hash) && ConditionEvaluator.condition_type(cond) == :service
+            next unless cond.is_a?(Hash) && !ConditionEvaluator.client_evaluable?(cond)
 
             result_key = "#{field_name}_#{cond_key == 'visible_when' ? 'visible' : 'disable'}"
-            results[result_key] = ConditionEvaluator.evaluate_service(record, cond)
+            results[result_key] = ConditionEvaluator.evaluate_any(record, cond, context: ctx)
           end
         end
       end

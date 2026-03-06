@@ -69,7 +69,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Permission Source Reference](docs/reference/permission-source.md) — DB-backed permissions: JSON definitions, registry, cache invalidation, generator
 - [Groups Reference](docs/reference/groups.md) — Organizational groups: YAML, DB, host adapter, role mapping
 - [Permissions Reference](docs/reference/permissions.md) — Complete permission YAML reference
-- [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference
+- [Condition Operators](docs/reference/condition-operators.md) — Shared operator reference (15 operators, dynamic value references incl. lookup, collection quantifiers)
 - [Auditing Reference](docs/reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Tree Structures Reference](docs/reference/tree-structures.md) — Declarative tree hierarchies: model options, traversal, reparenting, tree index view
@@ -82,7 +82,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Custom Types Guide](docs/guides/custom-types.md) — Practical examples of custom business types
 - [Computed Fields Guide](docs/guides/computed-fields.md) — Auto-calculated persisted fields: template interpolation, service logic, arithmetic
 - [Extensibility Guide](docs/guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validations, scopes, condition services
-- [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when`, `disable_when`, and `item_classes` on fields, sections, actions, and rows
+- [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when`, `disable_when`, `item_classes`: simple, compound (all/any/not), dot-path, dynamic references, collection conditions, lookup value references, DSL builder
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
 - [Event Handlers](docs/guides/event-handlers.md) — Writing event handlers
 - [Custom Renderers Guide](docs/guides/custom-renderers.md) — Custom renderers for host applications
@@ -205,7 +205,7 @@ YAML metadata (config/lcp_ruby/)
 | `Authorization` | `lib/lcp_ruby/authorization/` | PolicyFactory (dynamic Pundit policies), PermissionEvaluator (can?, can_for_record? with alias resolution, readable_fields, writable_fields, with optional role validation via Roles::Registry), ScopeBuilder |
 | `Events` | `lib/lcp_ruby/events/` | Dispatcher + HandlerRegistry. Host apps define handlers in `app/event_handlers/` |
 | `Actions` | `lib/lcp_ruby/actions/` | ActionExecutor + ActionRegistry. Host apps define custom actions in `app/actions/` |
-| `Conditions` | `lib/lcp_ruby/condition_evaluator.rb`, `lib/lcp_ruby/condition_service_registry.rb` | ConditionEvaluator (strict: 12 operators, raises ConditionError on unknown operator/missing field), ConditionServiceRegistry. All condition callers (PermissionEvaluator, ActionSet, views) delegate to ConditionEvaluator. Host apps define condition services in `app/condition_services/` |
+| `Conditions` | `lib/lcp_ruby/condition_evaluator.rb`, `lib/lcp_ruby/condition_service_registry.rb`, `lib/lcp_ruby/dsl/condition_builder.rb` | ConditionEvaluator (strict: 15 operators, raises ConditionError on unknown operator/missing field), ConditionServiceRegistry. Supports compound (all/any/not), dot-path fields, collection quantifiers, dynamic value references (field_ref, current_user, date, service, lookup). DSL via `ConditionBuilder.build` block and `ConditionBuilder.lookup` helper. All condition callers (PermissionEvaluator, ActionSet, views) delegate to ConditionEvaluator. Host apps define condition services in `app/condition_services/` |
 | `Search` | `lib/lcp_ruby/search/` | QuickSearch (type-aware text search), ParamSanitizer (filter param cleanup), FilterParamBuilder (LCP operators to Ransack predicates), OperatorRegistry (type-to-operator mapping), CustomFilterInterceptor (filter_* method detection and interception), CustomFieldFilter (JSON column queries with type casting), FilterMetadataBuilder (permission-aware JSON metadata for the visual filter builder), QueryLanguageParser (recursive descent QL parser), QueryLanguageSerializer (condition tree to QL text), ParameterizedScopeApplicator (typed parameter casting, min/max clamping, filter_*/scope dispatch). Ransack model setup (`ransackable_attributes`, `ransackable_associations`) handled by `ModelFactory::RansackApplicator` at boot |
 | `SavedFilters` | `lib/lcp_ruby/saved_filters/` | Generator-based saved filter model (not hardcoded). SavedFiltersGenerator creates model/presenter/permissions YAML. Presenter config via `saved_filters` block inside `advanced_filter` (enabled, display mode, max_visible_pinned). Visibility: personal/role/group/global with ownership record_rules |
 | `Attachments` | `lib/lcp_ruby/model_factory/attachment_applicator.rb` | Applies Active Storage macros (has_one_attached/has_many_attached), validations (size, content_type, max_files), and variant config to dynamic models |
@@ -264,7 +264,7 @@ When a form field has `input_type: association_select` (e.g., `todo_list_id`):
 
 ### Permission System
 
-Permissions YAML defines roles with: `crud` list, `fields` (readable/writable), `actions`, `scope`, `presenters`. The `PermissionEvaluator.can?` method maps action aliases (`edit` → `update`, `new` → `create`) before checking the CRUD list. Record-level rules (`record_rules`) can deny specific CRUD operations based on field conditions with role exceptions. `can_for_record?` resolves action aliases and delegates condition evaluation to `ConditionEvaluator.evaluate` (all 12 operators). Record rules automatically hide built-in `edit`/`destroy` action buttons on index pages via `ActionSet#action_permitted_for_record?`.
+Permissions YAML defines roles with: `crud` list, `fields` (readable/writable), `actions`, `scope`, `presenters`. The `PermissionEvaluator.can?` method maps action aliases (`edit` → `update`, `new` → `create`) before checking the CRUD list. Record-level rules (`record_rules`) can deny specific CRUD operations based on field conditions with role exceptions. `can_for_record?` resolves action aliases and delegates condition evaluation to `ConditionEvaluator.evaluate_any` (all 15 operators, compound/collection/dot-path/lookup). Record rules automatically hide built-in `edit`/`destroy` action buttons on index pages via `ActionSet#action_permitted_for_record?`.
 
 ## Test Structure
 

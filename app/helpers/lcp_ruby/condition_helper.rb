@@ -1,9 +1,9 @@
 module LcpRuby
   module ConditionHelper
-    # Evaluates a condition (field-value or service) against a record
-    def condition_met?(record, condition)
+    # Evaluates a condition (field-value, service, or compound) against a record
+    def condition_met?(record, condition, context: {})
       return true unless condition
-      ConditionEvaluator.evaluate_any(record, condition)
+      ConditionEvaluator.evaluate_any(record, condition, context: context)
     end
 
     # Serializes a field-value condition into data attributes for client-side JS
@@ -52,29 +52,35 @@ module LcpRuby
       attrs
     end
 
-    # Checks if any sections or fields in the presenter have service conditions
+    # Checks if any sections or fields in the presenter have non-client-evaluable conditions
     def service_conditions?(presenter_definition)
       sections = presenter_definition.form_config["sections"] || []
       sections.any? do |section|
-        has_service = section_has_service_condition?(section)
-        fields_have = (section["fields"] || []).any? { |f| field_has_service_condition?(f) }
-        has_service || fields_have
+        has_non_client_condition?(section) ||
+          (section["fields"] || []).any? { |f| has_non_client_condition?(f) }
       end
+    end
+
+    # Evaluates visible_when condition, returning true if no condition is set
+    def condition_visible?(config, record, context: condition_context)
+      cond = config["visible_when"]
+      return true unless cond.is_a?(Hash)
+      condition_met?(record, cond, context: context)
+    end
+
+    # Evaluates disable_when condition, returning false if no condition is set
+    def condition_disabled?(config, record, context: condition_context)
+      cond = config["disable_when"]
+      return false unless cond.is_a?(Hash)
+      condition_met?(record, cond, context: context)
     end
 
     private
 
-    def section_has_service_condition?(section)
+    def has_non_client_condition?(config)
       %w[visible_when disable_when].any? do |key|
-        cond = section[key]
-        cond.is_a?(Hash) && ConditionEvaluator.condition_type(cond) == :service
-      end
-    end
-
-    def field_has_service_condition?(field_config)
-      %w[visible_when disable_when].any? do |key|
-        cond = field_config[key]
-        cond.is_a?(Hash) && ConditionEvaluator.condition_type(cond) == :service
+        cond = config[key]
+        cond.is_a?(Hash) && !ConditionEvaluator.client_evaluable?(cond)
       end
     end
   end

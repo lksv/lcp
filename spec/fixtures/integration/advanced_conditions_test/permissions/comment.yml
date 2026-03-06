@@ -1,0 +1,18 @@
+permissions:
+  model: comment
+
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+
+    editor:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: [body, approved, author_name, task_id] }
+      scope: all
+      presenters: all
+
+  default_role: editor

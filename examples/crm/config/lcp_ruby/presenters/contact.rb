@@ -41,6 +41,13 @@ define_presenter :contact do
       field :completed_activities_count
     end
 
+    # Dot-path condition: show deal info only for contacts at technology companies
+    section "Technology Partner Details", columns: 2,
+      visible_when: { field: "company.industry", operator: :eq, value: "technology" } do
+      field "company.website", label: "Company Website", renderer: :url_link
+      field "company.phone", label: "Company Phone", renderer: :phone_link
+    end
+
     section "Documents" do
       field :documents, renderer: :attachment_list
     end

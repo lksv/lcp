@@ -1,7 +1,7 @@
 <% if section["type"] == "nested_fields" %>
   <%
-    nested_visible = section["visible_when"].is_a?(Hash) ? condition_met?(@record, section["visible_when"]) : true
-    nested_disabled = section["disable_when"].is_a?(Hash) ? condition_met?(@record, section["disable_when"]) : false
+    nested_visible = condition_visible?(section, @record)
+    nested_disabled = condition_disabled?(section, @record)
     nested_cond_attrs = conditional_data(section)
     nested_style_parts = []
     nested_style_parts << "display: none" unless nested_visible
@@ -76,8 +76,8 @@
 
   <%# Section-level conditional rendering %>
   <%
-    section_visible = section["visible_when"].is_a?(Hash) ? condition_met?(@record, section["visible_when"]) : true
-    section_disabled = section["disable_when"].is_a?(Hash) ? condition_met?(@record, section["disable_when"]) : false
+    section_visible = condition_visible?(section, @record)
+    section_disabled = condition_disabled?(section, @record)
     section_cond_attrs = conditional_data(section)
     section_style_parts = []
     section_style_parts << "display: none" unless section_visible
@@ -130,8 +130,8 @@
 
           <%# Field-level conditional rendering (hash conditions) %>
           <%
-            field_visible = field_config["visible_when"].is_a?(Hash) ? condition_met?(@record, field_config["visible_when"]) : true
-            field_disabled = field_config["disable_when"].is_a?(Hash) ? condition_met?(@record, field_config["disable_when"]) : false
+            field_visible = condition_visible?(field_config, @record)
+            field_disabled = condition_disabled?(field_config, @record)
             field_cond_attrs = conditional_data(field_config)
 
             field_style_parts = []

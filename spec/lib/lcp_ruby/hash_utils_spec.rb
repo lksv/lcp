@@ -49,5 +49,95 @@ RSpec.describe LcpRuby::HashUtils do
       input = { "already" => "stringified" }
       expect(described_class.stringify_deep(input)).to eq({ "already" => "stringified" })
     end
+
+    context "with Proc values (condition builder blocks)" do
+      it "resolves a simple field condition proc" do
+        condition = proc { field(:status).eq("active") }
+        result = described_class.stringify_deep(condition)
+        expect(result).to eq({ "field" => "status", "operator" => "eq", "value" => "active" })
+      end
+
+      it "resolves a compound all condition proc" do
+        condition = proc {
+          all do
+            field(:status).eq("active")
+            field(:priority).eq("high")
+          end
+        }
+        result = described_class.stringify_deep(condition)
+        expect(result).to eq({
+          "all" => [
+            { "field" => "status", "operator" => "eq", "value" => "active" },
+            { "field" => "priority", "operator" => "eq", "value" => "high" }
+          ]
+        })
+      end
+
+      it "resolves a compound any condition proc" do
+        condition = proc {
+          any do
+            field(:status).eq("draft")
+            field(:status).eq("review")
+          end
+        }
+        result = described_class.stringify_deep(condition)
+        expect(result).to eq({
+          "any" => [
+            { "field" => "status", "operator" => "eq", "value" => "draft" },
+            { "field" => "status", "operator" => "eq", "value" => "review" }
+          ]
+        })
+      end
+
+      it "resolves a not condition proc" do
+        condition = proc {
+          not_condition do
+            field(:status).eq("closed")
+          end
+        }
+        result = described_class.stringify_deep(condition)
+        expect(result).to eq({ "not" => { "field" => "status", "operator" => "eq", "value" => "closed" } })
+      end
+
+      it "resolves a collection condition proc" do
+        condition = proc {
+          collection(:tasks, quantifier: :any) do
+            field(:status).eq("approved")
+          end
+        }
+        result = described_class.stringify_deep(condition)
+        expect(result).to eq({
+          "collection" => "tasks",
+          "quantifier" => "any",
+          "condition" => { "field" => "status", "operator" => "eq", "value" => "approved" }
+        })
+      end
+
+      it "resolves a proc with value references" do
+        condition = proc {
+          field(:amount).gt({ "field_ref" => "budget_limit" })
+        }
+        result = described_class.stringify_deep(condition)
+        expect(result).to eq({
+          "field" => "amount",
+          "operator" => "gt",
+          "value" => { "field_ref" => "budget_limit" }
+        })
+      end
+
+      it "resolves a proc nested inside a hash value" do
+        input = {
+          "class" => "lcp-row-danger",
+          when: proc {
+            field(:status).eq("closed")
+          }
+        }
+        result = described_class.stringify_deep(input)
+        expect(result).to eq({
+          "class" => "lcp-row-danger",
+          "when" => { "field" => "status", "operator" => "eq", "value" => "closed" }
+        })
+      end
+    end
   end
 end

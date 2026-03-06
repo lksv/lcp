@@ -1,0 +1,40 @@
+presenter:
+  name: project
+  model: project
+  label: "Projects"
+  slug: projects
+
+  index:
+    default_view: table
+    table_columns:
+      - { field: name, link_to: show }
+      - { field: status }
+      - { field: industry }
+
+  show:
+    layout:
+      - section: "Project Info"
+        fields:
+          - { field: name }
+          - { field: status }
+          - { field: industry }
+
+  form:
+    sections:
+      - title: "Project Details"
+        fields:
+          - { field: name }
+          - { field: status }
+          - { field: industry }
+
+  search:
+    enabled: true
+    searchable_fields: [name]
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in, confirm: true }

@@ -37,7 +37,7 @@ module LcpRuby
             raise ConditionError,
               "record rule '#{rule['name']}' has invalid condition: expected Hash, got #{condition.class}"
           end
-          next unless ConditionEvaluator.evaluate(record, condition)
+          next unless ConditionEvaluator.evaluate_any(record, condition, context: { current_user: @user })
 
           denied = (rule.dig("effect", "deny_crud") || []).map(&:to_s)
           except_roles = (rule.dig("effect", "except_roles") || []).map(&:to_s)

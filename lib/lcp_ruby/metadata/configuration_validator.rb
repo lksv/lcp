@@ -29,12 +29,14 @@ module LcpRuby
         end
       end
 
+      ConditionValidationContext = Struct.new(:name, :model)
       VALID_CRUD_ACTIONS = %w[index show create update destroy restore permanently_destroy].freeze
-      VALID_CONDITION_OPERATORS = %w[eq not_eq neq in not_in gt gte lt lte present blank matches not_matches].freeze
+      VALID_CONDITION_OPERATORS = %w[eq not_eq neq in not_in gt gte lt lte present blank matches not_matches starts_with ends_with contains].freeze
       BUILT_IN_ACTION_NAMES = %w[show edit destroy create update restore permanently_destroy].freeze
       VALID_SORT_DIRECTIONS = %w[asc desc].freeze
       NUMERIC_OPERATORS = %w[gt gte lt lte].freeze
       REGEX_OPERATORS   = %w[matches not_matches].freeze
+      STRING_OPERATORS  = %w[starts_with ends_with contains].freeze
       NUMERIC_TYPES     = %w[integer float decimal date datetime].freeze
       TEXT_TYPES         = %w[string text].freeze
 
@@ -104,6 +106,21 @@ module LcpRuby
         return [] unless definition
 
         definition.fields.map(&:name)
+      end
+
+      # Extended field list including userstamp columns, FKs, aggregates, timestamps
+      # Used for condition validation where any DB column is valid
+      def model_all_field_names(model_name)
+        definition = loader.model_definitions[model_name]
+        return [] unless definition
+
+        fields = definition.fields.map(&:name)
+        fk = definition.associations
+          .select { |a| a.type == "belongs_to" && a.foreign_key }
+          .flat_map { |a| cols = [ a.foreign_key.to_s ]; cols << "#{a.name}_type" if a.polymorphic; cols }
+        userstamp = definition.userstamp_column_names
+        aggregate = definition.aggregate_names
+        fields + fk + userstamp + aggregate + %w[created_at updated_at id]
       end
 
       def model_field_definition(model_name, field_name)
@@ -779,6 +796,104 @@ module LcpRuby
         end
       end
 
+      # Warns when associations referenced in index conditions are not covered by explicit includes.
+      # DependencyCollector auto-includes these at runtime, so these are informational warnings.
+      def validate_condition_eager_loading(presenter, model_def)
+        # Gather index-context conditions: item_classes[].when, action visible_when/disable_when
+        index_conditions = []
+
+        presenter.item_classes.each_with_index do |rule, i|
+          condition = rule["when"]
+          index_conditions << [ condition, "item_classes[#{i}]" ] if condition.is_a?(Hash)
+        end
+
+        all_actions = presenter.single_actions + presenter.collection_actions + presenter.batch_actions
+        all_actions.each do |action|
+          %w[visible_when disable_when].each do |key|
+            cond = action[key]
+            index_conditions << [ cond, "action '#{action['name']}', #{key}" ] if cond.is_a?(Hash)
+          end
+        end
+
+        return if index_conditions.empty?
+
+        declared = declared_index_includes(presenter)
+
+        index_conditions.each do |condition, label|
+          refs = collect_condition_assoc_refs(condition, model_def)
+          refs.each do |assoc_name|
+            unless declared.include?(assoc_name)
+              @warnings << "Presenter '#{presenter.name}' index: #{label} references " \
+                           "'#{assoc_name}' but index.includes does not contain '#{assoc_name}'. " \
+                           "Add 'includes: [#{assoc_name}]' to the index configuration to avoid N+1 queries."
+            end
+          end
+        end
+      end
+
+      # Returns Set of top-level association names declared in index includes/eager_load.
+      def declared_index_includes(presenter)
+        config = presenter.index_config
+        return Set.new unless config.is_a?(Hash)
+
+        names = Set.new
+        %w[includes eager_load].each do |key|
+          entries = config[key]
+          next unless entries.is_a?(Array)
+
+          entries.each do |entry|
+            case entry
+            when String
+              names << entry
+            when Hash
+              entry.each_key { |k| names << k.to_s }
+            end
+          end
+        end
+        names
+      end
+
+      # Recursively walks a condition tree and collects association references.
+      # Returns a Set of top-level association names referenced by dot-paths,
+      # collections, and value field_ref dot-paths.
+      def collect_condition_assoc_refs(condition, model_def)
+        refs = Set.new
+        walk_condition_for_assoc_refs(condition, model_def, refs)
+        refs
+      end
+
+      def walk_condition_for_assoc_refs(condition, model_def, refs)
+        return unless condition.is_a?(Hash)
+
+        normalized = condition.transform_keys(&:to_s)
+
+        if normalized.key?("all") || normalized.key?("any")
+          children = normalized["all"] || normalized["any"]
+          Array(children).each { |child| walk_condition_for_assoc_refs(child, model_def, refs) }
+        elsif normalized.key?("not")
+          walk_condition_for_assoc_refs(normalized["not"], model_def, refs)
+        elsif normalized.key?("collection")
+          collection_name = normalized["collection"].to_s
+          refs << collection_name
+          # Note: inner condition refs are on the target model, would need nested includes.
+          # For now we just flag the top-level collection.
+        elsif normalized.key?("field")
+          field = normalized["field"].to_s
+          if field.include?(".")
+            refs << field.split(".").first
+          end
+
+          # Check value references for dot-paths
+          value = normalized["value"]
+          if value.is_a?(Hash)
+            ref = value.transform_keys(&:to_s)["field_ref"]
+            if ref && ref.to_s.include?(".")
+              refs << ref.to_s.split(".").first
+            end
+          end
+        end
+      end
+
       def validate_presenter_summary(presenter, model)
         return unless presenter.summary_enabled?
 
@@ -997,6 +1112,7 @@ module LcpRuby
             validate_presenter_tree_view(presenter, model_def)
             validate_presenter_tiles(presenter, model_def)
             validate_presenter_item_classes(presenter, model_def)
+            validate_condition_eager_loading(presenter, model_def)
             validate_presenter_summary(presenter, model_def)
             validate_presenter_sort_fields(presenter, model_def)
             validate_presenter_per_page_options(presenter)
@@ -1605,12 +1721,51 @@ module LcpRuby
         end
       end
 
-      def validate_condition(presenter, condition, context)
-        condition = condition.transform_keys(&:to_s)
+      # Recursively validates a condition tree (field, service, compound, collection).
+      def validate_condition(presenter, condition, context, depth: 0)
+        return unless condition.is_a?(Hash)
 
-        # Service conditions don't need field/operator validation
-        return if condition.key?("service")
+        if depth > ConditionEvaluator::MAX_NESTING_DEPTH
+          @errors << "Presenter '#{presenter.name}', #{context}: condition nesting exceeds maximum depth of #{ConditionEvaluator::MAX_NESTING_DEPTH}"
+          return
+        end
 
+        normalized = condition.transform_keys(&:to_s)
+
+        if normalized.key?("all") || normalized.key?("any")
+          key = normalized.key?("all") ? "all" : "any"
+          children = normalized[key]
+          unless children.is_a?(Array)
+            @errors << "Presenter '#{presenter.name}', #{context}: '#{key}' must be an array"
+            return
+          end
+          if children.empty?
+            @warnings << "Presenter '#{presenter.name}', #{context}: empty '#{key}' condition list"
+          end
+          children.each_with_index do |child, i|
+            validate_condition(presenter, child, "#{context} #{key}[#{i}]", depth: depth + 1)
+          end
+        elsif normalized.key?("not")
+          child = normalized["not"]
+          unless child.is_a?(Hash)
+            @errors << "Presenter '#{presenter.name}', #{context}: 'not' must contain a single condition hash"
+            return
+          end
+          validate_condition(presenter, child, "#{context} not", depth: depth + 1)
+        elsif normalized.key?("collection")
+          validate_collection_condition(presenter, normalized, context, depth: depth)
+        elsif normalized.key?("service")
+          # Service conditions are opaque — no further validation
+        elsif normalized.key?("field")
+          validate_field_condition(presenter, normalized, context)
+        else
+          @errors << "Presenter '#{presenter.name}', #{context}: " \
+                     "condition must contain 'field', 'service', 'all', 'any', 'not', or 'collection' key"
+        end
+      end
+
+      # Validates a flat field-value condition.
+      def validate_field_condition(presenter, condition, context)
         field_name = condition["field"]
         operator = condition["operator"]
 
@@ -1618,11 +1773,14 @@ module LcpRuby
         has_custom_fields = model_def&.custom_fields_enabled?
 
         if field_name
-          valid_fields = model_field_names(presenter.model)
-          # Skip unknown field error for models with custom fields (field may be a custom field name)
-          unless valid_fields.include?(field_name.to_s) || has_custom_fields
-            @errors << "Presenter '#{presenter.name}', #{context}: " \
-                       "references unknown field '#{field_name}'"
+          if field_name.to_s.include?(".")
+            validate_dot_path_field("Presenter '#{presenter.name}'", context, presenter.model, field_name.to_s)
+          else
+            valid_fields = model_all_field_names(presenter.model)
+            unless valid_fields.include?(field_name.to_s) || has_custom_fields
+              @errors << "Presenter '#{presenter.name}', #{context}: " \
+                         "references unknown field '#{field_name}'"
+            end
           end
         end
 
@@ -1640,10 +1798,172 @@ module LcpRuby
           end
         end
 
-        # Operator-type compatibility validation
-        validate_operator_type_compatibility(
-          "Presenter '#{presenter.name}'", context, operator, presenter.model, field_name
-        )
+        # Validate value references
+        validate_value_reference("Presenter '#{presenter.name}'", context, condition["value"], presenter.model)
+
+        # Operator-type compatibility (only for direct fields, not dot-paths)
+        unless field_name.to_s.include?(".")
+          validate_operator_type_compatibility(
+            "Presenter '#{presenter.name}'", context, operator, presenter.model, field_name
+          )
+        end
+      end
+
+      # Validates a collection condition (has_many quantifier).
+      def validate_collection_condition(presenter, condition, context, depth: 0)
+        collection_name = condition["collection"].to_s
+        quantifier = condition["quantifier"]&.to_s || "any"
+        inner = condition["condition"]
+
+        model_def = loader.model_definitions[presenter.model]
+        unless model_def
+          @errors << "Presenter '#{presenter.name}', #{context}: model '#{presenter.model}' not found"
+          return
+        end
+
+        assoc = model_def.associations.find { |a| a.name == collection_name }
+        unless assoc
+          @errors << "Presenter '#{presenter.name}', #{context}: " \
+                     "collection '#{collection_name}' is not a defined association"
+          return
+        end
+
+        unless assoc.type.to_s == "has_many"
+          @errors << "Presenter '#{presenter.name}', #{context}: " \
+                     "collection '#{collection_name}' must be a has_many association (got #{assoc.type})"
+        end
+
+        unless %w[any all none].include?(quantifier)
+          @errors << "Presenter '#{presenter.name}', #{context}: " \
+                     "unknown quantifier '#{quantifier}' (expected: any, all, none)"
+        end
+
+        unless inner.is_a?(Hash)
+          @errors << "Presenter '#{presenter.name}', #{context}: " \
+                     "collection condition is missing inner 'condition'"
+          return
+        end
+
+        # Validate inner condition against the target model
+        if assoc.target_model && loader.model_definitions.key?(assoc.target_model)
+          # Create a temporary presenter-like context for the target model
+          target_presenter = ConditionValidationContext.new(presenter.name, assoc.target_model)
+          validate_condition(target_presenter, inner, "#{context} collection('#{collection_name}')", depth: depth + 1)
+        end
+      end
+
+      # Validates a dot-path field by walking the association chain.
+      def validate_dot_path_field(source, context, model_name, field_path)
+        segments = field_path.split(".")
+        current_model = model_name
+
+        segments.each_with_index do |segment, idx|
+          model_def = loader.model_definitions[current_model]
+          return unless model_def # Can't validate further
+
+          if idx < segments.size - 1
+            # Intermediate segment must be an association
+            assoc = model_def.associations.find { |a| a.name == segment }
+            unless assoc
+              @errors << "#{source}, #{context}: dot-path '#{field_path}' — " \
+                         "'#{segment}' is not a defined association on model '#{current_model}'"
+              return
+            end
+
+            if assoc.type.to_s == "has_many"
+              @errors << "#{source}, #{context}: dot-path '#{field_path}' — " \
+                         "'#{segment}' is a has_many association. Use collection conditions instead."
+              return
+            end
+
+            current_model = assoc.target_model
+            return unless current_model
+          else
+            # Leaf segment must be a field (including FKs, userstamps, timestamps, aggregates)
+            valid_fields = model_all_field_names(current_model)
+            has_custom_fields = model_def.custom_fields_enabled?
+            unless valid_fields.include?(segment) || has_custom_fields
+              @errors << "#{source}, #{context}: dot-path '#{field_path}' — " \
+                         "unknown field '#{segment}' on model '#{current_model}'"
+            end
+          end
+        end
+      end
+
+      # Validates a value reference hash (field_ref, current_user, date, service).
+      def validate_value_reference(source, context, value, model_name)
+        return unless value.is_a?(Hash)
+
+        normalized = value.transform_keys(&:to_s)
+
+        if normalized.key?("field_ref")
+          ref = normalized["field_ref"].to_s
+          if ref.include?(".")
+            validate_dot_path_field(source, "#{context} value field_ref", model_name, ref)
+          else
+            valid_fields = model_all_field_names(model_name)
+            model_def = loader.model_definitions[model_name]
+            has_custom_fields = model_def&.custom_fields_enabled?
+            unless valid_fields.include?(ref) || has_custom_fields
+              @errors << "#{source}, #{context}: value field_ref '#{ref}' — unknown field on model '#{model_name}'"
+            end
+          end
+        elsif normalized.key?("lookup")
+          validate_lookup_reference(source, context, normalized, model_name)
+        elsif normalized.key?("date")
+          unless %w[today now].include?(normalized["date"].to_s)
+            @errors << "#{source}, #{context}: unknown date reference '#{normalized['date']}' (expected: today, now)"
+          end
+        elsif normalized.key?("service")
+          service_key = normalized["service"].to_s
+          unless ConditionServiceRegistry.registered?(service_key)
+            @warnings << "#{source}, #{context}: value service '#{service_key}' is not registered"
+          end
+        end
+      end
+
+      def validate_lookup_reference(source, context, normalized, model_name)
+        lookup_model = normalized["lookup"].to_s
+        match = normalized["match"]
+        pick = normalized["pick"]
+
+        unless model_names.include?(lookup_model)
+          @errors << "#{source}, #{context}: lookup references unknown model '#{lookup_model}'"
+          return
+        end
+
+        unless match.is_a?(Hash)
+          @errors << "#{source}, #{context}: lookup 'match' must be a hash"
+          return
+        end
+
+        unless pick.is_a?(String) && pick.present?
+          @errors << "#{source}, #{context}: lookup 'pick' must be a non-empty string"
+          return
+        end
+
+        target_fields = model_all_field_names(lookup_model)
+
+        # Validate pick field exists on target model
+        unless target_fields.include?(pick)
+          @errors << "#{source}, #{context}: lookup 'pick' field '#{pick}' does not exist on model '#{lookup_model}'"
+        end
+
+        # Validate match keys exist on target model and validate match values
+        match.transform_keys(&:to_s).each do |key, val|
+          unless target_fields.include?(key)
+            @errors << "#{source}, #{context}: lookup 'match' key '#{key}' does not exist on model '#{lookup_model}'"
+          end
+
+          next unless val.is_a?(Hash)
+
+          val_normalized = val.transform_keys(&:to_s)
+          if val_normalized.key?("lookup")
+            @errors << "#{source}, #{context}: nested lookup value references are not supported"
+          else
+            validate_value_reference(source, "#{context} lookup match '#{key}'", val, model_name)
+          end
+        end
       end
 
       def validate_operator_type_compatibility(source, context, operator, model_name, field_name)
@@ -1669,6 +1989,12 @@ module LcpRuby
           @errors << "#{source}, #{context}: " \
                      "operator '#{operator}' is not compatible with field '#{field_name}' " \
                      "(type '#{resolved_type}'). Regex operators require: #{TEXT_TYPES.join(', ')}"
+        end
+
+        if STRING_OPERATORS.include?(operator.to_s) && !TEXT_TYPES.include?(resolved_type)
+          @errors << "#{source}, #{context}: " \
+                     "operator '#{operator}' is not compatible with field '#{field_name}' " \
+                     "(type '#{resolved_type}'). String operators require: #{TEXT_TYPES.join(', ')}"
         end
       end
 
@@ -1767,36 +2093,16 @@ module LcpRuby
       end
 
       def validate_permission_record_rules(perm)
-        valid_fields = model_field_names(perm.model)
-        model_def = loader.model_definitions[perm.model]
-        has_custom_fields = model_def&.custom_fields_enabled?
-
         perm.record_rules.each do |rule|
           rule = rule.transform_keys(&:to_s) if rule.is_a?(Hash)
           next unless rule.is_a?(Hash)
 
           condition = rule["condition"]
-          next unless condition.is_a?(Hash)
-
-          condition = condition.transform_keys(&:to_s)
-          field_name = condition["field"]
-          operator = condition["operator"]
-
-          if field_name && valid_fields.any? && !valid_fields.include?(field_name.to_s) && !has_custom_fields
-            @errors << "Permission '#{perm.model}', record rule '#{rule['name']}': " \
-                       "condition references unknown field '#{field_name}'"
+          if condition.is_a?(Hash)
+            # Reuse the recursive condition validation with a presenter-like context
+            perm_presenter = ConditionValidationContext.new(perm.model, perm.model)
+            validate_condition(perm_presenter, condition, "record rule '#{rule['name']}', condition")
           end
-
-          if operator && !VALID_CONDITION_OPERATORS.include?(operator.to_s)
-            @errors << "Permission '#{perm.model}', record rule '#{rule['name']}': " \
-                       "condition uses unknown operator '#{operator}'"
-          end
-
-          # Operator-type compatibility validation
-          validate_operator_type_compatibility(
-            "Permission '#{perm.model}'", "record rule '#{rule['name']}', condition",
-            operator, perm.model, field_name
-          )
 
           # Validate deny_crud values
           effect = rule["effect"]

@@ -25,3 +25,16 @@ permissions:
       scope: all
 
   default_role: viewer
+
+  record_rules:
+    # Owner-only editing: sales_rep can only edit activities they created
+    # Uses NOT + current_user dynamic value reference
+    - name: owner_only_edit
+      condition:
+        not:
+          field: created_by_id
+          operator: eq
+          value: { current_user: id }
+      effect:
+        deny_crud: [update, destroy]
+        except_roles: [admin]

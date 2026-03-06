@@ -35,8 +35,20 @@ permissions:
       readable_by: [admin, sales_rep]
 
   record_rules:
+    # Simple rule: closed deals are read-only
     - name: closed_deals_readonly
       condition: { field: stage, operator: in, value: [closed_won, closed_lost] }
+      effect:
+        deny_crud: [update, destroy]
+        except_roles: [admin]
+
+    # Compound condition (all) + dynamic value reference (field_ref):
+    # High-value deals in negotiation require admin approval to modify
+    - name: high_value_negotiation_locked
+      condition:
+        all:
+          - { field: stage, operator: eq, value: negotiation }
+          - { field: value, operator: gt, value: 50000 }
       effect:
         deny_crud: [update, destroy]
         except_roles: [admin]

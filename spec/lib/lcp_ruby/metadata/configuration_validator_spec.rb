@@ -453,7 +453,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
 
       result = v.validate
       expect(result.errors).to include(
-        a_string_matching(/condition references unknown field 'ghost_field'/)
+        a_string_matching(/references unknown field 'ghost_field'/)
       )
     end
   end
@@ -5460,6 +5460,1086 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       result = v.validate
       item_errors = result.errors.select { |e| e.include?("item_classes") }
       expect(item_errors).to be_empty
+    end
+  end
+
+  # --- model_all_field_names includes FK, userstamp, aggregate, timestamp columns ---
+
+  context "model_all_field_names" do
+    let(:metadata_path) { "" }
+
+    it "includes foreign key columns from belongs_to associations" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: company
+            fields:
+              - { name: name, type: string }
+        YAML
+          model:
+            name: deal
+            fields:
+              - { name: title, type: string }
+            associations:
+              - { type: belongs_to, name: company, target_model: company, foreign_key: company_id }
+        YAML2
+        presenters: [ <<~YAML3 ],
+          presenter:
+            name: deal
+            model: deal
+            slug: deals
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+        YAML3
+        permissions: [ <<~YAML4 ]
+          permissions:
+            model: deal
+            roles:
+              admin:
+                crud: [index, show, create, update]
+                fields: { readable: all, writable: all }
+            default_role: admin
+            record_rules:
+              - name: fk_condition
+                condition: { field: company_id, operator: present }
+                effect:
+                  deny_crud: [destroy]
+        YAML4
+      )
+
+      result = v.validate
+      fk_errors = result.errors.select { |e| e.include?("company_id") }
+      expect(fk_errors).to be_empty
+    end
+
+    it "includes timestamp columns (created_at, updated_at, id)" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+            options:
+              timestamps: true
+        YAML
+        presenters: [ <<~YAML2 ],
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+        YAML2
+        permissions: [ <<~YAML3 ]
+          permissions:
+            model: task
+            roles:
+              admin:
+                crud: [index, show, create, update]
+                fields: { readable: all, writable: all }
+            default_role: admin
+            record_rules:
+              - name: recent_only
+                condition: { field: created_at, operator: gt, value: { date: today } }
+                effect:
+                  deny_crud: [destroy]
+        YAML3
+      )
+
+      result = v.validate
+      ts_errors = result.errors.select { |e| e.include?("created_at") }
+      expect(ts_errors).to be_empty
+    end
+
+    it "includes userstamp columns when userstamps enabled" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+            options:
+              timestamps: true
+              userstamps: true
+              userstamps_store_name: true
+        YAML
+        presenters: [ <<~YAML2 ],
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+        YAML2
+        permissions: [ <<~YAML3 ]
+          permissions:
+            model: task
+            roles:
+              admin:
+                crud: [index, show, create, update]
+                fields: { readable: all, writable: all }
+            default_role: admin
+            record_rules:
+              - name: owner_only
+                condition: { field: created_by_id, operator: eq, value: { current_user: id } }
+                effect:
+                  deny_crud: [update, destroy]
+        YAML3
+      )
+
+      result = v.validate
+      userstamp_errors = result.errors.select { |e| e.include?("created_by_id") }
+      expect(userstamp_errors).to be_empty
+    end
+  end
+
+  # --- Compound condition validation ---
+
+  context "compound condition validation" do
+    let(:metadata_path) { "" }
+
+    it "accepts valid compound 'all' condition in presenter" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+              - { name: priority, type: integer }
+        YAML
+        presenters: [ <<~YAML2 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            index:
+              table_columns:
+                - { field: title }
+              item_classes:
+                - class: "lcp-row-danger"
+                  when:
+                    all:
+                      - { field: status, operator: not_eq, value: done }
+                      - { field: priority, operator: gte, value: 80 }
+        YAML2
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("item_classes") }
+      expect(condition_errors).to be_empty
+    end
+
+    it "accepts valid compound 'any' condition in presenter" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+        YAML
+        presenters: [ <<~YAML2 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            show:
+              layout:
+                - section: "Alert"
+                  visible_when:
+                    any:
+                      - { field: status, operator: eq, value: urgent }
+                      - { field: status, operator: eq, value: critical }
+                  fields:
+                    - { field: title }
+        YAML2
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("visible_when") }
+      expect(condition_errors).to be_empty
+    end
+
+    it "accepts valid 'not' condition" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+        YAML
+        presenters: [ <<~YAML2 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            show:
+              layout:
+                - section: "Active"
+                  visible_when:
+                    not: { field: status, operator: eq, value: archived }
+                  fields:
+                    - { field: title }
+        YAML2
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("visible_when") }
+      expect(condition_errors).to be_empty
+    end
+
+    it "reports error for unknown field inside compound condition" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+        YAML
+        presenters: [ <<~YAML2 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            index:
+              table_columns:
+                - { field: title }
+              item_classes:
+                - class: "lcp-row-danger"
+                  when:
+                    all:
+                      - { field: status, operator: eq, value: active }
+                      - { field: ghost_field, operator: eq, value: x }
+        YAML2
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/item_classes.*references unknown field 'ghost_field'/)
+      )
+    end
+
+    it "reports error for deeply nested unknown field" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+        YAML
+        presenters: [ <<~YAML2 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            show:
+              layout:
+                - section: "Nested"
+                  visible_when:
+                    all:
+                      - not: { field: nonexistent, operator: eq, value: x }
+                  fields:
+                    - { field: title }
+        YAML2
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/references unknown field 'nonexistent'/)
+      )
+    end
+
+    it "accepts compound record_rules in permissions" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+              - { name: priority, type: integer }
+        YAML
+        presenters: [ <<~YAML2 ],
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+        YAML2
+        permissions: [ <<~YAML3 ]
+          permissions:
+            model: task
+            roles:
+              admin:
+                crud: [index, show, create, update, destroy]
+                fields: { readable: all, writable: all }
+              editor:
+                crud: [index, show, create, update]
+                fields: { readable: all, writable: all }
+            default_role: editor
+            record_rules:
+              - name: compound_lock
+                condition:
+                  all:
+                    - { field: status, operator: eq, value: done }
+                    - { field: priority, operator: gte, value: 80 }
+                effect:
+                  deny_crud: [update, destroy]
+                  except_roles: [admin]
+        YAML3
+      )
+
+      result = v.validate
+      rule_errors = result.errors.select { |e| e.include?("record rule") }
+      expect(rule_errors).to be_empty
+    end
+  end
+
+  # --- Collection condition validation ---
+
+  context "collection condition validation" do
+    let(:metadata_path) { "" }
+
+    it "accepts valid collection condition on action" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+            associations:
+              - { type: has_many, name: comments, target_model: comment, foreign_key: task_id }
+        YAML
+          model:
+            name: comment
+            fields:
+              - { name: body, type: text }
+              - { name: approved, type: boolean }
+            associations:
+              - { type: belongs_to, name: task, target_model: task, foreign_key: task_id }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+            actions:
+              single:
+                - name: publish
+                  type: custom
+                  visible_when:
+                    collection: comments
+                    quantifier: any
+                    condition: { field: approved, operator: eq, value: true }
+        YAML3
+      )
+
+      result = v.validate
+      collection_errors = result.errors.select { |e| e.include?("collection") }
+      expect(collection_errors).to be_empty
+    end
+
+    it "reports error for collection referencing unknown association" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+        YAML
+        presenters: [ <<~YAML2 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+            actions:
+              single:
+                - name: publish
+                  type: custom
+                  visible_when:
+                    collection: nonexistent
+                    quantifier: any
+                    condition: { field: status, operator: eq, value: x }
+        YAML2
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/collection 'nonexistent'.*not a defined association/)
+      )
+    end
+
+    it "reports error for unknown field inside collection inner condition" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+            associations:
+              - { type: has_many, name: comments, target_model: comment, foreign_key: task_id }
+        YAML
+          model:
+            name: comment
+            fields:
+              - { name: body, type: text }
+            associations:
+              - { type: belongs_to, name: task, target_model: task, foreign_key: task_id }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+            actions:
+              single:
+                - name: publish
+                  type: custom
+                  visible_when:
+                    collection: comments
+                    quantifier: any
+                    condition: { field: nonexistent_field, operator: eq, value: x }
+        YAML3
+      )
+
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/collection.*references unknown field 'nonexistent_field'/)
+      )
+    end
+
+    it "accepts collection condition nested inside compound condition" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+            associations:
+              - { type: has_many, name: comments, target_model: comment, foreign_key: task_id }
+        YAML
+          model:
+            name: comment
+            fields:
+              - { name: body, type: text }
+              - { name: approved, type: boolean }
+            associations:
+              - { type: belongs_to, name: task, target_model: task, foreign_key: task_id }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+            actions:
+              single:
+                - name: publish
+                  type: custom
+                  visible_when:
+                    all:
+                      - { field: status, operator: not_eq, value: done }
+                      - collection: comments
+                        quantifier: any
+                        condition: { field: approved, operator: eq, value: true }
+        YAML3
+      )
+
+      result = v.validate
+      condition_errors = result.errors.select { |e| e.include?("publish") }
+      expect(condition_errors).to be_empty
+    end
+  end
+
+  # --- Lookup value reference validation ---
+
+  describe "lookup value reference validation" do
+    let(:metadata_path) { "" }
+
+    def lookup_models
+      [ <<~YAML, <<~YAML2 ]
+        model:
+          name: order
+          fields:
+            - { name: amount, type: float }
+            - { name: tax_key, type: string }
+      YAML
+        model:
+          name: tax_limit
+          fields:
+            - { name: key, type: string }
+            - { name: threshold, type: float }
+      YAML2
+    end
+
+    it "accepts valid lookup value reference" do
+      v = with_metadata(
+        models: lookup_models,
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: amount }
+            actions:
+              single:
+                - name: check_tax
+                  type: custom
+                  visible_when:
+                    field: amount
+                    operator: lt
+                    value:
+                      lookup: tax_limit
+                      match: { key: vat_a }
+                      pick: threshold
+        YAML
+      )
+      result = v.validate
+      lookup_errors = result.errors.select { |e| e.include?("lookup") }
+      expect(lookup_errors).to be_empty
+    end
+
+    it "reports error for unknown lookup model" do
+      v = with_metadata(
+        models: lookup_models,
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: amount }
+            actions:
+              single:
+                - name: check_tax
+                  type: custom
+                  visible_when:
+                    field: amount
+                    operator: lt
+                    value:
+                      lookup: nonexistent
+                      match: { key: vat_a }
+                      pick: threshold
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(a_string_matching(/lookup references unknown model 'nonexistent'/))
+    end
+
+    it "reports error for unknown pick field" do
+      v = with_metadata(
+        models: lookup_models,
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: amount }
+            actions:
+              single:
+                - name: check_tax
+                  type: custom
+                  visible_when:
+                    field: amount
+                    operator: lt
+                    value:
+                      lookup: tax_limit
+                      match: { key: vat_a }
+                      pick: nonexistent
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(a_string_matching(/lookup 'pick' field 'nonexistent' does not exist/))
+    end
+
+    it "reports error for unknown match key" do
+      v = with_metadata(
+        models: lookup_models,
+        presenters: [ <<~YAML ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: amount }
+            actions:
+              single:
+                - name: check_tax
+                  type: custom
+                  visible_when:
+                    field: amount
+                    operator: lt
+                    value:
+                      lookup: tax_limit
+                      match: { nonexistent: vat_a }
+                      pick: threshold
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(a_string_matching(/lookup 'match' key 'nonexistent' does not exist/))
+    end
+
+    it "reports error for nested lookup" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: order
+            fields:
+              - { name: amount, type: float }
+        YAML
+          model:
+            name: tax_limit
+            fields:
+              - { name: key, type: string }
+              - { name: threshold, type: float }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: amount }
+            actions:
+              single:
+                - name: check_tax
+                  type: custom
+                  visible_when:
+                    field: amount
+                    operator: lt
+                    value:
+                      lookup: tax_limit
+                      match:
+                        key:
+                          lookup: tax_limit
+                          match: { key: x }
+                          pick: key
+                      pick: threshold
+        YAML3
+      )
+      result = v.validate
+      expect(result.errors).to include(a_string_matching(/nested lookup.*not supported/))
+    end
+
+    it "validates dynamic match values (field_ref)" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: order
+            fields:
+              - { name: amount, type: float }
+              - { name: tax_key, type: string }
+        YAML
+          model:
+            name: tax_limit
+            fields:
+              - { name: key, type: string }
+              - { name: threshold, type: float }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: amount }
+            actions:
+              single:
+                - name: check_tax
+                  type: custom
+                  visible_when:
+                    field: amount
+                    operator: lt
+                    value:
+                      lookup: tax_limit
+                      match:
+                        key:
+                          field_ref: tax_key
+                      pick: threshold
+        YAML3
+      )
+      result = v.validate
+      lookup_errors = result.errors.select { |e| e.include?("lookup") }
+      expect(lookup_errors).to be_empty
+    end
+
+    it "reports error for dynamic match value referencing unknown field" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: order
+            fields:
+              - { name: amount, type: float }
+        YAML
+          model:
+            name: tax_limit
+            fields:
+              - { name: key, type: string }
+              - { name: threshold, type: float }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: amount }
+            actions:
+              single:
+                - name: check_tax
+                  type: custom
+                  visible_when:
+                    field: amount
+                    operator: lt
+                    value:
+                      lookup: tax_limit
+                      match:
+                        key:
+                          field_ref: nonexistent_field
+                      pick: threshold
+        YAML3
+      )
+      result = v.validate
+      expect(result.errors).to include(a_string_matching(/field_ref 'nonexistent_field'.*unknown field/))
+    end
+
+    it "reports error when match is not a hash" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: order
+            fields:
+              - { name: amount, type: float }
+        YAML
+          model:
+            name: tax_limit
+            fields:
+              - { name: key, type: string }
+              - { name: threshold, type: float }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: amount }
+            actions:
+              single:
+                - name: check_tax
+                  type: custom
+                  visible_when:
+                    field: amount
+                    operator: lt
+                    value:
+                      lookup: tax_limit
+                      match: not_a_hash
+                      pick: threshold
+        YAML3
+      )
+      result = v.validate
+      expect(result.errors).to include(a_string_matching(/lookup 'match' must be a hash/))
+    end
+  end
+
+  # --- Eager loading validation for conditions ---
+
+  describe "condition eager loading validation" do
+    let(:metadata_path) { "" }
+
+    it "warns when dot-path field in item_classes is not in includes" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+            associations:
+              - { type: belongs_to, name: company, target_model: company, foreign_key: company_id }
+        YAML
+          model:
+            name: company
+            fields:
+              - { name: name, type: string }
+              - { name: verified, type: boolean }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            index:
+              table_columns: [title]
+              item_classes:
+                - class: verified-row
+                  when: { field: "company.verified", operator: eq, value: true }
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+        YAML3
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/item_classes.*company.*includes/)
+      )
+    end
+
+    it "warns when collection condition is not in includes" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: order
+            fields:
+              - { name: title, type: string }
+            associations:
+              - { type: has_many, name: approvals, target_model: approval, foreign_key: order_id }
+        YAML
+          model:
+            name: approval
+            fields:
+              - { name: status, type: string }
+            associations:
+              - { type: belongs_to, name: order, target_model: order, foreign_key: order_id }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: order
+            model: order
+            slug: orders
+            index:
+              table_columns: [title]
+              item_classes:
+                - class: approved-row
+                  when:
+                    collection: approvals
+                    quantifier: any
+                    condition: { field: status, operator: eq, value: approved }
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+        YAML3
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/item_classes.*approvals.*includes/)
+      )
+    end
+
+    it "warns when value field_ref dot-path is not in includes" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: task
+            fields:
+              - { name: amount, type: float }
+            associations:
+              - { type: belongs_to, name: company, target_model: company, foreign_key: company_id }
+        YAML
+          model:
+            name: company
+            fields:
+              - { name: credit_limit, type: float }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            index:
+              table_columns: [amount]
+            actions:
+              single:
+                - name: approve
+                  type: custom
+                  visible_when:
+                    field: amount
+                    operator: lt
+                    value:
+                      field_ref: company.credit_limit
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: amount }
+        YAML3
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/action.*approve.*company.*includes/)
+      )
+    end
+
+    it "does not warn when includes cover condition refs" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+            associations:
+              - { type: belongs_to, name: company, target_model: company, foreign_key: company_id }
+        YAML
+          model:
+            name: company
+            fields:
+              - { name: verified, type: boolean }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            index:
+              table_columns: [title]
+              includes: [company]
+              item_classes:
+                - class: verified-row
+                  when: { field: "company.verified", operator: eq, value: true }
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+        YAML3
+      )
+      result = v.validate
+      eager_warnings = result.warnings.select { |w| w.include?("includes") && w.include?("company") }
+      expect(eager_warnings).to be_empty
+    end
+
+    it "does not warn for simple field conditions (no association)" do
+      v = with_metadata(
+        models: [ <<~YAML ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+        YAML
+        presenters: [ <<~YAML2 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            index:
+              table_columns: [title]
+              item_classes:
+                - class: active-row
+                  when: { field: status, operator: eq, value: active }
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - { field: title }
+        YAML2
+      )
+      result = v.validate
+      eager_warnings = result.warnings.select { |w| w.include?("includes") }
+      expect(eager_warnings).to be_empty
+    end
+
+    it "does not warn for show/form conditions (only index)" do
+      v = with_metadata(
+        models: [ <<~YAML, <<~YAML2 ],
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+            associations:
+              - { type: belongs_to, name: company, target_model: company, foreign_key: company_id }
+        YAML
+          model:
+            name: company
+            fields:
+              - { name: verified, type: boolean }
+        YAML2
+        presenters: [ <<~YAML3 ]
+          presenter:
+            name: task
+            model: task
+            slug: tasks
+            index:
+              table_columns: [title]
+            form:
+              sections:
+                - title: "Details"
+                  fields:
+                    - field: title
+                      visible_when: { field: "company.verified", operator: eq, value: true }
+        YAML3
+      )
+      result = v.validate
+      eager_warnings = result.warnings.select { |w| w.include?("N+1") || (w.include?("includes") && w.include?("company.verified")) }
+      expect(eager_warnings).to be_empty
     end
   end
 end

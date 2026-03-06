@@ -25,7 +25,7 @@ module LcpRuby
                   :current_view_group, :sibling_views,
                   :impersonating?, :impersonated_role, :available_roles_for_impersonation,
                   :breadcrumbs, :compute_list_version_from_records,
-                  :filter_metadata
+                  :filter_metadata, :condition_context
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
     rescue_from LcpRuby::MetadataError, with: :metadata_error
@@ -135,6 +135,10 @@ module LcpRuby
 
     def current_model_definition
       @model_definition
+    end
+
+    def condition_context
+      @condition_context ||= { current_user: current_user }
     end
 
     def current_evaluator

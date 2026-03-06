@@ -1,0 +1,26 @@
+model:
+  name: comment
+  label: "Comment"
+  label_plural: "Comments"
+
+  fields:
+    - name: body
+      type: text
+
+    - name: approved
+      type: boolean
+      default: false
+
+    - name: author_name
+      type: string
+
+  associations:
+    - type: belongs_to
+      name: task
+      target_model: task
+      foreign_key: task_id
+      required: true
+
+  options:
+    timestamps: true
+    label_method: body

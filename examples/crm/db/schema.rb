@@ -17,8 +17,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
-    t.index [ "blob_id" ], name: "index_active_storage_attachments_on_blob_id"
-    t.index [ "record_type", "record_id", "name", "blob_id" ], name: "index_active_storage_attachments_uniqueness", unique: true
+    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
+    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", force: :cascade do |t|
@@ -30,13 +30,42 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.bigint "byte_size", null: false
     t.string "checksum"
     t.datetime "created_at", null: false
-    t.index [ "key" ], name: "index_active_storage_blobs_on_key", unique: true
+    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
   end
 
   create_table "active_storage_variant_records", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
-    t.index [ "blob_id", "variation_digest" ], name: "index_active_storage_variant_records_uniqueness", unique: true
+    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+  end
+
+  create_table "activities", force: :cascade do |t|
+    t.string "subject", limit: 255, null: false
+    t.string "activity_type", null: false
+    t.text "description"
+    t.datetime "scheduled_at"
+    t.boolean "completed"
+    t.datetime "completed_at"
+    t.text "outcome"
+    t.bigint "company_id", null: false
+    t.bigint "contact_id"
+    t.bigint "deal_id"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.string "created_by_name"
+    t.string "updated_by_name"
+    t.datetime "discarded_at"
+    t.string "discarded_by_type"
+    t.bigint "discarded_by_id"
+    t.index ["company_id"], name: "index_activities_on_company_id"
+    t.index ["contact_id"], name: "index_activities_on_contact_id"
+    t.index ["created_by_id"], name: "index_activities_on_created_by_id"
+    t.index ["deal_id"], name: "index_activities_on_deal_id"
+    t.index ["discarded_at"], name: "index_activities_on_discarded_at"
+    t.index ["discarded_by_type", "discarded_by_id"], name: "index_activities_on_discarded_by_type_and_discarded_by_id"
+    t.index ["updated_by_id"], name: "index_activities_on_updated_by_id"
   end
 
   create_table "cities", force: :cascade do |t|
@@ -45,7 +74,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.bigint "region_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index [ "region_id" ], name: "index_cities_on_region_id"
+    t.index ["region_id"], name: "index_cities_on_region_id"
   end
 
   create_table "companies", force: :cascade do |t|
@@ -61,9 +90,14 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.json "custom_data", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index [ "city_id" ], name: "index_companies_on_city_id"
-    t.index [ "country_id" ], name: "index_companies_on_country_id"
-    t.index [ "region_id" ], name: "index_companies_on_region_id"
+    t.datetime "discarded_at"
+    t.string "discarded_by_type"
+    t.bigint "discarded_by_id"
+    t.index ["city_id"], name: "index_companies_on_city_id"
+    t.index ["country_id"], name: "index_companies_on_country_id"
+    t.index ["discarded_at"], name: "index_companies_on_discarded_at"
+    t.index ["discarded_by_type", "discarded_by_id"], name: "index_companies_on_discarded_by_type_and_discarded_by_id"
+    t.index ["region_id"], name: "index_companies_on_region_id"
   end
 
   create_table "contacts", force: :cascade do |t|
@@ -78,7 +112,18 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.json "custom_data", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index [ "company_id" ], name: "index_contacts_on_company_id"
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.string "created_by_name"
+    t.string "updated_by_name"
+    t.datetime "discarded_at"
+    t.string "discarded_by_type"
+    t.bigint "discarded_by_id"
+    t.index ["company_id"], name: "index_contacts_on_company_id"
+    t.index ["created_by_id"], name: "index_contacts_on_created_by_id"
+    t.index ["discarded_at"], name: "index_contacts_on_discarded_at"
+    t.index ["discarded_by_type", "discarded_by_id"], name: "index_contacts_on_discarded_by_type_and_discarded_by_id"
+    t.index ["updated_by_id"], name: "index_contacts_on_updated_by_id"
   end
 
   create_table "countries", force: :cascade do |t|
@@ -113,6 +158,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.boolean "show_in_show", default: true
     t.boolean "sortable"
     t.boolean "searchable"
+    t.boolean "filterable"
     t.string "input_type"
     t.string "renderer"
     t.json "renderer_options"
@@ -129,7 +175,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.bigint "parent_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index [ "parent_id" ], name: "index_deal_categories_on_parent_id"
+    t.index ["parent_id"], name: "index_deal_categories_on_parent_id"
   end
 
   create_table "deals", force: :cascade do |t|
@@ -145,9 +191,43 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.bigint "deal_category_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index [ "company_id" ], name: "index_deals_on_company_id"
-    t.index [ "contact_id" ], name: "index_deals_on_contact_id"
-    t.index [ "deal_category_id" ], name: "index_deals_on_deal_category_id"
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.string "created_by_name"
+    t.string "updated_by_name"
+    t.datetime "discarded_at"
+    t.string "discarded_by_type"
+    t.bigint "discarded_by_id"
+    t.index ["company_id"], name: "index_deals_on_company_id"
+    t.index ["contact_id"], name: "index_deals_on_contact_id"
+    t.index ["created_by_id"], name: "index_deals_on_created_by_id"
+    t.index ["deal_category_id"], name: "index_deals_on_deal_category_id"
+    t.index ["discarded_at"], name: "index_deals_on_discarded_at"
+    t.index ["discarded_by_type", "discarded_by_id"], name: "index_deals_on_discarded_by_type_and_discarded_by_id"
+    t.index ["updated_by_id"], name: "index_deals_on_updated_by_id"
+  end
+
+  create_table "lcp_saved_filters", force: :cascade do |t|
+    t.string "name", limit: 100, null: false
+    t.text "description"
+    t.string "target_presenter", limit: 100, null: false
+    t.json "condition_tree", null: false
+    t.text "ql_text"
+    t.string "visibility", default: "personal"
+    t.integer "owner_id", null: false
+    t.string "target_role", limit: 50
+    t.string "target_group", limit: 100
+    t.integer "position"
+    t.string "icon", limit: 50
+    t.string "color", limit: 30
+    t.boolean "pinned"
+    t.boolean "default_filter"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.bigint "created_by_id"
+    t.bigint "updated_by_id"
+    t.index ["created_by_id"], name: "index_lcp_saved_filters_on_created_by_id"
+    t.index ["updated_by_id"], name: "index_lcp_saved_filters_on_updated_by_id"
   end
 
   create_table "regions", force: :cascade do |t|
@@ -155,7 +235,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.bigint "country_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index [ "country_id" ], name: "index_regions_on_country_id"
+    t.index ["country_id"], name: "index_regions_on_country_id"
   end
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"

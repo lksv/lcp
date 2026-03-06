@@ -13,6 +13,9 @@ The resolver scans presenter configuration based on the current context:
 | `:index` | `table_columns` | FK column matching a `belongs_to` association | `company_id` column detects `:company` |
 | `:index` | `table_columns` | Dot-path field referencing an association | `company.name` column detects `:company` |
 | `:index` | `table_columns` | Template field with dot-path references | `{company.name}: {title}` detects `:company` |
+| `:index` | `item_classes` | Dot-path field in condition | `field: "company.verified"` detects `:company` |
+| `:index` | `item_classes` | Collection condition | `collection: approvals` detects `:approvals` |
+| `:index` | actions | Dot-path in `visible_when`/`disable_when` value ref | `field_ref: "company.credit_limit"` detects `:company` |
 | `:show` | `layout` | Section with `type: association_list` | `association: contacts` detects `:contacts` |
 | `:show` | `layout` | Dot-path field in section fields | `company.name` field detects `:company` |
 | `:show` | `layout` | Template field in section fields | `{company.name}` detects `:company` |

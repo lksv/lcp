@@ -40,6 +40,7 @@ require "lcp_ruby/types/transforms/normalize_phone"
 require "lcp_ruby/types/built_in_types"
 
 # DSL
+require "lcp_ruby/dsl/condition_builder"
 require "lcp_ruby/dsl/field_builder"
 require "lcp_ruby/dsl/type_builder"
 require "lcp_ruby/dsl/model_builder"

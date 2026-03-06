@@ -1,0 +1,42 @@
+model:
+  name: task
+  label: "Task"
+  label_plural: "Tasks"
+
+  fields:
+    - name: title
+      type: string
+      column_options: { "null": false }
+      validations:
+        - type: presence
+
+    - name: status
+      type: enum
+      enum_values:
+        - { value: open, label: "Open" }
+        - { value: in_progress, label: "In Progress" }
+        - { value: done, label: "Done" }
+      default: open
+
+    - name: priority
+      type: integer
+      default: 0
+
+    - name: due_date
+      type: date
+
+  associations:
+    - type: belongs_to
+      name: project
+      target_model: project
+      foreign_key: project_id
+      required: true
+    - type: has_many
+      name: comments
+      target_model: comment
+      foreign_key: task_id
+      dependent: destroy
+
+  options:
+    timestamps: true
+    label_method: title

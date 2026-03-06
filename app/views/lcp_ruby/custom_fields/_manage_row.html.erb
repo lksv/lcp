@@ -32,7 +32,7 @@
     <%# Render remaining sections with their conditions %>
     <% sections.drop(1).each do |section| %>
       <%
-        section_visible = section["visible_when"].is_a?(Hash) ? condition_met?(defn, section["visible_when"]) : true
+        section_visible = condition_visible?(section, defn)
         section_cond_attrs = conditional_data(section)
         section_style_parts = []
         section_style_parts << "display: none" unless section_visible
@@ -51,7 +51,7 @@
             <% next unless field_def %>
 
             <%
-              field_visible = field_config["visible_when"].is_a?(Hash) ? condition_met?(defn, field_config["visible_when"]) : true
+              field_visible = condition_visible?(field_config, defn)
               field_cond_attrs = conditional_data(field_config)
               field_style_parts = []
               field_style_parts << "display: none" unless field_visible

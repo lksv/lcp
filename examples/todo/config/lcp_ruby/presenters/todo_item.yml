@@ -10,6 +10,7 @@ presenter:
     per_page: 50
     row_click: show
     reorderable: true
+    includes: [todo_list]
     table_columns:
       - { field: title, width: "30%", link_to: show, sortable: true }
       - { field: "todo_list.title", label: "List", width: "15%", sortable: true }
@@ -17,6 +18,14 @@ presenter:
       - { field: start_date, width: "15%", sortable: true }
       - { field: due_date, width: "15%", renderer: relative_date, sortable: true }
       - { field: position, width: "5%", sortable: true }
+    item_classes:
+      - class: "lcp-row-danger"
+        when:
+          all:
+            - { field: completed, operator: eq, value: false }
+            - { field: due_date, operator: lt, value: { date: today } }
+      - class: "lcp-row-muted"
+        when: { field: completed, operator: eq, value: true }
 
   show:
     layout:
@@ -30,6 +39,8 @@ presenter:
           - { field: completed, renderer: boolean_icon }
           - { field: start_date }
           - { field: due_date }
+          - field: "todo_list.title"
+            label: "List"
           - { field: attachment, renderer: attachment_link }
 
   form:

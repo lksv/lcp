@@ -107,6 +107,35 @@ table_columns:
     options: { limit: 3 }
 ```
 
+### Conditions Referencing Associations
+
+When `item_classes` or action `visible_when`/`disable_when` conditions reference associations via dot-paths or collection quantifiers, those associations need eager loading too. The `DependencyCollector` auto-detects these at runtime, but the `ConfigurationValidator` emits warnings recommending explicit `includes` for clarity:
+
+```yaml
+index:
+  includes: [company, approvals]    # Explicit: covers condition dependencies
+  table_columns:
+    - { field: title }
+  item_classes:
+    - class: verified-row
+      when: { field: "company.verified", operator: eq, value: true }
+    - class: approved-row
+      when:
+        collection: approvals
+        quantifier: any
+        condition: { field: status, operator: eq, value: approved }
+```
+
+Without explicit `includes`, the engine auto-includes them but the validator warns:
+
+```
+Presenter 'tasks' index: item_classes[0] references 'company' but index.includes
+does not contain 'company'. Add 'includes: [company]' to the index configuration
+to avoid N+1 queries.
+```
+
+**Note:** This validation applies only to index-context conditions (`item_classes`, action `visible_when`/`disable_when`). Show and form conditions evaluate against single records where lazy loading is acceptable.
+
 ## Enabling strict_loading for Development
 
 Add to your initializer to catch any remaining lazy loads:

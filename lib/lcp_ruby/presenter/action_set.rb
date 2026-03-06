@@ -7,9 +7,10 @@ module LcpRuby
 
       attr_reader :presenter_definition, :permission_evaluator
 
-      def initialize(presenter_definition, permission_evaluator)
+      def initialize(presenter_definition, permission_evaluator, context: {})
         @presenter_definition = presenter_definition
         @permission_evaluator = permission_evaluator
+        @context = context
       end
 
       def collection_actions
@@ -78,14 +79,14 @@ module LcpRuby
         visible_when = action["visible_when"]
         return true unless visible_when
 
-        ConditionEvaluator.evaluate_any(record, visible_when)
+        ConditionEvaluator.evaluate_any(record, visible_when, context: @context)
       end
 
       def action_disabled_for_record?(action, record)
         disable_when = action["disable_when"]
         return false unless disable_when
 
-        ConditionEvaluator.evaluate_any(record, disable_when)
+        ConditionEvaluator.evaluate_any(record, disable_when, context: @context)
       end
     end
   end

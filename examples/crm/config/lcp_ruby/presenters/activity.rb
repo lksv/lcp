@@ -22,6 +22,16 @@ define_presenter :activity do
     column :completed, width: "8%", renderer: :boolean_icon
 
     item_class "lcp-row-muted", when: { field: :completed, operator: :eq, value: true }
+
+    # Compound condition + date reference: highlight overdue pending activities
+    item_class "lcp-row-danger", when: {
+      all: [
+        { field: :completed, operator: :eq, value: false },
+        { field: :scheduled_at, operator: :lt, value: { date: :now } }
+      ]
+    }
+
+    includes :company, :contact, :deal
   end
 
   show do

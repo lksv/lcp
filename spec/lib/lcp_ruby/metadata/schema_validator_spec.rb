@@ -334,6 +334,114 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
       })
       expect(validator.validate_permission(perm)).to be_empty
     end
+
+    it "accepts compound 'all' condition in record_rule" do
+      perm = build_permission(
+        record_rules: [ {
+          name: "compound_lock",
+          condition: {
+            all: [
+              { field: "status", operator: "eq", value: "done" },
+              { field: "status", operator: "not_eq", value: "archived" }
+            ]
+          },
+          effect: { deny_crud: %w[update destroy], except_roles: %w[admin] }
+        } ]
+      )
+      expect(validator.validate_permission(perm)).to be_empty
+    end
+
+    it "accepts compound 'any' condition in record_rule" do
+      perm = build_permission(
+        record_rules: [ {
+          name: "any_lock",
+          condition: {
+            any: [
+              { field: "status", operator: "eq", value: "archived" },
+              { field: "status", operator: "eq", value: "deleted" }
+            ]
+          },
+          effect: { deny_crud: %w[update] }
+        } ]
+      )
+      expect(validator.validate_permission(perm)).to be_empty
+    end
+
+    it "accepts 'not' condition in record_rule" do
+      perm = build_permission(
+        record_rules: [ {
+          name: "not_owner",
+          condition: {
+            not: { field: "status", operator: "eq", value: "active" }
+          },
+          effect: { deny_crud: %w[destroy] }
+        } ]
+      )
+      expect(validator.validate_permission(perm)).to be_empty
+    end
+
+    it "accepts collection condition in record_rule" do
+      perm = build_permission(
+        record_rules: [ {
+          name: "has_approvals",
+          condition: {
+            collection: "approvals",
+            quantifier: "any",
+            condition: { field: "status", operator: "eq", value: "approved" }
+          },
+          effect: { deny_crud: %w[destroy] }
+        } ]
+      )
+      expect(validator.validate_permission(perm)).to be_empty
+    end
+
+    it "accepts dynamic value references in record_rule condition" do
+      perm = build_permission(
+        record_rules: [ {
+          name: "owner_only",
+          condition: {
+            not: {
+              field: "created_by_id",
+              operator: "eq",
+              value: { current_user: "id" }
+            }
+          },
+          effect: { deny_crud: %w[update destroy] }
+        } ]
+      )
+      expect(validator.validate_permission(perm)).to be_empty
+    end
+
+    it "accepts date dynamic value in record_rule condition" do
+      perm = build_permission(
+        record_rules: [ {
+          name: "overdue_lock",
+          condition: {
+            all: [
+              { field: "status", operator: "not_eq", value: "done" },
+              { field: "status", operator: "eq", value: "active" }
+            ]
+          },
+          effect: { deny_crud: %w[destroy] }
+        } ]
+      )
+      expect(validator.validate_permission(perm)).to be_empty
+    end
+
+    it "accepts lookup value reference in record_rule condition" do
+      perm = build_permission(
+        record_rules: [ {
+          name: "tax_check",
+          condition: {
+            field: "amount",
+            operator: "lt",
+            value: { lookup: "tax_limit", match: { key: "vat_a" }, pick: "threshold" }
+          },
+          effect: { deny_crud: %w[update] }
+        } ]
+      )
+      expect(validator.validate_permission(perm)).to be_empty
+    end
   end
 
   # === View group schema ===
