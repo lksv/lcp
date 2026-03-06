@@ -1,7 +1,13 @@
 # Workflow & Approval Process — Design Document
 
-**Status:** Proposed
+**Status:** Outdated — superseded by [Workflow State Machine](workflow_state_machine.md) and [Workflow Approvals](workflow_approvals.md)
 **Date:** 2026-02-22
+
+> **Note:** This document has been split into two separate feature specifications:
+> - **[Workflow State Machine](workflow_state_machine.md)** — state machine core (states, transitions, guards, audit, three definition sources)
+> - **[Workflow Approvals](workflow_approvals.md)** — approval engine built on top of the state machine (steps, strategies, delegation, rework)
+>
+> The original document below is preserved for reference but should not be used for implementation.
 
 ## Overview
 

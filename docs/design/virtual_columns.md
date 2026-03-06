@@ -45,11 +45,11 @@ All virtual columns are expressible with just three keys beyond the existing `fu
 
 | Key | Purpose | Required |
 |-----|---------|----------|
-| `sql` | Any SQL expression projected into SELECT | Yes (unless `function`+`association` or `service`) |
+| `expression` | SQL expression projected into SELECT (aliased as the column name) | Yes (unless `function`+`association` or `service`) |
 | `join` | SQL JOIN clause added to the outer scope | No |
 | `group` | Whether GROUP BY parent_table.id is needed | No (default: false) |
 
-The existing `function` + `association` + `where` declarative syntax is sugar that generates a correlated subquery internally. The `service` key delegates to a Ruby class. Everything else uses `sql` (optionally with `join` and `group`).
+The existing `function` + `association` + `where` declarative syntax is sugar that generates a correlated subquery internally. The `service` key delegates to a Ruby class. Everything else uses `expression` (optionally with `join` and `group`).
 
 ### YAML syntax
 
@@ -71,37 +71,37 @@ virtual_columns:
     source_field: amount
     default: 0
 
-  # EXISTS check — raw sql, no special subtype needed
+  # EXISTS check — raw expression, no special subtype needed
   has_approved_approval:
-    sql: "EXISTS(SELECT 1 FROM approvals WHERE approvals.order_id = %{table}.id AND approvals.status = 'approved')"
+    expression: "EXISTS(SELECT 1 FROM approvals WHERE approvals.order_id = %{table}.id AND approvals.status = 'approved')"
     type: boolean
 
   # Derived boolean — inline expression on own table
   is_overdue:
-    sql: "(%{table}.due_date < CURRENT_DATE AND %{table}.status != 'done')"
+    expression: "(%{table}.due_date < CURRENT_DATE AND %{table}.status != 'done')"
     type: boolean
 
   # JOIN-based display column
   company_display:
-    sql: "companies.name || ' (' || companies.country || ')'"
+    expression: "companies.name || ' (' || companies.country || ')'"
     join: "LEFT JOIN companies ON companies.id = %{table}.company_id"
     type: string
 
   # JOIN-based aggregate (needs GROUP BY)
   total_line_value:
-    sql: "COALESCE(SUM(line_items.quantity * line_items.unit_price), 0)"
+    expression: "COALESCE(SUM(line_items.quantity * line_items.unit_price), 0)"
     join: "LEFT JOIN line_items ON line_items.order_id = %{table}.id"
     group: true
     type: decimal
 
   # Window function
   category_rank:
-    sql: "ROW_NUMBER() OVER(PARTITION BY %{table}.category_id ORDER BY %{table}.created_at DESC)"
+    expression: "ROW_NUMBER() OVER(PARTITION BY %{table}.category_id ORDER BY %{table}.created_at DESC)"
     type: integer
 
   # LATERAL JOIN (PostgreSQL) — top-N per group
   latest_comment_body:
-    sql: "latest_comment.body"
+    expression: "latest_comment.body"
     join: "LEFT JOIN LATERAL (SELECT c.body FROM comments c WHERE c.order_id = %{table}.id ORDER BY c.created_at DESC LIMIT 1) AS latest_comment ON true"
     type: string
 
@@ -112,7 +112,7 @@ virtual_columns:
 
   # Complex correlated subquery with internal JOIN
   weighted_approval_score:
-    sql: "(SELECT SUM(a.weight * al.priority) FROM approvals a JOIN approval_levels al ON al.id = a.level_id WHERE a.order_id = %{table}.id)"
+    expression: "(SELECT SUM(a.weight * al.priority) FROM approvals a JOIN approval_levels al ON al.id = a.level_id WHERE a.order_id = %{table}.id)"
     type: float
 ```
 
@@ -125,17 +125,17 @@ define_model :order do
 
   # New unified syntax
   virtual_column :has_approved_approval, type: :boolean,
-    sql: "EXISTS(SELECT 1 FROM approvals WHERE approvals.order_id = %{table}.id AND approvals.status = 'approved')"
+    expression: "EXISTS(SELECT 1 FROM approvals WHERE approvals.order_id = %{table}.id AND approvals.status = 'approved')"
 
   virtual_column :is_overdue, type: :boolean,
-    sql: "(%{table}.due_date < CURRENT_DATE AND %{table}.status != 'done')"
+    expression: "(%{table}.due_date < CURRENT_DATE AND %{table}.status != 'done')"
 
   virtual_column :company_display, type: :string,
-    sql: "companies.name || ' (' || companies.country || ')'",
+    expression: "companies.name || ' (' || companies.country || ')'",
     join: "LEFT JOIN companies ON companies.id = %{table}.company_id"
 
   virtual_column :category_rank, type: :integer,
-    sql: "ROW_NUMBER() OVER(PARTITION BY %{table}.category_id ORDER BY %{table}.created_at DESC)"
+    expression: "ROW_NUMBER() OVER(PARTITION BY %{table}.category_id ORDER BY %{table}.created_at DESC)"
 end
 ```
 
@@ -147,21 +147,32 @@ Virtual columns are defined on the model but **not included in queries by defaul
 virtual_columns:
   # Always included when any presenter queries this model
   is_overdue:
-    sql: "(%{table}.due_date < CURRENT_DATE AND %{table}.status != 'done')"
+    expression: "(%{table}.due_date < CURRENT_DATE AND %{table}.status != 'done')"
     type: boolean
     auto_include: true
 
   # Only included when a presenter explicitly references it
   weighted_approval_score:
-    sql: "(SELECT SUM(...) FROM ...)"
+    expression: "(SELECT SUM(...) FROM ...)"
     type: float
     # auto_include: false (default)
 ```
 
-The presenter adds virtual columns to the scope in two ways:
+The controller collects virtual columns to include from multiple sources:
 
-1. **Implicit** — referencing the virtual column name in `table_columns`, `tile_fields`, `item_classes.when`, or `layout` fields. The controller detects these references (same as it detects aggregate names today) and includes them in the query.
-2. **Explicit** — listing additional virtual columns via `virtual_columns` key on the presenter's index/show config:
+**Auto-detected (implicit)** — the controller scans YAML metadata for virtual column name references in:
+
+| Source | Example |
+|--------|---------|
+| Presenter `table_columns` | `{ field: is_overdue }` |
+| Presenter `tile_fields` | `{ field: is_overdue }` |
+| Presenter `item_classes[].when` | `{ field: is_overdue, operator: eq, value: "true" }` |
+| Presenter `layout` (show page fields) | field reference in section |
+| Permission `scope` | `scope: { is_overdue: true }` |
+| Permission `record_rules[].when` | `{ field: is_overdue, operator: eq, value: "true" }` |
+| Ransack sort params (runtime) | `?q[s]=is_overdue+asc` |
+
+**Explicit** — listing additional virtual columns via the `virtual_columns` key. This is needed when Ruby code (custom actions, condition services, event handlers) accesses a virtual column that can't be auto-detected from YAML:
 
 ```yaml
 # presenters/orders.yml
@@ -170,33 +181,44 @@ index:
   table_columns:
     - { field: title }
     - { field: is_overdue }   # auto-detected from table_columns
+
+# Actions can also declare virtual column dependencies
+actions:
+  - name: escalate
+    type: custom
+    virtual_columns: [health_score]  # action handler reads health_score from record
+
+# Scopes can declare dependencies too
+scopes:
+  - name: critical
+    virtual_columns: [health_score]  # scope filter uses health_score
 ```
 
-Virtual columns with `auto_include: true` are always added to the scope regardless of presenter configuration. Use this sparingly — only for columns needed across all presenters (e.g., a universal status flag used in permission scopes).
+**Always included** — virtual columns with `auto_include: true` are added to every query for that model, regardless of presenter configuration. Use this sparingly — only for columns needed across all presenters (e.g., a universal status flag used in permission scopes).
 
 ### Window Functions
 
-Window functions work naturally with the `sql` key — no special subtype needed:
+Window functions work naturally with the `expression` key — no special subtype needed:
 
 ```yaml
 virtual_columns:
   # Rank within category
   category_rank:
-    sql: "ROW_NUMBER() OVER(PARTITION BY %{table}.category_id ORDER BY %{table}.created_at DESC)"
+    expression: "ROW_NUMBER() OVER(PARTITION BY %{table}.category_id ORDER BY %{table}.created_at DESC)"
     type: integer
 
   # Running total
   cumulative_revenue:
-    sql: "SUM(%{table}.amount) OVER(ORDER BY %{table}.created_at ROWS UNBOUNDED PRECEDING)"
+    expression: "SUM(%{table}.amount) OVER(ORDER BY %{table}.created_at ROWS UNBOUNDED PRECEDING)"
     type: decimal
 
   # Percentile rank
   value_percentile:
-    sql: "PERCENT_RANK() OVER(ORDER BY %{table}.value)"
+    expression: "PERCENT_RANK() OVER(ORDER BY %{table}.value)"
     type: float
 ```
 
-Window functions don't need `join` or `group` — they operate on the result set. They interact with pagination: the window is computed over the **paginated** result set (after WHERE, before LIMIT), which is usually what the user wants (rank within the visible page). For rank within the entire dataset, the configurator must use a correlated subquery instead.
+Window functions don't need `join` or `group` — they operate on the result set. They interact with pagination: window functions are computed over the **full** result set (after WHERE, before LIMIT/OFFSET). This means `ROW_NUMBER()` produces globally correct ranks — page 2 shows ranks 26–50, not 1–25. This is usually what the user wants (rank within the entire dataset). For rank within only the visible page, the configurator would need a wrapping subquery, but this is rarely useful.
 
 ### LATERAL JOIN (PostgreSQL)
 
@@ -206,13 +228,13 @@ PostgreSQL's `LATERAL` keyword enables powerful per-row subqueries that can refe
 virtual_columns:
   # Latest comment body for each order
   latest_comment_body:
-    sql: "lc.body"
+    expression: "lc.body"
     join: "LEFT JOIN LATERAL (SELECT c.body FROM comments c WHERE c.order_id = %{table}.id ORDER BY c.created_at DESC LIMIT 1) AS lc ON true"
     type: string
 
   # Most recent approval with multiple fields
   last_approver_name:
-    sql: "la.approver_name"
+    expression: "la.approver_name"
     join: "LEFT JOIN LATERAL (SELECT a.approver_name FROM approvals a WHERE a.order_id = %{table}.id ORDER BY a.created_at DESC LIMIT 1) AS la ON true"
     type: string
 ```
@@ -228,7 +250,7 @@ When multiple virtual columns reference the same child record (e.g., both body a
 ```yaml
 virtual_columns:
   latest_comment_body:
-    sql: "lc.body"
+    expression: "lc.body"
     join: &latest_comment_join >-
       LEFT JOIN LATERAL (
         SELECT c.body, c.title, c.author_name FROM comments c
@@ -238,12 +260,12 @@ virtual_columns:
     type: string
 
   latest_comment_title:
-    sql: "lc.title"
+    expression: "lc.title"
     join: *latest_comment_join
     type: string
 
   latest_comment_author:
-    sql: "lc.author_name"
+    expression: "lc.author_name"
     join: *latest_comment_join
     type: string
 ```
@@ -259,7 +281,7 @@ Virtual columns are **scalar** — one value per parent row. A LATERAL JOIN with
 ```yaml
 virtual_columns:
   latest_2_comments:
-    sql: >-
+    expression: >-
       (SELECT json_agg(sub ORDER BY sub.created_at DESC)
        FROM (SELECT c.body, c.title, c.created_at
              FROM comments c
@@ -275,7 +297,7 @@ Result: `[{"body": "Great!", "title": "Review", "created_at": "2026-03-05"}, {"b
 ```yaml
 virtual_columns:
   latest_comment_bodies:
-    sql: "ARRAY(SELECT c.body FROM comments c WHERE c.order_id = %{table}.id ORDER BY c.created_at DESC LIMIT 2)"
+    expression: "ARRAY(SELECT c.body FROM comments c WHERE c.order_id = %{table}.id ORDER BY c.created_at DESC LIMIT 2)"
     type: string
 ```
 
@@ -286,11 +308,11 @@ Result: `{"First comment","Second comment"}` — simpler, but limited to one fie
 ```yaml
 virtual_columns:
   latest_comment_1:
-    sql: "(SELECT c.body FROM comments c WHERE c.order_id = %{table}.id ORDER BY c.created_at DESC LIMIT 1 OFFSET 0)"
+    expression: "(SELECT c.body FROM comments c WHERE c.order_id = %{table}.id ORDER BY c.created_at DESC LIMIT 1 OFFSET 0)"
     type: string
 
   latest_comment_2:
-    sql: "(SELECT c.body FROM comments c WHERE c.order_id = %{table}.id ORDER BY c.created_at DESC LIMIT 1 OFFSET 1)"
+    expression: "(SELECT c.body FROM comments c WHERE c.order_id = %{table}.id ORDER BY c.created_at DESC LIMIT 1 OFFSET 1)"
     type: string
 ```
 
@@ -331,6 +353,32 @@ The `service` approach is the recommended path for:
 - Complex logic that benefits from Ruby (conditionals, external lookups)
 - Columns where the SQL expression depends on runtime context (e.g., current user's timezone)
 
+### Type Coercion
+
+The `type:` key determines how the raw database value is cast on the Ruby side. ActiveRecord returns raw DB types for SELECT aliases — e.g., SQLite returns `0`/`1` for booleans, PostgreSQL returns `true`/`false`. The builder registers an `attribute` declaration on the model class for each virtual column, using ActiveRecord's type system:
+
+```ruby
+# Generated at boot for each virtual column
+model_class.attribute :is_overdue, :boolean
+model_class.attribute :total_line_value, :decimal
+model_class.attribute :category_rank, :integer
+```
+
+This ensures consistent Ruby types regardless of the database adapter. The mapping from `type:` values to AR types:
+
+| Virtual column `type` | AR attribute type | Ruby class |
+|----------------------|-------------------|------------|
+| `string` | `:string` | `String` |
+| `integer` | `:integer` | `Integer` |
+| `float` | `:float` | `Float` |
+| `decimal` | `:decimal` | `BigDecimal` |
+| `boolean` | `:boolean` | `TrueClass`/`FalseClass` |
+| `date` | `:date` | `Date` |
+| `datetime` | `:datetime` | `Time` |
+| `json` | `:json` | `Hash`/`Array` |
+
+For declarative virtual columns (`function` + `association`), the type is inferred: `count` → `integer`, `sum`/`avg` → inherits from `source_field` type, `min`/`max` → inherits from `source_field` type. This matches the current aggregate behavior.
+
 ### GROUP BY Handling
 
 When any virtual column in the current query has `group: true`, the builder adds `GROUP BY <parent_table>.id` to the scope. This interacts with:
@@ -360,11 +408,40 @@ index:
 
 Virtual columns used in `item_classes.when` conditions are already part of the SELECT — no N+1 problem, no eager loading needed. The condition evaluator reads the value via `record.send(:is_overdue)` which returns the SQL-computed value.
 
+### Show Page Query
+
+On the index page, virtual columns are added to the collection scope's SELECT clause. On the **show page**, the controller must also build a query with virtual columns — a plain `Model.find(id)` would not include SELECT aliases, so `record.is_overdue` would return `nil`.
+
+The controller builds the show query as:
+
+```ruby
+# Collect virtual columns needed for this presenter's show layout
+scope = model_class.where(id: params[:id])
+scope = VirtualColumnBuilder.apply(scope, requested_virtual_columns)
+@record = scope.first!
+```
+
+This ensures virtual columns referenced in the show layout, `record_rules`, action conditions, or `item_classes` are available as attributes on the loaded record.
+
+For `service:` virtual columns on show pages, the per-record `call(record)` method is used instead of the SQL expression — no need to add them to the SELECT. The controller defines a reader method on the record's singleton class so the field name resolves transparently:
+
+```ruby
+record.define_singleton_method(:health_score) { ServiceClass.call(self) }
+```
+
 ### Interaction with Eager Loading
 
-Virtual columns with `join:` add SQL JOINs to the scope. These must be deduplicated with JOINs from `includes` / `eager_load`. The builder should check existing joins on the scope to avoid duplicate JOIN clauses.
+Virtual columns with `join:` add SQL JOINs to the scope. These must be deduplicated to avoid duplicate JOIN clauses. The builder deduplicates virtual column JOINs among themselves by exact string match (after `%{table}` expansion). For the first version, deduplication with `eager_load` JOINs is not handled — if a conflict arises, the configurator should use a correlated subquery instead of `join:` for that virtual column. A more sophisticated approach (inspecting `scope.arel.join_sources`) can be added later if needed.
 
-For `sql:` columns without `join:` (correlated subqueries, inline expressions, window functions), there is no interaction with eager loading.
+For `expression:` columns without `join:` (correlated subqueries, inline expressions, window functions), there is no interaction with eager loading.
+
+### Interaction with Soft Delete
+
+When a virtual column's `expression:` contains correlated subqueries or JOINs referencing a soft-deletable model, the configurator is responsible for filtering out discarded records in the SQL (e.g., `AND discarded_at IS NULL`). The platform does not automatically inject soft-delete conditions into raw SQL expressions — the `expression:` string is used as-is. For declarative virtual columns (`function` + `association`), the existing soft-delete filtering continues to apply automatically.
+
+### Virtual Columns in Forms
+
+Virtual columns are **always read-only** — they are computed values, not stored fields. If a virtual column appears in a form layout section, it is rendered as a read-only display field (same as a field with `readonly: true`). The controller never includes virtual column names in `permitted_params`. No special validator rule is needed — the form simply renders them as non-editable.
 
 ### Interaction with Conditions (Advanced Conditions spec)
 
@@ -372,7 +449,7 @@ Virtual columns provide an efficient alternative to in-memory condition evaluati
 
 | Without virtual columns | With virtual columns |
 |---|---|
-| Preload `approvals` for all 50 rows -> in-memory check | `EXISTS(...)` in SELECT -> read boolean attribute |
+| Preload `approvals` for all 50 rows → in-memory check | `EXISTS(...)` in SELECT → read boolean attribute |
 | N+1 if configurator forgets `includes` | No association access at all |
 | Can't sort by condition result | Sortable — it's a real SQL column |
 
@@ -386,7 +463,7 @@ Virtual columns are **not** added to `ransackable_attributes`. They are SQL alia
 
 ### Security: SQL Injection
 
-The `sql:` and `join:` values are defined in YAML/DSL by the platform configurator (who has access to the codebase). They are **not** user input. The same trust model applies as for the existing `aggregates.sql:` key.
+The `expression:` and `join:` values are defined in YAML/DSL by the platform configurator (who has access to the codebase). They are **not** user input. The same trust model applies as for the existing `aggregates.sql:` key.
 
 The `%{table}` placeholder is resolved to a properly quoted table name. No user-supplied values are interpolated into these strings (the `:current_user` placeholder in `where:` uses `conn.quote`).
 
@@ -398,7 +475,7 @@ The `%{table}` placeholder is resolved to a properly quoted table name. No user-
 # models/order.yml
 virtual_columns:
   has_approved_approval:
-    sql: "EXISTS(SELECT 1 FROM approvals WHERE approvals.order_id = %{table}.id AND approvals.status = 'approved')"
+    expression: "EXISTS(SELECT 1 FROM approvals WHERE approvals.order_id = %{table}.id AND approvals.status = 'approved')"
     type: boolean
 
 # presenters/orders.yml
@@ -417,7 +494,7 @@ index:
 # models/task.yml
 virtual_columns:
   is_overdue:
-    sql: "(%{table}.due_date < CURRENT_DATE AND %{table}.status != 'done')"
+    expression: "(%{table}.due_date < CURRENT_DATE AND %{table}.status != 'done')"
     type: boolean
     auto_include: true
 
@@ -437,7 +514,7 @@ index:
 # models/deal.yml
 virtual_columns:
   company_display:
-    sql: "companies.name || ' (' || companies.country || ')'"
+    expression: "companies.name || ' (' || companies.country || ')'"
     join: "LEFT JOIN companies ON companies.id = %{table}.company_id"
     type: string
 
@@ -454,7 +531,7 @@ index:
 # models/order.yml
 virtual_columns:
   latest_comment_body:
-    sql: "lc.body"
+    expression: "lc.body"
     join: &latest_comment_join >-
       LEFT JOIN LATERAL (
         SELECT c.body, c.author_name FROM comments c
@@ -464,7 +541,7 @@ virtual_columns:
     type: string
 
   latest_comment_author:
-    sql: "lc.author_name"
+    expression: "lc.author_name"
     join: *latest_comment_join
     type: string
 ```
@@ -475,7 +552,7 @@ virtual_columns:
 # models/order.yml
 virtual_columns:
   latest_3_comments:
-    sql: >-
+    expression: >-
       (SELECT json_agg(sub ORDER BY sub.created_at DESC)
        FROM (SELECT c.body, c.author_name, c.created_at
              FROM comments c
@@ -496,11 +573,11 @@ index:
 # models/deal.yml
 virtual_columns:
   stage_rank:
-    sql: "ROW_NUMBER() OVER(PARTITION BY %{table}.stage ORDER BY %{table}.value DESC)"
+    expression: "ROW_NUMBER() OVER(PARTITION BY %{table}.stage ORDER BY %{table}.value DESC)"
     type: integer
 
   cumulative_value:
-    sql: "SUM(%{table}.value) OVER(ORDER BY %{table}.created_at ROWS UNBOUNDED PRECEDING)"
+    expression: "SUM(%{table}.value) OVER(ORDER BY %{table}.created_at ROWS UNBOUNDED PRECEDING)"
     type: decimal
 ```
 
@@ -536,7 +613,7 @@ end
 # models/order.yml
 virtual_columns:
   weighted_approval_score:
-    sql: >-
+    expression: >-
       (SELECT COALESCE(SUM(a.weight * al.priority), 0)
        FROM approvals a
        JOIN approval_levels al ON al.id = a.level_id
@@ -554,7 +631,7 @@ The minimal configuration surface is:
 
 | Key | Type | Required | Description |
 |-----|------|----------|-------------|
-| `sql` | string | Yes (unless declarative/service) | SQL expression for SELECT. `%{table}` placeholder for parent table. |
+| `expression` | string | Yes (unless declarative/service) | SQL expression projected into SELECT (aliased as the column name). `%{table}` placeholder for parent table. |
 | `join` | string | No | SQL JOIN clause added to outer scope. `%{table}` placeholder supported. |
 | `group` | boolean | No (default: false) | Whether `GROUP BY parent_table.id` is needed. |
 | `type` | string | Yes (unless declarative) | Result type: string, integer, float, decimal, boolean, date, datetime. |
@@ -566,7 +643,7 @@ The minimal configuration surface is:
 | `where` | hash | Declarative only | Equality conditions on target model. |
 | `service` | string | Service only | Service class key. |
 
-All "subtypes" from the original design (`exists`, `expression`, `expression+join`, `function+join`, window functions) are covered by `sql` + `join` + `group`. No special detection logic — the builder reads the keys that are present.
+All "subtypes" from the original design (`exists`, `expression+join`, `function+join`, window functions) are covered by `expression` + `join` + `group`. No special detection logic — the builder reads the keys that are present.
 
 ### Naming: `virtual_columns` with `aggregates` alias
 
@@ -579,7 +656,7 @@ Rename the concept from `aggregates` to `virtual_columns`. Keep `aggregates` as 
 ### Query builder
 
 Extend `QueryBuilder` with:
-- `build_raw_sql` — expands `%{table}`, wraps with COALESCE if `default` is set. Covers all `sql:` columns (EXISTS, expressions, window functions, correlated subqueries).
+- `build_expression` — expands `%{table}`, wraps with COALESCE if `default` is set. Covers all `expression:` columns (EXISTS, inline expressions, window functions, correlated subqueries).
 - JOIN collection — collects `join:` strings from all requested virtual columns, deduplicates by exact string match after `%{table}` expansion, applies once via `scope.joins(Arel.sql(...))`.
 - GROUP BY — if any requested column has `group: true`, adds `.group("#{parent_table}.id")`.
 - Existing `build_declarative_subquery` and `build_service_subquery` remain unchanged.
@@ -597,21 +674,21 @@ LEFT JOIN payments p ON ...
 GROUP BY orders.id
 ```
 
-**Recommendation for configurators:** When aggregating over a joined table, prefer a correlated subquery in `sql:` instead of `join:` + `group:`:
+**Recommendation for configurators:** When aggregating over a joined table, prefer a correlated subquery in `expression:` instead of `join:` + `group:`:
 
 ```yaml
 # GOOD: independent correlated subqueries, no cartesian product
 total_line_value:
-  sql: "(SELECT COALESCE(SUM(li.quantity * li.unit_price), 0) FROM line_items li WHERE li.order_id = %{table}.id)"
+  expression: "(SELECT COALESCE(SUM(li.quantity * li.unit_price), 0) FROM line_items li WHERE li.order_id = %{table}.id)"
   type: decimal
 
 total_payments:
-  sql: "(SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.order_id = %{table}.id)"
+  expression: "(SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.order_id = %{table}.id)"
   type: decimal
 
 # AVOID: two joins with group = cartesian risk
 # total_line_value:
-#   sql: "SUM(li.quantity * li.unit_price)"
+#   expression: "SUM(li.quantity * li.unit_price)"
 #   join: "LEFT JOIN line_items li ON ..."
 #   group: true
 ```
@@ -622,26 +699,28 @@ The `ConfigurationValidator` should emit a **warning** (not error) when multiple
 
 ### Default inclusion and presenter control
 
-The controller collects virtual column names to include from:
-1. Virtual columns with `auto_include: true` — always included.
-2. Names referenced in presenter's `table_columns`, `tile_fields`, `item_classes[].when` conditions, show `layout` fields.
-3. Names explicitly listed in presenter's `index.virtual_columns` or `show.virtual_columns`.
+The controller collects virtual column names to include from three sources (in priority order):
 
-This is the same detection logic used for aggregates today, extended with the `auto_include` flag and explicit presenter list.
+1. **Always included** — virtual columns with `auto_include: true` on the model definition.
+2. **Auto-detected** — names referenced in presenter's `table_columns`, `tile_fields`, `item_classes[].when` conditions, show `layout` fields, permission `scope`, `record_rules[].when` conditions, and Ransack sort params at runtime.
+3. **Explicitly declared** — names listed in presenter's `index.virtual_columns` or `show.virtual_columns`, action-level `virtual_columns`, or scope-level `virtual_columns`.
+
+This extends the detection logic used for aggregates today with the `auto_include` flag, permission-aware detection, and explicit declarations at multiple levels (presenter, action, scope).
 
 ### ConfigurationValidator
 
 The validator is extended to:
 - Accept both `aggregates` and `virtual_columns` keys.
-- Validate `sql` and `join` are strings when present.
-- Validate `type` is required for `sql` and `service` subtypes.
+- Validate `expression` and `join` are strings when present.
+- Validate `type` is required for `expression` and `service` subtypes.
 - Validate `group` is boolean when present.
-- Validate virtual column names don't collide with field names.
+- Validate virtual column names don't collide with field names, association names, or scope names on the same model.
+- Validate virtual column names don't collide with reserved ActiveRecord method names (`save`, `valid?`, `destroy`, `type`, `id`, `new_record?`, etc.) — maintain a small denylist of critical AR methods.
 - **Warning** when multiple `join` + `group` columns exist on the same model.
 
 ## Decisions
 
-1. **Minimal key set: `sql`, `join`, `group`.** No `exists`, `expression`, or `window` subtypes. All non-declarative, non-service virtual columns are expressed as raw SQL. This keeps the configuration surface small and avoids subtype detection logic. The configurator writes the SQL they need.
+1. **Minimal key set: `expression`, `join`, `group`.** No `exists` or `window` subtypes. All non-declarative, non-service virtual columns are expressed as a SQL expression (projected into SELECT). This keeps the configuration surface small and avoids subtype detection logic. The configurator writes the SQL expression they need.
 
 2. **Approach C: unified `virtual_columns` with `aggregates` alias.** One concept, one key, one builder. The platform is pre-production, so renaming is costless.
 
@@ -651,16 +730,30 @@ The validator is extended to:
 
 5. **Virtual columns are not added to Ransack's `ransackable_attributes`.** SQL aliases cannot be used in WHERE clauses without a wrapping subquery. Sorting works (ORDER BY accepts aliases). Filtering must use the platform's own mechanisms or custom scopes.
 
-6. **`%{table}` is the only placeholder in SQL strings.** User values use the `where:` hash with `conn.quote`. No string interpolation of user input.
+6. **`%{table}` is the only placeholder in `expression`/`join` strings.** User values use the `where:` hash with `conn.quote`. No string interpolation of user input.
 
 7. **Service lookup path.** Services are looked up in `app/lcp_services/virtual_columns/` (new) or `app/lcp_services/aggregates/` (backward compatible). The registry checks both paths.
 
-8. **DB portability is the configurator's responsibility for `sql:` strings.** For DB-portable logic, use service virtual columns with Arel. The platform does not abstract raw SQL differences between PostgreSQL and SQLite.
+8. **DB portability is the configurator's responsibility for `expression:` strings.** For DB-portable logic, use service virtual columns with Arel. The platform does not abstract raw SQL differences between PostgreSQL and SQLite.
+
+9. **No `where:` on `expression:` columns.** The `where:` clause is only for declarative virtual columns (`function` + `association`). Expression columns embed their own WHERE conditions directly in the SQL string. Mixing raw SQL with structured conditions would make the builder unnecessarily complex.
+
+10. **No SQL parsing in `ConfigurationValidator`.** The validator does not parse `expression:` or `join:` strings to detect table references or syntax errors. Parsing SQL is fragile and DB-specific. Errors surface at query time. The configurator is trusted.
+
+11. **`join:` is a single string, not an array.** A virtual column that needs multiple JOINs concatenates them in one string (`"LEFT JOIN companies ON ... LEFT JOIN industries ON ..."`). An array form would add parsing complexity for minimal benefit.
+
+12. **Type coercion via `model_class.attribute`.** Virtual columns register an AR `attribute` declaration at boot, ensuring consistent Ruby types regardless of database adapter (e.g., boolean is `true`/`false` on both PostgreSQL and SQLite).
+
+13. **Show page loads virtual columns via scoped query.** The controller builds `Model.where(id:).select(...)` instead of `Model.find(id)` to include virtual column expressions. Service virtual columns use `call(record)` on the show page instead.
+
+14. **Virtual columns are always read-only in forms.** If referenced in a form layout, they render as read-only display fields. No validator error — just silent read-only rendering.
+
+15. **Soft delete filtering is the configurator's responsibility in `expression:` strings.** The platform does not inject `AND discarded_at IS NULL` into raw SQL. Declarative virtual columns (`function` + `association`) continue to apply soft-delete filtering automatically.
+
+16. **JOIN deduplication is string-based for v1.** Virtual column JOINs are deduplicated among themselves by exact string match. Deduplication with `eager_load` JOINs is not handled in v1 — configurators should use correlated subqueries if a conflict arises.
+
+17. **Name collision validation.** Virtual column names are checked against field names, association names, scope names, and a denylist of critical ActiveRecord methods.
 
 ## Open Questions
 
-1. **Should the `where:` clause from declarative aggregates be available on `sql:` columns?** Today `where:` is only for declarative aggregates (`function` + `association`). It could be useful for `sql:` columns too — e.g., `where: { status: active }` appended to the correlated subquery. But this mixes raw SQL with structured conditions, making the builder more complex. Current answer: no — `sql:` columns embed their own WHERE conditions in the SQL string.
-
-2. **Should the `ConfigurationValidator` parse SQL strings to detect table references?** This could enable automatic validation that `join:` columns reference tables that actually exist. But parsing SQL is fragile and DB-specific. Current answer: no — trust the configurator. Errors surface at query time.
-
-3. **Should `join:` support array of strings for multiple JOINs?** E.g., a virtual column that needs both `companies` and `industries` joined. Current answer: use a single string with multiple JOIN clauses (`"LEFT JOIN companies ON ... LEFT JOIN industries ON ..."`). An array would add parsing complexity for minimal benefit.
+(none — all questions resolved)
