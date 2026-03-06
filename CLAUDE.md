@@ -79,6 +79,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Presenter DSL Reference](docs/reference/presenter-dsl.md) — Ruby DSL alternative to YAML for presenters (with inheritance)
 - [Presenters Guide](docs/guides/presenters.md) — Step-by-step guide to building presenters with YAML and DSL examples
 - [Custom Types Guide](docs/guides/custom-types.md) — Practical examples of custom business types
+- [Computed Fields Guide](docs/guides/computed-fields.md) — Auto-calculated persisted fields: template interpolation, service logic, arithmetic
 - [Extensibility Guide](docs/guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validations, scopes, condition services
 - [Conditional Rendering](docs/guides/conditional-rendering.md) — `visible_when`, `disable_when`, and `item_classes` on fields, sections, actions, and rows
 - [Custom Actions](docs/guides/custom-actions.md) — Writing custom actions
