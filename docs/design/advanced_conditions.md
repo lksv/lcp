@@ -102,9 +102,10 @@ The `value` side of a condition can be a typed reference hash that resolves at e
 
 | Key | Resolves to | Example |
 |-----|-------------|---------|
-| `field_ref` | Another field on the same record | `{ field_ref: budget_limit }` |
+| `field_ref` | Another field on the same record (supports dot-paths) | `{ field_ref: "company.credit_limit" }` |
 | `current_user` | Attribute of the authenticated user | `{ current_user: id }` |
 | `date` | Dynamic date/time constant | `{ date: today }` |
+| `lookup` | Value from another model's record | `{ lookup: tax_limit, match: { key: vat_a }, pick: threshold }` |
 
 Each reference type uses a **distinct top-level key** (not a polymorphic `{ ref: "..." }` string). This makes references JSON-schema validatable and self-documenting.
 
@@ -144,6 +145,44 @@ condition:
 | `now` | `Time.current` |
 
 No date arithmetic syntax (e.g., `today - 7.days`). Complex date computations use value services instead.
+
+**`lookup` reference:**
+
+Queries another model for a value. This is the primary mechanism for referencing codelists, system constants, and other reference data in conditions.
+
+```yaml
+# Price must be below the VAT threshold for the record's region
+condition:
+  field: price
+  operator: lt
+  value:
+    lookup: tax_limit
+    match: { region: vat_a }
+    pick: threshold
+
+# Match against a codelist value
+condition:
+  field: category_code
+  operator: eq
+  value:
+    lookup: codelist_entry
+    match: { codelist: product_categories, key: electronics }
+    pick: value
+
+# Dynamic match using field_ref
+condition:
+  field: discount_rate
+  operator: lte
+  value:
+    lookup: discount_policy
+    match: { tier: { field_ref: customer_tier } }
+    pick: max_discount
+```
+
+- `lookup` — the model name (resolved via `LcpRuby.registry`).
+- `match` — a hash of field-value pairs used as `WHERE` conditions. Values can be literals or typed references (`field_ref`, `current_user`).
+- `pick` — the column name whose value is returned (like `ActiveRecord#pick`).
+- If no record matches, raises `ConditionError`. If multiple records match, uses the first one (the model should define a unique constraint or the match should be specific enough).
 
 **Impact on `evaluate` signature.** The evaluator gains an optional `context:` keyword argument to carry request-scoped data (current user, precomputed values):
 
@@ -381,9 +420,10 @@ The evaluator's `evaluate` method is extended to detect compound keys (`all`, `a
 8. Otherwise, raise `ConditionError`.
 
 The `evaluate_any` entry point becomes the recursive dispatcher. A new `resolve_value` private method handles value references before comparison:
-- `field_ref` — calls `record.send` (or dot-path traversal) to get the other field's value.
+- `field_ref` — calls `record.send` (or dot-path traversal via `resolve_dot_path`) to get the other field's value. Supports dot-paths like `"company.credit_limit"`.
 - `current_user` — reads the attribute from `context[:current_user]`.
 - `date` — resolves `today` / `now` to `Date.current` / `Time.current`.
+- `lookup` — resolves `match` values (which may contain references), queries the target model via `registry.model_for(name).where(resolved_match).pick(column)`.
 - `service` (inside value) — resolves params, calls the value service.
 - Plain literal — used as-is.
 
@@ -469,14 +509,16 @@ All callers that invoke `ConditionEvaluator` must pass the evaluation context. T
 
 7. **No auto-preloading of associations from conditions.** The configurator must explicitly declare `includes` for associations referenced in conditions. The `ConfigurationValidator` enforces this at boot time with actionable error messages. Rationale: explicit is better than implicit — the configurator sees what is loaded, different presenters over the same model have different needs, and `strict_loading: :development` provides a runtime safety net.
 
+8. **`all` with an empty list returns true (vacuous truth).** Mathematically correct and consistent with Ruby's `[].all?`. The `ConfigurationValidator` emits a warning for empty `all` / `any` lists since they likely indicate a configuration mistake.
+
+9. **Collection condition performance deferred to virtual columns.** Large has_many associations loaded into memory for boolean checks are a known concern. This is addressed by the [Virtual Columns](virtual_columns.md) specification, which provides SQL-level aggregation as an alternative to in-memory evaluation for performance-critical paths.
+
+10. **`field_ref` supports dot-paths.** `{ field_ref: "company.credit_limit" }` is supported. The added complexity is minimal — `resolve_value` delegates to the same `resolve_dot_path` helper already used for `field` dot-path resolution. The `ConfigurationValidator` already walks association chains for `field` dot-paths and needs only one additional call site (~5-10 lines) to also validate `field_ref` values. Eager loading validation for `field_ref` dot-paths is already covered in the spec (see Eager Loading Validation, item 4).
+
+11. **`lookup` value reference included in initial implementation.** The `lookup` key (`{ lookup: tax_limit, match: { key: vat_a }, pick: threshold }`) queries another model for a comparison value. This is essential for codelists and system-defined constants — without it, every codelist comparison requires a custom value service. This is the primary mechanism for referencing platform-managed reference data in conditions.
+
+12. **QueryLanguageParser integration deferred.** Compound conditions (`all` / `any` / `not`) do not have a QL text representation in this version. The QL parser continues to work with simple field-value conditions. A future version may extend the QL syntax to support `AND` / `OR` / `NOT` operators and serialize compound condition trees.
+
 ## Open Questions
 
-1. **Should `all` with an empty list return true or raise an error?** Mathematically, empty conjunction is true (vacuous truth). But it could indicate a configuration mistake. Current proposal: return true, but emit a warning in development.
-
-2. **Collection condition performance with large has_many.** Collections are preloaded and evaluated in-memory. If a has_many association has thousands of child records (e.g., `order.line_items` with 5000 items), all are loaded into memory just for a boolean check. In practice, collection conditions target small associations (approvals, comments, tags). If large-collection performance becomes an issue, a SQL `EXISTS` optimization can be added later for specific hot paths.
-
-3. **Should `field_ref` support dot-paths?** The design document proposes `{ field_ref: "company.credit_limit" }`. This requires the same dot-path traversal as the `field` side. Is the added complexity justified, or should `field_ref` be limited to direct fields on the same record?
-
-4. **`lookup` value reference.** The original design document sketches a `lookup` key for querying another model (`{ lookup: tax_limit, match: { key: vat_a }, pick: threshold }`). Should this be included in the initial implementation, or deferred until the pattern proves frequent enough?
-
-5. **Interaction with QueryLanguageParser.** The existing QL parser (`QueryLanguageParser`) works with simple field-value conditions. Should compound conditions have a QL text representation (e.g., `status = "closed" AND value > 10000`)? If so, `QueryLanguageSerializer` needs to handle `all` / `any` / `not` trees.
+None at this time — all questions have been resolved (see Decisions 8–12).
