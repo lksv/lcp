@@ -1,0 +1,7 @@
+view_group:
+  name: dashboard
+  primary: main_dashboard
+  views:
+    - page: main_dashboard
+      label: "Dashboard"
+      icon: layout-dashboard

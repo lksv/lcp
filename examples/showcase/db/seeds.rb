@@ -3620,6 +3620,109 @@ features = [
     demo_path: "/showcase/articles",
     demo_hint: "Apply any advanced filter on Articles, then click **Save filter**. Change Visibility to \"Role\" to see Target Role appear. Submit to save — the filter appears in the Saved Filters dropdown.",
     status: "stable"
+  },
+
+  # === Dashboards ===
+  {
+    name: "Dashboard Page (Grid Layout)",
+    category: "dashboards",
+    description: "A standalone page with `layout: grid` that hosts multiple zones — KPI cards, text widgets, list widgets, and embedded presenter tables. Defined in YAML under `config/lcp_ruby/pages/`. No model required; the page is a container.",
+    config_example: "```yaml\npage:\n  name: main_dashboard\n  slug: showcase-dashboard\n  layout: grid\n  title_key: lcp_ruby.dashboard.title\n  zones:\n    - name: active_employees\n      type: widget\n      widget:\n        type: kpi_card\n        model: employee\n        aggregate: count\n        icon: users\n      scope: active_employees\n      position: { row: 1, col: 1, width: 3 }\n```",
+    demo_path: "/showcase/showcase-dashboard",
+    demo_hint: "The entire page is a grid dashboard. Notice the 7 zones arranged in rows — KPIs on top, a table and list below, and a conditional KPI at the bottom.",
+    status: "stable"
+  },
+  {
+    name: "KPI Card Widget",
+    category: "dashboards",
+    description: "A widget zone with `type: kpi_card` that shows an aggregate value (count, sum, avg, min, max) from a model. Supports `scope` filtering, `icon`, `label_key` for i18n, and `link_to` for navigation to the source presenter.",
+    config_example: "```yaml\n- name: active_employees\n  type: widget\n  widget:\n    type: kpi_card\n    model: employee\n    aggregate: count\n    icon: users\n    label_key: lcp_ruby.dashboard.active_employees\n    link_to: employees\n  scope: active_employees\n  position: { row: 1, col: 1, width: 3 }\n```",
+    demo_path: "/showcase/showcase-dashboard",
+    demo_hint: "See the three KPI cards in the first row: Active Employees (scoped count with link), Published Articles (scoped count), and Total Features (unscoped count).",
+    status: "stable"
+  },
+  {
+    name: "Text Widget",
+    category: "dashboards",
+    description: "A widget zone with `type: text` that renders static i18n content. Use `content_key` to reference a locale key. Ideal for welcome messages, announcements, or instructions.",
+    config_example: "```yaml\n- name: welcome_note\n  type: widget\n  widget:\n    type: text\n    content_key: lcp_ruby.dashboard.welcome\n  position: { row: 1, col: 10, width: 3 }\n```",
+    demo_path: "/showcase/showcase-dashboard",
+    demo_hint: "The welcome text in the top-right corner of the dashboard is a text widget. Its content comes from the `lcp_ruby.dashboard.welcome` i18n key.",
+    status: "stable"
+  },
+  {
+    name: "List Widget",
+    category: "dashboards",
+    description: "A widget zone with `type: list` that shows a compact list of records from a model. Supports `limit` to cap the number of records and `link_to` for a \"View all\" link.",
+    config_example: "```yaml\n- name: recent_features\n  type: widget\n  widget:\n    type: list\n    model: feature\n    link_to: features\n  limit: 8\n  position: { row: 2, col: 8, width: 5 }\n```",
+    demo_path: "/showcase/showcase-dashboard",
+    demo_hint: "The \"Recent Features\" list on the right side of row 2 shows up to 8 feature names in a compact list format.",
+    status: "stable"
+  },
+  {
+    name: "Presenter Zone on Dashboard",
+    category: "dashboards",
+    description: "A zone that embeds an existing presenter's index table inside the dashboard grid. References a presenter by name and supports `limit` to cap the number of rows shown. No widget config needed — just set `presenter:` and optionally `scope:` and `limit:`.",
+    config_example: "```yaml\n- name: recent_employees\n  presenter: employees\n  limit: 5\n  position: { row: 2, col: 1, width: 7, height: 2 }\n```",
+    demo_path: "/showcase/showcase-dashboard",
+    demo_hint: "The employee table in row 2 (left side) is an embedded presenter zone — it reuses the `employees` presenter's columns and renders a compact table.",
+    status: "stable"
+  },
+  {
+    name: "Conditional Zone (visible_when)",
+    category: "dashboards",
+    description: "A zone with `visible_when` that is only rendered when a condition is met. The condition is evaluated against the current user before any data queries run. Use for role-restricted KPIs, admin-only widgets, or context-sensitive content.",
+    config_example: "```yaml\n- name: draft_articles\n  type: widget\n  widget:\n    type: kpi_card\n    model: article\n    aggregate: count\n    icon: edit-3\n    label_key: lcp_ruby.dashboard.draft_articles\n  scope: drafts\n  visible_when:\n    role: admin\n  position: { row: 4, col: 1, width: 4 }\n```",
+    demo_path: "/showcase/showcase-dashboard",
+    demo_hint: "The \"Draft Articles (Admin)\" KPI card in the last row is only visible to admins. Use the impersonation switcher to switch to a viewer role — the card disappears.",
+    status: "stable"
+  },
+  {
+    name: "Landing Page Configuration",
+    category: "dashboards",
+    description: "Configure `landing_page` in the engine initializer to redirect users to a specific page after login. Supports per-role landing pages and a `default` fallback. Works with `auth_after_login_path` for the login redirect.",
+    config_example: "```ruby\nLcpRuby.configure do |config|\n  config.landing_page = {\n    \"admin\" => \"showcase-dashboard\",\n    \"default\" => \"showcase-dashboard\"\n  }\n  config.auth_after_login_path = \"/showcase/showcase-dashboard\"\nend\n```",
+    demo_path: "/showcase/showcase-dashboard",
+    demo_hint: "After logging in, you are redirected to the dashboard instead of the default first page. The root URL (`/`) also redirects here.",
+    status: "stable"
+  },
+  {
+    name: "Grid CSS Positioning",
+    category: "dashboards",
+    description: "Each zone has a `position` hash with `row`, `col`, `width`, and optional `height` (defaults to 1). The grid uses a 12-column CSS grid layout. Zones can span multiple columns and rows.",
+    config_example: "```yaml\n# 3 columns wide, starting at column 1\nposition: { row: 1, col: 1, width: 3 }\n\n# Spanning 7 columns and 2 rows\nposition: { row: 2, col: 1, width: 7, height: 2 }\n```",
+    demo_path: "/showcase/showcase-dashboard",
+    demo_hint: "Notice how the dashboard zones align to a 12-column grid: KPI cards take 3 columns each, the employee table spans 7, and the feature list takes 5.",
+    status: "stable"
+  },
+
+  # === Dialogs (additional) ===
+  {
+    name: "Quick Create Dialog",
+    category: "dialogs",
+    description: "A collection-level `type: :dialog` action that opens a dialog for creating a new record with a subset of fields. Uses a separate dialog-only presenter (no slug, no index page) with a minimal form. On success, the page reloads to show the new record.",
+    config_example: "```ruby\n# In the main presenter\naction :quick_add, type: :dialog, on: :collection,\n  label: \"Quick Add\", icon: \"user-plus\",\n  dialog: { page: \"employee_quick_add_dialog\", on_success: :reload }\n\n# Dialog-only presenter (no slug)\ndefine_presenter :employee_quick_add_dialog do\n  model :employee\n  dialog size: :small,\n    title_key: \"lcp_ruby.dialogs.quick_add_employee_title\"\n  form do\n    section \"New Employee\" do\n      field :name, autofocus: true\n      field :email\n      field :department_id, input_type: :association_select\n      field :role, input_type: :select\n    end\n  end\nend\n```",
+    demo_path: "/showcase/employees",
+    demo_hint: "Click **Quick Add** in the toolbar — a small dialog opens with only 4 fields (name, email, department, role). Submit creates a new employee and reloads the page.",
+    status: "stable"
+  },
+  {
+    name: "Quick Note Dialog (Virtual Model)",
+    category: "dialogs",
+    description: "A single-record `type: :dialog` action that opens a virtual model dialog from another presenter. The virtual model has `table_name: _virtual` — it validates but never persists. Triggered from the employees page as a per-row action.",
+    config_example: "```ruby\n# In the employees presenter\naction :quick_note, type: :dialog, on: :single,\n  label: \"Quick Note\", icon: \"sticky-note\",\n  dialog: { page: \"quick_note_dialog\", on_success: :close }\n\n# Virtual model (no DB table)\ndefine_model :showcase_quick_note do\n  table_name \"_virtual\"\n  field :title, :string\n  field :body, :text\n  field :priority, :enum, values: %w[low medium high]\nend\n```",
+    demo_path: "/showcase/employees",
+    demo_hint: "Click an employee row to view their details, then click **Quick Note** in the actions — a dialog opens with title, body, and priority fields. The form validates but does not persist (virtual model).",
+    status: "stable"
+  },
+  {
+    name: "Dual-Use Presenter (Page + Dialog)",
+    category: "dialogs",
+    description: "The same presenter can be used as a standalone page (with a slug) and as a dialog (triggered from another presenter's action). The dialog renders the form portion; the page renders the full CRUD. This avoids duplicating form definitions.\n\nSee the extensibility demo where the same form is used for both the edit page and the Quick Edit dialog.",
+    config_example: "```ruby\n# Single presenter used in both contexts\ndefine_presenter :employee_quick_add_dialog do\n  model :employee\n  dialog size: :small, title_key: \"...\"\n  form do\n    section \"New Employee\" do\n      field :name\n      field :email\n    end\n  end\nend\n\n# Referenced as a dialog from another presenter\naction :quick_add, type: :dialog, on: :collection,\n  dialog: { page: \"employee_quick_add_dialog\" }\n```",
+    demo_path: "/showcase/showcase-extensibility",
+    demo_hint: "The Quick Edit dialog on the extensibility page reuses the same form definition as the full edit page. Compare the dialog fields with the edit page fields — they are identical.",
+    status: "stable"
   }
 ]
 

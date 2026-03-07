@@ -18,9 +18,17 @@ en:
       restore: "Restore"
       permanently_destroy: "Permanently Delete"
       confirm_permanently_destroy: "This will permanently delete the record. Are you sure?"
+    dashboard:
+      title: "Dashboard"
+      welcome: "Welcome to the LCP Ruby Showcase! This dashboard demonstrates grid layout with KPI cards, text widgets, list widgets, and embedded presenter zones."
+      active_employees: "Active Employees"
+      published_articles: "Published Articles"
+      total_features: "Total Features"
+      draft_articles: "Draft Articles (Admin)"
     dialogs:
       close: "Close"
       default_title: "Dialog"
+      quick_add_employee_title: "Quick Add Employee"
       delete_reason_title: "Reason for Deletion"
       quick_note_title: "Quick Note"
       confirm_delete_title: "Confirm Deletion"

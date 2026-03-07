@@ -1,5 +1,6 @@
 menu:
   top_menu:
+    - view_group: dashboard
     - label: "Features"
       icon: star
       children:

@@ -1,0 +1,72 @@
+page:
+  name: main_dashboard
+  slug: showcase-dashboard
+  layout: grid
+  title_key: lcp_ruby.dashboard.title
+  zones:
+    - name: active_employees
+      type: widget
+      widget:
+        type: kpi_card
+        model: employee
+        aggregate: count
+        icon: users
+        label_key: lcp_ruby.dashboard.active_employees
+        link_to: employees
+      scope: active_employees
+      position: { row: 1, col: 1, width: 3, height: 1 }
+
+    - name: published_articles
+      type: widget
+      widget:
+        type: kpi_card
+        model: article
+        aggregate: count
+        icon: file-text
+        label_key: lcp_ruby.dashboard.published_articles
+      scope: published
+      position: { row: 1, col: 4, width: 3, height: 1 }
+
+    - name: total_features
+      type: widget
+      widget:
+        type: kpi_card
+        model: feature
+        aggregate: count
+        icon: book
+        label_key: lcp_ruby.dashboard.total_features
+      position: { row: 1, col: 7, width: 3, height: 1 }
+
+    - name: welcome_note
+      type: widget
+      widget:
+        type: text
+        content_key: lcp_ruby.dashboard.welcome
+      position: { row: 1, col: 10, width: 3, height: 1 }
+
+    - name: recent_employees
+      presenter: dashboard_employees
+      limit: 5
+      position: { row: 2, col: 1, width: 7, height: 2 }
+
+    - name: recent_features
+      type: widget
+      widget:
+        type: list
+        model: feature
+        link_to: features
+      limit: 8
+      position: { row: 2, col: 8, width: 5, height: 2 }
+
+    - name: draft_articles
+      type: widget
+      widget:
+        type: kpi_card
+        model: article
+        aggregate: count
+        icon: edit-3
+        label_key: lcp_ruby.dashboard.draft_articles
+      scope: drafts
+      visible_when:
+        role: admin
+      position: { row: 4, col: 1, width: 4, height: 1 }

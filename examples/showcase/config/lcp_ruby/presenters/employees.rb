@@ -96,7 +96,13 @@ define_presenter :employees do
   end
 
   action :create, type: :built_in, on: :collection, label: "New Employee"
+  action :quick_add, type: :dialog, on: :collection,
+    label: "Quick Add", icon: "user-plus",
+    dialog: { page: "employee_quick_add_dialog", on_success: :reload }
   action :show, type: :built_in, on: :single
+  action :quick_note, type: :dialog, on: :single,
+    label: "Quick Note", icon: "sticky-note",
+    dialog: { page: "quick_note_dialog", on_success: :close }
   action :edit, type: :built_in, on: :single
   action :destroy, type: :built_in, on: :single, style: :danger,
     confirm: { title_key: "lcp_ruby.dialogs.confirm_delete_title", message_key: "lcp_ruby.dialogs.confirm_delete_employee", style: :danger }

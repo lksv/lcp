@@ -401,12 +401,7 @@ module LcpRuby
 
         # Evaluate visible_when before resolving data to avoid unnecessary queries
         if zone.visible_when.present?
-          visible = ConditionEvaluator.evaluate(
-            zone.visible_when,
-            { current_user: current_user },
-            context: { current_user: current_user }
-          )
-          next unless visible
+          next unless zone_visible?(zone.visible_when)
         end
 
         if zone.widget?
@@ -416,6 +411,24 @@ module LcpRuby
         end
 
         [ zone, data ]
+      end
+    end
+
+    def zone_visible?(visible_when)
+      user = impersonating? ? impersonated_user : current_user
+
+      if visible_when["role"].present?
+        return false unless user
+
+        user_roles = Array(user.send(LcpRuby.configuration.role_method))
+        allowed = Array(visible_when["role"])
+        (user_roles & allowed).any?
+      else
+        ConditionEvaluator.evaluate_any(
+          user,
+          visible_when,
+          context: { current_user: user }
+        )
       end
     end
 
