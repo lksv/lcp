@@ -405,9 +405,9 @@ module LcpRuby
         end
 
         if zone.widget?
-          data = Widgets::DataResolver.new(zone, user: current_user).resolve
+          data = Widgets::DataResolver.new(zone, user: effective_user).resolve
         else
-          data = Widgets::PresenterZoneResolver.new(zone, user: current_user).resolve
+          data = Widgets::PresenterZoneResolver.new(zone, user: effective_user).resolve
         end
 
         [ zone, data ]
@@ -415,7 +415,7 @@ module LcpRuby
     end
 
     def zone_visible?(visible_when)
-      user = impersonating? ? impersonated_user : current_user
+      user = effective_user
 
       if visible_when["role"].present?
         return false unless user

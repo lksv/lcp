@@ -204,8 +204,7 @@ module LcpRuby
     def current_evaluator
       @current_evaluator ||= begin
         perm_def = LcpRuby.loader.permission_definition("custom_field_definition")
-        user = impersonating? ? impersonated_user : current_user
-        Authorization::PermissionEvaluator.new(perm_def, user, "custom_field_definition")
+        Authorization::PermissionEvaluator.new(perm_def, effective_user, "custom_field_definition")
       end
     end
 

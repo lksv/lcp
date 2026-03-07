@@ -164,8 +164,7 @@ module LcpRuby
 
       @current_evaluator ||= begin
         perm_def = LcpRuby.loader.permission_definition(@presenter_definition.model)
-        user = impersonating? ? impersonated_user : current_user
-        Authorization::PermissionEvaluator.new(perm_def, user, @presenter_definition.model)
+        Authorization::PermissionEvaluator.new(perm_def, effective_user, @presenter_definition.model)
       end
     end
 
@@ -226,6 +225,12 @@ module LcpRuby
       role = session[:lcp_impersonate_role]
       # Build a proxy user object that returns the impersonated role
       ImpersonatedUser.new(current_user, role)
+    end
+
+    # Returns the impersonated user if impersonating, otherwise the real current_user.
+    # Memoized per request to avoid repeated impersonation checks.
+    def effective_user
+      @effective_user ||= impersonating? ? impersonated_user : current_user
     end
 
     # -- Path helpers --
