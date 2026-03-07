@@ -569,9 +569,15 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
     end
 
     it "allows nil model for standalone pages" do
+      group = described_class.new(valid_attrs(model: nil))
+
+      expect(group.model).to be_nil
+    end
+
+    it "treats empty string model as nil" do
       group = described_class.new(valid_attrs(model: ""))
 
-      expect(group.model).to eq("")
+      expect(group.model).to be_nil
     end
 
     it "raises on empty views" do

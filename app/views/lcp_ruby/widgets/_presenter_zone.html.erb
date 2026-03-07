@@ -4,7 +4,7 @@
     <table class="lcp-table lcp-table-compact">
       <thead>
         <tr>
-          <% data[:column_set].visible_columns.each do |col| %>
+          <% data[:column_set].visible_table_columns.each do |col| %>
             <th><%= col["label"] || col["field"].humanize %></th>
           <% end %>
         </tr>
@@ -12,7 +12,7 @@
       <tbody>
         <% data[:records].each do |record| %>
           <tr>
-            <% data[:column_set].visible_columns.each do |col| %>
+            <% data[:column_set].visible_table_columns.each do |col| %>
               <td><%= data[:field_value_resolver].resolve(record, col["field"]) %></td>
             <% end %>
           </tr>
