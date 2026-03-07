@@ -235,11 +235,20 @@ module LcpRuby
         simple_name = field_name.split(".").last
         override = field_options.dig(field_name, "operators") || field_options.dig(simple_name, "operators")
 
-        if override
+        operators = if override
           override.map(&:to_sym)
         else
           OperatorRegistry.operators_for(base_type)
         end
+
+        # For API-backed models, intersect with data source supported operators
+        api_ops = model_definition.supported_filter_operators
+        if api_ops
+          supported = api_ops.map(&:to_sym)
+          operators = operators.select { |op| supported.include?(op) }
+        end
+
+        operators
       end
 
       def build_operator_labels

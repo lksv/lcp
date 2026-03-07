@@ -28,6 +28,7 @@ module LcpRuby
           includes_list = []
           eager_load_list = []
           joins_list = []
+          api_preloads_list = []
 
           # Group dependencies by association name to determine combined reason
           grouped = @dependencies.group_by(&:association_name)
@@ -36,6 +37,12 @@ module LcpRuby
             assoc = @model_def.associations.find { |a| a.name == assoc_name.to_s }
             assoc_type = resolve_assoc_type(assoc, assoc_name)
             next unless assoc_type
+
+            # Check if this association targets an API model (cross-source)
+            if assoc && api_target?(assoc)
+              api_preloads_list << { name: assoc_name.to_s, association: assoc }
+              next
+            end
 
             has_query = deps.any?(&:query?)
             # Use the most nested path among the deps for this association
@@ -60,11 +67,20 @@ module LcpRuby
           LoadingStrategy.new(
             includes: includes_list.uniq,
             eager_load: eager_load_list.uniq,
-            joins: joins_list.uniq
+            joins: joins_list.uniq,
+            api_preloads: api_preloads_list
           )
         end
 
         private
+
+        # Check if the association's target model is an API-backed model.
+        def api_target?(assoc)
+          return false unless assoc.target_model
+
+          target_def = LcpRuby.loader.model_definitions[assoc.target_model]
+          target_def&.api_model? || false
+        end
 
         # Resolve association type from metadata or AR reflections.
         # Tree-generated associations (parent, children) exist only on the AR model,

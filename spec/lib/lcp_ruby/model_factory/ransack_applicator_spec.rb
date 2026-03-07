@@ -63,7 +63,7 @@ RSpec.describe LcpRuby::ModelFactory::RansackApplicator do
     before do
       # Register model definitions so loader can find them
       allow(LcpRuby).to receive(:loader).and_return(
-        double("Loader", model_definition: model_definition)
+        double("Loader", model_definition: model_definition, model_definitions: {})
       )
     end
 

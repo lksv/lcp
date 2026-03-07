@@ -12,6 +12,10 @@
     </div>
   </div>
 
+  <% if api_model? %>
+    <%= render "lcp_ruby/resources/api_status_banner" %>
+  <% end %>
+
   <%= render_slot(:filter_bar, page: :index) %>
 
   <% case current_presenter.index_layout %>

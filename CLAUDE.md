@@ -60,6 +60,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Documentation Index](docs/README.md) — Links to all documentation
 - [Getting Started](docs/getting-started.md) — Installation and first model tutorial
 - [Models Reference](docs/reference/models.md) — Complete model YAML reference (fields, associations, scopes, events, aggregates)
+- [API-Backed Models Reference](docs/reference/api-backed-models.md) — External data sources: REST JSON adapter, host providers, cross-source associations, caching
 - [Types Reference](docs/reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters Reference](docs/reference/presenters.md) — Complete presenter YAML reference
 - [View Groups Reference](docs/reference/view-groups.md) — Navigation menu, view switching, auto-creation
@@ -102,6 +103,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Impersonation Guide](docs/guides/impersonation.md) — "View as Role X" for testing permissions
 - [Tiles View Guide](docs/guides/tiles.md) — Card grid layout: tile configuration, sort dropdown, per-page selector, summary bar
 - [View Slots Guide](docs/guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components
+- [API-Backed Models Guide](docs/guides/api-backed-models.md) — Integrating external REST APIs and host-provided data sources
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Host Application Guide](docs/guides/host-application.md) — Creating a new host application from scratch: scaffold, models, presenters, permissions, groups, seeds
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views
@@ -165,8 +167,12 @@ YAML metadata (config/lcp_ruby/)
               ModelFactory::Builder.build → LcpRuby::Dynamic::<Name>
               (creates AR class + DB table + validations + transforms + associations + scopes)
               (virtual models with table_name: _virtual are skipped — metadata only, no AR class)
+              (API models → ApiBuilder creates ActiveModel class, skips DB/AR-specific applicators)
                                 ↓
               LcpRuby.registry.register(name, model_class)
+                                ↓
+              DataSource::Setup.apply!(loader) → instantiate adapters, wrap with cache/resilient,
+              attach to API model classes, apply cross-source associations
                                 ↓
               CustomFields::Setup.apply!(loader) → contract validation, registry, handlers, accessors, scopes
                                 ↓
@@ -194,7 +200,8 @@ YAML metadata (config/lcp_ruby/)
 |--------|----------|---------|
 | `Metadata` | `lib/lcp_ruby/metadata/` | Parses YAML into definition objects (ModelDefinition, PresenterDefinition, etc.) |
 | `Types` | `lib/lcp_ruby/types/` | TypeRegistry, TypeDefinition, ServiceRegistry, built-in types (email, phone, url, color), transforms (strip, downcase, normalize_url, normalize_phone) |
-| `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, AggregateApplicator, ScopeApplicator, PositioningApplicator, UserstampsApplicator, SoftDeleteApplicator, AuditingApplicator, TreeApplicator (self-referential associations, traversal methods, cycle detection, positioning integration) |
+| `ModelFactory` | `lib/lcp_ruby/model_factory/` | Builds dynamic AR models: Builder orchestrates SchemaManager, ValidationApplicator, TransformApplicator, AssociationApplicator, AggregateApplicator, ScopeApplicator, PositioningApplicator, UserstampsApplicator, SoftDeleteApplicator, AuditingApplicator, TreeApplicator. ApiBuilder builds ActiveModel classes for API-backed models. ApiAssociationApplicator creates cross-source association accessors |
+| `DataSource` | `lib/lcp_ruby/data_source/` | API-backed model infrastructure: Base (contract), RestJson (HTTP adapter), Host (provider delegation), CachedWrapper (Rails.cache TTL), ResilientWrapper (error handling), ApiModelConcern (ActiveModel mixin), ApiFilterTranslator (Ransack→portable filter translation), ApiPreloader (batch N+1 prevention), ApiErrorPlaceholder (graceful degradation), Registry, Setup (boot orchestration) |
 | `Aggregates` | `lib/lcp_ruby/aggregates/` | QueryBuilder: injects correlated SQL subqueries (COUNT/SUM/MIN/MAX/AVG) into ActiveRecord scopes for virtual aggregate columns. Supports declarative, custom SQL, and service-based aggregates with `:current_user` placeholder, soft-delete filtering, and COALESCE defaults |
 | `Presenter` | `lib/lcp_ruby/presenter/` | UI layer: Resolver (find by slug), LayoutBuilder (form/show sections + normalize_json_field_section for json_field: sources + sub-section enrichment), ColumnSet (visible columns), ActionSet (visible actions with record_rules integration via action_permitted_for_record?), IncludesResolver (auto-detects and applies eager loading from presenter metadata), FieldValueResolver (dot-path, template, FK, and simple field resolution with permission checks) |
 | `CustomFields` | `lib/lcp_ruby/custom_fields/` | Registry (per-model definition cache), Applicator (dynamic accessors + validations + defaults + stale cleanup), ContractValidator (boot-time model contract checks), Query (DB-portable JSON queries with field name validation), DefinitionChangeHandler (cache invalidation), Setup (shared boot logic with contract validation), Utils (env-aware JSON/numeric parsing) |

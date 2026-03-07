@@ -1,0 +1,24 @@
+model:
+  name: work_order
+  table_name: work_orders
+  fields:
+    - name: title
+      type: string
+    - name: description
+      type: text
+    - name: status
+      type: enum
+      enum_values:
+        - value: open
+          label: Open
+        - value: closed
+          label: Closed
+    - name: external_building_id
+      type: string
+  associations:
+    - type: belongs_to
+      name: external_building
+      target_model: external_building
+      foreign_key: external_building_id
+  options:
+    label_method: title

@@ -1,0 +1,22 @@
+permissions:
+  model: work_order
+  roles:
+    admin:
+      crud:
+        - index
+        - show
+        - create
+        - update
+        - delete
+      fields:
+        readable:
+          - title
+          - description
+          - status
+          - external_building_id
+        writable:
+          - title
+          - description
+          - status
+          - external_building_id
+      presenters: all

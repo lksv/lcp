@@ -3406,6 +3406,44 @@ features = [
     demo_path: "/showcase/articles-tiles",
     demo_hint: "Click the **Published** and **Drafts** filter buttons above the tiles. The card grid updates to show only matching articles.",
     status: "stable"
+  },
+
+  # === API-Backed Models ===
+  {
+    name: "API-Backed Model (Host Provider)",
+    category: "api_backed_models",
+    description: "Define models that read data from external sources instead of the database. A host-provided data source implements the `DataSource::Base` contract (find, search, select_options) and the engine builds an ActiveModel-based class at boot.\n\nPhase 1 is read-only — index and show views work, but create/edit/delete are disabled.",
+    config_example: "```ruby\ndefine_model :weather_station do\n  field :name, :string\n  field :country, :string\n  field :elevation, :integer\n\n  data_source type: :host, provider: \"WeatherStationProvider\"\n  label_method :name\nend\n```",
+    demo_path: "/showcase/weather-stations",
+    demo_hint: "The weather stations list is served from an in-memory host provider — there is no database table. Notice: no create/edit/delete buttons (read-only).",
+    status: "beta"
+  },
+  {
+    name: "API-Backed Model (REST JSON)",
+    category: "api_backed_models",
+    description: "Connect to an external REST API using the built-in `rest_json` adapter. Configure base_url, authentication (bearer, basic, header), pagination style, field mapping, and response path navigation.\n\nThe adapter handles HTTP calls, JSON parsing, and translates Ransack-style filters to the API's query format.",
+    config_example: "```yaml\nmodel:\n  name: external_building\n  fields:\n    - name: name\n      type: string\n    - name: address\n      type: string\n  data_source:\n    type: rest_json\n    base_url: \"https://api.example.com\"\n    resource: buildings\n    auth:\n      type: bearer\n      token_env: BUILDINGS_API_TOKEN\n    pagination:\n      style: offset_limit\n    cache:\n      ttl: 300\n      list_ttl: 60\n```",
+    demo_path: nil,
+    demo_hint: "No live REST API demo — see the host provider demo at Weather Stations for a working example.",
+    status: "beta"
+  },
+  {
+    name: "Cross-Source Associations",
+    category: "api_backed_models",
+    description: "Associate database-backed models with API-backed models. The engine detects cross-source relationships at boot and installs lazy accessors with batch preloading (N+1 prevention).\n\nSupported: DB→API belongs_to, DB→API has_many, API→DB belongs_to, API→DB has_many.",
+    config_example: "```yaml\n# DB model with FK to API model\nmodel:\n  name: work_order\n  fields:\n    - name: external_building_id\n      type: string\n  associations:\n    - type: belongs_to\n      name: external_building\n      target_model: external_building\n      foreign_key: external_building_id\n```",
+    demo_path: nil,
+    demo_hint: "Cross-source associations are transparent — the accessor loads data from the API on demand and caches per-instance.",
+    status: "beta"
+  },
+  {
+    name: "Caching & Resilience",
+    category: "api_backed_models",
+    description: "API data sources are automatically wrapped with caching (Rails.cache, configurable TTL) and resilience (graceful degradation on errors). If the external API is down, cached data is served as stale with a warning banner.\n\nFind calls return `ApiErrorPlaceholder` on failure. Search calls return empty results with an error flag.",
+    config_example: "```yaml\ndata_source:\n  type: rest_json\n  base_url: \"https://api.example.com\"\n  resource: sensors\n  cache:\n    ttl: 300         # single record cache (5 min)\n    list_ttl: 60      # search results cache (1 min)\n    stale_on_error: true  # serve expired cache on API failure\n```",
+    demo_path: "/showcase/weather-stations",
+    demo_hint: "The resilience wrapper catches all errors — if the host provider raised an error, you would see an error banner instead of a crash.",
+    status: "beta"
   }
 ]
 

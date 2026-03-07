@@ -1,0 +1,22 @@
+presenter:
+  name: external_buildings
+  model: external_building
+  slug: external-buildings
+  index:
+    table_columns:
+      - field: name
+      - field: address
+      - field: floors
+      - field: status
+  show:
+    sections:
+      - title: Details
+        fields:
+          - field: name
+          - field: address
+          - field: floors
+          - field: status
+  actions:
+    single:
+      - name: show
+        type: built_in

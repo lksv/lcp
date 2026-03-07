@@ -30,11 +30,16 @@ module IntegrationHelper
       # Virtual models exist only as metadata (no table, no AR class)
       next if model_def.virtual?
 
-      schema_manager = LcpRuby::ModelFactory::SchemaManager.new(model_def)
-      schema_manager.ensure_table!
+      if model_def.api_model?
+        builder = LcpRuby::ModelFactory::ApiBuilder.new(model_def)
+        model_class = builder.build
+      else
+        schema_manager = LcpRuby::ModelFactory::SchemaManager.new(model_def)
+        schema_manager.ensure_table!
 
-      builder = LcpRuby::ModelFactory::Builder.new(model_def)
-      model_class = builder.build
+        builder = LcpRuby::ModelFactory::Builder.new(model_def)
+        model_class = builder.build
+      end
 
       LcpRuby.registry.register(model_def.name, model_class)
     end
@@ -45,6 +50,7 @@ module IntegrationHelper
     LcpRuby::Groups::Setup.apply!(loader)
     LcpRuby::Auditing::Setup.apply!(loader)
     LcpRuby::SavedFilters::Setup.apply!(loader)
+    LcpRuby::DataSource::Setup.apply!(loader)
 
     # Discover services from fixture path
     LcpRuby::ConditionServiceRegistry.discover!(fixture_path)

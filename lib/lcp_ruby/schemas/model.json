@@ -94,7 +94,8 @@
       "description": "Virtual aggregate columns computed from associated records via SQL subqueries or custom services. Each key is the aggregate name, which becomes a virtual attribute referenceable in presenters.",
       "additionalProperties": { "$ref": "#/$defs/aggregate" },
       "examples": [{ "issues_count": { "function": "count", "association": "issues" }, "total_revenue": { "function": "sum", "association": "orders", "source_field": "amount" } }]
-    }
+    },
+    "data_source": { "$ref": "#/$defs/data_source" }
   },
   "required": ["name"],
   "additionalProperties": false,
@@ -725,6 +726,169 @@
         }
       },
       "additionalProperties": false
+    },
+
+    "data_source": {
+      "type": "object",
+      "description": "External data source configuration. When present, the model reads from an API instead of the database. Phase 1 is read-only (index + show).",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "Data source adapter type.",
+          "enum": ["rest_json", "host"]
+        },
+        "base_url": {
+          "type": "string",
+          "description": "Base URL for REST JSON API. Required when type is 'rest_json'.",
+          "examples": ["https://api.example.com"]
+        },
+        "resource": {
+          "type": "string",
+          "description": "API resource path (pluralized). Defaults to model name pluralized.",
+          "examples": ["buildings", "products"]
+        },
+        "provider": {
+          "type": "string",
+          "description": "Host-provided class name implementing the data source contract. Required when type is 'host'.",
+          "examples": ["ErpProductProvider", "GisServiceAdapter"]
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "HTTP request timeout in seconds.",
+          "default": 30
+        },
+        "id_field": {
+          "type": "string",
+          "description": "Remote field name for the primary key. Mapped to :id locally.",
+          "default": "id"
+        },
+        "auth": {
+          "type": "object",
+          "description": "Authentication configuration for REST JSON APIs.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "description": "Authentication type.",
+              "enum": ["bearer", "basic", "header"]
+            },
+            "token_env": {
+              "type": "string",
+              "description": "Environment variable name containing the bearer token.",
+              "examples": ["BUILDINGS_API_TOKEN"]
+            },
+            "username_env": {
+              "type": "string",
+              "description": "Environment variable name for basic auth username."
+            },
+            "password_env": {
+              "type": "string",
+              "description": "Environment variable name for basic auth password."
+            },
+            "header_name": {
+              "type": "string",
+              "description": "Custom header name for header auth type.",
+              "default": "X-API-Key"
+            },
+            "value_env": {
+              "type": "string",
+              "description": "Environment variable name for header auth value."
+            }
+          },
+          "required": ["type"],
+          "additionalProperties": false
+        },
+        "pagination": {
+          "type": "object",
+          "description": "Pagination configuration for REST JSON APIs.",
+          "properties": {
+            "style": {
+              "type": "string",
+              "description": "Pagination style.",
+              "enum": ["offset_limit", "page_number", "cursor"],
+              "default": "offset_limit"
+            },
+            "offset_param": { "type": "string", "default": "offset" },
+            "limit_param": { "type": "string", "default": "limit" },
+            "page_param": { "type": "string", "default": "page" },
+            "size_param": { "type": "string", "default": "per_page" },
+            "sort_param": { "type": "string", "default": "sort" }
+          },
+          "additionalProperties": false
+        },
+        "cache": {
+          "type": "object",
+          "description": "Caching configuration. Wraps the adapter with CachedWrapper when present.",
+          "properties": {
+            "ttl": {
+              "type": "integer",
+              "description": "Cache TTL for individual record lookups (seconds).",
+              "default": 300
+            },
+            "list_ttl": {
+              "type": "integer",
+              "description": "Cache TTL for search/list operations (seconds).",
+              "default": 60
+            },
+            "stale_on_error": {
+              "type": "boolean",
+              "description": "Serve expired cached data when the API is unreachable.",
+              "default": true
+            }
+          },
+          "additionalProperties": false
+        },
+        "field_mapping": {
+          "type": "object",
+          "description": "Maps local field names to remote API field names. Keys are local names, values are remote names.",
+          "additionalProperties": { "type": "string" },
+          "examples": [{ "name": "building_name", "address": "building_address" }]
+        },
+        "supported_operators": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Filter operators supported by this API. Unsupported operators are silently dropped.",
+          "examples": [["eq", "cont", "gt", "lt"]]
+        },
+        "endpoints": {
+          "type": "object",
+          "description": "Custom endpoint configuration for REST JSON APIs.",
+          "properties": {
+            "show": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string", "description": "URL path for show endpoint. Use :id placeholder.", "examples": ["buildings/:id"] },
+                "response_path": { "type": "string", "description": "Dot-path to navigate into JSON response.", "examples": ["data"] }
+              },
+              "additionalProperties": false
+            },
+            "search": {
+              "type": "object",
+              "properties": {
+                "method": { "type": "string", "enum": ["GET", "POST"], "default": "GET" },
+                "path": { "type": "string" },
+                "response_path": { "type": "string", "examples": ["data.items"] },
+                "total_count_path": { "type": "string", "examples": ["data.total"] }
+              },
+              "additionalProperties": false
+            },
+            "batch": {
+              "type": "object",
+              "properties": {
+                "path": { "type": "string" },
+                "response_path": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "required": ["type"],
+      "additionalProperties": false,
+      "examples": [
+        { "type": "host", "provider": "ErpProductProvider" },
+        { "type": "rest_json", "base_url": "https://api.example.com", "resource": "buildings", "auth": { "type": "bearer", "token_env": "API_TOKEN" } }
+      ]
     },
 
     "condition": {

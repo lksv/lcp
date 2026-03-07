@@ -1,0 +1,37 @@
+presenter:
+  name: work_orders
+  model: work_order
+  slug: work-orders
+  index:
+    table_columns:
+      - field: title
+      - field: status
+      - field: external_building_id
+  form:
+    sections:
+      - title: Details
+        fields:
+          - field: title
+          - field: description
+          - field: status
+          - field: external_building_id
+            input_type: association_select
+  show:
+    sections:
+      - title: Details
+        fields:
+          - field: title
+          - field: description
+          - field: status
+          - field: external_building_id
+  actions:
+    collection:
+      - name: create
+        type: built_in
+    single:
+      - name: show
+        type: built_in
+      - name: edit
+        type: built_in
+      - name: destroy
+        type: built_in

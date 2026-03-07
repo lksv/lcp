@@ -16,6 +16,7 @@ module LcpRuby
         @display_templates = {}
         @aggregates = {}
         @positioning_config = nil
+        @data_source_config = nil
         @options = {}
       end
 
@@ -201,6 +202,10 @@ module LcpRuby
         @aggregates[name.to_s] = agg
       end
 
+      def data_source(type:, **options)
+        @data_source_config = stringify_keys({ type: type }.merge(options))
+      end
+
       def positioning(field: :position, scope: nil)
         config = { "field" => field.to_s }
         config["scope"] = Array(scope).map(&:to_s) if scope
@@ -282,6 +287,7 @@ module LcpRuby
         hash["display_templates"] = @display_templates unless @display_templates.empty?
         hash["aggregates"] = @aggregates unless @aggregates.empty?
         hash["positioning"] = @positioning_config if @positioning_config
+        hash["data_source"] = @data_source_config if @data_source_config
         hash["options"] = @options unless @options.empty?
 
         hash

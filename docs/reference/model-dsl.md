@@ -113,6 +113,26 @@ Enables runtime user-defined custom fields on this model. See [Custom Fields Ref
 custom_fields true
 ```
 
+### `data_source`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | keyword arguments |
+
+Configures the model as API-backed. See [API-Backed Models Reference](api-backed-models.md).
+
+```ruby
+data_source type: :rest_json,
+            base_url: "https://api.example.com",
+            resource: "/buildings",
+            auth: { type: "bearer", token_env: "API_TOKEN" },
+            cache: { enabled: true, ttl: 300 }
+
+# Host-provided data source
+data_source type: :host, provider: "Erp::ProductDataSource"
+```
+
 ### `positioning`
 
 | | |

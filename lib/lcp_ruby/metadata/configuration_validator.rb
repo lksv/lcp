@@ -158,6 +158,8 @@ module LcpRuby
         loader.model_definitions.each_value do |model|
           if model.virtual?
             validate_virtual_model(model)
+          elsif model.api_model?
+            validate_api_model(model)
           else
             validate_model_fields(model)
             validate_model_scopes(model)
@@ -199,6 +201,70 @@ module LcpRuby
         if enabled.any?
           @warnings << "Model '#{model.name}': model features (#{enabled.join(', ')}) " \
                        "have no effect on virtual models (table_name: _virtual)"
+        end
+      end
+
+      def validate_api_model(model)
+        validate_model_fields(model)
+
+        ds = model.data_source_config
+
+        # Validate data source type
+        unless %w[rest_json host].include?(ds["type"])
+          @errors << "Model '#{model.name}': data_source.type must be 'rest_json' or 'host', " \
+                     "got '#{ds['type']}'"
+        end
+
+        # Type-specific validation
+        if ds["type"] == "rest_json" && ds["base_url"].blank?
+          @errors << "Model '#{model.name}': data_source.base_url is required for rest_json type"
+        end
+
+        if ds["type"] == "host" && ds["provider"].blank?
+          @errors << "Model '#{model.name}': data_source.provider is required for host type"
+        end
+
+        # Validate auth type if present
+        if ds["auth"].is_a?(Hash)
+          valid_auth_types = %w[bearer basic header]
+          unless valid_auth_types.include?(ds.dig("auth", "type"))
+            @errors << "Model '#{model.name}': data_source.auth.type must be one of: " \
+                       "#{valid_auth_types.join(', ')}"
+          end
+        end
+
+        # Validate pagination style if present
+        if ds["pagination"].is_a?(Hash)
+          valid_styles = %w[offset_limit page_number cursor]
+          style = ds.dig("pagination", "style")
+          if style && !valid_styles.include?(style)
+            @errors << "Model '#{model.name}': data_source.pagination.style must be one of: " \
+                       "#{valid_styles.join(', ')}"
+          end
+        end
+
+        # Incompatible features
+        incompatible_features = %w[soft_delete auditing userstamps tree positioning custom_fields]
+        incompatible_features.each do |feature|
+          check_method = feature == "positioning" ? :positioned? : :"#{feature}?"
+          check_method = :custom_fields_enabled? if feature == "custom_fields"
+          if model.send(check_method)
+            @errors << "Model '#{model.name}': '#{feature}' is not compatible with API-backed models"
+          end
+        end
+
+        # Warn about AR-only scopes
+        ar_scopes = model.scopes.select { |s| s["where"] || s["where_not"] }
+        if ar_scopes.any?
+          @warnings << "Model '#{model.name}': scopes with 'where'/'where_not' require ActiveRecord " \
+                       "and will not work with API-backed models"
+        end
+
+        # Warn about SQL aggregates
+        sql_aggregates = model.aggregates.select { |_, a| a.function.present? && a.service.blank? }
+        if sql_aggregates.any?
+          @warnings << "Model '#{model.name}': aggregates with SQL functions will not work " \
+                       "with API-backed models (only service-based aggregates are supported)"
         end
       end
 

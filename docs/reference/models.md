@@ -99,6 +99,32 @@ Virtual models:
 
 When a `json_field:` + `target_model:` nested section is rendered, each hash item from the JSON array is wrapped in a `JsonItemWrapper` that uses the virtual model's field definitions for type coercion, getter/setter access, and per-item validation.
 
+#### API-Backed Models
+
+Add a `data_source` key to create a model backed by an external REST API or host-provided adapter instead of the database:
+
+```yaml
+model:
+  name: external_building
+  data_source:
+    type: rest_json                  # rest_json | host
+    base_url: "https://api.example.com"
+    resource: "/buildings"
+    auth:
+      type: bearer
+      token_env: "API_TOKEN"
+    cache:
+      enabled: true
+      ttl: 300
+  fields:
+    - name: name
+      type: string
+```
+
+API-backed models use `ActiveModel` instead of `ActiveRecord`. They support index and show views, cross-source associations (DB model → API model), permissions, and display renderers. Features requiring database access (soft_delete, auditing, userstamps, tree, positioning, custom_fields) are not available.
+
+See [API-Backed Models Reference](api-backed-models.md) and [API-Backed Models Guide](../guides/api-backed-models.md) for full documentation.
+
 ### `positioning`
 
 | | |
