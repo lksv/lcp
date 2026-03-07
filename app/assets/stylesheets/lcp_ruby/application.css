@@ -723,3 +723,40 @@ th.lcp-drag-column { background: #f8f9fa; }
 .lcp-array-suggestions { position: absolute; z-index: 20; left: 0; right: 0; max-height: 200px; overflow-y: auto; background: #fff; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-top: 2px; }
 .lcp-array-suggestion-item { padding: 0.4rem 0.75rem; cursor: pointer; font-size: 0.875rem; }
 .lcp-array-suggestion-item:hover { background: #e9ecef; }
+
+/* Dashboard / Grid layout */
+.lcp-grid-container { display: grid; grid-template-columns: repeat(12, 1fr); gap: 1rem; margin-top: 1rem; }
+.lcp-grid-zone { min-height: 0; }
+.lcp-widget { background: #fff; border: 1px solid #dee2e6; border-radius: 8px; padding: 1.25rem; height: 100%; }
+.lcp-widget-title { font-size: 0.875rem; font-weight: 600; color: #495057; margin-bottom: 0.75rem; }
+.lcp-widget-empty { color: #6c757d; font-size: 0.8125rem; }
+
+/* KPI card */
+.lcp-widget-kpi_card { text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.lcp-kpi-content { display: flex; flex-direction: column; align-items: center; gap: 0.25rem; }
+.lcp-kpi-icon { font-size: 1.5rem; color: #0d6efd; margin-bottom: 0.25rem; }
+.lcp-kpi-value { font-size: 2rem; font-weight: 700; color: #212529; line-height: 1.2; }
+.lcp-kpi-label { font-size: 0.8125rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; }
+.lcp-kpi-link { font-size: 0.75rem; color: #0d6efd; text-decoration: none; margin-top: 0.5rem; }
+.lcp-kpi-link:hover { text-decoration: underline; }
+
+/* Text widget */
+.lcp-widget-text { font-size: 0.9375rem; line-height: 1.6; color: #495057; }
+
+/* List widget */
+.lcp-widget-list-items { list-style: none; }
+.lcp-widget-list-items li { padding: 0.375rem 0; border-bottom: 1px solid #f0f0f0; font-size: 0.875rem; }
+.lcp-widget-list-items li:last-child { border-bottom: none; }
+.lcp-widget-link { display: inline-block; margin-top: 0.5rem; font-size: 0.75rem; color: #0d6efd; text-decoration: none; }
+.lcp-widget-link:hover { text-decoration: underline; }
+
+/* Presenter zone (compact table) */
+.lcp-widget-presenter-zone .lcp-table-compact { width: 100%; font-size: 0.8125rem; }
+.lcp-widget-presenter-zone .lcp-table-compact th { padding: 0.375rem 0.5rem; font-weight: 600; border-bottom: 2px solid #dee2e6; text-align: left; }
+.lcp-widget-presenter-zone .lcp-table-compact td { padding: 0.375rem 0.5rem; border-bottom: 1px solid #f0f0f0; }
+
+/* Dashboard responsive */
+@media (max-width: 768px) {
+  .lcp-grid-container { grid-template-columns: 1fr; }
+  .lcp-grid-zone { grid-column: 1 !important; grid-row: auto !important; }
+}
