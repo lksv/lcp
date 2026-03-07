@@ -1398,9 +1398,9 @@
     xhr.open("POST", parseQlUrl, true);
     xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
 
-    var csrfMeta = document.querySelector('meta[name="csrf-token"]');
-    if (csrfMeta) {
-      xhr.setRequestHeader("X-CSRF-Token", csrfMeta.getAttribute("content"));
+    var token = LcpRuby.csrfToken();
+    if (token) {
+      xhr.setRequestHeader("X-CSRF-Token", token);
     }
 
     xhr.onload = function() {

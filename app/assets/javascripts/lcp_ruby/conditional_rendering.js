@@ -131,8 +131,7 @@
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(function() {
       var formData = new FormData(form);
-      var csrfMeta = document.querySelector('meta[name="csrf-token"]');
-      var csrfToken = csrfMeta ? csrfMeta.content : null;
+      var csrfToken = LcpRuby.csrfToken();
       var headers = { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
       if (csrfToken) headers['X-CSRF-Token'] = csrfToken;
       fetch(condUrl, {

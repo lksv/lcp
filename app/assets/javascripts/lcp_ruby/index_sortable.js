@@ -21,11 +21,6 @@
       return table.getAttribute("data-reorder-disabled") === "true";
     }
 
-    function getCSRFToken() {
-      var meta = document.querySelector('meta[name="csrf-token"]');
-      return meta ? meta.getAttribute("content") : "";
-    }
-
     function showFlash(message, type) {
       var existing = document.querySelector(".lcp-flash.lcp-reorder-flash");
       if (existing) existing.remove();
@@ -82,7 +77,7 @@
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          "X-CSRF-Token": getCSRFToken(),
+          "X-CSRF-Token": LcpRuby.csrfToken() || "",
           "Accept": "application/json"
         },
         body: JSON.stringify(body)

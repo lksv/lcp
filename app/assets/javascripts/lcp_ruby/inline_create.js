@@ -79,9 +79,9 @@
     var url = createUrl + '?target_model=' + encodeURIComponent(targetModel);
     if (labelMethod) url += '&label_method=' + encodeURIComponent(labelMethod);
 
-    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    var token = LcpRuby.csrfToken();
     var headers = { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' };
-    if (csrfToken) headers['X-CSRF-Token'] = csrfToken.content;
+    if (token) headers['X-CSRF-Token'] = token;
 
     fetch(url, {
       method: 'POST',

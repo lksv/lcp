@@ -78,9 +78,9 @@
     }
 
     var headers = { 'X-Requested-With': 'XMLHttpRequest' };
-    var csrfMeta = document.querySelector("meta[name='csrf-token']");
-    if (csrfMeta) {
-      headers['X-CSRF-Token'] = csrfMeta.content;
+    var token = LcpRuby.csrfToken();
+    if (token) {
+      headers['X-CSRF-Token'] = token;
     }
 
     fetch(url, {
@@ -176,12 +176,12 @@
     form.style.display = 'none';
 
     // CSRF token
-    var csrf = document.querySelector("meta[name='csrf-token']");
-    if (csrf) {
+    var token = LcpRuby.csrfToken();
+    if (token) {
       var csrfInput = document.createElement('input');
       csrfInput.type = 'hidden';
       csrfInput.name = 'authenticity_token';
-      csrfInput.value = csrf.content;
+      csrfInput.value = token;
       form.appendChild(csrfInput);
     }
 

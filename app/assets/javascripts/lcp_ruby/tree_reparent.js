@@ -139,12 +139,12 @@
     var body = { parent_id: newParentId };
     if (treeVersion) body.tree_version = treeVersion;
 
-    var csrfToken = document.querySelector('meta[name="csrf-token"]');
+    var token = LcpRuby.csrfToken();
     var headers = {
       'Content-Type': 'application/json',
       'Accept': 'application/json'
     };
-    if (csrfToken) headers['X-CSRF-Token'] = csrfToken.getAttribute('content');
+    if (token) headers['X-CSRF-Token'] = token;
 
     fetch(url, {
       method: 'PATCH',

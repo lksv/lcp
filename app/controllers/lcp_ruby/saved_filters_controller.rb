@@ -24,18 +24,7 @@ module LcpRuby
       return create_from_dialog if dialog_context?
 
       authorize_create!
-      model_class = SavedFilters::Registry.model_class
-
-      record = model_class.new(saved_filter_params)
-      record.owner_id = current_user.id
-      record.target_presenter = current_presenter.slug
-
-      # Generate QL text from condition tree
-      if record.respond_to?(:ql_text=) && record.condition_tree.present?
-        record.ql_text = Search::QueryLanguageSerializer.serialize(record.condition_tree)
-      end
-
-      # Enforce limits
+      record = build_saved_filter
       limit_error = check_limits(record)
       if limit_error
         render json: { error: limit_error }, status: :unprocessable_content
@@ -55,11 +44,7 @@ module LcpRuby
       authorize_modify!(@saved_filter)
 
       @saved_filter.assign_attributes(saved_filter_params)
-
-      # Regenerate QL text
-      if @saved_filter.respond_to?(:ql_text=) && @saved_filter.condition_tree.present?
-        @saved_filter.ql_text = Search::QueryLanguageSerializer.serialize(@saved_filter.condition_tree)
-      end
+      sync_ql_text!(@saved_filter)
 
       if @saved_filter.save
         render json: serialize_filter(@saved_filter)
@@ -80,16 +65,7 @@ module LcpRuby
 
     def create_from_dialog
       authorize_create!
-      model_class = SavedFilters::Registry.model_class
-
-      record = model_class.new(saved_filter_params)
-      record.owner_id = current_user.id
-      record.target_presenter = current_presenter.slug
-
-      if record.respond_to?(:ql_text=) && record.condition_tree.present?
-        record.ql_text = Search::QueryLanguageSerializer.serialize(record.condition_tree)
-      end
-
+      record = build_saved_filter
       limit_error = check_limits(record)
       if limit_error
         render json: { error: limit_error }, status: :unprocessable_content
@@ -101,6 +77,22 @@ module LcpRuby
       else
         render json: { errors: record.errors.full_messages }, status: :unprocessable_content
       end
+    end
+
+    def sync_ql_text!(record)
+      if record.respond_to?(:ql_text=) && record.condition_tree.present?
+        record.ql_text = Search::QueryLanguageSerializer.serialize(record.condition_tree)
+      end
+    end
+
+    def build_saved_filter
+      model_class = SavedFilters::Registry.model_class
+      record = model_class.new(saved_filter_params)
+      record.owner_id = current_user.id
+      record.target_presenter = current_presenter.slug
+
+      sync_ql_text!(record)
+      record
     end
 
     def verify_saved_filters_available

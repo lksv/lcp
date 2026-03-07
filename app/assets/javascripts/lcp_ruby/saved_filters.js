@@ -124,8 +124,7 @@
     deleteFilter: function(filterId, url) {
       if (!confirm("Are you sure you want to delete this saved filter?")) return;
 
-      var csrfToken = document.querySelector("meta[name='csrf-token']");
-      var token = csrfToken ? csrfToken.content : "";
+      var token = LcpRuby.csrfToken() || "";
 
       fetch(url + "/" + filterId, {
         method: "DELETE",

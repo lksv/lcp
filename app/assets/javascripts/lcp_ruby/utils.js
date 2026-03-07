@@ -21,5 +21,9 @@ window.LcpRuby.getFieldValue = function(scope, fieldName) {
   if (input) return input.value || '';
   return '';
 };
+window.LcpRuby.csrfToken = function() {
+  var meta = document.querySelector('meta[name="csrf-token"]');
+  return meta ? meta.getAttribute('content') : null;
+};
 /* Backward-compatible global alias */
 var getFieldValue = window.LcpRuby.getFieldValue;
