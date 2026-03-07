@@ -5,7 +5,7 @@ module LcpRuby
                   :strict_loading, :impersonation_roles,
                   :attachment_max_size, :attachment_allowed_content_types,
                   :breadcrumb_home_path, :not_found_handler, :empty_value,
-                  :audit_writer
+                  :audit_writer, :landing_page
 
     # Authentication settings
     attr_accessor :auth_allow_registration,
@@ -86,6 +86,7 @@ module LcpRuby
       @breadcrumb_home_path = "/"
       @not_found_handler = :default
       @audit_writer = nil
+      @landing_page = nil
       @menu_mode = :auto
       @model_extensions = {}
 

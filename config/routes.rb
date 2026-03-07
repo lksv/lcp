@@ -13,6 +13,8 @@ LcpRuby::Engine.routes.draw do
       password: "password"
     }
 
+  get    "/",                 to: "landing#show",          as: :landing
+
   post   "impersonate",      to: "impersonation#create",  as: :impersonate
   delete "impersonate",      to: "impersonation#destroy", as: :stop_impersonate
 
