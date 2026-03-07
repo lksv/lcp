@@ -24,8 +24,8 @@ module LcpRuby
           resolve_template(record, field_path, fk_map: fk_map)
         elsif self.class.dot_path?(field_path)
           resolve_dot_path(record, field_path)
-        elsif aggregate_field?(field_path)
-          resolve_aggregate(record, field_path)
+        elsif virtual_column_field?(field_path)
+          resolve_virtual_column(record, field_path)
         elsif fk_map.key?(field_path)
           resolve_fk(record, fk_map[field_path])
         else
@@ -135,18 +135,26 @@ module LcpRuby
         record.respond_to?(field_name) ? record.public_send(field_name) : nil
       end
 
-      def aggregate_field?(field_path)
-        model_definition.aggregate(field_path).present?
+      def virtual_column_field?(field_path)
+        model_definition.virtual_column(field_path).present?
       end
 
-      def resolve_aggregate(record, name)
-        # Try reading the SQL-injected virtual attribute first
-        if record.respond_to?(name)
+      def resolve_virtual_column(record, name)
+        value = if record.respond_to?(name)
           record.public_send(name)
-        else
-          # Fallback: try read_attribute for SQL alias
-          record.read_attribute(name) if record.respond_to?(:read_attribute)
+        elsif record.respond_to?(:read_attribute)
+          record.read_attribute(name)
         end
+
+        # Loaded-tracking guard: if nil on a persisted record, check if the VC
+        # was actually in the query's SELECT. Prevents silent nil from missing VCs.
+        if value.nil? && record.respond_to?(:virtual_column_loaded?) && !record.virtual_column_loaded?(name)
+          raise LcpRuby::Error,
+            "virtual column '#{name}' not loaded in query SELECT — " \
+            "add it to presenter virtual_columns or check VirtualColumns::Collector detection"
+        end
+
+        value
       end
     end
   end

@@ -876,4 +876,46 @@ RSpec.describe LcpRuby::ConditionEvaluator do
       end
     end
   end
+
+  describe "virtual column loaded-tracking guard" do
+    let(:vc_model_def) do
+      LcpRuby::Metadata::ModelDefinition.from_hash(
+        "name" => "vc_cond_test",
+        "fields" => [
+          { "name" => "title", "type" => "string" }
+        ],
+        "virtual_columns" => {
+          "is_overdue" => { "expression" => "1", "type" => "boolean" }
+        }
+      )
+    end
+
+    it "raises ConditionError when VC is nil and not loaded" do
+      rec = OpenStruct.new(is_overdue: nil)
+      allow(rec).to receive(:virtual_column_loaded?).with("is_overdue").and_return(false)
+
+      condition = { "field" => "is_overdue", "operator" => "eq", "value" => "true" }
+      expect {
+        described_class.evaluate_any(rec, condition, context: { model_definition: vc_model_def })
+      }.to raise_error(LcpRuby::ConditionError, /not loaded in query SELECT/)
+    end
+
+    it "does not raise when VC is nil but was loaded (legitimate NULL)" do
+      rec = OpenStruct.new(is_overdue: nil)
+      allow(rec).to receive(:virtual_column_loaded?).with("is_overdue").and_return(true)
+
+      condition = { "field" => "is_overdue", "operator" => "eq", "value" => "true" }
+      # Should not raise, evaluates to false (nil != "true")
+      expect(described_class.evaluate_any(rec, condition, context: { model_definition: vc_model_def })).to be false
+    end
+
+    it "does not raise without model_definition in context" do
+      rec = OpenStruct.new(is_overdue: nil)
+      allow(rec).to receive(:virtual_column_loaded?).with("is_overdue").and_return(false)
+
+      condition = { "field" => "is_overdue", "operator" => "eq", "value" => "true" }
+      # No model_definition in context, guard is skipped
+      expect(described_class.evaluate_any(rec, condition)).to be false
+    end
+  end
 end

@@ -1,0 +1,39 @@
+model:
+  name: vc_order
+  fields:
+    - name: title
+      type: string
+    - name: status
+      type: string
+    - name: due_date
+      type: date
+    - name: vc_company_id
+      type: integer
+  associations:
+    - type: has_many
+      name: vc_line_items
+      target_model: vc_line_item
+      foreign_key: vc_order_id
+    - type: belongs_to
+      name: vc_company
+      target_model: vc_company
+      foreign_key: vc_company_id
+      required: false
+  virtual_columns:
+    items_count:
+      function: count
+      association: vc_line_items
+    is_overdue:
+      expression: "CASE WHEN %{table}.due_date < date('now') AND %{table}.status != 'done' THEN 1 ELSE 0 END"
+      type: boolean
+      default: 0
+    company_name:
+      expression: "vc_companies.name"
+      join: "LEFT JOIN vc_companies ON vc_companies.id = %{table}.vc_company_id"
+      type: string
+    total_value:
+      expression: "SUM(vc_line_items.quantity * vc_line_items.unit_price)"
+      join: "LEFT JOIN vc_line_items ON vc_line_items.vc_order_id = %{table}.id"
+      group: true
+      type: decimal
+      default: 0

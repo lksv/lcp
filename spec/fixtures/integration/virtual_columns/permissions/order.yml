@@ -1,0 +1,14 @@
+permissions:
+  model: vc_order
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields:
+        readable: all
+        writable: all
+      presenters: all
+    viewer:
+      crud: [index, show]
+      fields:
+        readable: all
+      presenters: all

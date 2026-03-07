@@ -10,7 +10,7 @@ LCP Ruby is a Rails mountable engine that generates full CRUD information system
 
 Complete attribute reference for every YAML configuration file:
 
-- [Models](reference/models.md) — Fields, validations, associations, scopes, events, display templates, aggregates
+- [Models](reference/models.md) — Fields, validations, associations, scopes, events, display templates, virtual columns (aggregates)
 - [Types](reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters](reference/presenters.md) — Index, show, form, search, actions, navigation
 - [View Groups](reference/view-groups.md) — Navigation menu, view switching, auto-creation
@@ -38,7 +38,8 @@ Complete attribute reference for every YAML configuration file:
 
 - [Presenters](guides/presenters.md) — Step-by-step guide to building presenters (index, show, form, search, actions) with YAML and DSL examples
 - [Selectbox](guides/selectbox.md) — Association select, cascading selects, remote search, multi-select, tree select, scoping, disabled options, legacy records, codelists
-- [Computed Fields](guides/computed-fields.md) — Auto-calculated persisted fields: template interpolation, service logic, arithmetic, comparison with aggregates
+- [Virtual Columns](guides/virtual-columns.md) — Query-time computed columns: declarative aggregates, SQL expressions, JOINs, GROUP BY, services, auto-include, conditional rendering
+- [Computed Fields](guides/computed-fields.md) — Auto-calculated persisted fields: template interpolation, service logic, arithmetic, comparison with virtual columns
 - [Extensibility](guides/extensibility.md) — All extension mechanisms: actions, events, transforms, validators, defaults, computed fields, condition services, scopes, model extensions
 - [Conditional Rendering](guides/conditional-rendering.md) — `visible_when`, `disable_when`, `item_classes`: simple, compound (all/any/not), dot-path, dynamic references, collection conditions, lookup value references, DSL builder
 - [Custom Actions](guides/custom-actions.md) — Writing domain-specific operations beyond CRUD
@@ -82,6 +83,7 @@ Implemented:
 - [Tree Structures](design/tree_structures.md) — Declarative parent-child hierarchies with traversal, cycle detection, and tree index view
 - [Saved Filters & Parameterized Scopes](design/saved_filters.md) — User-persistent named filters with visibility levels, parameterized scopes with typed parameters, generator, CRUD API
 - [Aggregate Columns](design/aggregate_columns.md) — Virtual computed columns (COUNT, SUM, MIN, MAX, AVG) from associated records, custom SQL, service-based aggregates
+- [Virtual Columns](design/virtual_columns.md) — Generalized query extensions: expressions, JOINs, GROUP BY, auto-include, backward-compatible with aggregates
 - [Tiles View](design/tiles_view.md) — Card grid layout for index pages with sort dropdown, per-page selector, and summary bar
 - [Row Styling](design/row_styling.md) — Conditional CSS classes on index rows (tables, trees, tiles) based on field conditions or services
 - [Array Field Type](design/array_field_type.md) — Native array fields with typed items, array-specific operators, and auto-generated scopes
@@ -95,7 +97,6 @@ In Progress:
 
 Partially Implemented:
 - [Advanced Conditions](design/advanced_conditions.md) — Compound conditions (all/any/not), dynamic value references, dot-path fields, collection quantifiers, value services, lookup value references
-- [Virtual Columns](design/virtual_columns.md) — Generalized query extensions: raw SQL, JOINs, EXISTS, window functions, LATERAL JOINs, service-based with Arel
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments
 - [Multiselect and Batch Actions](design/multiselect_and_batch_actions.md) — Checkbox selection and bulk operations on index pages
 - [Advanced Search & Filter Builder](design/advanced_search.md) — Multi-field search, saved filters, and visual filter builder

@@ -1,0 +1,16 @@
+model:
+  name: vc_line_item
+  fields:
+    - name: description
+      type: string
+    - name: quantity
+      type: integer
+    - name: unit_price
+      type: decimal
+    - name: vc_order_id
+      type: integer
+  associations:
+    - type: belongs_to
+      name: vc_order
+      target_model: vc_order
+      foreign_key: vc_order_id

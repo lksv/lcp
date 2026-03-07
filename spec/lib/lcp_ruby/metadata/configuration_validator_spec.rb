@@ -5065,21 +5065,21 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     it "accepts valid declarative count aggregate" do
       v = project_with_issues('issues_count: { function: count, association: issues }')
       result = v.validate
-      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      agg_errors = result.errors.select { |e| e.include?("virtual column") }
       expect(agg_errors).to be_empty
     end
 
     it "accepts valid declarative sum aggregate with source_field" do
       v = project_with_issues('total_priority: { function: sum, association: issues, source_field: priority }')
       result = v.validate
-      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      agg_errors = result.errors.select { |e| e.include?("virtual column") }
       expect(agg_errors).to be_empty
     end
 
     it "accepts valid declarative aggregate with where clause" do
       v = project_with_issues('open_issues: { function: count, association: issues, where: { status: open } }')
       result = v.validate
-      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      agg_errors = result.errors.select { |e| e.include?("virtual column") }
       expect(agg_errors).to be_empty
     end
 
@@ -5087,7 +5087,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       v = project_with_issues('task_count: { function: count, association: tasks }')
       result = v.validate
       expect(result.errors).to include(
-        a_string_matching(/aggregate 'task_count'.*unknown association 'tasks'/)
+        a_string_matching(/virtual column 'task_count'.*unknown association 'tasks'/)
       )
     end
 
@@ -5117,7 +5117,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       )
       result = v.validate
       expect(result.errors).to include(
-        a_string_matching(/aggregate 'project_count'.*must be has_many, got 'belongs_to'/)
+        a_string_matching(/virtual column 'project_count'.*must be has_many, got 'belongs_to'/)
       )
     end
 
@@ -5131,7 +5131,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       v = project_with_issues('total: { function: sum, association: issues, source_field: amount }')
       result = v.validate
       expect(result.errors).to include(
-        a_string_matching(/aggregate 'total'.*source_field 'amount' not found on model 'issue'/)
+        a_string_matching(/virtual column 'total'.*source_field 'amount' not found on model 'issue'/)
       )
     end
 
@@ -5139,7 +5139,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       v = project_with_issues('filtered: { function: count, association: issues, where: { nonexistent: value } }')
       result = v.validate
       expect(result.warnings).to include(
-        a_string_matching(/aggregate 'filtered'.*where clause references field 'nonexistent' not found on model 'issue'/)
+        a_string_matching(/virtual column 'filtered'.*where clause references field 'nonexistent' not found on model 'issue'/)
       )
     end
 
@@ -5180,32 +5180,32 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             YAML
           ]
         )
-      }.to raise_error(LcpRuby::MetadataError, /aggregate names collide with field names/)
+      }.to raise_error(LcpRuby::MetadataError, /virtual column names collide with field names/)
     end
 
     it "raises MetadataError at parse time when SQL aggregate missing type" do
       expect {
         project_with_issues('custom: { sql: "SELECT 1" }')
-      }.to raise_error(LcpRuby::MetadataError, /SQL aggregate requires 'type'/)
+      }.to raise_error(LcpRuby::MetadataError, /expression type requires 'type'/)
     end
 
     it "raises MetadataError at parse time when service aggregate missing type" do
       expect {
         project_with_issues('health: { service: project_health }')
-      }.to raise_error(LcpRuby::MetadataError, /service aggregate requires 'type'/)
+      }.to raise_error(LcpRuby::MetadataError, /service type requires 'type'/)
     end
 
     it "accepts valid SQL aggregate with type" do
       v = project_with_issues('custom: { sql: "SELECT 1", type: integer }')
       result = v.validate
-      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      agg_errors = result.errors.select { |e| e.include?("virtual column") }
       expect(agg_errors).to be_empty
     end
 
     it "accepts valid service aggregate with type" do
       v = project_with_issues('health: { service: project_health, type: string }')
       result = v.validate
-      agg_errors = result.errors.select { |e| e.include?("aggregate") }
+      agg_errors = result.errors.select { |e| e.include?("virtual column") }
       expect(agg_errors).to be_empty
     end
   end
@@ -6565,5 +6565,400 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator::ValidationResult do
   it "shows success message when valid" do
     result = described_class.new(errors: [], warnings: [])
     expect(result.to_s).to include("Configuration is valid.")
+  end
+end
+
+RSpec.describe "ConfigurationValidator virtual column validations" do
+  def create_metadata(models: [], presenters: [], permissions: [], view_groups: [], menu: nil)
+    dir = Dir.mktmpdir("lcp_vc_test")
+    %w[models presenters permissions views].each { |d| FileUtils.mkdir_p(File.join(dir, d)) }
+
+    models.each_with_index do |yaml, i|
+      File.write(File.join(dir, "models", "model_#{i}.yml"), yaml)
+    end
+    presenters.each_with_index do |yaml, i|
+      File.write(File.join(dir, "presenters", "presenter_#{i}.yml"), yaml)
+    end
+    permissions.each_with_index do |yaml, i|
+      File.write(File.join(dir, "permissions", "perm_#{i}.yml"), yaml)
+    end
+    view_groups.each_with_index do |yaml, i|
+      File.write(File.join(dir, "views", "vg_#{i}.yml"), yaml)
+    end
+    File.write(File.join(dir, "menu.yml"), menu) if menu
+
+    dir
+  end
+
+  after do
+    FileUtils.rm_rf(@tmpdir) if @tmpdir
+  end
+
+  def with_metadata(**opts)
+    @tmpdir = create_metadata(**opts)
+    loader = LcpRuby::Metadata::Loader.new(@tmpdir)
+    loader.load_all
+    LcpRuby::Metadata::ConfigurationValidator.new(loader)
+  end
+
+  it "errors when VC name collides with association name" do
+    v = with_metadata(
+      models: [
+        <<~YAML,
+          model:
+            name: item
+            fields:
+              - { name: title, type: string }
+              - { name: project_id, type: integer }
+        YAML
+        <<~YAML
+          model:
+            name: project
+            fields:
+              - { name: title, type: string }
+            associations:
+              - { type: has_many, name: items, target_model: item, foreign_key: project_id }
+            virtual_columns:
+              items:
+                function: count
+                association: items
+        YAML
+      ]
+    )
+
+    result = v.validate
+    expect(result.errors).to include(a_string_matching(/collides with association 'items'/))
+  end
+
+  it "errors when VC name collides with scope name" do
+    v = with_metadata(
+      models: [ <<~YAML ]
+        model:
+          name: task
+          fields:
+            - { name: title, type: string }
+            - { name: status, type: string }
+          scopes:
+            - { name: active, where: { status: active } }
+          virtual_columns:
+            active:
+              expression: "1"
+              type: boolean
+      YAML
+    )
+
+    result = v.validate
+    expect(result.errors).to include(a_string_matching(/collides with scope 'active'/))
+  end
+
+  it "errors when VC name is a reserved method" do
+    v = with_metadata(
+      models: [ <<~YAML ]
+        model:
+          name: thing
+          fields:
+            - { name: title, type: string }
+          virtual_columns:
+            reload:
+              expression: "1"
+              type: integer
+      YAML
+    )
+
+    result = v.validate
+    expect(result.errors).to include(a_string_matching(/collides with reserved method 'reload'/))
+  end
+
+  it "warns on multiple join+group virtual columns (cartesian risk)" do
+    v = with_metadata(
+      models: [
+        <<~YAML,
+          model:
+            name: li
+            fields:
+              - { name: qty, type: integer }
+              - { name: order_id, type: integer }
+        YAML
+        <<~YAML,
+          model:
+            name: payment
+            fields:
+              - { name: amount, type: decimal }
+              - { name: order_id, type: integer }
+        YAML
+        <<~YAML
+          model:
+            name: order
+            fields:
+              - { name: title, type: string }
+            virtual_columns:
+              total_qty:
+                expression: "SUM(lis.qty)"
+                join: "LEFT JOIN lis ON lis.order_id = %{table}.id"
+                group: true
+                type: integer
+              total_amount:
+                expression: "SUM(payments.amount)"
+                join: "LEFT JOIN payments ON payments.order_id = %{table}.id"
+                group: true
+                type: decimal
+        YAML
+      ]
+    )
+
+    result = v.validate
+    expect(result.warnings).to include(a_string_matching(/cartesian product risk/))
+  end
+
+  it "warns on group+window function combination" do
+    v = with_metadata(
+      models: [ <<~YAML ]
+        model:
+          name: deal
+          fields:
+            - { name: title, type: string }
+            - { name: category_id, type: integer }
+          virtual_columns:
+            total_grouped:
+              expression: "SUM(1)"
+              join: "LEFT JOIN line_items ON line_items.deal_id = %{table}.id"
+              group: true
+              type: integer
+            category_rank:
+              expression: "ROW_NUMBER() OVER(PARTITION BY %{table}.category_id ORDER BY %{table}.id)"
+              type: integer
+      YAML
+    )
+
+    result = v.validate
+    expect(result.warnings).to include(a_string_matching(/window function/))
+  end
+
+  it "warns on auto_include with join" do
+    v = with_metadata(
+      models: [ <<~YAML ]
+        model:
+          name: project
+          fields:
+            - { name: title, type: string }
+          virtual_columns:
+            company_name:
+              expression: "companies.name"
+              join: "LEFT JOIN companies ON companies.id = 1"
+              type: string
+              auto_include: true
+      YAML
+    )
+
+    result = v.validate
+    expect(result.warnings).to include(a_string_matching(/auto_include with join/))
+  end
+
+  it "warns on auto_include with service-only VC" do
+    svc = double("vc_service")
+    allow(svc).to receive(:respond_to?).with(:sql_expression).and_return(false)
+    LcpRuby::Services::Registry.register("virtual_columns", "no_sql_svc", svc)
+
+    v = with_metadata(
+      models: [ <<~YAML ]
+        model:
+          name: project
+          fields:
+            - { name: title, type: string }
+          virtual_columns:
+            health:
+              service: no_sql_svc
+              type: integer
+              auto_include: true
+      YAML
+    )
+
+    result = v.validate
+    expect(result.warnings).to include(a_string_matching(/auto_include with service-only VC/))
+  end
+
+  it "warns when service-only VC is in table_columns" do
+    svc = double("vc_service")
+    allow(svc).to receive(:respond_to?).with(:sql_expression).and_return(false)
+    LcpRuby::Services::Registry.register("virtual_columns", "no_sql_svc2", svc)
+
+    v = with_metadata(
+      models: [ <<~YAML ],
+        model:
+          name: invoice
+          fields:
+            - { name: title, type: string }
+          virtual_columns:
+            health:
+              service: no_sql_svc2
+              type: integer
+      YAML
+      presenters: [ <<~YAML ],
+        presenter:
+          name: invoices
+          model: invoice
+          slug: invoices
+          index:
+            table_columns:
+              - { field: title }
+              - { field: health }
+      YAML
+      permissions: [ <<~YAML ]
+        permissions:
+          model: invoice
+          roles:
+            admin:
+              crud: [create, read, update, delete]
+      YAML
+    )
+
+    result = v.validate
+    expect(result.warnings).to include(a_string_matching(/service-only.*nil on index pages/))
+  end
+
+  it "warns when service-only VC is in tile fields" do
+    svc = double("vc_service")
+    allow(svc).to receive(:respond_to?).with(:sql_expression).and_return(false)
+    LcpRuby::Services::Registry.register("virtual_columns", "no_sql_tile", svc)
+
+    v = with_metadata(
+      models: [ <<~YAML ],
+        model:
+          name: widget
+          fields:
+            - { name: title, type: string }
+          virtual_columns:
+            score:
+              service: no_sql_tile
+              type: integer
+      YAML
+      presenters: [ <<~YAML ],
+        presenter:
+          name: widgets
+          model: widget
+          slug: widgets
+          index:
+            layout: tiles
+            tile:
+              title_field: title
+              fields:
+                - { field: score }
+      YAML
+      permissions: [ <<~YAML ]
+        permissions:
+          model: widget
+          roles:
+            admin:
+              crud: [create, read, update, delete]
+      YAML
+    )
+
+    result = v.validate
+    expect(result.warnings).to include(a_string_matching(/service-only.*nil on index pages/))
+  end
+
+  it "raises at parse time when VC name collides with field name" do
+    # Field name collision is caught by ModelDefinition.validate! at parse time,
+    # before the ConfigurationValidator even runs.
+    expect {
+      with_metadata(
+        models: [ <<~YAML ]
+          model:
+            name: task
+            fields:
+              - { name: title, type: string }
+              - { name: status, type: string }
+            virtual_columns:
+              status:
+                expression: "1"
+                type: integer
+        YAML
+      )
+    }.to raise_error(LcpRuby::MetadataError, /virtual column names collide with field names: status/)
+  end
+
+  it "warns when service-only VC is in item_classes condition" do
+    svc = double("vc_service")
+    allow(svc).to receive(:respond_to?).with(:sql_expression).and_return(false)
+    LcpRuby::Services::Registry.register("virtual_columns", "no_sql_ic", svc)
+
+    v = with_metadata(
+      models: [ <<~YAML ],
+        model:
+          name: ticket
+          fields:
+            - { name: title, type: string }
+          virtual_columns:
+            urgency:
+              service: no_sql_ic
+              type: integer
+      YAML
+      presenters: [ <<~YAML ],
+        presenter:
+          name: tickets
+          model: ticket
+          slug: tickets
+          index:
+            table_columns:
+              - { field: title }
+            item_classes:
+              - class: lcp-row-danger
+                when: { field: urgency, operator: gt, value: "5" }
+      YAML
+      permissions: [ <<~YAML ]
+        permissions:
+          model: ticket
+          roles:
+            admin:
+              crud: [create, read, update, delete]
+      YAML
+    )
+
+    result = v.validate
+    expect(result.warnings).to include(a_string_matching(/item_classes.*service-only.*nil on index pages/))
+  end
+
+  it "warns when service-only VC is in compound item_classes condition" do
+    svc = double("vc_service")
+    allow(svc).to receive(:respond_to?).with(:sql_expression).and_return(false)
+    LcpRuby::Services::Registry.register("virtual_columns", "no_sql_cmp", svc)
+
+    v = with_metadata(
+      models: [ <<~YAML ],
+        model:
+          name: alert
+          fields:
+            - { name: title, type: string }
+          virtual_columns:
+            severity:
+              service: no_sql_cmp
+              type: integer
+      YAML
+      presenters: [ <<~YAML ],
+        presenter:
+          name: alerts
+          model: alert
+          slug: alerts
+          index:
+            table_columns:
+              - { field: title }
+            item_classes:
+              - class: lcp-row-warning
+                when:
+                  any:
+                    - { field: severity, operator: gt, value: "3" }
+                    - { field: title, operator: present }
+      YAML
+      permissions: [ <<~YAML ]
+        permissions:
+          model: alert
+          roles:
+            admin:
+              crud: [create, read, update, delete]
+      YAML
+    )
+
+    result = v.validate
+    expect(result.warnings).to include(a_string_matching(/item_classes.*service-only.*nil on index pages/))
   end
 end

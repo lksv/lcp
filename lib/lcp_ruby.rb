@@ -16,6 +16,7 @@ require "lcp_ruby/metadata/field_definition"
 require "lcp_ruby/metadata/association_definition"
 require "lcp_ruby/metadata/event_definition"
 require "lcp_ruby/metadata/display_template_definition"
+require "lcp_ruby/metadata/virtual_column_definition"
 require "lcp_ruby/metadata/aggregate_definition"
 require "lcp_ruby/metadata/model_definition"
 require "lcp_ruby/metadata/presenter_definition"
@@ -87,6 +88,7 @@ require "lcp_ruby/model_factory/soft_delete_applicator"
 require "lcp_ruby/model_factory/tree_applicator"
 require "lcp_ruby/model_factory/auditing_applicator"
 require "lcp_ruby/model_factory/ransack_applicator"
+require "lcp_ruby/model_factory/virtual_column_applicator"
 require "lcp_ruby/model_factory/aggregate_applicator"
 require "lcp_ruby/model_factory/array_type"
 require "lcp_ruby/model_factory/array_type_applicator"
@@ -94,7 +96,12 @@ require "lcp_ruby/model_factory/builder"
 require "lcp_ruby/model_factory/api_builder"
 require "lcp_ruby/model_factory/api_association_applicator"
 
-# Aggregates
+# Virtual Columns
+require "lcp_ruby/virtual_columns"
+require "lcp_ruby/virtual_columns/builder"
+require "lcp_ruby/virtual_columns/collector"
+
+# Aggregates (backward compatibility alias)
 require "lcp_ruby/aggregates/query_builder"
 
 # JSON Item Wrapper (for model-backed JSON field items)

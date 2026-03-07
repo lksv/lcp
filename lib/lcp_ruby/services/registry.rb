@@ -1,7 +1,7 @@
 module LcpRuby
   module Services
     class Registry
-      VALID_CATEGORIES = %w[transforms validators conditions defaults computed data_providers accessors aggregates].freeze
+      VALID_CATEGORIES = %w[transforms validators conditions defaults computed data_providers accessors aggregates virtual_columns].freeze
 
       class << self
         def register(category, key, service)
@@ -17,6 +17,16 @@ module LcpRuby
         def registered?(category, key)
           validate_category!(category)
           registries[category.to_s].key?(key.to_s)
+        end
+
+        # Look up a virtual column service, trying "virtual_columns" first then "aggregates".
+        def lookup_vc_service(key)
+          lookup("virtual_columns", key) || lookup("aggregates", key)
+        end
+
+        # Check if a virtual column service is registered in either category.
+        def vc_service_registered?(key)
+          registered?("virtual_columns", key) || registered?("aggregates", key)
         end
 
         def discover!(base_path)

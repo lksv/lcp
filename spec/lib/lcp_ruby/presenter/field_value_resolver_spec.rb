@@ -271,4 +271,80 @@ RSpec.describe LcpRuby::Presenter::FieldValueResolver do
       end
     end
   end
+
+  describe "virtual column loaded-tracking guard" do
+    let(:vc_model_def) do
+      LcpRuby::Metadata::ModelDefinition.from_hash(
+        "name" => "vc_guard_test",
+        "fields" => [
+          { "name" => "title", "type" => "string" }
+        ],
+        "virtual_columns" => {
+          "is_overdue" => { "expression" => "1", "type" => "boolean" }
+        }
+      )
+    end
+
+    let(:vc_perm_def) do
+      LcpRuby::Metadata::PermissionDefinition.from_hash(
+        "model" => "vc_guard_test",
+        "default_role" => "admin",
+        "roles" => {
+          "admin" => {
+            "crud" => %w[index show],
+            "fields" => { "readable" => "all", "writable" => "all" }
+          }
+        }
+      )
+    end
+
+    let(:vc_evaluator) do
+      LcpRuby::Authorization::PermissionEvaluator.new(vc_perm_def, admin_user, "vc_guard_test")
+    end
+
+    let(:vc_resolver) do
+      described_class.new(vc_model_def, vc_evaluator)
+    end
+
+    it "raises LcpRuby::Error when VC is not loaded and returns nil" do
+      record = double("Record", persisted?: true, is_overdue: nil)
+      allow(record).to receive(:respond_to?).with(anything).and_return(true)
+      allow(record).to receive(:respond_to?).with(:read_attribute).and_return(false)
+      allow(record).to receive(:virtual_column_loaded?).with("is_overdue").and_return(false)
+      allow(record).to receive(:public_send).with("is_overdue").and_return(nil)
+
+      expect {
+        vc_resolver.resolve(record, "is_overdue")
+      }.to raise_error(LcpRuby::Error, /not loaded in query SELECT/)
+    end
+
+    it "does not raise when VC is loaded and returns nil (legitimate NULL)" do
+      record = double("Record", persisted?: true, is_overdue: nil)
+      allow(record).to receive(:respond_to?).with(anything).and_return(true)
+      allow(record).to receive(:respond_to?).with(:read_attribute).and_return(false)
+      allow(record).to receive(:virtual_column_loaded?).with("is_overdue").and_return(true)
+      allow(record).to receive(:public_send).with("is_overdue").and_return(nil)
+
+      expect(vc_resolver.resolve(record, "is_overdue")).to be_nil
+    end
+
+    it "does not raise for records without virtual_column_loaded?" do
+      record = double("Record", persisted?: false, is_overdue: nil)
+      allow(record).to receive(:respond_to?).with(anything).and_return(true)
+      allow(record).to receive(:respond_to?).with(:virtual_column_loaded?).and_return(false)
+      allow(record).to receive(:respond_to?).with(:read_attribute).and_return(false)
+      allow(record).to receive(:public_send).with("is_overdue").and_return(nil)
+
+      expect(vc_resolver.resolve(record, "is_overdue")).to be_nil
+    end
+
+    it "does not raise when VC returns a non-nil value" do
+      record = double("Record", persisted?: true, is_overdue: true)
+      allow(record).to receive(:respond_to?).with(anything).and_return(true)
+      allow(record).to receive(:respond_to?).with(:read_attribute).and_return(false)
+      allow(record).to receive(:public_send).with("is_overdue").and_return(true)
+
+      expect(vc_resolver.resolve(record, "is_overdue")).to be true
+    end
+  end
 end

@@ -1,0 +1,7 @@
+model:
+  name: vc_company
+  fields:
+    - name: name
+      type: string
+    - name: country
+      type: string

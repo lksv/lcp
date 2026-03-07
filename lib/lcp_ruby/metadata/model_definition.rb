@@ -3,8 +3,11 @@ module LcpRuby
     class ModelDefinition
       attr_reader :name, :label, :label_plural, :table_name, :fields,
                   :validations, :associations, :scopes, :events, :options,
-                  :display_templates, :aggregates, :raw_hash, :data_source_config
+                  :display_templates, :virtual_columns, :raw_hash, :data_source_config
       attr_accessor :positioning_config
+
+      # Backward compatibility alias
+      alias_method :aggregates, :virtual_columns
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -18,7 +21,7 @@ module LcpRuby
         @events = attrs[:events] || []
         @options = attrs[:options] || {}
         @display_templates = attrs[:display_templates] || {}
-        @aggregates = attrs[:aggregates] || {}
+        @virtual_columns = attrs[:virtual_columns] || attrs[:aggregates] || {}
         @positioning_config = attrs[:positioning_config]
         @data_source_config = attrs[:data_source_config]
         @raw_hash = attrs[:raw_hash]
@@ -39,7 +42,7 @@ module LcpRuby
           events: parse_events(hash["events"]),
           options: hash["options"] || {},
           display_templates: parse_display_templates(hash["display_templates"]),
-          aggregates: parse_aggregates(hash["aggregates"]),
+          virtual_columns: parse_virtual_columns(hash),
           positioning_config: normalize_positioning(hash["positioning"]),
           data_source_config: hash["data_source"],
           raw_hash: hash
@@ -203,13 +206,17 @@ module LcpRuby
         display_templates[name.to_s]
       end
 
-      def aggregate(name)
-        aggregates[name.to_s]
+      def virtual_column(name)
+        virtual_columns[name.to_s]
       end
 
-      def aggregate_names
-        aggregates.keys
+      def virtual_column_names
+        virtual_columns.keys
       end
+
+      # Backward compatibility aliases
+      alias_method :aggregate, :virtual_column
+      alias_method :aggregate_names, :virtual_column_names
 
       def positioned?
         @positioning_config.present?
@@ -262,7 +269,7 @@ module LcpRuby
       def validate!
         raise MetadataError, "Model name is required" if @name.blank?
         validate_field_names_unique!
-        validate_aggregate_names_unique!
+        validate_virtual_column_names_unique!
       end
 
       def validate_field_names_unique!
@@ -273,11 +280,11 @@ module LcpRuby
         end
       end
 
-      def validate_aggregate_names_unique!
+      def validate_virtual_column_names_unique!
         field_names = fields.map(&:name)
-        collisions = aggregate_names & field_names
+        collisions = virtual_column_names & field_names
         if collisions.any?
-          raise MetadataError, "Model '#{@name}': aggregate names collide with field names: #{collisions.join(', ')}"
+          raise MetadataError, "Model '#{@name}': virtual column names collide with field names: #{collisions.join(', ')}"
         end
       end
 
@@ -315,10 +322,27 @@ module LcpRuby
         events_data.map { |e| EventDefinition.from_hash(e) }
       end
 
-      def self.parse_aggregates(data)
-        return {} unless data.is_a?(Hash)
-        data.each_with_object({}) do |(name, hash), result|
-          result[name.to_s] = AggregateDefinition.from_hash(name, hash)
+      # Parse both "aggregates" and "virtual_columns" keys, merge, and error on collision.
+      def self.parse_virtual_columns(hash)
+        agg_data = hash["aggregates"] || {}
+        vc_data = hash["virtual_columns"] || {}
+
+        if agg_data.is_a?(Hash) && vc_data.is_a?(Hash)
+          collisions = agg_data.keys.map(&:to_s) & vc_data.keys.map(&:to_s)
+          if collisions.any?
+            raise MetadataError, "Model '#{hash['name']}': name collision between aggregates and virtual_columns: #{collisions.join(', ')}"
+          end
+        end
+
+        merged = {}
+        parse_vc_hash(agg_data, merged) if agg_data.is_a?(Hash)
+        parse_vc_hash(vc_data, merged) if vc_data.is_a?(Hash)
+        merged
+      end
+
+      def self.parse_vc_hash(data, result)
+        data.each do |name, hash|
+          result[name.to_s] = VirtualColumnDefinition.from_hash(name, hash)
         end
       end
 

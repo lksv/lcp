@@ -5,7 +5,7 @@ puts "Seeding showcase data..."
 connection = ActiveRecord::Base.connection
 %w[
   saved_filter feature pipeline_stage pipeline showcase_item_class showcase_recipe showcase_positioning showcase_userstamps
-  showcase_soft_delete_item showcase_soft_delete showcase_aggregate_item showcase_aggregate
+  showcase_soft_delete_item showcase_soft_delete showcase_aggregate_item showcase_aggregate showcase_aggregate_company
   showcase_virtual_field showcase_extensibility permission_config role showcase_permission
   showcase_attachment custom_field_definition employee_skill project showcase_search showcase_array
   employee skill department showcase_form comment article_tag tag article
@@ -2836,6 +2836,116 @@ features = [
     status: "beta"
   },
 
+  # === Virtual Columns (query-time computed) ===
+  {
+    name: "Virtual Columns Overview",
+    category: "virtual_fields",
+    description: "Virtual columns are query-time computed values injected into SQL SELECT via subqueries, expressions, JOINs, or services. Unlike virtual fields (JSON-backed), virtual columns have no storage — they exist only during query execution.\n\n| Type | How it works |\n|------|-------------|\n| Declarative aggregate | COUNT/SUM/AVG/MIN/MAX over an association |\n| Expression | Inline SQL expression or subquery |\n| JOIN-based | Value from a LEFT JOIN to another table |\n| Window function | ROW_NUMBER, RANK, etc. with PARTITION BY |\n| Service | Ruby class with `call` and optional `sql_expression` |",
+    config_example: "```ruby\n# Declarative aggregate\naggregate :tasks_count, function: :count,\n  association: :tasks\n\n# Expression column\nvirtual_column :is_overdue, type: :boolean,\n  expression: \"EXISTS(SELECT 1 FROM tasks ...)\"\n\n# JOIN-based\nvirtual_column :company_name, type: :string,\n  expression: \"companies.name\",\n  join: \"LEFT JOIN companies ON ...\"\n\n# Service\nvirtual_column :health, service: :project_health,\n  type: :integer\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "The index shows all virtual column types: aggregates, expression booleans, JOIN values, budget rank (window function), and health score (service).",
+    status: "stable"
+  },
+  {
+    name: "Expression Column (Boolean)",
+    category: "virtual_fields",
+    description: "Expression columns inject raw SQL into the SELECT clause. A boolean expression using EXISTS checks whether any overdue tasks exist for each project.\n\nThe `%{table}` placeholder is replaced with the model's actual table name at query time.",
+    config_example: "```ruby\nvirtual_column :has_overdue_tasks, type: :boolean,\n  expression: \"EXISTS(SELECT 1 FROM tasks \" \\\n    \"WHERE tasks.project_id = %{table}.id \" \\\n    \"AND tasks.due_date < CURRENT_DATE \" \\\n    \"AND tasks.status NOT IN ('done', 'cancelled'))\"\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "Look at the **Has Overdue Tasks** column — projects with pending tasks past their due date show a check icon. Rows with overdue tasks are highlighted red.",
+    status: "stable"
+  },
+  {
+    name: "Expression Column (Derived Value)",
+    category: "virtual_fields",
+    description: "Expression columns can compute derived values using inline SQL. `budget_per_task` divides the project budget by the number of tasks using a CASE expression to avoid division by zero.",
+    config_example: "```ruby\nvirtual_column :budget_per_task, type: :decimal,\n  default: 0,\n  expression: \"CASE WHEN (SELECT COUNT(*) \" \\\n    \"FROM tasks WHERE tasks.project_id = \" \\\n    \"%{table}.id) > 0 THEN %{table}.budget / \" \\\n    \"(SELECT COUNT(*) FROM tasks \" \\\n    \"WHERE tasks.project_id = %{table}.id) \" \\\n    \"ELSE 0 END\"\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "Look at the **Budget Per Task** column — it shows the budget divided by task count, formatted as currency. Projects with no tasks show $0.",
+    status: "stable"
+  },
+  {
+    name: "Expression with Auto-Include",
+    category: "virtual_fields",
+    description: "Setting `auto_include: true` makes the virtual column available on every query without explicit reference in the presenter. Useful for columns needed by `item_classes` or conditional rendering.\n\n`is_over_budget` uses a `default: false` to COALESCE NULL values, ensuring boolean comparisons work correctly.",
+    config_example: "```ruby\nvirtual_column :is_over_budget, type: :boolean,\n  default: false, auto_include: true,\n  expression: \"(SELECT COALESCE(SUM(tasks.cost), 0) \" \\\n    \"FROM tasks WHERE tasks.project_id = \" \\\n    \"%{table}.id) > %{table}.budget\"\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "The **Is Over Budget** column appears even though it uses `auto_include: true`. Over-budget rows are highlighted yellow via `item_classes`.",
+    status: "stable"
+  },
+  {
+    name: "JOIN-based Column",
+    category: "virtual_fields",
+    description: "JOIN-based virtual columns pull values from related tables using SQL JOINs. The `join` option specifies the JOIN clause, and `expression` references the joined table's column.\n\nUse `%{table}` in the JOIN clause for the source table name.",
+    config_example: "```ruby\nvirtual_column :company_name, type: :string,\n  expression: \"companies.name\",\n  join: \"LEFT JOIN companies \" \\\n    \"ON companies.id = %{table}.company_id\"\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "Look at the **Company Name** column — values like \"Acme Corp\" and \"Globex Inc\" come from a joined companies table, not stored on the project.",
+    status: "stable"
+  },
+  {
+    name: "JOIN Deduplication",
+    category: "virtual_fields",
+    description: "Multiple virtual columns can reference the same JOIN. When two columns use identical `join` clauses, the builder deduplicates them — the JOIN is applied only once.\n\n`company_name` and `company_country` both use the same LEFT JOIN but select different columns.",
+    config_example: "```ruby\nvirtual_column :company_name, type: :string,\n  expression: \"companies.name\",\n  join: \"LEFT JOIN companies ON ...\"\n\nvirtual_column :company_country, type: :string,\n  expression: \"companies.country\",\n  join: \"LEFT JOIN companies ON ...\"  # same JOIN\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "View a project's show page — the **Company** section shows both Name and Country from a single JOIN. Check the SQL logs to confirm the JOIN appears only once.",
+    status: "stable"
+  },
+  {
+    name: "Window Function Column",
+    category: "virtual_fields",
+    description: "Window function virtual columns use SQL window functions like ROW_NUMBER(), RANK(), DENSE_RANK(), etc. with PARTITION BY and ORDER BY clauses.\n\n`budget_rank` ranks projects by budget within each status group.",
+    config_example: "```ruby\nvirtual_column :budget_rank, type: :integer,\n  expression: \"ROW_NUMBER() OVER(\" \\\n    \"PARTITION BY %{table}.status \" \\\n    \"ORDER BY %{table}.budget DESC)\"\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "Look at the **Budget Rank** column — within each status (active, planning, etc.), projects are ranked by budget. The highest budget in each group gets rank 1.",
+    status: "stable"
+  },
+  {
+    name: "Service Virtual Column",
+    category: "virtual_fields",
+    description: "Service virtual columns delegate computation to a Ruby class in `app/lcp_services/virtual_columns/`. The service must implement `self.call(record, options:)` and optionally `self.sql_expression(model_class, options:)` for SQL-level sorting.\n\n`health_score` computes the percentage of completed tasks.",
+    config_example: "```ruby\n# Model definition\nvirtual_column :health_score,\n  service: :project_health, type: :integer\n\n# app/lcp_services/virtual_columns/project_health.rb\nmodule LcpRuby::HostServices::VirtualColumns\n  class ProjectHealth\n    def self.call(record, options: {})\n      total = record.tasks_count.to_i\n      return 0 if total.zero?\n      completed = record.completed_count.to_i\n      ((completed.to_f / total) * 100).round\n    end\n\n    def self.sql_expression(model_class, options: {})\n      # SQL for sorting support\n      \"(CASE WHEN ... END)\"\n    end\n  end\nend\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "Look at the **Health Score** column — it shows the completion percentage computed by a Ruby service class. Try sorting by it — SQL sorting works via the optional `sql_expression` method.",
+    status: "stable"
+  },
+  {
+    name: "Row Styling with Virtual Columns",
+    category: "virtual_fields",
+    description: "Virtual columns can be used in `item_classes` conditions. Because `is_over_budget` has `auto_include: true`, it is available for row styling even without being listed as a visible column.\n\nMultiple `item_class` rules can stack — a row can match danger (overdue) and warning (over budget) simultaneously.",
+    config_example: "```ruby\nindex do\n  item_class \"lcp-row-danger\",\n    when: { field: :has_overdue_tasks,\n            operator: :eq, value: true }\n\n  item_class \"lcp-row-warning\",\n    when: { field: :is_over_budget,\n            operator: :eq, value: true }\nend\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "Projects with overdue tasks have red rows (danger). Over-budget projects have yellow rows (warning). The \"Platform Redesign\" project demonstrates both conditions.",
+    status: "stable"
+  },
+  {
+    name: "Sorting by Virtual Columns",
+    category: "virtual_fields",
+    description: "All virtual column types support sorting in the index view. Expression and JOIN columns sort via SQL ORDER BY. Service columns sort via `sql_expression` if the service implements it.\n\nSet `sortable: true` on the presenter column definition.",
+    config_example: "```ruby\nindex do\n  column :health_score, sortable: true\n  column :company_name, sortable: true\n  column :budget_rank, sortable: true\n  column :has_overdue_tasks, sortable: true\nend\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "Click any column header to sort — virtual columns sort just like regular columns. Try sorting by Health Score, Company Name, or Budget Rank.",
+    status: "stable"
+  },
+  {
+    name: "Declarative Aggregates",
+    category: "virtual_fields",
+    description: "Declarative aggregates are the simplest virtual column type — specify a function (COUNT, SUM, AVG, MIN, MAX), an association, and optional filters. The DSL `aggregate` method is a shorthand for `virtual_column` with the appropriate function.\n\nSupports `where` filters, `distinct`, `default`, `source_field`, and `include_discarded`.",
+    config_example: "```ruby\n# Simple count\naggregate :tasks_count, function: :count,\n  association: :tasks\n\n# Filtered sum with default\naggregate :completed_cost, function: :sum,\n  association: :tasks,\n  source_field: :cost,\n  where: { status: \"done\" },\n  default: 0\n\n# Distinct count\naggregate :unique_assignees, function: :count,\n  association: :tasks,\n  source_field: :assignee, distinct: true\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "Look at Tasks Count, Completed Count, Total Hours, Completed Cost, Avg Priority, Unique Assignees — all computed via declarative aggregates. Sort any column to verify SQL-level ordering.",
+    status: "stable"
+  },
+  {
+    name: "Backward Compatibility (aggregates key)",
+    category: "virtual_fields",
+    description: "For backward compatibility, the `aggregates` key in YAML is an alias for `virtual_columns`, and `sql` is an alias for `expression`. Existing model definitions using these keys continue to work without changes.\n\nNew code should use `virtual_columns` and `expression`.",
+    config_example: "```yaml\n# Old style (still works)\naggregates:\n  total_cost:\n    function: sum\n    association: items\n    sql: \"COALESCE(SUM(items.cost), 0)\"\n\n# New style (preferred)\nvirtual_columns:\n  total_cost:\n    function: sum\n    association: items\n    expression: \"COALESCE(SUM(items.cost), 0)\"\n```",
+    demo_path: "/showcase/showcase-aggregates",
+    demo_hint: "The showcase uses the new `virtual_column` DSL, but the YAML alias is verified in the engine's unit tests.",
+    status: "stable"
+  },
+
   # === Positioning ===
   {
     name: "Basic Positioning",
@@ -3477,15 +3587,22 @@ puts "  Created #{UserstampsModel.count} tracked documents (userstamps showcase)
 
 # Phase: Soft Delete Showcase
 # Phase: Aggregates
+AggCompanyModel = LcpRuby.registry.model_for("showcase_aggregate_company")
 AggProjectModel = LcpRuby.registry.model_for("showcase_aggregate")
 AggTaskModel = LcpRuby.registry.model_for("showcase_aggregate_item")
 
+agg_companies = [
+  { name: "Acme Corp", country: "USA" },
+  { name: "Globex Inc", country: "Germany" },
+  { name: "Initech", country: "Japan" }
+].map { |attrs| AggCompanyModel.create!(attrs) }
+
 agg_projects = [
-  { name: "Platform Redesign", description: "Complete UI/UX overhaul with new design system", status: "active", budget: 150_000 },
-  { name: "Mobile App v2", description: "Native mobile app rewrite in Swift/Kotlin", status: "active", budget: 200_000 },
-  { name: "Data Pipeline", description: "Real-time data ingestion and processing pipeline", status: "planning", budget: 80_000 },
-  { name: "API Gateway", description: "Centralized API gateway with rate limiting and auth", status: "completed", budget: 60_000 },
-  { name: "Legacy Migration", description: "Migrate legacy PHP codebase to Rails", status: "archived", budget: 120_000 }
+  { name: "Platform Redesign", description: "Complete UI/UX overhaul with new design system", status: "active", budget: 150_000, company_id: agg_companies[0].id },
+  { name: "Mobile App v2", description: "Native mobile app rewrite in Swift/Kotlin", status: "active", budget: 200_000, company_id: agg_companies[0].id },
+  { name: "Data Pipeline", description: "Real-time data ingestion and processing pipeline", status: "planning", budget: 80_000, company_id: agg_companies[1].id },
+  { name: "API Gateway", description: "Centralized API gateway with rate limiting and auth", status: "completed", budget: 60_000, company_id: agg_companies[1].id },
+  { name: "Legacy Migration", description: "Migrate legacy PHP codebase to Rails", status: "archived", budget: 120_000, company_id: agg_companies[2].id }
 ].map { |attrs| AggProjectModel.create!(attrs) }
 
 # Tasks for Platform Redesign (project 0) — 8 tasks, 3 done, 3 assignees
@@ -3534,7 +3651,7 @@ agg_projects = [
   { title: "Final cutover", status: "cancelled", hours: 16, cost: 1600, priority_score: 9, assignee: "Ivy", due_date: "2024-08-01" }
 ].each { |attrs| AggTaskModel.create!(attrs.merge(showcase_aggregate_id: agg_projects[4].id)) }
 
-puts "  Created #{AggProjectModel.count} aggregate projects with #{AggTaskModel.count} tasks"
+puts "  Created #{AggCompanyModel.count} companies, #{AggProjectModel.count} aggregate projects with #{AggTaskModel.count} tasks"
 
 SoftDeleteModel = LcpRuby.registry.model_for("showcase_soft_delete")
 SoftDeleteItemModel = LcpRuby.registry.model_for("showcase_soft_delete_item")

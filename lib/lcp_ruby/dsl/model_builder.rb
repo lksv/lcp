@@ -14,7 +14,7 @@ module LcpRuby
         @scopes = []
         @events = []
         @display_templates = {}
-        @aggregates = {}
+        @virtual_columns = {}
         @positioning_config = nil
         @data_source_config = nil
         @options = {}
@@ -186,21 +186,28 @@ module LcpRuby
         @display_templates[name.to_s] = tmpl
       end
 
-      def aggregate(name, **opts)
-        agg = {}
-        agg["function"] = opts[:function].to_s if opts[:function]
-        agg["association"] = opts[:association].to_s if opts[:association]
-        agg["source_field"] = opts[:source_field].to_s if opts[:source_field]
-        agg["where"] = stringify_keys(opts[:where]) if opts[:where]
-        agg["distinct"] = opts[:distinct] if opts.key?(:distinct)
-        agg["default"] = opts[:default] if opts.key?(:default)
-        agg["include_discarded"] = opts[:include_discarded] if opts.key?(:include_discarded)
-        agg["sql"] = opts[:sql].to_s if opts[:sql]
-        agg["service"] = opts[:service].to_s if opts[:service]
-        agg["type"] = opts[:type].to_s if opts[:type]
-        agg["options"] = stringify_keys(opts[:options]) if opts[:options]
-        @aggregates[name.to_s] = agg
+      def virtual_column(name, **opts)
+        vc = {}
+        vc["function"] = opts[:function].to_s if opts[:function]
+        vc["association"] = opts[:association].to_s if opts[:association]
+        vc["source_field"] = opts[:source_field].to_s if opts[:source_field]
+        vc["where"] = stringify_keys(opts[:where]) if opts[:where]
+        vc["distinct"] = opts[:distinct] if opts.key?(:distinct)
+        vc["default"] = opts[:default] if opts.key?(:default)
+        vc["include_discarded"] = opts[:include_discarded] if opts.key?(:include_discarded)
+        vc["expression"] = opts[:expression].to_s if opts[:expression]
+        vc["sql"] = opts[:sql].to_s if opts[:sql]
+        vc["service"] = opts[:service].to_s if opts[:service]
+        vc["type"] = opts[:type].to_s if opts[:type]
+        vc["options"] = stringify_keys(opts[:options]) if opts[:options]
+        vc["join"] = opts[:join].to_s if opts[:join]
+        vc["group"] = opts[:group] if opts.key?(:group)
+        vc["auto_include"] = opts[:auto_include] if opts.key?(:auto_include)
+        @virtual_columns[name.to_s] = vc
       end
+
+      # Backward compatibility alias
+      alias_method :aggregate, :virtual_column
 
       def data_source(type:, **options)
         @data_source_config = stringify_keys({ type: type }.merge(options))
@@ -285,7 +292,7 @@ module LcpRuby
         hash["scopes"] = @scopes unless @scopes.empty?
         hash["events"] = @events unless @events.empty?
         hash["display_templates"] = @display_templates unless @display_templates.empty?
-        hash["aggregates"] = @aggregates unless @aggregates.empty?
+        hash["virtual_columns"] = @virtual_columns unless @virtual_columns.empty?
         hash["positioning"] = @positioning_config if @positioning_config
         hash["data_source"] = @data_source_config if @data_source_config
         hash["options"] = @options unless @options.empty?

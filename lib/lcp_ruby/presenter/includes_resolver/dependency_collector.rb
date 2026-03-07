@@ -79,7 +79,7 @@ module LcpRuby
         # Index context: scan table_columns (and tile fields when tiles layout) for FK fields, dot-paths, and templates.
         def collect_index_deps(presenter_def, model_def)
           fk_map = model_def.belongs_to_fk_map
-          agg_names = model_def.aggregate_names
+          vc_names = model_def.virtual_column_names
 
           # Collect fields from table columns
           field_refs = presenter_def.table_columns.map { |col| col["field"].to_s }
@@ -106,8 +106,8 @@ module LcpRuby
           end
 
           field_refs.uniq.each do |field|
-            # Skip aggregate columns — they are SQL subqueries, not associations
-            next if agg_names.include?(field)
+            # Skip virtual columns — they are SQL subqueries/expressions, not associations
+            next if vc_names.include?(field)
 
             if field.include?("{")
               # Template: extract all {ref} and collect dot-path deps

@@ -52,7 +52,7 @@ module LcpRuby
       end
 
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
-      load_show_aggregates
+      load_show_virtual_columns
       preload_associations(@record, :show)
       @record.strict_loading! if LcpRuby.configuration.strict_loading_enabled?
       @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
@@ -90,9 +90,10 @@ module LcpRuby
     def edit
       return head(:not_found) if api_model?
       authorize @record
+      @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+      load_edit_virtual_columns
       preload_associations(@record, :form)
       @record.strict_loading! if LcpRuby.configuration.strict_loading_enabled?
-      @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
     end
 
     def update
@@ -110,6 +111,7 @@ module LcpRuby
             default: "%{model} was successfully updated.")
       else
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+        load_dirty_record_virtual_columns
         render :edit, status: :unprocessable_content
       end
     end
@@ -363,7 +365,7 @@ module LcpRuby
     def load_flat_index(scope)
       scope = apply_advanced_search(scope)
       scope = apply_sort(scope)
-      scope = apply_aggregates(scope)
+      scope = apply_virtual_columns(scope)
 
       # Load saved filters for the UI
       if SavedFilters::Registry.available? && current_presenter.saved_filters_enabled?
@@ -391,13 +393,20 @@ module LcpRuby
       # Batch-preload API associations after AR scope materializes
       strategy.apply_api_preloads(@records.to_a) if strategy.api_preloads.any?
 
+      # GROUP BY scopes break Kaminari's .count (returns Hash instead of Integer).
+      # Pre-compute total via a clean scope and inject it.
+      if @has_grouped_virtual_columns
+        total = scope.except(:select, :group, :joins).distinct.count(:id)
+        @records.define_singleton_method(:total_count) { total }
+      end
+
       setup_index_view_objects
     end
 
     def load_tree_index(scope)
       parent_field = current_model_definition.tree_parent_field
       scope = scope.all unless scope.is_a?(ActiveRecord::Relation)
-      scope = apply_aggregates(scope)
+      scope = apply_virtual_columns(scope)
 
       # Detect if search is active
       @search_active = search_active?
@@ -438,28 +447,26 @@ module LcpRuby
       @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
     end
 
-    # Inject aggregate subqueries into the scope for index/tree views.
-    # Only includes aggregates that are referenced in the presenter's table_columns.
-    def apply_aggregates(scope)
-      agg_names = index_aggregate_names
-      return scope if agg_names.empty?
+    # Inject virtual column subqueries/expressions into the scope for index/tree views.
+    def apply_virtual_columns(scope)
+      vc_names = collect_virtual_column_names(:index)
+      return scope if vc_names.empty?
 
-      scope, @service_aggregates = Aggregates::QueryBuilder.apply(
-        scope, current_model_definition, agg_names, current_user: current_user
+      scope, _service_only, @has_grouped_virtual_columns = VirtualColumns::Builder.apply(
+        scope, current_model_definition, vc_names.to_a, current_user: current_user
       )
+
       scope
     end
 
-    # Collect aggregate names referenced by the current presenter's table columns and tile fields.
-    def index_aggregate_names
-      all_agg_names = current_model_definition.aggregate_names
-      return [] if all_agg_names.empty?
-
-      field_names = current_presenter.table_columns.map { |c| c["field"].to_s }
-
-      field_names.concat(current_presenter.all_tile_field_refs) if current_presenter.tiles?
-
-      field_names.uniq.select { |f| all_agg_names.include?(f) }
+    # Collect virtual column names needed for a given context.
+    def collect_virtual_column_names(context)
+      VirtualColumns::Collector.collect(
+        presenter_def: current_presenter,
+        model_def: current_model_definition,
+        context: context,
+        sort_field: context == :index ? params[:sort] : nil
+      )
     end
 
     def effective_per_page
@@ -499,48 +506,60 @@ module LcpRuby
       @slot_locals = (@slot_locals || {}).merge(summary_bar: summary_bar)
     end
 
-    # Load aggregate values for a show page record.
-    # Expects @layout_builder to be set before calling.
-    def load_show_aggregates
-      show_sections = @layout_builder.show_sections
-      all_agg_names = current_model_definition.aggregate_names
-      return if all_agg_names.empty?
-
-      # Collect aggregate names from show layout fields
-      show_agg_names = show_sections
-        .flat_map { |s| (s["fields"] || []).map { |f| f["field"].to_s } }
-        .select { |f| all_agg_names.include?(f) }
-        .uniq
-      return if show_agg_names.empty?
-
-      # Re-load record with aggregate subqueries
-      scope = @model_class.where(id: @record.id)
-      scope, service_only = Aggregates::QueryBuilder.apply(
-        scope, current_model_definition, show_agg_names, current_user: current_user
-      )
-
-      loaded = scope.first
-      if loaded
-        @record = loaded
-      end
-
-      # Resolve service aggregates without sql_expression
-      resolve_service_aggregates(@record, service_only)
+    # Load virtual column values for a show page record.
+    def load_show_virtual_columns
+      load_record_virtual_columns(:show)
     end
 
-    # Compute service aggregate values and define singleton methods on the record.
-    def resolve_service_aggregates(record, service_names)
+    # Load virtual column values for an edit page record.
+    def load_edit_virtual_columns
+      load_record_virtual_columns(:edit)
+    end
+
+    # Load virtual columns onto a dirty record (update validation failure).
+    # Loads a clean record with VC expressions and copies values as singleton methods.
+    def load_dirty_record_virtual_columns
+      load_record_virtual_columns(:edit, dirty: true)
+    end
+
+    # Shared loader: re-queries @record with VC subqueries and resolves service VCs.
+    # When dirty: true, copies values as singleton methods instead of replacing @record.
+    def load_record_virtual_columns(context, dirty: false)
+      vc_names = collect_virtual_column_names(context)
+      return if vc_names.empty?
+
+      scope = @model_class.where(id: @record.id)
+      scope, service_only, _grouped = VirtualColumns::Builder.apply(
+        scope, current_model_definition, vc_names.to_a, current_user: current_user
+      )
+
+      clean_record = scope.first
+
+      if dirty
+        (vc_names - service_only.to_set).each do |name|
+          value = clean_record&.public_send(name)
+          @record.define_singleton_method(name) { value }
+        end
+      elsif clean_record
+        @record = clean_record
+      end
+
+      resolve_service_virtual_columns(@record, service_only)
+    end
+
+    # Compute service virtual column values and define singleton methods on the record.
+    def resolve_service_virtual_columns(record, service_names)
       return if service_names.blank?
 
-      service_names.each do |agg_name|
-        agg_def = current_model_definition.aggregate(agg_name)
-        next unless agg_def
+      service_names.each do |vc_name|
+        vc_def = current_model_definition.virtual_column(vc_name)
+        next unless vc_def
 
-        service = Services::Registry.lookup("aggregates", agg_def.service)
+        service = Services::Registry.lookup_vc_service(vc_def.service)
         next unless service
 
-        value = service.call(record, options: agg_def.options)
-        record.define_singleton_method(agg_name) { value }
+        value = service.call(record, options: vc_def.options)
+        record.define_singleton_method(vc_name) { value }
       end
     end
 
