@@ -1,5 +1,5 @@
 define_presenter :showcase_aggregates_tiles, inherits: :showcase_aggregates do
-  label "Aggregates (Tiles)"
+  label "Virtual Columns (Tiles)"
   slug "showcase-aggregates-tiles"
 
   index do
@@ -10,7 +10,7 @@ define_presenter :showcase_aggregates_tiles, inherits: :showcase_aggregates do
     tile do
       title_field :name
       subtitle_field :status, renderer: :badge, options: {
-        color_map: { planning: "gray", active: "blue", completed: "green", archived: "orange" }
+        color_map: { planning: "gray", active: "green", completed: "blue", archived: "orange" }
       }
       description_field :description, max_lines: 3
       columns 2
@@ -20,14 +20,15 @@ define_presenter :showcase_aggregates_tiles, inherits: :showcase_aggregates do
       field :budget, label: "Budget", renderer: :currency
       field :tasks_count, label: "Tasks"
       field :completed_count, label: "Completed"
-      field :total_hours, label: "Total Hours"
-      field :avg_priority, label: "Avg Priority"
+      field :health_score, label: "Health %", renderer: :number
+      field :has_overdue_tasks, label: "Overdue?", renderer: :boolean_icon
+      field :company_name, label: "Company"
     end
 
     sort_field :name, label: "Name"
     sort_field :budget, label: "Budget"
     sort_field :tasks_count, label: "Tasks"
-    sort_field :total_hours, label: "Hours"
+    sort_field :health_score, label: "Health"
 
     per_page_options 6, 12
 

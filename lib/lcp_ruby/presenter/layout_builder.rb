@@ -151,17 +151,17 @@ module LcpRuby
           field_def = model_definition.field(f["field"])
 
           if field_def.nil?
-            # Check if it's an aggregate field
-            agg_def = model_definition.aggregate(f["field"])
-            if agg_def
+            # Check if it's a virtual column field
+            vc_def = model_definition.virtual_column(f["field"])
+            if vc_def
               f = f.merge(
                 "field_definition" => Metadata::FieldDefinition.new(
                   name: f["field"],
-                  type: agg_def.inferred_type(model_definition),
+                  type: vc_def.inferred_type(model_definition),
                   label: f["field"].to_s.humanize
                 ),
                 "readonly" => true,
-                "aggregate" => true
+                "virtual_column" => true
               )
             else
               assoc = model_definition.associations.find { |a| a.foreign_key == f["field"].to_s }

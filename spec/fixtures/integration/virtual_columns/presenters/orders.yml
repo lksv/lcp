@@ -1,0 +1,45 @@
+presenter:
+  name: vc_orders
+  model: vc_order
+  slug: vc_orders
+  index:
+    table_columns:
+      - field: title
+        sortable: true
+      - field: status
+      - field: items_count
+        sortable: true
+      - field: is_overdue
+      - field: company_name
+      - field: total_value
+        sortable: true
+    item_classes:
+      - css_class: overdue-row
+        when:
+          field: is_overdue
+          operator: eq
+          value: true
+  search:
+    enabled: true
+    searchable_fields:
+      - title
+  show:
+    layout:
+      - title: Details
+        fields:
+          - field: title
+          - field: status
+          - field: due_date
+          - field: items_count
+          - field: is_overdue
+          - field: company_name
+          - field: total_value
+  form:
+    sections:
+      - title: Details
+        fields:
+          - field: title
+          - field: status
+          - field: due_date
+          - field: vc_company_id
+            input_type: association_select

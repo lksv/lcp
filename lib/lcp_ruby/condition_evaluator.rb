@@ -87,7 +87,7 @@ module LcpRuby
         raise ConditionError, "condition is missing required 'field' key" unless field
         raise ConditionError, "condition is missing required 'operator' key" if operator.blank?
 
-        actual = resolve_field_path(record, field)
+        actual = resolve_field_path(record, field, context: context)
         value = resolve_value(raw_value, record, context)
 
         compare(actual, value, operator)
@@ -139,14 +139,19 @@ module LcpRuby
       end
 
       # Resolves a dot-path field (e.g., "company.country.code") by traversing associations
-      def resolve_field_path(record, field_path)
+      def resolve_field_path(record, field_path, context: {})
         segments = field_path.to_s.split(".")
 
         if segments.size == 1
           unless record.respond_to?(segments.first)
             raise ConditionError, "record does not respond to field '#{field_path}'"
           end
-          return record.send(segments.first)
+          value = record.send(segments.first)
+
+          # Loaded-tracking guard for virtual columns
+          check_virtual_column_loaded!(record, segments.first, value, context)
+
+          return value
         end
 
         current = record
@@ -168,6 +173,23 @@ module LcpRuby
         end
 
         current
+      end
+
+      # Checks the loaded-tracking guard for virtual columns.
+      # Raises ConditionError if a VC was not loaded in the query SELECT.
+      def check_virtual_column_loaded!(record, field_name, value, context)
+        return unless value.nil?
+        return unless record.respond_to?(:virtual_column_loaded?)
+
+        model_def = context[:model_definition]
+        return unless model_def
+        return unless model_def.virtual_column(field_name)
+
+        unless record.virtual_column_loaded?(field_name)
+          raise ConditionError,
+            "virtual column '#{field_name}' not loaded in query SELECT — " \
+            "add it to presenter virtual_columns or check VirtualColumns::Collector detection"
+        end
       end
 
       # Resolves a value that may be a literal, field_ref, current_user, date, or service reference

@@ -18,7 +18,8 @@ model:
   scopes: []
   events: []
   display_templates: {}
-  aggregates: {}
+  virtual_columns: {}   # computed query-time columns (expressions, JOINs, aggregates)
+  aggregates: {}        # legacy alias for virtual_columns, still supported
   positioning: true | { field: position, scope: parent_id }
   options: {}
 ```
@@ -1657,16 +1658,19 @@ Fields referenced in templates are resolved through `FieldValueResolver`, which 
 
 The `IncludesResolver` automatically detects dot-path fields in display templates (e.g., `{company.name}`) and generates nested eager loading (e.g., `{ contacts: :company }`) to prevent N+1 queries.
 
-## Aggregates
+## Virtual Columns
 
-Virtual computed columns derived from associated records via SQL subqueries. Aggregates are not stored in the database — they are calculated at query time and injected into SELECT statements as correlated subqueries. They can be referenced in presenter table columns and show sections just like regular fields.
+Virtual computed columns that are not stored in the database — they are calculated at query time and injected into SELECT statements. Virtual columns can be referenced in presenter table columns and show sections just like regular fields. They support sorting, conditional rendering (`visible_when`, `item_classes`), and type coercion.
 
-Aggregate names must not collide with field names on the same model.
+Virtual column names must not collide with field names on the same model.
+
+The `virtual_columns` key is the unified replacement for the older `aggregates` key. Both keys are accepted and merged — see [Backward Compatibility](#backward-compatibility) below.
 
 ### YAML Syntax
 
 ```yaml
-aggregates:
+virtual_columns:
+  # Declarative aggregate (same as before)
   issues_count:
     function: count
     association: issues
@@ -1682,10 +1686,31 @@ aggregates:
     source_field: amount
     default: 0
 
-  weighted_score:
-    sql: "SELECT SUM(r.score * r.weight) / NULLIF(SUM(r.weight), 0) FROM ratings r WHERE r.project_id = %{table}.id"
-    type: float
+  # Expression — inline SQL expression (replaces "sql" key)
+  is_overdue:
+    expression: "CASE WHEN %{table}.due_date < CURRENT_DATE THEN 1 ELSE 0 END"
+    type: boolean
 
+  # Expression with JOIN — pull data from another table
+  company_name:
+    expression: "companies.name"
+    join: "LEFT JOIN companies ON companies.id = %{table}.company_id"
+    type: string
+
+  # Expression with JOIN + GROUP BY — aggregate across a joined table
+  total_value:
+    expression: "COALESCE(SUM(line_items.quantity * line_items.unit_price), 0)"
+    join: "LEFT JOIN line_items ON line_items.order_id = %{table}.id"
+    group: true
+    type: decimal
+
+  # Auto-include — always loaded, even when not explicitly referenced
+  priority_score:
+    expression: "(%{table}.urgency * 10 + %{table}.impact * 5)"
+    type: integer
+    auto_include: true
+
+  # Service — Ruby service class
   health_score:
     service: project_health
     type: integer
@@ -1694,22 +1719,38 @@ aggregates:
 ### DSL Syntax
 
 ```ruby
-aggregate :issues_count, function: :count, association: :issues
-aggregate :open_issues_count, function: :count, association: :issues,
+virtual_column :issues_count, function: :count, association: :issues
+virtual_column :open_issues_count, function: :count, association: :issues,
   where: { status: "open" }
-aggregate :total_revenue, function: :sum, association: :orders,
+virtual_column :total_revenue, function: :sum, association: :orders,
   source_field: :amount, default: 0
+virtual_column :is_overdue,
+  expression: "CASE WHEN %{table}.due_date < CURRENT_DATE THEN 1 ELSE 0 END",
+  type: :boolean
+virtual_column :company_name,
+  expression: "companies.name",
+  join: "LEFT JOIN companies ON companies.id = %{table}.company_id",
+  type: :string
+virtual_column :total_value,
+  expression: "COALESCE(SUM(line_items.quantity * line_items.unit_price), 0)",
+  join: "LEFT JOIN line_items ON line_items.order_id = %{table}.id",
+  group: true,
+  type: :decimal
+
+# Legacy alias still works
+aggregate :contacts_count, function: :count, association: :contacts
 ```
 
-### Three Aggregate Types
+### Four Virtual Column Types
 
 | Type | Detected by | Description |
 |------|-------------|-------------|
-| **Declarative** | `function` + `association` | SQL aggregate function over a has_many association |
-| **SQL** | `sql` key | Custom SQL subquery returning a single value |
-| **Service** | `service` key | Ruby service class from `app/lcp_services/aggregates/` |
+| **Declarative** | `function` + `association` | SQL aggregate function over a has_many association (correlated subquery) |
+| **Expression** | `expression` key | Inline SQL expression injected into SELECT |
+| **Expression + JOIN** | `expression` + `join` | SQL expression that requires a JOIN clause |
+| **Service** | `service` key | Ruby service class from `app/lcp_services/virtual_columns/` (or `aggregates/`) |
 
-### Declarative Aggregate Attributes
+### Declarative Attributes
 
 | Attribute | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -1721,27 +1762,110 @@ aggregate :total_revenue, function: :sum, association: :orders,
 | `default` | any | no | Default value via `COALESCE`. `count` always defaults to `0` even without this |
 | `include_discarded` | boolean | no | Include soft-deleted records (default: `false`). Only relevant when the target model uses `soft_delete` |
 
-### SQL Aggregate Attributes
+### Expression Attributes
 
 | Attribute | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `sql` | string | yes | Custom SQL subquery. Use `%{table}` for the parent model's quoted table name |
-| `type` | string | yes | Result type: `string`, `integer`, `float`, `decimal`, `boolean`, `date`, `datetime` |
+| `expression` | string | yes | SQL expression. Use `%{table}` for the parent model's quoted table name |
+| `type` | string | yes | Result type: `string`, `integer`, `float`, `decimal`, `boolean`, `date`, `datetime`, `json` |
 | `default` | any | no | Default value via `COALESCE` |
+| `join` | string | no | SQL JOIN clause to add. Use `%{table}` for the parent table name |
+| `group` | boolean | no | Whether this column requires `GROUP BY parent_table.id` (default: `false`) |
+| `auto_include` | boolean | no | Always include this column in queries, even when not referenced by the presenter (default: `false`) |
 
-### Service Aggregate Attributes
+**Notes:**
+- `auto_include: true` and `group: true` cannot be combined on the same column.
+- `auto_include: true` only affects controller queries. Direct model queries (`Model.find`, `Model.where`) from custom actions, event handlers, or other Ruby code do not include virtual columns — use `VirtualColumns::Builder.apply` explicitly.
+- The `join` attribute is a single string, not an array. Concatenate multiple JOINs in one string if needed.
+
+The legacy `sql` key is accepted as an alias for `expression`. You cannot specify both `sql` and `expression` on the same column.
+
+### Service Attributes
 
 | Attribute | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `service` | string | yes | Service key looked up in `app/lcp_services/aggregates/` |
+| `service` | string | yes | Service key looked up in `app/lcp_services/virtual_columns/` (falls back to `app/lcp_services/aggregates/`) |
 | `type` | string | yes | Result type |
 | `options` | hash | no | Options hash passed to the service's `call` method |
 
 The service class must implement `self.call(record, options:)`. Optionally implement `self.sql_expression(model_class, options:)` to return a SQL string — this enables sorting and avoids per-record evaluation.
 
+**Note:** Service virtual columns without `sql_expression` are only resolved on show/edit pages (per-record via `call`). On index pages, they return `nil` — if referenced in `table_columns` or `item_classes`, the display will be empty and conditions will evaluate incorrectly.
+
+### Expression Details
+
+#### `%{table}` Placeholder
+
+The `%{table}` placeholder is replaced with the parent model's quoted table name at query time. Always use it to reference the parent table:
+
+```yaml
+# Good — portable across table names
+expression: "CASE WHEN %{table}.due_date < CURRENT_DATE THEN 1 ELSE 0 END"
+
+# Bad — hardcoded table name
+expression: "CASE WHEN orders.due_date < CURRENT_DATE THEN 1 ELSE 0 END"
+```
+
+#### JOIN Clause
+
+The `join` attribute adds a SQL JOIN to the query. Multiple virtual columns can specify JOINs — duplicates are automatically deduplicated (compared case-insensitively after whitespace normalization):
+
+```yaml
+virtual_columns:
+  company_name:
+    expression: "companies.name"
+    join: "LEFT JOIN companies ON companies.id = %{table}.company_id"
+    type: string
+  company_country:
+    expression: "companies.country"
+    join: "LEFT JOIN companies ON companies.id = %{table}.company_id"
+    type: string
+```
+
+Both columns reference the same JOIN — it is applied only once.
+
+#### GROUP BY
+
+When `group: true` is set, the query adds `GROUP BY parent_table.id`. This is needed when the expression uses aggregate functions over joined rows:
+
+```yaml
+total_value:
+  expression: "COALESCE(SUM(line_items.quantity * line_items.unit_price), 0)"
+  join: "LEFT JOIN line_items ON line_items.order_id = %{table}.id"
+  group: true
+  type: decimal
+```
+
+**Caution:** Multiple JOINs combined with `group: true` can produce cartesian products (e.g., 3 line_items × 2 payments = 6 rows per order, inflating SUM results). When aggregating over multiple joined tables, prefer correlated subqueries in `expression:` instead of `join:` + `group:`:
+
+```yaml
+# Good — independent correlated subqueries, no cartesian product
+total_line_value:
+  expression: "(SELECT COALESCE(SUM(li.quantity * li.unit_price), 0) FROM line_items li WHERE li.order_id = %{table}.id)"
+  type: decimal
+total_payments:
+  expression: "(SELECT COALESCE(SUM(p.amount), 0) FROM payments p WHERE p.order_id = %{table}.id)"
+  type: decimal
+
+# Avoid — two joins with group = cartesian risk
+```
+
+Reserve `join:` + `group: true` for cases where a single JOIN + GROUP is genuinely needed.
+
+#### Auto-Include
+
+Columns with `auto_include: true` are always loaded in every query context (index, show, edit) regardless of whether the presenter references them. This is useful for columns needed by conditional rendering or business logic:
+
+```yaml
+priority_score:
+  expression: "(%{table}.urgency * 10 + %{table}.impact * 5)"
+  type: integer
+  auto_include: true
+```
+
 ### Where Conditions
 
-The `where` hash applies equality conditions to the subquery:
+The `where` hash applies equality conditions to **declarative** aggregate subqueries only. Expression columns embed their own WHERE conditions directly in the SQL string.
 
 ```yaml
 where: { status: open }                         # WHERE status = 'open'
@@ -1763,21 +1887,42 @@ Declarative aggregates infer their result type automatically:
 | `sum`, `min`, `max` | Same as `source_field` type |
 | `avg` | `float` (or `decimal` if source is `decimal`) |
 
-SQL and service aggregates require an explicit `type` attribute.
+Expression and service virtual columns require an explicit `type` attribute.
+
+### Type Coercion
+
+Virtual columns register an ActiveRecord `attribute` declaration at boot time, ensuring consistent Ruby types regardless of database adapter. For example, SQLite returns `0`/`1` for booleans while PostgreSQL returns `true`/`false` — the `attribute :is_overdue, :boolean` declaration normalizes both to Ruby `true`/`false`.
+
+| Virtual column `type` | Ruby class |
+|----------------------|------------|
+| `string` | `String` |
+| `integer` | `Integer` |
+| `float` | `Float` |
+| `decimal` | `BigDecimal` |
+| `boolean` | `TrueClass`/`FalseClass` |
+| `date` | `Date` |
+| `datetime` | `Time` |
+| `text` | `String` |
+
+**NULL safety for booleans:** SQL boolean expressions like `(due_date < CURRENT_DATE AND status != 'done')` return NULL (not FALSE) when any operand is NULL (e.g., `due_date` is NULL). After type coercion, `nil` ≠ `false` — a condition `{ operator: eq, value: false }` would not match `nil`. Use `default: false` on boolean virtual columns that use arithmetic/comparison operators. Exception: `EXISTS(...)` always returns TRUE/FALSE (never NULL), so `default:` is not needed for EXISTS expressions.
 
 ### Soft Delete Awareness
 
-When the target model uses `soft_delete`, aggregates automatically exclude soft-deleted records (`WHERE discarded_at IS NULL`). Set `include_discarded: true` to include them.
+When the target model uses `soft_delete`, **declarative** aggregates automatically exclude soft-deleted records (`WHERE discarded_at IS NULL`). Set `include_discarded: true` to include them.
+
+For **expression** columns with correlated subqueries or JOINs referencing a soft-deletable model, you must filter discarded records manually in the SQL (e.g., `AND discarded_at IS NULL`). The platform does not inject soft-delete conditions into raw SQL expressions.
 
 ### Presenter Usage
 
-Aggregates are referenced in presenters as regular fields:
+Virtual columns are referenced in presenters as regular fields:
 
 ```yaml
-# Index — sortable aggregate column
+# Index — sortable virtual column
 table_columns:
   - { field: issues_count, sortable: true }
   - { field: total_revenue, renderer: currency, sortable: true }
+  - { field: is_overdue }
+  - { field: company_name }
 
 # Show — in a section
 layout:
@@ -1785,42 +1930,123 @@ layout:
     fields:
       - { field: issues_count }
       - { field: total_revenue, renderer: currency }
+      - { field: company_name }
 ```
 
-Aggregates are visible to all roles regardless of field permissions — they are computed values, not stored data.
+Virtual columns are visible to all roles regardless of field permissions — they are computed values, not stored data.
+
+#### Explicit Virtual Column Lists
+
+Presenters can explicitly list virtual columns to include, beyond what is auto-detected from field references:
+
+```yaml
+# In index config
+index:
+  table_columns:
+    - { field: title }
+  virtual_columns: [total_value, is_overdue]
+
+# In show config
+show:
+  virtual_columns: [total_value]
+  layout:
+    - section: "Details"
+      fields:
+        - { field: title }
+```
+
+### Auto-Detection (Collector)
+
+The system automatically detects which virtual columns are needed for each page context by scanning:
+
+| Source | Context |
+|--------|---------|
+| `table_columns` field names | `:index` |
+| `tile.fields` field names | `:index` |
+| `item_classes[].when` conditions (recursive through `all`/`any`/`not`) | `:index` |
+| Permission `record_rules[].when` conditions (all roles, recursive) | `:index` |
+| Action `visible_when` / `disable_when` conditions (single, collection, batch) | `:index`, `:show`, `:edit` |
+| Show `layout` field names | `:show` |
+| Form field/section `visible_when` / `disable_when` conditions | `:edit` |
+| Explicit `virtual_columns` lists | per context |
+| `auto_include: true` columns | all contexts |
+| Sort params at runtime (`?sort=field_name`) | `:index` (dynamic) |
+
+This means you don't need to manually list virtual columns in most cases — referencing a virtual column in a table column or condition is sufficient.
+
+**Note:** `record_rules` auto-detection scans all roles (not just the current user's role) to collect virtual column names. Including an unused virtual column in SELECT is harmless, while missing one would cause a runtime error.
+
+### Backward Compatibility
+
+The `aggregates` YAML key continues to work and is merged with `virtual_columns`:
+
+```yaml
+# Both keys accepted — merged into a single set
+aggregates:
+  issues_count:
+    function: count
+    association: issues
+
+virtual_columns:
+  is_overdue:
+    expression: "CASE WHEN %{table}.due_date < CURRENT_DATE THEN 1 ELSE 0 END"
+    type: boolean
+```
+
+A name collision between the two keys raises a `MetadataError`.
+
+The Ruby API also preserves backward compatibility:
+
+| Legacy method | Aliased to |
+|---------------|------------|
+| `model_def.aggregates` | `model_def.virtual_columns` |
+| `model_def.aggregate(name)` | `model_def.virtual_column(name)` |
+| `model_def.aggregate_names` | `model_def.virtual_column_names` |
+| DSL `aggregate(...)` | DSL `virtual_column(...)` |
+
+The legacy `sql` key in YAML is accepted as an alias for `expression`.
+
+### Limitations
+
+- **Not filterable via Ransack** — Virtual columns are SQL aliases, not real database columns. They are not added to `ransackable_attributes` and cannot be used in the advanced filter builder or saved filters. To filter by a virtual column value, use a custom scope.
+- **Not in summary bar / column summaries** — Both `summary_bar` and column-level `summary` operate on real database columns via `scope.sum(field)` etc. Virtual column names are silently skipped.
+- **Permission scopes cannot reference virtual columns** — `ScopeBuilder`'s `where` and `field_match` types use `.where()` which requires real columns. Use `type: custom` with a named scope that embeds the SQL expression.
+- **Read-only in forms** — Virtual columns are computed values and never appear in `permitted_params`. If referenced in a form layout, they render as read-only display fields.
+- **DB portability is the configurator's responsibility** — The platform does not abstract SQL differences between PostgreSQL and SQLite in `expression:` and `join:` strings. For DB-portable logic, use service virtual columns with Arel.
+- **Security** — `expression:` and `join:` values are defined in YAML/DSL by the platform configurator and are not user input. The `%{table}` placeholder is resolved to a properly quoted table name. No user-supplied values are interpolated into these strings.
 
 ### Complete Example
 
 ```yaml
 model:
-  name: company
+  name: order
   fields:
-    - { name: name, type: string }
+    - { name: title, type: string }
+    - { name: status, type: string }
+    - { name: due_date, type: date }
   associations:
-    - { type: has_many, name: contacts, target_model: contact, foreign_key: company_id }
-    - { type: has_many, name: deals, target_model: deal, foreign_key: company_id }
-  aggregates:
-    contacts_count:
+    - { type: has_many, name: line_items, target_model: line_item, foreign_key: order_id }
+    - { type: belongs_to, name: company, target_model: company, foreign_key: company_id, required: false }
+  virtual_columns:
+    items_count:
       function: count
-      association: contacts
-    deals_count:
-      function: count
-      association: deals
-    total_deal_value:
-      function: sum
-      association: deals
-      source_field: value
-      default: 0
-    won_deals_value:
-      function: sum
-      association: deals
-      source_field: value
-      where: { stage: closed_won }
-      default: 0
-    my_deals_count:
-      function: count
-      association: deals
-      where: { assignee_id: :current_user }
+      association: line_items
+    total_value:
+      expression: "COALESCE(SUM(line_items.quantity * line_items.unit_price), 0)"
+      join: "LEFT JOIN line_items ON line_items.order_id = %{table}.id"
+      group: true
+      type: decimal
+    is_overdue:
+      expression: "CASE WHEN %{table}.due_date < CURRENT_DATE THEN 1 ELSE 0 END"
+      type: boolean
+    company_name:
+      expression: "companies.name"
+      join: "LEFT JOIN companies ON companies.id = %{table}.company_id"
+      type: string
+    priority_score:
+      expression: "(%{table}.urgency * 10 + %{table}.impact * 5)"
+      type: integer
+      auto_include: true
 ```
 
 ## Options

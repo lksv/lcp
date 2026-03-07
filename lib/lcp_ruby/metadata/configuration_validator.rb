@@ -119,8 +119,8 @@ module LcpRuby
           .select { |a| a.type == "belongs_to" && a.foreign_key }
           .flat_map { |a| cols = [ a.foreign_key.to_s ]; cols << "#{a.name}_type" if a.polymorphic; cols }
         userstamp = definition.userstamp_column_names
-        aggregate = definition.aggregate_names
-        fields + fk + userstamp + aggregate + %w[created_at updated_at id]
+        virtual_columns = definition.virtual_column_names
+        fields + fk + userstamp + virtual_columns + %w[created_at updated_at id]
       end
 
       def model_field_definition(model_name, field_name)
@@ -171,7 +171,7 @@ module LcpRuby
             validate_userstamps(model)
             validate_tree(model)
             validate_label_method(model)
-            validate_model_aggregates(model)
+            validate_model_virtual_columns(model)
           end
         end
       end
@@ -438,61 +438,123 @@ module LcpRuby
         end
       end
 
-      def validate_model_aggregates(model)
-        # Name collision with fields is already checked by ModelDefinition#validate! at parse time.
-        model.aggregates.each do |agg_name, agg_def|
-          if agg_def.declarative?
-            validate_declarative_aggregate(model, agg_name, agg_def)
-          elsif agg_def.sql_type?
-            validate_sql_aggregate(model, agg_name, agg_def)
-          elsif agg_def.service_type?
-            validate_service_aggregate(model, agg_name, agg_def)
+      RESERVED_VC_NAMES = %w[
+        id type class save save! destroy destroy! delete update update! create
+        valid? invalid? errors new_record? persisted? frozen? hash object_id
+        send respond_to? freeze dup clone inspect to_s to_param to_model
+        model_name reload assign_attributes becomes attributes read_attribute
+        write_attribute attribute_names changed? changes serializable_hash
+      ].freeze
+
+      def validate_model_virtual_columns(model)
+        assoc_names = model.associations.map(&:name)
+        scope_names = model.scopes.map { |s| s.is_a?(Hash) ? (s["name"] || s[:name]).to_s : s.to_s }
+
+        join_group_count = 0
+        has_group = false
+        has_window_function = false
+
+        model.virtual_columns.each do |vc_name, vc_def|
+          # Name collision checks
+          validate_vc_name_collisions(model, vc_name, assoc_names, scope_names)
+
+          if vc_def.declarative?
+            validate_declarative_aggregate(model, vc_name, vc_def)
           end
+
+          # Track join+group and window function usage for cross-VC warnings
+          if vc_def.group
+            has_group = true
+            join_group_count += 1 if vc_def.join.present?
+          end
+          has_window_function = true if vc_def.expression_type? && window_function_expression?(vc_def.expression)
+
+          # auto_include warnings
+          if vc_def.auto_include && vc_def.join.present?
+            @warnings << "Model '#{model.name}', virtual column '#{vc_name}': " \
+                         "auto_include with join adds a JOIN to every controller query (performance impact)"
+          end
+
+          if vc_def.auto_include && vc_def.service_type?
+            service = Services::Registry.vc_service_registered?(vc_def.service) ? Services::Registry.lookup_vc_service(vc_def.service) : nil
+            if service && !service.respond_to?(:sql_expression)
+              @warnings << "Model '#{model.name}', virtual column '#{vc_name}': " \
+                           "auto_include with service-only VC (no sql_expression) — value will be nil on index pages"
+            end
+          end
+        end
+
+        # Cross-VC warnings
+        if join_group_count > 1
+          @warnings << "Model '#{model.name}': multiple virtual columns combine join + group " \
+                       "(cartesian product risk — consider correlated subqueries instead)"
+        end
+
+        if has_window_function && has_group
+          @warnings << "Model '#{model.name}': has both group: true and window function virtual columns " \
+                       "(window functions operate on post-GROUP BY result set, which may produce unexpected results)"
         end
       end
 
-      def validate_declarative_aggregate(model, agg_name, agg_def)
+      def validate_vc_name_collisions(model, vc_name, assoc_names, scope_names)
+        if assoc_names.include?(vc_name)
+          @errors << "Model '#{model.name}', virtual column '#{vc_name}': " \
+                     "name collides with association '#{vc_name}'"
+        end
+
+        if scope_names.include?(vc_name)
+          @errors << "Model '#{model.name}', virtual column '#{vc_name}': " \
+                     "name collides with scope '#{vc_name}'"
+        end
+
+        if RESERVED_VC_NAMES.include?(vc_name)
+          @errors << "Model '#{model.name}', virtual column '#{vc_name}': " \
+                     "name collides with reserved method '#{vc_name}'"
+        end
+      end
+
+      def window_function_expression?(expression)
+        return false unless expression.is_a?(String)
+        expression.match?(/\bOVER\s*\(/i)
+      end
+
+      def validate_declarative_aggregate(model, vc_name, vc_def)
         # Verify association exists and is has_many
-        assoc = model.associations.find { |a| a.name == agg_def.association }
+        assoc = model.associations.find { |a| a.name == vc_def.association }
         unless assoc
-          @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
-                     "references unknown association '#{agg_def.association}'"
+          @errors << "Model '#{model.name}', virtual column '#{vc_name}': " \
+                     "references unknown association '#{vc_def.association}'"
           return
         end
         unless assoc.type == "has_many"
-          @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
-                     "association '#{agg_def.association}' must be has_many, got '#{assoc.type}'"
+          @errors << "Model '#{model.name}', virtual column '#{vc_name}': " \
+                     "association '#{vc_def.association}' must be has_many, got '#{assoc.type}'"
           return
         end
 
         # Verify source_field exists on target model
-        if agg_def.source_field.present? && assoc.target_model
+        if vc_def.source_field.present? && assoc.target_model
           target_def = loader.model_definitions[assoc.target_model]
-          if target_def && !target_def.field(agg_def.source_field)
-            @errors << "Model '#{model.name}', aggregate '#{agg_name}': " \
-                       "source_field '#{agg_def.source_field}' not found on model '#{assoc.target_model}'"
+          if target_def && !target_def.field(vc_def.source_field)
+            @errors << "Model '#{model.name}', virtual column '#{vc_name}': " \
+                       "source_field '#{vc_def.source_field}' not found on model '#{assoc.target_model}'"
           end
         end
 
         # Verify where clause fields exist on target model
-        if agg_def.where.present? && assoc.target_model
+        if vc_def.where.present? && assoc.target_model
           target_def = loader.model_definitions[assoc.target_model]
           if target_def
             target_fields = target_def.fields.map(&:name) + %w[id created_at updated_at]
-            agg_def.where.each_key do |where_field|
+            vc_def.where.each_key do |where_field|
               unless target_fields.include?(where_field.to_s)
-                @warnings << "Model '#{model.name}', aggregate '#{agg_name}': " \
+                @warnings << "Model '#{model.name}', virtual column '#{vc_name}': " \
                              "where clause references field '#{where_field}' not found on model '#{assoc.target_model}'"
               end
             end
           end
         end
       end
-
-      # SQL and service aggregate type checks are handled by AggregateDefinition#validate!
-      # at parse time (raises MetadataError if type is missing).
-      def validate_sql_aggregate(_model, _agg_name, _agg_def); end
-      def validate_service_aggregate(_model, _agg_name, _agg_def); end
 
       def validate_model_events(model)
         model.events.each do |event|
@@ -1039,6 +1101,73 @@ module LcpRuby
         end
       end
 
+      # Warn when service-only VCs (no sql_expression) are referenced in index-context metadata
+      def validate_presenter_service_only_vcs(presenter, model_def)
+        return if model_def.virtual_columns.empty?
+
+        # Collect service-only VC names (service VCs where the service class lacks sql_expression)
+        service_only_names = model_def.virtual_columns.select { |_, vc| vc.service_type? }.filter_map do |name, vc|
+          next unless Services::Registry.vc_service_registered?(vc.service)
+          service = Services::Registry.lookup_vc_service(vc.service)
+          name if service && !service.respond_to?(:sql_expression)
+        end.to_set
+        return if service_only_names.empty?
+
+        # Check table_columns
+        presenter.table_columns.each do |col|
+          field = col["field"].to_s
+          if service_only_names.include?(field)
+            @warnings << "Presenter '#{presenter.name}', table_columns: " \
+                         "virtual column '#{field}' is service-only (no sql_expression) — value will be nil on index pages"
+          end
+        end
+
+        # Check tile fields
+        if presenter.tiles?
+          presenter.all_tile_field_refs.each do |field|
+            if service_only_names.include?(field)
+              @warnings << "Presenter '#{presenter.name}', tile_fields: " \
+                           "virtual column '#{field}' is service-only (no sql_expression) — value will be nil on index pages"
+            end
+          end
+        end
+
+        # Check item_classes conditions
+        presenter.item_classes.each do |rule|
+          condition = rule["when"]
+          next unless condition.is_a?(Hash)
+
+          collect_condition_field_names(condition).each do |field|
+            if service_only_names.include?(field)
+              @warnings << "Presenter '#{presenter.name}', item_classes: " \
+                           "virtual column '#{field}' is service-only (no sql_expression) — value will be nil on index pages"
+            end
+          end
+        end
+      end
+
+      # Recursively extracts field names from a condition tree.
+      def collect_condition_field_names(condition, result = Set.new)
+        return result unless condition.is_a?(Hash)
+
+        normalized = condition.transform_keys(&:to_s)
+
+        if normalized.key?("all") || normalized.key?("any")
+          Array(normalized["all"] || normalized["any"]).each do |child|
+            collect_condition_field_names(child, result)
+          end
+        elsif normalized.key?("not")
+          collect_condition_field_names(normalized["not"], result)
+        elsif normalized.key?("collection")
+          child = normalized["condition"]
+          collect_condition_field_names(child, result) if child.is_a?(Hash)
+        elsif normalized.key?("field")
+          result << normalized["field"].to_s.split(".").first
+        end
+
+        result
+      end
+
       def build_all_valid_fields(presenter, model)
         valid = model.fields.map(&:name)
         fk = model.associations
@@ -1048,7 +1177,7 @@ module LcpRuby
           .select(&:through?)
           .map { |a| "#{a.name.to_s.singularize}_ids" }
         userstamp = model.userstamp_column_names
-        aggregate = model.aggregate_names
+        aggregate = model.virtual_column_names
         valid + fk + collection_ids + userstamp + aggregate + %w[created_at updated_at id]
       end
 
@@ -1196,6 +1325,7 @@ module LcpRuby
             validate_presenter_summary(presenter, model_def)
             validate_presenter_sort_fields(presenter, model_def)
             validate_presenter_per_page_options(presenter)
+            validate_presenter_service_only_vcs(presenter, model_def)
           end
         end
       end
@@ -1223,8 +1353,8 @@ module LcpRuby
           .select { |a| a.through? }
           .map { |a| "#{a.name.to_s.singularize}_ids" }
         userstamp_fields = model_def.userstamp_column_names
-        aggregate_fields = model_def.aggregate_names
-        all_valid = valid_fields + fk_fields + collection_id_fields + userstamp_fields + aggregate_fields + %w[created_at updated_at id]
+        vc_fields = model_def.virtual_column_names
+        all_valid = valid_fields + fk_fields + collection_id_fields + userstamp_fields + vc_fields + %w[created_at updated_at id]
 
         # Check table columns
         presenter.table_columns.each do |col|

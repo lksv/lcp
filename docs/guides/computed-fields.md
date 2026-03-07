@@ -173,7 +173,7 @@ module LcpRuby
 end
 ```
 
-> **Note:** Be mindful of N+1 queries when accessing associations in computed services. This service runs on every save of the parent record, so it is fine for single-record operations. For read-only aggregate display on index pages, consider [Aggregates](../reference/models.md#aggregates) instead.
+> **Note:** Be mindful of N+1 queries when accessing associations in computed services. This service runs on every save of the parent record, so it is fine for single-record operations. For read-only aggregate display on index pages, consider [Virtual Columns](virtual-columns.md) instead.
 
 ## Displaying Computed Fields
 
@@ -218,19 +218,19 @@ form:
 
 Or simply omit them from the form — the value is calculated regardless of whether the field appears in the form.
 
-## Computed Fields vs. Aggregates
+## Computed Fields vs. Virtual Columns
 
 Both produce derived values, but they serve different purposes:
 
-| | Computed Fields | Aggregates |
+| | Computed Fields | Virtual Columns |
 |---|---|---|
-| **Storage** | Persisted in DB column | Virtual (SQL subquery at query time) |
+| **Storage** | Persisted in DB column | Not stored (SQL at query time) |
 | **Recalculation** | On every save of the record | On every query |
-| **Source** | Fields on the same record (or associations via service) | Associated records (COUNT, SUM, etc.) |
-| **Queryable** | Yes (regular column — filter, sort, index) | Yes (via SQL subquery) |
-| **Use case** | `total = price * quantity` | `orders_count` from child records |
+| **Source** | Fields on the same record (or associations via service) | Associated records, JOINs, SQL expressions |
+| **Queryable** | Yes (regular column — filter, sort, index) | Yes (via SQL subquery/expression) |
+| **Use case** | `total = price * quantity` | `orders_count` from child records, `is_overdue` flag |
 
-**Rule of thumb:** If the value depends on fields of the **same record**, use a computed field. If it summarizes data from **associated records** and should always reflect the current state without saving, use an [aggregate](../reference/models.md#aggregates).
+**Rule of thumb:** If the value depends on fields of the **same record** and should be persisted, use a computed field. If it summarizes data from **associated records**, derives from SQL expressions, or should always reflect the current state without saving, use a [virtual column](virtual-columns.md).
 
 ## Computed Fields vs. Transforms
 

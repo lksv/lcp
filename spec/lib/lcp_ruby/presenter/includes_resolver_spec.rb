@@ -151,6 +151,30 @@ RSpec.describe LcpRuby::Presenter::IncludesResolver do
       non_empty = described_class.new(includes: [ :company ])
       expect(non_empty).not_to be_empty
     end
+
+    it "uses preload instead of includes when scope has custom select" do
+      strategy = described_class.new(includes: [ :company ])
+
+      scope = double("scope")
+      allow(scope).to receive(:respond_to?).with(:select_values).and_return(true)
+      allow(scope).to receive(:select_values).and_return([ "table.*", "(SELECT ...) AS vc" ])
+      expect(scope).to receive(:preload).with(:company).and_return(scope)
+      expect(scope).not_to receive(:includes)
+
+      strategy.apply(scope)
+    end
+
+    it "uses includes normally when scope has no custom select" do
+      strategy = described_class.new(includes: [ :company ])
+
+      scope = double("scope")
+      allow(scope).to receive(:respond_to?).with(:select_values).and_return(true)
+      allow(scope).to receive(:select_values).and_return([])
+      expect(scope).to receive(:includes).with(:company).and_return(scope)
+      expect(scope).not_to receive(:preload)
+
+      strategy.apply(scope)
+    end
   end
 
   describe LcpRuby::Presenter::IncludesResolver::DependencyCollector do
