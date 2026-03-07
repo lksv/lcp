@@ -1,6 +1,6 @@
 # Design: API-Backed Models (External Data Sources)
 
-**Status:** Proposed
+**Status:** Implemented (Phase 1 — read-only)
 **Date:** 2026-03-03
 
 ## Problem

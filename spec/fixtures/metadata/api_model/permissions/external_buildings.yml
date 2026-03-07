@@ -1,0 +1,21 @@
+permissions:
+  model: external_building
+  roles:
+    admin:
+      crud:
+        - index
+        - show
+      fields:
+        readable:
+          - name
+          - address
+          - floors
+          - status
+    viewer:
+      crud:
+        - index
+        - show
+      fields:
+        readable:
+          - name
+          - address

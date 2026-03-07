@@ -1,0 +1,49 @@
+model:
+  name: external_building
+  fields:
+    - name: name
+      type: string
+    - name: address
+      type: string
+    - name: floors
+      type: integer
+    - name: status
+      type: enum
+      enum_values:
+        - value: active
+          label: Active
+        - value: inactive
+          label: Inactive
+  data_source:
+    type: rest_json
+    base_url: "https://api.example.com"
+    resource: buildings
+    timeout: 10
+    auth:
+      type: bearer
+      token_env: BUILDINGS_API_TOKEN
+    pagination:
+      style: offset_limit
+      offset_param: offset
+      limit_param: limit
+    cache:
+      ttl: 300
+      list_ttl: 60
+    supported_operators:
+      - eq
+      - cont
+      - gt
+      - lt
+    field_mapping:
+      name: building_name
+      address: building_address
+    endpoints:
+      show:
+        path: "buildings/:id"
+        response_path: data
+      search:
+        method: GET
+        response_path: data.items
+        total_count_path: data.total
+  options:
+    label_method: name

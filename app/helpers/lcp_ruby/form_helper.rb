@@ -391,13 +391,16 @@ module LcpRuby
         html_attrs["data-lcp-label-method"] = input_options["label_method"] || ""
       end
 
+      # API-backed target model: always use remote search mode
+      api_target = api_association_target?(assoc)
+
       # Tom Select integration
-      search_url = input_options["search"] ? select_options_url_for(field_name) : nil
-      if input_options["search"] && search_url
+      search_url = (input_options["search"] || api_target) ? select_options_url_for(field_name) : nil
+      if (input_options["search"] || api_target) && search_url
         html_attrs["data-lcp-search"] = "remote"
         html_attrs["data-lcp-search-url"] = search_url
         html_attrs["data-lcp-per-page"] = input_options["per_page"] || 25
-        html_attrs["data-lcp-min-query"] = input_options["min_query_length"] || 1
+        html_attrs["data-lcp-min-query"] = input_options["min_query_length"] || (api_target ? 0 : 1)
         # For remote mode, options are fetched on demand; render empty select
         options = []
         # If record already has a value, include that option so it displays correctly
@@ -405,7 +408,15 @@ module LcpRuby
           current_id = form.object.send(field_name)
           target_class = LcpRuby.registry.model_for(assoc.target_model)
           label_method = (input_options["label_method"] || resolve_default_label_method(assoc)).to_sym
-          current_record = target_class.find_by(id: current_id)
+          if api_target
+            current_record = begin
+              target_class.find(current_id)
+            rescue LcpRuby::DataSource::RecordNotFound
+              nil
+            end
+          else
+            current_record = target_class.find_by(id: current_id)
+          end
           options = [ [ resolve_label(current_record, label_method), current_record.id ] ] if current_record
         end
       else
@@ -466,6 +477,15 @@ module LcpRuby
       else
         {}
       end
+    end
+
+    def api_association_target?(assoc)
+      return false unless assoc&.target_model
+
+      target_class = LcpRuby.registry.model_for(assoc.target_model)
+      target_class.respond_to?(:lcp_api_model?) && target_class.lcp_api_model?
+    rescue LcpRuby::RegistryError
+      false
     end
 
     def select_options_url_for(field_name)

@@ -179,6 +179,12 @@ en:
       max_of: "Max of %{field}"
     tiles:
       no_image: "No image"
+    api:
+      error_title: "Data unavailable"
+      error_message: "Could not load data from the external source. Please try again later."
+      stale_title: "Cached data"
+      stale_message: "Showing cached data. The information may be outdated."
+      readonly: "This resource is read-only."
     auth:
       title: "Authentication"
       account_deactivated: "Your account has been deactivated. Please contact an administrator."

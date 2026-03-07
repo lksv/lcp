@@ -1,0 +1,11 @@
+<% if defined?(@api_result) && @api_result&.error? %>
+  <div class="lcp-api-status-banner lcp-api-status-error" role="alert">
+    <strong><%= I18n.t("lcp_ruby.api.error_title", default: "Data unavailable") %></strong>
+    <span><%= I18n.t("lcp_ruby.api.error_message", default: "Could not load data from the external source. Please try again later.") %></span>
+  </div>
+<% elsif defined?(@api_result) && @api_result&.stale? %>
+  <div class="lcp-api-status-banner lcp-api-status-stale" role="status">
+    <strong><%= I18n.t("lcp_ruby.api.stale_title", default: "Cached data") %></strong>
+    <span><%= I18n.t("lcp_ruby.api.stale_message", default: "Showing cached data. The information may be outdated.") %></span>
+  </div>
+<% end %>

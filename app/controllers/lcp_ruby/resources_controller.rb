@@ -9,6 +9,12 @@ module LcpRuby
 
     def index
       authorize @model_class
+
+      if api_model?
+        load_api_index
+        return
+      end
+
       scope = policy_scope(@model_class)
       scope = apply_soft_delete_scope(scope)
 
@@ -36,6 +42,15 @@ module LcpRuby
 
     def show
       authorize @record
+
+      if api_model?
+        @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+        @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
+        @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator, context: condition_context)
+        @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
+        return
+      end
+
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
       load_show_aggregates
       preload_associations(@record, :show)
@@ -46,6 +61,7 @@ module LcpRuby
     end
 
     def new
+      return head(:not_found) if api_model?
       @record = @model_class.new
       authorize @record
       apply_presenter_defaults(@record)
@@ -54,6 +70,7 @@ module LcpRuby
     end
 
     def create
+      return head(:not_found) if api_model?
       @record = @model_class.new(permitted_params)
       authorize @record
 
@@ -71,6 +88,7 @@ module LcpRuby
     end
 
     def edit
+      return head(:not_found) if api_model?
       authorize @record
       preload_associations(@record, :form)
       @record.strict_loading! if LcpRuby.configuration.strict_loading_enabled?
@@ -78,6 +96,7 @@ module LcpRuby
     end
 
     def update
+      return head(:not_found) if api_model?
       authorize @record
       @record.assign_attributes(permitted_params)
       purge_removed_attachments!(@record)
@@ -96,6 +115,7 @@ module LcpRuby
     end
 
     def destroy
+      return head(:not_found) if api_model?
       authorize @record
       if current_model_definition.soft_delete?
         @record.discard!(by: current_user)
@@ -139,6 +159,11 @@ module LcpRuby
       return render(json: []) unless assoc&.lcp_model?
 
       input_options = field_config["input_options"] || {}
+
+      # API-backed target model: delegate to data source
+      if api_target_model?(assoc)
+        return render json: build_api_select_options(assoc, input_options)
+      end
 
       # Reverse cascade: resolve ancestor chain for a given value
       if params[:ancestors_for].present?
@@ -304,6 +329,37 @@ module LcpRuby
 
     private
 
+    def load_api_index
+      # Translate filter params for API data source
+      field_names = current_model_definition.fields.map(&:name)
+      raw_filters = params[:f]&.to_unsafe_h || {}
+      supported_ops = @model_class.lcp_data_source&.supported_operators
+
+      filters = DataSource::ApiFilterTranslator.translate(
+        raw_filters,
+        field_names: field_names,
+        supported_operators: supported_ops
+      )
+
+      # Sort
+      sort = if current_sort_field.present?
+        { field: current_sort_field, direction: current_sort_direction }
+      end
+
+      page = (params[:page] || 1).to_i
+      per = effective_per_page
+
+      @api_result = @model_class.lcp_search(filters: filters, sort: sort, page: page, per: per)
+
+      # Wrap in Kaminari-compatible array for view pagination
+      @records = Kaminari.paginate_array(
+        @api_result.to_a,
+        total_count: @api_result.total_count
+      ).page(page).per(per)
+
+      setup_index_view_objects
+    end
+
     def load_flat_index(scope)
       scope = apply_advanced_search(scope)
       scope = apply_sort(scope)
@@ -331,6 +387,9 @@ module LcpRuby
       scope = scope.strict_loading if LcpRuby.configuration.strict_loading_enabled?
 
       @records = scope.page(params[:page]).per(effective_per_page)
+
+      # Batch-preload API associations after AR scope materializes
+      strategy.apply_api_preloads(@records.to_a) if strategy.api_preloads.any?
 
       setup_index_view_objects
     end
@@ -546,8 +605,12 @@ module LcpRuby
     end
 
     def set_record
-      scope = apply_soft_delete_scope(@model_class)
-      @record = scope.find(params[:id])
+      if api_model?
+        @record = @model_class.find(params[:id])
+      else
+        scope = apply_soft_delete_scope(@model_class)
+        @record = scope.find(params[:id])
+      end
     end
 
     def set_record_with_discarded
@@ -747,6 +810,34 @@ module LcpRuby
 
       records = query.to_a
       build_tree_json(records, parent_field, label_method, max_depth)
+    end
+
+    # Check if the association's target model is API-backed.
+    def api_target_model?(assoc)
+      target_class = LcpRuby.registry.model_for(assoc.target_model)
+      target_class.respond_to?(:lcp_api_model?) && target_class.lcp_api_model?
+    rescue LcpRuby::RegistryError
+      false
+    end
+
+    # Build select options for an API-backed target model via its data source.
+    def build_api_select_options(assoc, input_options)
+      target_class = LcpRuby.registry.model_for(assoc.target_model)
+      label_method = input_options["label_method"] || resolve_default_label_method(assoc)
+      limit = (input_options["max_options"] || MAX_SELECT_OPTIONS).to_i
+
+      options = target_class.lcp_select_options(
+        search: params[:q],
+        sort: input_options["sort"],
+        label_method: label_method,
+        limit: limit
+      )
+
+      if params[:q].present? || params[:page].present?
+        { options: options, has_more: false, total: options.size }
+      else
+        options
+      end
     end
 
     def build_tree_json(records, parent_field, label_method, max_depth, parent_id = nil, depth = 0)

@@ -3,7 +3,7 @@ module LcpRuby
     class ModelDefinition
       attr_reader :name, :label, :label_plural, :table_name, :fields,
                   :validations, :associations, :scopes, :events, :options,
-                  :display_templates, :aggregates, :raw_hash
+                  :display_templates, :aggregates, :raw_hash, :data_source_config
       attr_accessor :positioning_config
 
       def initialize(attrs = {})
@@ -20,6 +20,7 @@ module LcpRuby
         @display_templates = attrs[:display_templates] || {}
         @aggregates = attrs[:aggregates] || {}
         @positioning_config = attrs[:positioning_config]
+        @data_source_config = attrs[:data_source_config]
         @raw_hash = attrs[:raw_hash]
 
         validate!
@@ -40,6 +41,7 @@ module LcpRuby
           display_templates: parse_display_templates(hash["display_templates"]),
           aggregates: parse_aggregates(hash["aggregates"]),
           positioning_config: normalize_positioning(hash["positioning"]),
+          data_source_config: hash["data_source"],
           raw_hash: hash
         )
       end
@@ -58,6 +60,30 @@ module LcpRuby
 
       def virtual?
         table_name == "_virtual"
+      end
+
+      # Returns true if this model is backed by an external data source (REST API, host adapter).
+      def api_model?
+        @data_source_config.is_a?(Hash) && @data_source_config["type"].present?
+      end
+
+      # Returns the data source type as a symbol: :db, :rest_json, or :host.
+      def data_source_type
+        return :db unless api_model?
+
+        case @data_source_config["type"]
+        when "rest_json" then :rest_json
+        when "host" then :host
+        else :db
+        end
+      end
+
+      # Returns supported filter operators for this model's data source.
+      # Falls back to a standard set for DB models.
+      def supported_filter_operators
+        return nil unless api_model?
+
+        @data_source_config["supported_operators"]
       end
 
       def soft_delete?

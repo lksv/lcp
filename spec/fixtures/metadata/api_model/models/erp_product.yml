@@ -1,0 +1,16 @@
+model:
+  name: erp_product
+  fields:
+    - name: sku
+      type: string
+    - name: title
+      type: string
+    - name: price
+      type: decimal
+    - name: in_stock
+      type: boolean
+  data_source:
+    type: host
+    provider: "TestErpProvider"
+  options:
+    label_method: title

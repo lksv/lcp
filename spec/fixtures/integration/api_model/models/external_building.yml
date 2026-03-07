@@ -1,0 +1,14 @@
+model:
+  name: external_building
+  fields:
+    - name: name
+      type: string
+    - name: address
+      type: string
+    - name: floors
+      type: integer
+  data_source:
+    type: host
+    provider: "IntegrationTestBuildingProvider"
+  options:
+    label_method: name

@@ -1,0 +1,15 @@
+model:
+  name: work_order
+  table_name: api_test_work_orders
+  fields:
+    - name: title
+      type: string
+    - name: external_building_id
+      type: string
+  associations:
+    - type: belongs_to
+      name: external_building
+      target_model: external_building
+      foreign_key: external_building_id
+  options:
+    label_method: title

@@ -91,6 +91,8 @@ require "lcp_ruby/model_factory/aggregate_applicator"
 require "lcp_ruby/model_factory/array_type"
 require "lcp_ruby/model_factory/array_type_applicator"
 require "lcp_ruby/model_factory/builder"
+require "lcp_ruby/model_factory/api_builder"
+require "lcp_ruby/model_factory/api_association_applicator"
 
 # Aggregates
 require "lcp_ruby/aggregates/query_builder"
@@ -204,6 +206,22 @@ module LcpRuby
   class ServiceError < Error; end
   class ConditionError < Error; end
 
+  # Search Result (requires LcpRuby module to exist)
+  require "lcp_ruby/search_result"
+
+  # Data Source (requires LcpRuby::Error to exist)
+  require "lcp_ruby/data_source/base"
+  require "lcp_ruby/data_source/api_error_placeholder"
+  require "lcp_ruby/data_source/rest_json"
+  require "lcp_ruby/data_source/host"
+  require "lcp_ruby/data_source/cached_wrapper"
+  require "lcp_ruby/data_source/resilient_wrapper"
+  require "lcp_ruby/data_source/registry"
+  require "lcp_ruby/data_source/api_model_concern"
+  require "lcp_ruby/data_source/api_filter_translator"
+  require "lcp_ruby/data_source/api_preloader"
+  require "lcp_ruby/data_source/setup"
+
   class << self
     def configuration
       @configuration ||= Configuration.new
@@ -292,6 +310,7 @@ module LcpRuby
       Auditing::Registry.clear!
       Auditing::AuditWriter.clear_cache!
       SavedFilters::Registry.clear!
+      DataSource::Registry.clear!
       ViewSlots::Registry.clear!
 
       # Remove dynamic constants to avoid "already initialized" warnings

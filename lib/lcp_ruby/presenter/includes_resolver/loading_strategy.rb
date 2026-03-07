@@ -8,12 +8,13 @@ module LcpRuby
       #   - eager_load: always LEFT OUTER JOIN (needed for WHERE/ORDER on association columns)
       #   - joins:      INNER JOIN (used alongside includes for has_many query deps)
       class LoadingStrategy
-        attr_reader :includes, :eager_load, :joins
+        attr_reader :includes, :eager_load, :joins, :api_preloads
 
-        def initialize(includes: [], eager_load: [], joins: [])
+        def initialize(includes: [], eager_load: [], joins: [], api_preloads: [])
           @includes = includes
           @eager_load = eager_load
           @joins = joins
+          @api_preloads = api_preloads
         end
 
         # Chains all loading instructions onto the given AR scope.
@@ -24,8 +25,18 @@ module LcpRuby
           scope
         end
 
+        # Batch-preloads API associations for materialized records.
+        # Call after the AR scope has been loaded (e.g. after pagination).
+        def apply_api_preloads(records)
+          return if @api_preloads.empty? || records.blank?
+
+          @api_preloads.each do |preload|
+            DataSource::ApiPreloader.preload(records, preload[:name], preload[:association])
+          end
+        end
+
         def empty?
-          @includes.empty? && @eager_load.empty? && @joins.empty?
+          @includes.empty? && @eager_load.empty? && @joins.empty? && @api_preloads.empty?
         end
       end
     end

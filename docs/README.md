@@ -25,6 +25,7 @@ Complete attribute reference for every YAML configuration file:
 - [Eager Loading](reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Tree Structures](reference/tree-structures.md) — Declarative tree hierarchies: model options, traversal, reparenting, tree index view
 - [View Slots](reference/view-slots.md) — Extensible page layout injection points: registry, slot names, SlotContext, position ordering
+- [API-Backed Models](reference/api-backed-models.md) — External data sources: REST JSON adapter, host providers, cross-source associations, caching, error handling
 - [Engine Configuration](reference/engine-configuration.md) — `LcpRuby.configure` options
 
 ## DSL Reference
@@ -61,6 +62,7 @@ Complete attribute reference for every YAML configuration file:
 - [Impersonation](guides/impersonation.md) — "View as Role X" for testing permissions
 - [Tiles View](guides/tiles.md) — Card grid layout for index pages: tile configuration, sort dropdown, per-page selector, summary bar
 - [View Slots](guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components, overriding built-ins
+- [API-Backed Models](guides/api-backed-models.md) — Integrating external REST APIs and host-provided data sources: setup, cross-source associations, caching, error handling, testing
 - [Developer Tools](guides/developer-tools.md) — `lcp_ruby:validate`, `lcp_ruby:erd`, `lcp_ruby:permissions`, and `lcp_ruby:create_admin` rake tasks
 
 ## Design Documents
@@ -83,6 +85,7 @@ Implemented:
 - [Tiles View](design/tiles_view.md) — Card grid layout for index pages with sort dropdown, per-page selector, and summary bar
 - [Row Styling](design/row_styling.md) — Conditional CSS classes on index rows (tables, trees, tiles) based on field conditions or services
 - [Array Field Type](design/array_field_type.md) — Native array fields with typed items, array-specific operators, and auto-generated scopes
+- [API-Backed Models](design/api_backed_models.md) — External data sources (REST JSON, host adapters): read-only access, cross-source associations, caching, graceful degradation
 
 In Progress:
 

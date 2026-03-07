@@ -25,11 +25,12 @@ module LcpRuby
                   :current_view_group, :sibling_views,
                   :impersonating?, :impersonated_role, :available_roles_for_impersonation,
                   :breadcrumbs, :compute_list_version_from_records,
-                  :filter_metadata, :condition_context
+                  :filter_metadata, :condition_context, :api_model?
 
     rescue_from Pundit::NotAuthorizedError, with: :user_not_authorized
     rescue_from LcpRuby::MetadataError, with: :metadata_error
     rescue_from ActiveRecord::RecordNotFound, with: :record_not_found
+    rescue_from LcpRuby::DataSource::RecordNotFound, with: :record_not_found
 
     private
 
@@ -139,6 +140,10 @@ module LcpRuby
 
     def condition_context
       @condition_context ||= { current_user: current_user }
+    end
+
+    def api_model?
+      current_model_definition&.api_model? == true
     end
 
     def current_evaluator

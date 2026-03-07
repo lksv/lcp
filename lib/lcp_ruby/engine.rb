@@ -93,6 +93,7 @@ module LcpRuby
         Groups::Setup.apply!(loader)
         Auditing::Setup.apply!(loader)
         SavedFilters::Setup.apply!(loader)
+        DataSource::Setup.apply!(loader)
 
         LcpRuby.check_services!
 
@@ -111,11 +112,16 @@ module LcpRuby
         # Virtual models exist only as metadata (no table, no AR class)
         return if model_def.virtual?
 
-        schema_manager = ModelFactory::SchemaManager.new(model_def)
-        schema_manager.ensure_table! if LcpRuby.configuration.auto_migrate
+        if model_def.api_model?
+          builder = ModelFactory::ApiBuilder.new(model_def)
+          model_class = builder.build
+        else
+          schema_manager = ModelFactory::SchemaManager.new(model_def)
+          schema_manager.ensure_table! if LcpRuby.configuration.auto_migrate
 
-        builder = ModelFactory::Builder.new(model_def)
-        model_class = builder.build
+          builder = ModelFactory::Builder.new(model_def)
+          model_class = builder.build
+        end
 
         LcpRuby.registry.register(model_def.name, model_class)
       end

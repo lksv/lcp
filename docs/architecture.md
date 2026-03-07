@@ -17,8 +17,12 @@ YAML metadata (config/lcp_ruby/)
               (creates AR class + DB table + validations + transforms + associations + scopes +
                soft_delete + tree + callbacks + auditing + positioning + userstamps)
               (virtual models with table_name: _virtual are skipped — metadata only, no AR class)
+              (API models → ApiBuilder creates ActiveModel class, skips DB/AR-specific applicators)
                                 ↓
               LcpRuby.registry.register(name, model_class)
+                                ↓
+              DataSource::Setup.apply!(loader) → instantiate adapters, wrap with cache/resilient
+              decorators, attach to API model classes, apply cross-source associations
                                 ↓
               CustomFields::Setup.apply!(loader) → contract validation, registry, handlers, accessors
               CustomFieldsController → nested routes: /:lcp_slug/custom-fields
@@ -83,7 +87,25 @@ Builds dynamic ActiveRecord models from metadata definitions.
 - **ScopeApplicator** — generates scopes from `where`, `where_not`, `order`, `limit`, and custom scope definitions
 - **CallbackApplicator** — registers lifecycle callbacks and field_change event triggers that dispatch to the Events system
 - **RansackApplicator** — configures Ransack `ransackable_attributes` and `ransackable_associations` on the model class from metadata; filters by `PermissionEvaluator` at query time via `auth_object`
+- **ApiBuilder** — builds ActiveModel classes for API-backed models; applies only compatible steps (attributes, enums as validations, label method, model extensions); skips all DB/AR-specific applicators
+- **ApiAssociationApplicator** — applies cross-source association accessors after all models are registered; generates lazy accessors for DB→API belongs_to, query-based accessors for API→DB has_many
 - **Registry** — central model store; `register`, `model_for`, `registered?`, `all`, `names`, `clear!`
+
+### Data Source (`lib/lcp_ruby/data_source/`)
+
+Adapters and infrastructure for API-backed models.
+
+- **Base** — abstract data source contract: `find`, `search`, `find_many`, `select_options`, `count`; raises `ReadonlyError` for write operations
+- **RestJson** — built-in REST/JSON adapter with configurable auth (bearer/basic/header), pagination (offset_limit/page_number/cursor), field mapping, and response path navigation
+- **Host** — delegates to a host-provided class that implements the data source contract
+- **CachedWrapper** — decorator that wraps any data source with `Rails.cache` TTL-based caching
+- **ResilientWrapper** — decorator that catches connection errors and returns error-flagged results or `ApiErrorPlaceholder` instead of raising
+- **ApiModelConcern** — ActiveModel mixin included in API model classes; provides `find`, `lcp_search`, `lcp_select_options`, `model_name`, Pundit/Ransack stubs
+- **ApiFilterTranslator** — translates Ransack-style filter params to portable `{field, operator, value}` format for data source consumption
+- **ApiPreloader** — batch preloads API associations (collects FK values → single `find_many` → distributes via instance variables)
+- **ApiErrorPlaceholder** — fallback object for failed API fetches; responds to `to_label` with `"ModelName #id (unavailable)"` and to field getters with `nil`
+- **Registry** — per-model data source instance store; `register`, `adapter_for`, `available?`, `mark_available!`, `clear!`
+- **Setup** — boot-time orchestration: instantiates adapters, wraps with cache/resilient decorators, attaches to model classes, applies cross-source associations
 
 ### Authorization (`lib/lcp_ruby/authorization/`)
 

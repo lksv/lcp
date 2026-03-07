@@ -1,0 +1,7 @@
+view_group:
+  model: weather_station
+  primary: weather_stations
+  views:
+    - presenter: weather_stations
+      label: "Weather Stations"
+      icon: cloud

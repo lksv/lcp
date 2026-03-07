@@ -15,6 +15,10 @@ module LcpRuby
       private
 
       def apply_association(assoc)
+        # Skip associations targeting API models — these are handled by ApiAssociationApplicator
+        target_def = LcpRuby.loader.model_definitions[assoc.target_model]
+        return if target_def&.api_model?
+
         case assoc.type
         when "belongs_to"
           apply_belongs_to(assoc)
