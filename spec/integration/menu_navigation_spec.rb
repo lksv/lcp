@@ -200,7 +200,7 @@ RSpec.describe "Menu Navigation Integration", type: :request do
 
     it "excludes view groups with navigation: false from auto nav" do
       helper = Object.new.extend(LcpRuby::LayoutHelper)
-      entries = helper.navigable_presenters
+      entries = helper.navigable_entries
 
       slugs = entries.map { |e| e[:slug] }
       expect(slugs).to include("projects")

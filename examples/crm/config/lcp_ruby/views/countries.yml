@@ -3,6 +3,6 @@ view_group:
   primary: country
   navigation: false
   views:
-    - presenter: country
+    - page: country
       label: "Countries"
       icon: globe

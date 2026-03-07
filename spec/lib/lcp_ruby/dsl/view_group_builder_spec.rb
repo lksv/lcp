@@ -36,12 +36,12 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
       views = hash["view_group"]["views"]
       expect(views.length).to eq(2)
       expect(views[0]).to eq({
-        "presenter" => "contacts_table",
+        "page" => "contacts_table",
         "label" => "Table View",
         "icon" => "table"
       })
       expect(views[1]).to eq({
-        "presenter" => "contacts_board",
+        "page" => "contacts_board",
         "label" => "Board View",
         "icon" => "board"
       })
@@ -67,7 +67,7 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
       hash = builder.to_hash
 
       view = hash["view_group"]["views"].first
-      expect(view["presenter"]).to eq("contacts_table")
+      expect(view["page"]).to eq("contacts_table")
       expect(view["label"]).to eq("Table View")
       expect(view).not_to have_key("icon")
     end
@@ -125,7 +125,7 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
       hash = builder.to_hash
 
       view = hash["view_group"]["views"].first
-      expect(view).to eq({ "presenter" => "contacts_table" })
+      expect(view).to eq({ "page" => "contacts_table" })
       expect(view).not_to have_key("label")
       expect(view).not_to have_key("icon")
     end
@@ -141,7 +141,7 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
 
       views = hash["view_group"]["views"]
       expect(views.length).to eq(3)
-      expect(views.map { |v| v["presenter"] }).to eq(%w[view_a view_b view_c])
+      expect(views.map { |v| v["page"] }).to eq(%w[view_a view_b view_c])
     end
   end
 
@@ -219,12 +219,12 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
 
       expect(definition.name).to eq("crm_contacts")
       expect(definition.model).to eq("contact")
-      expect(definition.primary_presenter).to eq("contacts_table")
+      expect(definition.primary_page).to eq("contacts_table")
       expect(definition.navigation_config).to eq({ "menu" => "main", "position" => 1 })
       expect(definition.views.length).to eq(2)
-      expect(definition.presenter_names).to eq(%w[contacts_table contacts_board])
-      expect(definition.primary?(:contacts_table)).to be true
-      expect(definition.primary?(:contacts_board)).to be false
+      expect(definition.page_names).to eq(%w[contacts_table contacts_board])
+      expect(definition.primary_page?(:contacts_table)).to be true
+      expect(definition.primary_page?(:contacts_board)).to be false
       expect(definition.has_switcher?).to be true
     end
 
@@ -240,7 +240,7 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
 
       expect(definition.name).to eq("simple_group")
       expect(definition.model).to eq("task")
-      expect(definition.primary_presenter).to eq("tasks_list")
+      expect(definition.primary_page).to eq("tasks_list")
       expect(definition.views.length).to eq(1)
       expect(definition.has_switcher?).to be false
     end
@@ -256,13 +256,13 @@ RSpec.describe LcpRuby::Dsl::ViewGroupBuilder do
 
       definition = LcpRuby::Metadata::ViewGroupDefinition.from_hash(builder.to_hash)
 
-      table_view = definition.view_for(:deals_table)
-      expect(table_view["presenter"]).to eq("deals_table")
+      table_view = definition.view_for_page(:deals_table)
+      expect(table_view["page"]).to eq("deals_table")
       expect(table_view["label"]).to eq("Table")
       expect(table_view["icon"]).to eq("list")
 
-      kanban_view = definition.view_for(:deals_kanban)
-      expect(kanban_view["presenter"]).to eq("deals_kanban")
+      kanban_view = definition.view_for_page(:deals_kanban)
+      expect(kanban_view["page"]).to eq("deals_kanban")
       expect(kanban_view["label"]).to eq("Kanban")
       expect(kanban_view["icon"]).to eq("columns")
     end

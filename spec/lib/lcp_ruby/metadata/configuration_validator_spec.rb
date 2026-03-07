@@ -918,14 +918,14 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               model: nonexistent
               primary: project
               views:
-                - presenter: project
+                - page: project
           YAML
         )
       }.to raise_error(LcpRuby::MetadataError, /unknown model/)
     end
   end
 
-  context "view group references unknown presenter" do
+  context "view group references unknown page" do
     let(:metadata_path) { "" }
 
     it "is caught by loader.validate_references at load time" do
@@ -949,15 +949,15 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               model: project
               primary: project
               views:
-                - presenter: project
-                - presenter: ghost_presenter
+                - page: project
+                - page: ghost_page
           YAML
         )
-      }.to raise_error(LcpRuby::MetadataError, /unknown presenter/)
+      }.to raise_error(LcpRuby::MetadataError, /unknown page/)
     end
   end
 
-  context "presenter in multiple view groups" do
+  context "page in multiple view groups" do
     let(:metadata_path) { "" }
 
     it "is caught by loader.validate_references at load time" do
@@ -990,7 +990,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
                 model: project
                 primary: project
                 views:
-                  - presenter: project
+                  - page: project
             YAML
             <<~YAML
               view_group:
@@ -998,8 +998,8 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
                 model: project
                 primary: project_public
                 views:
-                  - presenter: project_public
-                  - presenter: project
+                  - page: project_public
+                  - page: project
             YAML
           ]
         )
@@ -1039,10 +1039,10 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               model: project
               primary: project_public
               views:
-                - presenter: project
+                - page: project
           YAML
         )
-      }.to raise_error(LcpRuby::MetadataError, /primary presenter 'project_public'.*not in the views list/)
+      }.to raise_error(LcpRuby::MetadataError, /primary page 'project_public'.*not in the views list/)
     end
   end
 
@@ -1081,7 +1081,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
                 menu: main
                 position: 1
               views:
-                - presenter: project
+                - page: project
           YAML
           <<~YAML
             view_group:
@@ -1092,7 +1092,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
                 menu: main
                 position: 1
               views:
-                - presenter: project_public
+                - page: project_public
           YAML
         ]
       )
@@ -1138,9 +1138,9 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               menu: main
               position: 1
             views:
-              - presenter: project
+              - page: project
                 label: "Admin"
-              - presenter: project_public
+              - page: project_public
                 label: "Public"
         YAML
       )
@@ -1184,8 +1184,8 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             switcher:
               - show
             views:
-              - presenter: project
-              - presenter: project_public
+              - page: project
+              - page: project_public
         YAML
       )
 
@@ -1226,8 +1226,8 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             switcher:
               - show
             views:
-              - presenter: project
-              - presenter: project_public
+              - page: project
+              - page: project_public
         YAML
       )
 
@@ -1271,8 +1271,8 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             primary: project
             switcher: false
             views:
-              - presenter: project
-              - presenter: project_public
+              - page: project
+              - page: project_public
         YAML
       )
 
@@ -2448,7 +2448,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               model: project
               primary: project
               views:
-                - presenter: project
+                - page: project
           YAML
           menu: <<~YAML
             menu:
@@ -2481,7 +2481,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
               model: project
               primary: project
               views:
-                - presenter: project
+                - page: project
           YAML
           menu: <<~YAML
             menu:
@@ -2515,7 +2515,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             model: project
             primary: project
             views:
-              - presenter: project
+              - page: project
         YAML
         menu: <<~YAML
           menu:
@@ -2562,7 +2562,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             model: project
             primary: project
             views:
-              - presenter: project
+              - page: project
         YAML
         menu: <<~YAML
           menu:
@@ -4303,7 +4303,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
             breadcrumb:
               relation: parent
             views:
-              - presenter: categories
+              - page: categories
         YAML
       )
 

@@ -7,9 +7,9 @@ view_group:
   breadcrumb:
     relation: company
   views:
-    - presenter: deal
+    - page: deal
       label: "Detailed"
       icon: maximize
-    - presenter: deal_pipeline
+    - page: deal_pipeline
       label: "Pipeline"
       icon: bar-chart

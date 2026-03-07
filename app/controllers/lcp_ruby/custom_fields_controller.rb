@@ -183,6 +183,7 @@ module LcpRuby
       @model_definition = @cfd_model_definition
       @cfd_model_class = LcpRuby.registry.model_for("custom_field_definition")
       @model_class = @cfd_model_class
+      @page_definition = LcpRuby.loader.page_definitions["custom_fields"]
     end
 
     def authorize_presenter_access

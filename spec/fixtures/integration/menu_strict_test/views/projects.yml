@@ -3,4 +3,4 @@ view_group:
   primary: project
   navigation: false
   views:
-    - presenter: project
+    - page: project

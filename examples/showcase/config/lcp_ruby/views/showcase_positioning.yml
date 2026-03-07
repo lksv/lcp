@@ -2,6 +2,6 @@ view_group:
   model: showcase_positioning
   primary: showcase_positioning
   views:
-    - presenter: showcase_positioning
+    - page: showcase_positioning
       label: "Priority List"
       icon: list

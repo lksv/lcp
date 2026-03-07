@@ -102,10 +102,10 @@ RSpec.describe "View Groups Integration", type: :request do
     end
   end
 
-  describe "navigable_presenters" do
+  describe "navigable_entries" do
     it "returns primary presenters from each group sorted by position" do
       helper = Object.new.extend(LcpRuby::LayoutHelper)
-      entries = helper.navigable_presenters
+      entries = helper.navigable_entries
 
       slugs = entries.map { |e| e[:slug] }
       # companies (position 1), contacts (auto, position 100), deals (position 3)
@@ -121,20 +121,28 @@ RSpec.describe "View Groups Integration", type: :request do
       )
       LcpRuby.loader.presenter_definitions["hidden"] = non_routable
 
+      # Create auto-page for hidden presenter
+      zone = LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: "hidden")
+      page = LcpRuby::Metadata::PageDefinition.new(
+        name: "hidden", model: "company", zones: [ zone ], auto_generated: true
+      )
+      LcpRuby.loader.page_definitions["hidden"] = page
+
       vg = LcpRuby::Metadata::ViewGroupDefinition.new(
         name: "hidden_group",
         model: "company",
-        primary_presenter: "hidden",
+        primary_page: "hidden",
         navigation_config: { "menu" => "main", "position" => 0 },
-        views: [ { "presenter" => "hidden" } ]
+        views: [ { "page" => "hidden" } ]
       )
       LcpRuby.loader.view_group_definitions["hidden_group"] = vg
 
-      entries = helper.navigable_presenters
+      entries = helper.navigable_entries
       names = entries.map { |e| e[:presenter].name }
       expect(names).not_to include("hidden")
     ensure
       LcpRuby.loader.presenter_definitions.delete("hidden")
+      LcpRuby.loader.page_definitions.delete("hidden")
       LcpRuby.loader.view_group_definitions.delete("hidden_group")
     end
   end
@@ -223,7 +231,7 @@ RSpec.describe "View Groups Integration", type: :request do
       deals_vg = LcpRuby.loader.view_group_definitions["deals"]
 
       expect(deals_vg.views.length).to eq(2)
-      expect(deals_vg.presenter_names).to contain_exactly("deal", "deal_pipeline")
+      expect(deals_vg.page_names).to contain_exactly("deal", "deal_pipeline")
       expect(deals_vg.has_switcher?).to be true
     end
 
@@ -231,7 +239,7 @@ RSpec.describe "View Groups Integration", type: :request do
       companies_vg = LcpRuby.loader.view_group_definitions["companies"]
 
       expect(companies_vg.views.length).to eq(1)
-      expect(companies_vg.presenter_names).to contain_exactly("company")
+      expect(companies_vg.page_names).to contain_exactly("company")
       expect(companies_vg.has_switcher?).to be false
     end
   end

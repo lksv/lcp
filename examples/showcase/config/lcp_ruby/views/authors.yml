@@ -2,6 +2,6 @@ view_group:
   model: author
   primary: authors
   views:
-    - presenter: authors
+    - page: authors
       label: "Authors"
       icon: user

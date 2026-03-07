@@ -7,5 +7,5 @@ view_group:
   breadcrumb:
     relation: todo_list
   views:
-    - presenter: todo_item
+    - page: todo_item
       label: "Todo Items"

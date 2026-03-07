@@ -5,5 +5,5 @@ view_group:
     menu: main
     position: 1
   views:
-    - presenter: company
+    - page: company
       label: "Companies"

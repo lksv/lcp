@@ -3,6 +3,6 @@ view_group:
   primary: audit_logs
   navigation: false
   views:
-    - presenter: audit_logs
+    - page: audit_logs
       label: "Audit Logs"
       icon: clock

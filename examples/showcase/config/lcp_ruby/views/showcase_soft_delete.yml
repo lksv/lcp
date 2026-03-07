@@ -2,9 +2,9 @@ view_group:
   model: showcase_soft_delete
   primary: showcase_soft_delete
   views:
-    - presenter: showcase_soft_delete
+    - page: showcase_soft_delete
       label: "Active"
       icon: file-text
-    - presenter: showcase_soft_delete_archive
+    - page: showcase_soft_delete_archive
       label: "Archived"
       icon: archive

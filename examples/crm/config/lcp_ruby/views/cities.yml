@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: region
   views:
-    - presenter: city
+    - page: city
       label: "Cities"
       icon: map-pin

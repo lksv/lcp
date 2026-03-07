@@ -2,6 +2,6 @@ view_group:
   model: showcase_form
   primary: showcase_forms
   views:
-    - presenter: showcase_forms
+    - page: showcase_forms
       label: "Form Features"
       icon: edit

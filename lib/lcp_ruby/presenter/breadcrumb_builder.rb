@@ -156,13 +156,15 @@ module LcpRuby
 
       def resolve_view_group_label(view_group)
         return "Unknown" unless view_group
-        presenter = LcpRuby.loader.presenter_definitions[view_group.primary_presenter]
+        page = LcpRuby.loader.page_definitions[view_group.primary_page]
+        return view_group.name.humanize unless page
+        presenter = LcpRuby.loader.presenter_definitions[page.main_presenter_name]
         presenter&.label || view_group.name.humanize
       end
 
       def resolve_primary_slug(view_group)
         return nil unless view_group
-        page = LcpRuby.loader.page_definitions[view_group.primary_presenter]
+        page = LcpRuby.loader.page_definitions[view_group.primary_page]
         page&.slug
       end
 

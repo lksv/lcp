@@ -4,4 +4,4 @@ view_group:
   navigation:
     position: 2
   views:
-    - presenter: task
+    - page: task

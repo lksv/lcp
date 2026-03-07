@@ -3,6 +3,6 @@ view_group:
   primary: organization_unit
   navigation: false
   views:
-    - presenter: organization_unit
+    - page: organization_unit
       label: "Organization Units"
       icon: git-branch

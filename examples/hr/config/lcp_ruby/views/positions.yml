@@ -3,6 +3,6 @@ view_group:
   primary: position
   navigation: false
   views:
-    - presenter: position
+    - page: position
       label: "Positions"
       icon: briefcase

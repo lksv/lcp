@@ -3,6 +3,6 @@ view_group:
   primary: deal_category
   navigation: false
   views:
-    - presenter: deal_category
+    - page: deal_category
       label: "Deal Categories"
       icon: folder

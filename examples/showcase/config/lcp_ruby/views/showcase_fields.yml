@@ -2,12 +2,12 @@ view_group:
   model: showcase_field
   primary: showcase_fields_table
   views:
-    - presenter: showcase_fields_table
+    - page: showcase_fields_table
       label: "Table View"
       icon: grid
-    - presenter: showcase_fields_card
+    - page: showcase_fields_card
       label: "Card View"
       icon: layout
-    - presenter: showcase_fields_tiles
+    - page: showcase_fields_tiles
       label: "Tiles"
       icon: grid-2x2

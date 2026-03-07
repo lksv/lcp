@@ -189,8 +189,8 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
       allow(loader).to receive(:view_group_definitions).and_return({
         "deals" => instance_double(
           LcpRuby::Metadata::ViewGroupDefinition,
-          primary_presenter: "deal",
-          presenter_names: [ "deal" ],
+          primary_page: "deal",
+          page_names: [ "deal" ],
           navigable?: true
         )
       })
@@ -198,6 +198,12 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
         "deal" => instance_double(
           LcpRuby::Metadata::PresenterDefinition,
           name: "deal", model: "deal", routable?: true, slug: "deals"
+        )
+      })
+      allow(loader).to receive(:page_definitions).and_return({
+        "deal" => instance_double(
+          LcpRuby::Metadata::PageDefinition,
+          name: "deal", main_presenter_name: "deal", routable?: true, slug: "deals"
         )
       })
       allow(loader).to receive(:permission_definition).and_raise(LcpRuby::MetadataError, "no perms")
@@ -218,7 +224,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
     end
   end
 
-  describe "#navigable_presenters" do
+  describe "#navigable_entries" do
     let(:admin_user) { double("User", lcp_role: [ "admin" ], id: 1) }
     let(:viewer_user) { double("User", lcp_role: [ "viewer" ], id: 2) }
 
@@ -249,8 +255,8 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
     let(:view_group) do
       instance_double(
         LcpRuby::Metadata::ViewGroupDefinition,
-        primary_presenter: "project",
-        presenter_names: [ "project" ],
+        primary_page: "project",
+        page_names: [ "project" ],
         navigation_config: { "position" => 1 },
         navigable?: true
       )
@@ -259,8 +265,8 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
     let(:view_group_restricted) do
       instance_double(
         LcpRuby::Metadata::ViewGroupDefinition,
-        primary_presenter: "project_public",
-        presenter_names: [ "project_public" ],
+        primary_page: "project_public",
+        page_names: [ "project_public" ],
         navigation_config: { "position" => 2 },
         navigable?: true
       )
@@ -313,21 +319,21 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
     it "shows all menu items for admin" do
       LcpRuby::Current.user = admin_user
 
-      entries = navigable_presenters
+      entries = navigable_entries
       expect(entries.map { |e| e[:slug] }).to contain_exactly("projects", "projects-public")
     end
 
     it "filters restricted menu items for viewer" do
       LcpRuby::Current.user = viewer_user
 
-      entries = navigable_presenters
+      entries = navigable_entries
       expect(entries.map { |e| e[:slug] }).to eq([ "projects-public" ])
     end
 
     it "shows all menu items when no user is set" do
       LcpRuby::Current.user = nil
 
-      entries = navigable_presenters
+      entries = navigable_entries
       expect(entries.map { |e| e[:slug] }).to contain_exactly("projects", "projects-public")
     end
 
@@ -335,7 +341,7 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
       no_access_user = double("User", lcp_role: [ "unknown" ], id: 99)
       LcpRuby::Current.user = no_access_user
 
-      entries = navigable_presenters
+      entries = navigable_entries
       expect(entries.map { |e| e[:slug] }).to eq([ "projects-public" ])
     end
   end

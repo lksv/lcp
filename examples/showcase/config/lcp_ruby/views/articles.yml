@@ -4,9 +4,9 @@ view_group:
   breadcrumb:
     relation: category
   views:
-    - presenter: articles
+    - page: articles
       label: "Table"
       icon: file-text
-    - presenter: articles_tiles
+    - page: articles_tiles
       label: "Tiles"
       icon: grid-2x2

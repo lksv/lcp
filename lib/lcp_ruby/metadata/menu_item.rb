@@ -94,7 +94,7 @@ module LcpRuby
         vg = loader.view_group_definitions[view_group_name]
         return nil unless vg
 
-        page = loader.page_definitions[vg.primary_presenter]
+        page = loader.page_definitions[vg.primary_page]
         page&.slug
       end
 
@@ -104,7 +104,7 @@ module LcpRuby
           vg = loader.view_group_definitions[view_group_name]
           return false unless vg
 
-          all_slugs = vg.presenter_names.filter_map do |name|
+          all_slugs = vg.page_names.filter_map do |name|
             loader.page_definitions[name]&.slug
           end
           return true if all_slugs.include?(slug)
@@ -190,7 +190,10 @@ module LcpRuby
         vg = loader.view_group_definitions[view_group_name]
         return nil unless vg
 
-        loader.presenter_definitions[vg.primary_presenter]
+        page = loader.page_definitions[vg.primary_page]
+        return nil unless page
+
+        loader.presenter_definitions[page.main_presenter_name]
       end
 
       def validate!

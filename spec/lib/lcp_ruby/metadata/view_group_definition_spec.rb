@@ -5,11 +5,11 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
     {
       name: "tasks_group",
       model: "task",
-      primary_presenter: "tasks_table",
+      primary_page: "tasks_table",
       navigation_config: { "icon" => "list", "label" => "Tasks" },
       views: [
-        { "presenter" => "tasks_table", "label" => "Table View", "icon" => "table" },
-        { "presenter" => "tasks_board", "label" => "Board View", "icon" => "board" }
+        { "page" => "tasks_table", "label" => "Table View", "icon" => "table" },
+        { "page" => "tasks_board", "label" => "Board View", "icon" => "board" }
       ]
     }.merge(overrides)
   end
@@ -22,18 +22,18 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "primary" => "tasks_table",
         "navigation" => { "icon" => "list", "label" => "Tasks" },
         "views" => [
-          { "presenter" => "tasks_table", "label" => "Table View", "icon" => "table" },
-          { "presenter" => "tasks_board", "label" => "Board View", "icon" => "board" }
+          { "page" => "tasks_table", "label" => "Table View", "icon" => "table" },
+          { "page" => "tasks_board", "label" => "Board View", "icon" => "board" }
         ]
       )
 
       expect(group.name).to eq("tasks_group")
       expect(group.model).to eq("task")
-      expect(group.primary_presenter).to eq("tasks_table")
+      expect(group.primary_page).to eq("tasks_table")
       expect(group.navigation_config).to eq("icon" => "list", "label" => "Tasks")
       expect(group.views).to eq([
-        { "presenter" => "tasks_table", "label" => "Table View", "icon" => "table" },
-        { "presenter" => "tasks_board", "label" => "Board View", "icon" => "board" }
+        { "page" => "tasks_table", "label" => "Table View", "icon" => "table" },
+        { "page" => "tasks_board", "label" => "Board View", "icon" => "board" }
       ])
     end
 
@@ -44,14 +44,14 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
           "model" => "deal",
           "primary" => "deals_list",
           "views" => [
-            { "presenter" => "deals_list" }
+            { "page" => "deals_list" }
           ]
         }
       )
 
       expect(group.name).to eq("deals_group")
       expect(group.model).to eq("deal")
-      expect(group.primary_presenter).to eq("deals_list")
+      expect(group.primary_page).to eq("deals_list")
     end
 
     it "handles compact view entries without label or icon" do
@@ -60,14 +60,14 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "model" => "item",
         "primary" => "items_list",
         "views" => [
-          { "presenter" => "items_list" },
-          { "presenter" => "items_grid" }
+          { "page" => "items_list" },
+          { "page" => "items_grid" }
         ]
       )
 
       expect(group.views).to eq([
-        { "presenter" => "items_list" },
-        { "presenter" => "items_grid" }
+        { "page" => "items_list" },
+        { "page" => "items_grid" }
       ])
     end
 
@@ -76,7 +76,7 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "name" => "simple_group",
         "model" => "item",
         "primary" => "items_list",
-        "views" => [ { "presenter" => "items_list" } ]
+        "views" => [ { "page" => "items_list" } ]
       )
 
       expect(group.navigation_config).to eq({})
@@ -89,8 +89,8 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "primary" => "tasks_table",
         "switcher" => false,
         "views" => [
-          { "presenter" => "tasks_table" },
-          { "presenter" => "tasks_board" }
+          { "page" => "tasks_table" },
+          { "page" => "tasks_board" }
         ]
       )
 
@@ -104,8 +104,8 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "primary" => "tasks_table",
         "switcher" => [ "show" ],
         "views" => [
-          { "presenter" => "tasks_table" },
-          { "presenter" => "tasks_board" }
+          { "page" => "tasks_table" },
+          { "page" => "tasks_board" }
         ]
       )
 
@@ -119,8 +119,8 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "primary" => "tasks_table",
         "switcher" => [ "form" ],
         "views" => [
-          { "presenter" => "tasks_table" },
-          { "presenter" => "tasks_board" }
+          { "page" => "tasks_table" },
+          { "page" => "tasks_board" }
         ]
       )
 
@@ -132,54 +132,54 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "name" => "tasks_group",
         "model" => "task",
         "primary" => "tasks_table",
-        "views" => [ { "presenter" => "tasks_table" } ]
+        "views" => [ { "page" => "tasks_table" } ]
       )
 
       expect(group.switcher_config).to eq(:auto)
     end
   end
 
-  describe "#presenter_names" do
-    it "returns all presenter names from views" do
+  describe "#page_names" do
+    it "returns all page names from views" do
       group = described_class.new(valid_attrs)
 
-      expect(group.presenter_names).to eq(%w[tasks_table tasks_board])
+      expect(group.page_names).to eq(%w[tasks_table tasks_board])
     end
   end
 
-  describe "#primary?" do
+  describe "#primary_page?" do
     let(:group) { described_class.new(valid_attrs) }
 
-    it "returns true for the primary presenter" do
-      expect(group.primary?("tasks_table")).to be true
+    it "returns true for the primary page" do
+      expect(group.primary_page?("tasks_table")).to be true
     end
 
-    it "returns false for a non-primary presenter" do
-      expect(group.primary?("tasks_board")).to be false
+    it "returns false for a non-primary page" do
+      expect(group.primary_page?("tasks_board")).to be false
     end
 
     it "converts symbol argument to string for comparison" do
-      expect(group.primary?(:tasks_table)).to be true
+      expect(group.primary_page?(:tasks_table)).to be true
     end
   end
 
-  describe "#view_for" do
+  describe "#view_for_page" do
     let(:group) { described_class.new(valid_attrs) }
 
-    it "returns the correct view hash for a given presenter name" do
-      view = group.view_for("tasks_board")
+    it "returns the correct view hash for a given page name" do
+      view = group.view_for_page("tasks_board")
 
-      expect(view).to eq("presenter" => "tasks_board", "label" => "Board View", "icon" => "board")
+      expect(view).to eq("page" => "tasks_board", "label" => "Board View", "icon" => "board")
     end
 
-    it "returns nil for an unknown presenter" do
-      expect(group.view_for("nonexistent")).to be_nil
+    it "returns nil for an unknown page" do
+      expect(group.view_for_page("nonexistent")).to be_nil
     end
 
     it "converts symbol argument to string for lookup" do
-      view = group.view_for(:tasks_table)
+      view = group.view_for_page(:tasks_table)
 
-      expect(view).to eq("presenter" => "tasks_table", "label" => "Table View", "icon" => "table")
+      expect(view).to eq("page" => "tasks_table", "label" => "Table View", "icon" => "table")
     end
   end
 
@@ -192,7 +192,7 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
 
     it "returns false for a single-view group" do
       group = described_class.new(valid_attrs(
-        views: [ { "presenter" => "tasks_table" } ]
+        views: [ { "page" => "tasks_table" } ]
       ))
 
       expect(group.has_switcher?).to be false
@@ -219,7 +219,7 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
     context "with single view" do
       it "returns false regardless of config" do
         group = described_class.new(valid_attrs(
-          views: [ { "presenter" => "tasks_table" } ]
+          views: [ { "page" => "tasks_table" } ]
         ))
 
         expect(group.show_switcher?(:index)).to be false
@@ -285,9 +285,21 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         )
       end
 
+      let(:page_a) do
+        instance_double(LcpRuby::Metadata::PageDefinition, main_presenter_name: "tasks_table")
+      end
+
+      let(:page_b) do
+        instance_double(LcpRuby::Metadata::PageDefinition, main_presenter_name: "tasks_board")
+      end
+
       before do
         loader = instance_double("LcpRuby::Metadata::Loader")
         allow(LcpRuby).to receive(:loader).and_return(loader)
+        allow(LcpRuby.loader).to receive(:page_definitions).and_return(
+          "tasks_table" => page_a,
+          "tasks_board" => page_b
+        )
       end
 
       it "returns true for index when index configs differ, false for show and form" do
@@ -410,7 +422,7 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "model" => "audit_log",
         "primary" => "audit_log",
         "navigation" => false,
-        "views" => [ { "presenter" => "audit_log" } ]
+        "views" => [ { "page" => "audit_log" } ]
       )
 
       expect(group.navigation_config).to eq(false)
@@ -423,7 +435,7 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "model" => "task",
         "primary" => "task_list",
         "navigation" => { "menu" => "main", "position" => 1 },
-        "views" => [ { "presenter" => "task_list" } ]
+        "views" => [ { "page" => "task_list" } ]
       )
 
       expect(group.navigation_config).to eq("menu" => "main", "position" => 1)
@@ -510,7 +522,7 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "model" => "task",
         "primary" => "tasks_table",
         "breadcrumb" => false,
-        "views" => [ { "presenter" => "tasks_table" } ]
+        "views" => [ { "page" => "tasks_table" } ]
       )
 
       expect(group.breadcrumb_config).to eq(false)
@@ -523,7 +535,7 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "model" => "deal",
         "primary" => "deals_list",
         "breadcrumb" => { "relation" => "company" },
-        "views" => [ { "presenter" => "deals_list" } ]
+        "views" => [ { "page" => "deals_list" } ]
       )
 
       expect(group.breadcrumb_config).to eq("relation" => "company")
@@ -535,7 +547,7 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
         "name" => "simple_group",
         "model" => "item",
         "primary" => "items_list",
-        "views" => [ { "presenter" => "items_list" } ]
+        "views" => [ { "page" => "items_list" } ]
       )
 
       expect(group.breadcrumb_config).to be_nil
@@ -556,10 +568,10 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
       }.to raise_error(LcpRuby::MetadataError, /name is required/)
     end
 
-    it "raises on missing model" do
-      expect {
-        described_class.new(valid_attrs(model: ""))
-      }.to raise_error(LcpRuby::MetadataError, /requires a model reference/)
+    it "allows nil model for standalone pages" do
+      group = described_class.new(valid_attrs(model: ""))
+
+      expect(group.model).to eq("")
     end
 
     it "raises on empty views" do
@@ -568,18 +580,18 @@ RSpec.describe LcpRuby::Metadata::ViewGroupDefinition do
       }.to raise_error(LcpRuby::MetadataError, /requires at least one view/)
     end
 
-    it "raises on missing primary presenter" do
+    it "raises on missing primary page" do
       expect {
-        described_class.new(valid_attrs(primary_presenter: ""))
-      }.to raise_error(LcpRuby::MetadataError, /requires a primary presenter/)
+        described_class.new(valid_attrs(primary_page: ""))
+      }.to raise_error(LcpRuby::MetadataError, /requires a primary page/)
     end
 
-    it "raises when primary presenter is not in the views list" do
+    it "raises when primary page is not in the views list" do
       expect {
-        described_class.new(valid_attrs(primary_presenter: "nonexistent"))
+        described_class.new(valid_attrs(primary_page: "nonexistent"))
       }.to raise_error(
         LcpRuby::MetadataError,
-        /primary presenter 'nonexistent' is not in the views list/
+        /primary page 'nonexistent' is not in the views list/
       )
     end
   end

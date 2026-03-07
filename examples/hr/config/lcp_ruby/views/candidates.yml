@@ -5,4 +5,4 @@ view_group:
   breadcrumb:
     relation: job_posting
   views:
-    - presenter: candidate
+    - page: candidate

@@ -3,6 +3,6 @@ view_group:
   primary: leave_type
   navigation: false
   views:
-    - presenter: leave_type
+    - page: leave_type
       label: "Leave Types"
       icon: calendar

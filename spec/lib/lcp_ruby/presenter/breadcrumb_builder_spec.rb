@@ -12,8 +12,8 @@ RSpec.describe LcpRuby::Presenter::BreadcrumbBuilder do
     LcpRuby::Metadata::ViewGroupDefinition.new(
       name: name,
       model: model,
-      primary_presenter: primary,
-      views: [ { "presenter" => primary } ],
+      primary_page: primary,
+      views: [ { "page" => primary } ],
       breadcrumb_config: breadcrumb_config
     )
   end

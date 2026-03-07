@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: asset
   views:
-    - presenter: asset_assignment
+    - page: asset_assignment
       label: "Asset Assignments"
       icon: link

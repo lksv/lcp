@@ -4,4 +4,4 @@ view_group:
   navigation:
     position: 1
   views:
-    - presenter: project
+    - page: project

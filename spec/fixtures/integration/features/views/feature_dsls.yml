@@ -5,5 +5,5 @@ view_group:
     menu: main
     position: 2
   views:
-    - presenter: feature_dsl
+    - page: feature_dsl
       label: "DSL Records"

@@ -42,15 +42,15 @@ view_group:
     menu: main
     position: 3
   views:
-    - presenter: deal
+    - page: deal
       label: "Detailed"
       icon: maximize
-    - presenter: deal_short
+    - page: deal_short
       label: "Short"
       icon: list
 ```
 
-The `primary` presenter determines which entry appears in the navigation menu. Users land on the primary presenter's page and can switch to other views using the view switcher tabs.
+The `primary` page determines which entry appears in the navigation menu. Users land on the primary page and can switch to other views using the view switcher tabs.
 
 **Step 3.** The view switcher renders automatically. No template changes needed -- the `_view_switcher` partial appears on index, show, and form pages where the presenters actually differ.
 
@@ -73,11 +73,11 @@ See the [View Groups Reference](../reference/view-groups.md#switcher) for all op
 
 ## Navigation Menu Integration
 
-The `navigable_presenters` helper returns all view groups sorted by position. Use it in your layout to build the navigation menu:
+The `navigable_entries` helper returns all view groups sorted by position. Use it in your layout to build the navigation menu:
 
 ```erb
 <nav>
-  <% navigable_presenters.each do |entry| %>
+  <% navigable_entries.each do |entry| %>
     <%= link_to entry[:label],
           lcp_ruby.resources_path(lcp_slug: entry[:slug]),
           class: "nav-link #{entry[:slug] == params[:lcp_slug] ? 'active' : ''}" %>
@@ -85,7 +85,7 @@ The `navigable_presenters` helper returns all view groups sorted by position. Us
 </nav>
 ```
 
-Each entry represents one view group (not one presenter). The label, slug, and icon come from the primary presenter.
+Each entry represents one view group (not one page). The label, slug, and icon come from the primary page's presenter.
 
 ## Single-View Groups
 
@@ -104,7 +104,7 @@ view_group:
     menu: main
     position: 1
   views:
-    - presenter: todo_list
+    - page: todo_list
       label: "Todo Lists"
 ```
 
@@ -132,9 +132,9 @@ view_group:
     menu: main
     position: 3
   views:
-    - presenter: deal
+    - page: deal
       label: "Detailed"
-    - presenter: deal_short
+    - page: deal_short
       label: "Short"
 ```
 
@@ -147,11 +147,11 @@ view_group:
     menu: main
     position: 4
   views:
-    - presenter: deal_pipeline
+    - page: deal_pipeline
       label: "Pipeline"
 ```
 
-Both appear as separate entries in the navigation menu. A presenter can only belong to one view group.
+Both appear as separate entries in the navigation menu. A page can only belong to one view group.
 
 ## Breadcrumb Navigation
 
@@ -176,7 +176,7 @@ view_group:
   breadcrumb:
     relation: company
   views:
-    - presenter: deal
+    - page: deal
       label: "Detailed"
       icon: maximize
 ```

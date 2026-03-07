@@ -3,12 +3,12 @@ view_group:
   primary: employee
   navigation: false
   views:
-    - presenter: employee
+    - page: employee
       label: "Management"
       icon: users
-    - presenter: employee_directory
+    - page: employee_directory
       label: "Directory"
       icon: book
-    - presenter: employee_archive
+    - page: employee_archive
       label: "Archive"
       icon: archive

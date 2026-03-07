@@ -52,8 +52,8 @@ module LcpRuby
         end
       end
 
-      def view(presenter_name, label: nil, icon: nil)
-        view_hash = { "presenter" => presenter_name.to_s }
+      def view(page_name, label: nil, icon: nil)
+        view_hash = { "page" => page_name.to_s }
         view_hash["label"] = label if label
         view_hash["icon"] = icon.to_s if icon
         @views << view_hash

@@ -2,6 +2,6 @@ view_group:
   model: showcase_attachment
   primary: showcase_attachments
   views:
-    - presenter: showcase_attachments
+    - page: showcase_attachments
       label: "Attachments"
       icon: paperclip

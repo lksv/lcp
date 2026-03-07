@@ -3,15 +3,15 @@ view_group:
   primary: company
   navigation: false
   views:
-    - presenter: company
+    - page: company
       label: "Detailed"
       icon: maximize
-    - presenter: company_short
+    - page: company_short
       label: "Short"
       icon: list
-    - presenter: company_tiles
+    - page: company_tiles
       label: "Tiles"
       icon: grid
-    - presenter: company_archive
+    - page: company_archive
       label: "Archived"
       icon: archive

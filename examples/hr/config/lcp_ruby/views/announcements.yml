@@ -3,6 +3,6 @@ view_group:
   primary: announcement
   navigation: false
   views:
-    - presenter: announcement
+    - page: announcement
       label: "Announcements"
       icon: megaphone

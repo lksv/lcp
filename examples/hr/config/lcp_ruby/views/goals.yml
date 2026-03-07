@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: employee
   views:
-    - presenter: goal
+    - page: goal
       label: "Goals"
       icon: target

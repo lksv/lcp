@@ -2500,29 +2500,29 @@ module LcpRuby
       def validate_view_groups
         return unless loader.respond_to?(:view_group_definitions)
 
-        presenter_in_groups = {}
+        page_in_groups = {}
         positions = {}
 
+        page_names = loader.page_definitions.keys
+
         loader.view_group_definitions.each_value do |vg|
-          unless model_names.include?(vg.model)
+          if vg.model.present? && !model_names.include?(vg.model)
             @errors << "View group '#{vg.name}': references unknown model '#{vg.model}'"
           end
-
-          presenter_names = loader.presenter_definitions.keys
-          vg.presenter_names.each do |pname|
-            unless presenter_names.include?(pname)
-              @errors << "View group '#{vg.name}': references unknown presenter '#{pname}'"
+          vg.page_names.each do |pname|
+            unless page_names.include?(pname)
+              @errors << "View group '#{vg.name}': references unknown page '#{pname}'"
             end
 
-            if presenter_in_groups.key?(pname)
-              @errors << "Presenter '#{pname}' appears in multiple view groups: " \
-                         "'#{presenter_in_groups[pname]}' and '#{vg.name}'"
+            if page_in_groups.key?(pname)
+              @errors << "Page '#{pname}' appears in multiple view groups: " \
+                         "'#{page_in_groups[pname]}' and '#{vg.name}'"
             end
-            presenter_in_groups[pname] = vg.name
+            page_in_groups[pname] = vg.name
           end
 
-          unless vg.presenter_names.include?(vg.primary_presenter)
-            @errors << "View group '#{vg.name}': primary presenter '#{vg.primary_presenter}' " \
+          unless vg.page_names.include?(vg.primary_page)
+            @errors << "View group '#{vg.name}': primary page '#{vg.primary_page}' " \
                        "is not in the views list"
           end
 

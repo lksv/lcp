@@ -2,6 +2,6 @@ view_group:
   model: showcase_search
   primary: showcase_searches
   views:
-    - presenter: showcase_searches
+    - page: showcase_searches
       label: "Advanced Search"
       icon: search

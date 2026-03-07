@@ -3,6 +3,6 @@ view_group:
   primary: showcase_soft_delete_items
   navigation: false
   views:
-    - presenter: showcase_soft_delete_items
+    - page: showcase_soft_delete_items
       label: "Items"
       icon: list

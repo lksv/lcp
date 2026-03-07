@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: country
   views:
-    - presenter: region
+    - page: region
       label: "Regions"
       icon: map

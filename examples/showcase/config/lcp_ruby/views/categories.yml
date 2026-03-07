@@ -4,6 +4,6 @@ view_group:
   breadcrumb:
     relation: parent
   views:
-    - presenter: categories
+    - page: categories
       label: "Categories"
       icon: folder

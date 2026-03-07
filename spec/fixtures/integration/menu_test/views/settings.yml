@@ -4,4 +4,4 @@ view_group:
   navigation:
     position: 3
   views:
-    - presenter: setting
+    - page: setting

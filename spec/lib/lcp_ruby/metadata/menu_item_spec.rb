@@ -229,8 +229,8 @@ RSpec.describe LcpRuby::Metadata::MenuItem do
       vg = LcpRuby::Metadata::ViewGroupDefinition.new(
         name: "deals",
         model: "deal",
-        primary_presenter: "deal",
-        views: [ { "presenter" => "deal" } ]
+        primary_page: "deal",
+        views: [ { "page" => "deal" } ]
       )
       { "deals" => vg }
     end
@@ -293,8 +293,8 @@ RSpec.describe LcpRuby::Metadata::MenuItem do
       vg = LcpRuby::Metadata::ViewGroupDefinition.new(
         name: "deals",
         model: "deal",
-        primary_presenter: "deal",
-        views: [ { "presenter" => "deal" } ]
+        primary_page: "deal",
+        views: [ { "page" => "deal" } ]
       )
       { "deals" => vg }
     end

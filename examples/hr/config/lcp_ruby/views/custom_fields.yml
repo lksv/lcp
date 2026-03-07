@@ -3,6 +3,6 @@ view_group:
   primary: custom_fields
   navigation: false
   views:
-    - presenter: custom_fields
+    - page: custom_fields
       label: "Custom Fields"
       icon: sliders

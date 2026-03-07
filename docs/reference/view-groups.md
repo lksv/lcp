@@ -2,7 +2,7 @@
 
 File: `config/lcp_ruby/views/<name>.yml`
 
-View groups organize one or more presenters for the same model into a navigable unit. They control the navigation menu (which entries appear, in what order) and provide a view switcher when multiple presenters exist for the same model (e.g., "Detailed" vs. "Short" views of deals).
+View groups organize one or more pages for the same model into a navigable unit. They control the navigation menu (which entries appear, in what order) and provide a view switcher when multiple pages exist for the same model (e.g., "Detailed" vs. "Short" views of deals).
 
 See the [View Groups Guide](../guides/view-groups.md) for practical examples.
 
@@ -12,7 +12,7 @@ See the [View Groups Guide](../guides/view-groups.md) for practical examples.
 view_group:
   name: <group_name>
   model: <model_name>
-  primary: <presenter_name>
+  primary: <page_name>
   public: false
   navigation:
     menu: main
@@ -20,10 +20,10 @@ view_group:
   breadcrumb:
     relation: <association_name>
   views:
-    - presenter: <presenter_name>
+    - page: <page_name>
       label: "Detailed"
       icon: maximize
-    - presenter: <presenter_name>
+    - page: <page_name>
       label: "Short"
       icon: list
 ```
@@ -56,7 +56,7 @@ Name of the [model](models.md) this view group covers. Must match a model's `nam
 | **Required** | yes |
 | **Type** | string |
 
-Name of the primary presenter in this group. The primary presenter is used as the representative entry in the navigation menu (its label, slug, and icon are shown). Must be one of the presenters listed in `views`.
+Name of the primary page in this group. The primary page is used as the representative entry in the navigation menu (its label, slug, and icon are shown). Must be one of the pages listed in `views`.
 
 ### `public`
 
@@ -66,7 +66,7 @@ Name of the primary presenter in this group. The primary presenter is used as th
 | **Default** | `false` |
 | **Type** | boolean |
 
-When `true`, this view group allows unauthenticated access. Requests to presenters in a public view group bypass the `authenticate_user!` check — an anonymous user object with empty roles is used instead. This is useful for public-facing pages like landing pages or public directories.
+When `true`, this view group allows unauthenticated access. Requests to pages in a public view group bypass the `authenticate_user!` check — an anonymous user object with empty roles is used instead. This is useful for public-facing pages like landing pages or public directories.
 
 ```yaml
 view_group:
@@ -76,7 +76,7 @@ view_group:
   public: true
   navigation: false
   views:
-    - presenter: product_catalog
+    - page: product_catalog
 ```
 
 ### `navigation`
@@ -163,9 +163,9 @@ view_group:
   model: recipe
   primary: recipes
   views:
-    - presenter: recipes
+    - page: recipes
       label: "Structured"
-    - presenter: recipes_raw
+    - page: recipes_raw
       label: "Raw JSON"
 
 # Explicit: only show switcher on show pages
@@ -174,8 +174,8 @@ view_group:
   primary: recipes
   switcher: [show]
   views:
-    - presenter: recipes
-    - presenter: recipes_raw
+    - page: recipes
+    - page: recipes_raw
 
 # Disable switcher entirely
 view_group:
@@ -183,8 +183,8 @@ view_group:
   primary: recipes
   switcher: false
   views:
-    - presenter: recipes
-    - presenter: recipes_raw
+    - page: recipes
+    - page: recipes_raw
 ```
 
 ### `views`
@@ -194,14 +194,14 @@ view_group:
 | **Required** | yes (at least one) |
 | **Type** | array of view objects |
 
-List of presenters in this group. Each view is rendered as a tab in the view switcher.
+List of pages in this group. Each view is rendered as a tab in the view switcher.
 
 #### View Attributes
 
 | Attribute | Type | Required | Description |
 |-----------|------|----------|-------------|
-| `presenter` | string | yes | Presenter name. Must match a presenter's `name` attribute |
-| `label` | string | no | Display label in the view switcher. Falls back to the presenter name |
+| `page` | string | yes | Page name. Must match a page's `name` attribute |
+| `label` | string | no | Display label in the view switcher. Falls back to the page name |
 | `icon` | string | no | Icon name displayed in the view switcher tab |
 
 ## Auto-Creation Behavior
@@ -209,14 +209,14 @@ List of presenters in this group. Each view is rendered as a tab in the view swi
 You do not need to create a view group for every model. When a model has exactly one presenter and no explicit view group, the engine auto-creates a view group at load time:
 
 - **Name**: `<model_name>_auto`
-- **Primary**: the single presenter
+- **Primary**: the single page (auto-created from the presenter)
 - **Navigation**: `{ menu: "main", position: 99 }`
-- **Views**: one entry with the presenter's label
+- **Views**: one entry with the page's label
 
 This means single-presenter models appear in the navigation menu without any view group YAML. Define an explicit view group when you need to:
 
 - Control the navigation position
-- Group multiple presenters with a view switcher
+- Group multiple pages with a view switcher
 - Override the default menu placement
 
 Auto-creation is skipped when:
@@ -229,9 +229,9 @@ Auto-creation is skipped when:
 The configuration validator checks:
 
 - Referenced model exists
-- All referenced presenters exist
-- Primary presenter is included in the views list
-- No presenter appears in more than one view group
+- All referenced pages exist
+- Primary page is included in the views list
+- No page appears in more than one view group
 - Duplicate navigation positions produce a warning
 
 ## DSL Reference
@@ -258,11 +258,11 @@ Creates a view group definition. The block supports these methods:
 | Method | Arguments | Description |
 |--------|-----------|-------------|
 | `model` | `value` | Sets the model name |
-| `primary` | `value` | Sets the primary presenter name |
+| `primary` | `value` | Sets the primary page name |
 | `navigation` | `menu:`, `position:` | Sets navigation config. `position` is optional |
 | `breadcrumb` | `false` or `relation:` | Sets breadcrumb config. Use `breadcrumb false` to disable, `breadcrumb relation: :company` to set parent relation |
 | `switcher` | `false`, `:auto`, or context symbols | Sets switcher config. Use `switcher false` to disable, `switcher :auto` for auto-detection, `switcher :index, :show` for explicit contexts |
-| `view` | `presenter_name`, `label:`, `icon:` | Adds a view entry. `label` and `icon` are optional |
+| `view` | `page_name`, `label:`, `icon:` | Adds a view entry. `label` and `icon` are optional |
 
 ## API
 
@@ -270,11 +270,11 @@ Creates a view group definition. The block supports these methods:
 
 Returns an array of `ViewGroupDefinition` objects for the given model name. Returns an empty array if none exist. Multiple view groups can reference the same model (e.g., a "Deals" group and a "Pipeline" group both for the `deal` model).
 
-### `LcpRuby.loader.view_group_for_presenter(presenter_name)`
+### `LcpRuby.loader.view_group_for_page(page_name)`
 
-Returns the `ViewGroupDefinition` that contains the given presenter, or `nil`.
+Returns the `ViewGroupDefinition` that contains the given page, or `nil`.
 
-### `navigable_presenters` (helper)
+### `navigable_entries` (helper)
 
 Available in views via `LayoutHelper`. Returns an array of hashes sorted by navigation position, one per view group. Each hash contains:
 
@@ -286,17 +286,17 @@ Available in views via `LayoutHelper`. Returns an array of hashes sorted by navi
 | `:icon` | Icon name |
 | `:navigation` | Navigation config hash (`menu`, `position`) |
 
-Only view groups whose primary presenter has a slug (is routable) are included.
+Only view groups whose primary page is routable are included.
 
 ```erb
-<% navigable_presenters.each do |entry| %>
+<% navigable_entries.each do |entry| %>
   <%= link_to entry[:label], resources_path(lcp_slug: entry[:slug]) %>
 <% end %>
 ```
 
 ### `current_view_group` (helper)
 
-Available in controllers and views. Returns the `ViewGroupDefinition` for the current presenter, or `nil`.
+Available in controllers and views. Returns the `ViewGroupDefinition` for the current page, or `nil`.
 
 ### `sibling_views` (helper)
 

@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: employee
   views:
-    - presenter: leave_balance
+    - page: leave_balance
       label: "Leave Balances"
       icon: bar-chart-2

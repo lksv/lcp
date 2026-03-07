@@ -30,7 +30,7 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     FileUtils.mkdir_p(views_dir)
 
     views_yaml = views.map do |v|
-      entry = "    - presenter: #{v[:presenter]}"
+      entry = "    - page: #{v[:page]}"
       entry += "\n      label: \"#{v[:label]}\"" if v[:label]
       entry
     end.join("\n")
@@ -57,7 +57,7 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     FileUtils.mkdir_p(views_dir)
 
     view_lines = views.map do |v|
-      args = ":#{v[:presenter]}"
+      args = ":#{v[:page]}"
       args += ", label: \"#{v[:label]}\"" if v[:label]
       "    view #{args}"
     end.join("\n")
@@ -82,14 +82,16 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
           model: "article",
           primary: "article",
           views: [
-            { presenter: "article", label: "Admin" },
-            { presenter: "article_public", label: "Public" }
+            { page: "article", label: "Admin" },
+            { page: "article_public", label: "Public" }
           ],
           navigation: { menu: "main", position: 1 })
 
         loader = described_class.new(dir)
         loader.send(:load_models)
         loader.send(:load_presenters)
+        loader.send(:load_pages)
+        loader.send(:auto_create_pages)
         loader.send(:load_view_groups)
 
         expect(loader.view_group_definitions).to have_key("articles")
@@ -97,8 +99,8 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         vg = loader.view_group_definitions["articles"]
         expect(vg).to be_a(LcpRuby::Metadata::ViewGroupDefinition)
         expect(vg.model).to eq("article")
-        expect(vg.primary_presenter).to eq("article")
-        expect(vg.presenter_names).to contain_exactly("article", "article_public")
+        expect(vg.primary_page).to eq("article")
+        expect(vg.page_names).to contain_exactly("article", "article_public")
       end
     end
 
@@ -110,11 +112,13 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         write_view_group_dsl(dir, "posts",
           model: "post",
           primary: "post",
-          views: [ { presenter: "post", label: "Admin" } ])
+          views: [ { page: "post", label: "Admin" } ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
         loader.send(:load_presenters)
+        loader.send(:load_pages)
+        loader.send(:auto_create_pages)
         loader.send(:load_view_groups)
 
         expect(loader.view_group_definitions).to have_key("posts")
@@ -122,8 +126,8 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         vg = loader.view_group_definitions["posts"]
         expect(vg).to be_a(LcpRuby::Metadata::ViewGroupDefinition)
         expect(vg.model).to eq("post")
-        expect(vg.primary_presenter).to eq("post")
-        expect(vg.presenter_names).to eq([ "post" ])
+        expect(vg.primary_page).to eq("post")
+        expect(vg.page_names).to eq([ "post" ])
       end
     end
 
@@ -135,12 +139,12 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         write_view_group_yml(dir, "items",
           model: "item",
           primary: "item",
-          views: [ { presenter: "item" } ])
+          views: [ { page: "item" } ])
 
         write_view_group_dsl(dir, "items",
           model: "item",
           primary: "item",
-          views: [ { presenter: "item" } ])
+          views: [ { page: "item" } ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
@@ -162,11 +166,13 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         write_view_group_yml(dir, "products",
           model: "product",
           primary: "product",
-          views: [ { presenter: "product" } ])
+          views: [ { page: "product" } ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
         loader.send(:load_presenters)
+        loader.send(:load_pages)
+        loader.send(:auto_create_pages)
         loader.send(:load_view_groups)
 
         groups = loader.view_groups_for_model("product")
@@ -185,16 +191,18 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         write_view_group_yml(dir, "deals",
           model: "deal",
           primary: "deal",
-          views: [ { presenter: "deal" } ])
+          views: [ { page: "deal" } ])
 
         write_view_group_yml(dir, "pipeline",
           model: "deal",
           primary: "deal_pipeline",
-          views: [ { presenter: "deal_pipeline" } ])
+          views: [ { page: "deal_pipeline" } ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
         loader.send(:load_presenters)
+        loader.send(:load_pages)
+        loader.send(:auto_create_pages)
         loader.send(:load_view_groups)
 
         groups = loader.view_groups_for_model("deal")
@@ -211,6 +219,8 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         loader = described_class.new(dir)
         loader.send(:load_models)
         loader.send(:load_presenters)
+        loader.send(:load_pages)
+        loader.send(:auto_create_pages)
         loader.send(:load_view_groups)
 
         expect(loader.view_groups_for_model("orphan")).to eq([])
@@ -218,8 +228,8 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
     end
   end
 
-  describe "#view_group_for_presenter" do
-    it "finds view group containing a given presenter" do
+  describe "#view_group_for_page" do
+    it "finds view group containing a given page" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "order")
         write_presenter_yml(dir, "order", model: "order", slug: "orders")
@@ -229,23 +239,25 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
           model: "order",
           primary: "order",
           views: [
-            { presenter: "order", label: "Admin" },
-            { presenter: "order_report", label: "Report" }
+            { page: "order", label: "Admin" },
+            { page: "order_report", label: "Report" }
           ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
         loader.send(:load_presenters)
+        loader.send(:load_pages)
+        loader.send(:auto_create_pages)
         loader.send(:load_view_groups)
 
-        vg = loader.view_group_for_presenter("order_report")
+        vg = loader.view_group_for_page("order_report")
         expect(vg).not_to be_nil
         expect(vg.name).to eq("orders")
-        expect(vg.presenter_names).to include("order_report")
+        expect(vg.page_names).to include("order_report")
       end
     end
 
-    it "returns nil for unknown presenter" do
+    it "returns nil for unknown page" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "widget")
         write_presenter_yml(dir, "widget", model: "widget", slug: "widgets")
@@ -253,14 +265,16 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         write_view_group_yml(dir, "widgets",
           model: "widget",
           primary: "widget",
-          views: [ { presenter: "widget" } ])
+          views: [ { page: "widget" } ])
 
         loader = described_class.new(dir)
         loader.send(:load_models)
         loader.send(:load_presenters)
+        loader.send(:load_pages)
+        loader.send(:auto_create_pages)
         loader.send(:load_view_groups)
 
-        expect(loader.view_group_for_presenter("nonexistent")).to be_nil
+        expect(loader.view_group_for_page("nonexistent")).to be_nil
       end
     end
   end
@@ -279,8 +293,8 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         vg = groups.first
         expect(vg.name).to eq("note_auto")
         expect(vg.model).to eq("note")
-        expect(vg.primary_presenter).to eq("note")
-        expect(vg.presenter_names).to eq([ "note" ])
+        expect(vg.primary_page).to eq("note")
+        expect(vg.page_names).to eq([ "note" ])
       end
     end
 
@@ -292,7 +306,7 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         write_view_group_yml(dir, "tickets",
           model: "ticket",
           primary: "ticket",
-          views: [ { presenter: "ticket" } ])
+          views: [ { page: "ticket" } ])
 
         loader = described_class.new(dir)
         loader.load_all
@@ -330,7 +344,7 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         write_view_group_yml(dir, "ghost_group",
           model: "nonexistent_model",
           primary: "ghost_presenter",
-          views: [ { presenter: "ghost_presenter" } ])
+          views: [ { page: "ghost_presenter" } ])
 
         loader = described_class.new(dir)
 
@@ -340,7 +354,7 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
       end
     end
 
-    it "raises when view group references unknown presenter" do
+    it "raises when view group references unknown page" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "valid_model")
         write_presenter_yml(dir, "valid_presenter", model: "valid_model", slug: "valids")
@@ -349,19 +363,19 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
           model: "valid_model",
           primary: "valid_presenter",
           views: [
-            { presenter: "valid_presenter" },
-            { presenter: "missing_presenter" }
+            { page: "valid_presenter" },
+            { page: "missing_page" }
           ])
 
         loader = described_class.new(dir)
 
         expect {
           loader.load_all
-        }.to raise_error(LcpRuby::MetadataError, /unknown presenter.*missing_presenter/)
+        }.to raise_error(LcpRuby::MetadataError, /unknown page.*missing_page/)
       end
     end
 
-    it "raises when presenter appears in multiple view groups" do
+    it "raises when page appears in multiple view groups" do
       Dir.mktmpdir do |dir|
         write_model_yml(dir, "shared_model")
         write_presenter_yml(dir, "shared_presenter", model: "shared_model", slug: "shared")
@@ -370,14 +384,14 @@ RSpec.describe LcpRuby::Metadata::Loader, "view groups" do
         write_view_group_yml(dir, "group_a",
           model: "shared_model",
           primary: "shared_presenter",
-          views: [ { presenter: "shared_presenter" } ])
+          views: [ { page: "shared_presenter" } ])
 
         write_view_group_yml(dir, "group_b",
           model: "shared_model",
           primary: "other_presenter",
           views: [
-            { presenter: "other_presenter" },
-            { presenter: "shared_presenter" }
+            { page: "other_presenter" },
+            { page: "shared_presenter" }
           ])
 
         loader = described_class.new(dir)

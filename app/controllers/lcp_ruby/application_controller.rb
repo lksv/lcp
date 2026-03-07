@@ -92,10 +92,7 @@ module LcpRuby
       return false unless slug
 
       page = Pages::Resolver.find_by_slug(slug)
-      presenter = LcpRuby.loader.presenter_definition(page.main_presenter_name)
-      return false unless presenter
-
-      view_group = LcpRuby.loader.view_group_for_presenter(presenter.name)
+      view_group = LcpRuby.loader.view_group_for_page(page.name)
       view_group&.public?
     rescue LcpRuby::MetadataError
       false
@@ -269,18 +266,22 @@ module LcpRuby
 
     def current_view_group
       return unless current_presenter
+      return unless current_page
 
-      @current_view_group ||= LcpRuby.loader.view_group_for_presenter(current_presenter.name)
+      @current_view_group ||= LcpRuby.loader.view_group_for_page(current_page.name)
     end
 
     def sibling_views
       return [] unless current_view_group
 
       current_view_group.views.map do |view|
-        presenter = LcpRuby.loader.presenter_definitions[view["presenter"]]
+        page = LcpRuby.loader.page_definitions[view["page"]]
+        next unless page
+
+        presenter = LcpRuby.loader.presenter_definitions[page.main_presenter_name]
         next unless presenter
 
-        view.merge("slug" => presenter.slug, "presenter_name" => presenter.name)
+        view.merge("slug" => page.slug, "presenter_name" => presenter.name)
       end.compact
     end
 

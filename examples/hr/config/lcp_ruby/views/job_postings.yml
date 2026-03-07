@@ -3,4 +3,4 @@ view_group:
   primary: job_posting
   navigation: false
   views:
-    - presenter: job_posting
+    - page: job_posting

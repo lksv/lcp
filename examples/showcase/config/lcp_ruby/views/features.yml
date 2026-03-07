@@ -2,12 +2,12 @@ view_group:
   model: feature
   primary: features_card
   views:
-    - presenter: features_card
+    - page: features_card
       label: "Card View"
       icon: layout
-    - presenter: features_table
+    - page: features_table
       label: "Table View"
       icon: grid
-    - presenter: features_tiles
+    - page: features_tiles
       label: "Tiles"
       icon: grid-2x2

@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: employee
   views:
-    - presenter: performance_review
+    - page: performance_review
       label: "Performance Reviews"
       icon: clipboard

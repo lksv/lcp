@@ -95,8 +95,8 @@ module LcpRuby
         @view_group_definitions.values.select { |vg| vg.model == model_name.to_s }
       end
 
-      def view_group_for_presenter(presenter_name)
-        @view_group_definitions.values.find { |vg| vg.presenter_names.include?(presenter_name.to_s) }
+      def view_group_for_page(page_name)
+        @view_group_definitions.values.find { |vg| vg.page_names.include?(page_name.to_s) }
       end
 
       def model_definition(name)
@@ -244,20 +244,19 @@ module LcpRuby
           next unless pages.length == 1
 
           page = pages.first
-          presenter_name = page.main_presenter_name
-          presenter = @presenter_definitions[presenter_name]
+          presenter = @presenter_definitions[page.main_presenter_name]
           next unless presenter
 
           vg = ViewGroupDefinition.new(
             name: "#{model_name}_auto",
             model: model_name,
-            primary_presenter: presenter_name,
+            primary_page: page.name,
             navigation_config: { "menu" => "main", "position" => 99 },
-            views: [ { "presenter" => presenter_name, "label" => presenter.label } ]
+            views: [ { "page" => page.name, "label" => presenter.label } ]
           )
           @view_group_definitions[vg.name] = vg
 
-          Rails.logger.info("Auto-created view group for model '#{model_name}' with presenter '#{presenter_name}'") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
+          Rails.logger.info("Auto-created view group for model '#{model_name}' with page '#{page.name}'") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
         end
       end
 
@@ -273,25 +272,25 @@ module LcpRuby
       end
 
       def validate_view_group_references
-        presenter_in_groups = {}
+        page_in_groups = {}
 
         @view_group_definitions.each_value do |vg|
-          unless @model_definitions.key?(vg.model)
+          if vg.model.present? && !@model_definitions.key?(vg.model)
             raise MetadataError,
               "View group '#{vg.name}' references unknown model '#{vg.model}'"
           end
 
-          vg.presenter_names.each do |pname|
-            unless @presenter_definitions.key?(pname)
+          vg.page_names.each do |pname|
+            unless @page_definitions.key?(pname)
               raise MetadataError,
-                "View group '#{vg.name}' references unknown presenter '#{pname}'"
+                "View group '#{vg.name}' references unknown page '#{pname}'"
             end
 
-            if presenter_in_groups.key?(pname)
+            if page_in_groups.key?(pname)
               raise MetadataError,
-                "Presenter '#{pname}' appears in multiple view groups: '#{presenter_in_groups[pname]}' and '#{vg.name}'"
+                "Page '#{pname}' appears in multiple view groups: '#{page_in_groups[pname]}' and '#{vg.name}'"
             end
-            presenter_in_groups[pname] = vg.name
+            page_in_groups[pname] = vg.name
           end
         end
       end

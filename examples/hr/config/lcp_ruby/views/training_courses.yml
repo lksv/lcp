@@ -3,6 +3,6 @@ view_group:
   primary: training_course
   navigation: false
   views:
-    - presenter: training_course
+    - page: training_course
       label: "Training Courses"
       icon: book-open

@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: training_course
   views:
-    - presenter: training_enrollment
+    - page: training_enrollment
       label: "Training Enrollments"
       icon: bookmark

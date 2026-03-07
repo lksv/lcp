@@ -3,6 +3,6 @@ view_group:
   primary: skill
   navigation: false
   views:
-    - presenter: skill
+    - page: skill
       label: "Skills"
       icon: award

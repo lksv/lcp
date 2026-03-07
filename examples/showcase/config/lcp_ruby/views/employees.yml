@@ -4,9 +4,9 @@ view_group:
   breadcrumb:
     relation: department
   views:
-    - presenter: employees
+    - page: employees
       label: "Table"
       icon: users
-    - presenter: employees_tiles
+    - page: employees_tiles
       label: "Tiles"
       icon: grid-2x2

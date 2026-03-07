@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: employee
   views:
-    - presenter: employee_skill
+    - page: employee_skill
       label: "Employee Skills"
       icon: star

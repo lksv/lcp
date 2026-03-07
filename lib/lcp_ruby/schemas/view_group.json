@@ -69,8 +69,8 @@
       "minItems": 1,
       "examples": [
         [
-          { "presenter": "employees", "icon": "table-cells" },
-          { "presenter": "employees_directory", "icon": "squares-2x2" }
+          { "page": "employees", "icon": "table-cells" },
+          { "page": "employees_directory", "icon": "squares-2x2" }
         ]
       ]
     }
@@ -83,9 +83,9 @@
       "type": "object",
       "description": "A single view (presenter) within the view group. Each view represents a different way to display the same model data.",
       "properties": {
-        "presenter": {
+        "page": {
           "type": "string",
-          "description": "Name of the presenter to use for this view. Must match a presenter name from config/lcp_ruby/presenters/ that targets the same model as the view group.",
+          "description": "Name of the page to use for this view. Must match a page name (auto-generated from presenters or explicit). For auto-generated pages, the page name equals the presenter name.",
           "examples": ["employees", "employees_directory", "deals_pipeline", "deals_board"]
         },
         "label": {
@@ -99,7 +99,7 @@
           "examples": ["table-cells", "squares-2x2", "chart-bar", "list-bullet"]
         }
       },
-      "required": ["presenter"],
+      "required": ["page"],
       "additionalProperties": false
     },
 

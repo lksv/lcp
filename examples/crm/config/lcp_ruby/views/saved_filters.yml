@@ -2,6 +2,6 @@ view_group:
   model: saved_filter
   primary: saved_filters
   views:
-    - presenter: saved_filters
+    - page: saved_filters
       label: "Saved Filters"
       icon: bookmark

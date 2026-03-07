@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: employee
   views:
-    - presenter: expense_claim
+    - page: expense_claim
       label: "Expense Claims"
       icon: credit-card

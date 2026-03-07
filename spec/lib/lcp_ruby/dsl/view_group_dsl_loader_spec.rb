@@ -43,9 +43,9 @@ RSpec.describe LcpRuby::Dsl::DslLoader, ".load_view_groups" do
 
         expect(vg.name).to eq("contacts")
         expect(vg.model).to eq("contact")
-        expect(vg.primary_presenter).to eq("contact")
+        expect(vg.primary_page).to eq("contact")
         expect(vg.navigation_config).to eq("menu" => "main", "position" => 1)
-        expect(vg.presenter_names).to eq(%w[contact contact_board])
+        expect(vg.page_names).to eq(%w[contact contact_board])
         expect(vg.has_switcher?).to be true
       end
     end

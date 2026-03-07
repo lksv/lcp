@@ -5,6 +5,6 @@ view_group:
   breadcrumb:
     relation: employee
   views:
-    - presenter: document
+    - page: document
       label: "Documents"
       icon: file-text

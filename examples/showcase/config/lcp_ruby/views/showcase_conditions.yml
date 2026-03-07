@@ -2,6 +2,6 @@ view_group:
   model: showcase_condition
   primary: showcase_conditions
   views:
-    - presenter: showcase_conditions
+    - page: showcase_conditions
       label: "Advanced Conditions"
       icon: filter

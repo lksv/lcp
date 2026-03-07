@@ -5,5 +5,5 @@ view_group:
     menu: main
     position: 95
   views:
-    - presenter: permission_configs
+    - page: permission_configs
       label: "Permission Configs"

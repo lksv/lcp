@@ -3,4 +3,4 @@ view_group:
   primary: setting
   navigation: false
   views:
-    - presenter: setting
+    - page: setting

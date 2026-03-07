@@ -3,4 +3,4 @@ view_group:
   primary: dashboard
   navigation: false
   views:
-    - presenter: dashboard
+    - page: dashboard

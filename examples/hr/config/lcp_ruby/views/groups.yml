@@ -3,6 +3,6 @@ view_group:
   primary: group
   navigation: false
   views:
-    - presenter: group
+    - page: group
       label: "Groups"
       icon: users

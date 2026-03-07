@@ -62,8 +62,8 @@ RSpec.describe "Authentication modes", type: :request do
       vg = LcpRuby::Metadata::ViewGroupDefinition.new(
         name: "public_view",
         model: "todo_list",
-        primary_presenter: "todo_list",
-        views: [ { "presenter" => "todo_list", "label" => "Lists" } ],
+        primary_page: "todo_list",
+        views: [ { "page" => "todo_list", "label" => "Lists" } ],
         public: true
       )
       expect(vg.public?).to be true
@@ -73,8 +73,8 @@ RSpec.describe "Authentication modes", type: :request do
       vg = LcpRuby::Metadata::ViewGroupDefinition.new(
         name: "private_view",
         model: "todo_list",
-        primary_presenter: "todo_list",
-        views: [ { "presenter" => "todo_list", "label" => "Lists" } ]
+        primary_page: "todo_list",
+        views: [ { "page" => "todo_list", "label" => "Lists" } ]
       )
       expect(vg.public?).to be false
     end
@@ -86,7 +86,7 @@ RSpec.describe "Authentication modes", type: :request do
           "model" => "todo_list",
           "primary" => "todo_list",
           "public" => true,
-          "views" => [ { "presenter" => "todo_list", "label" => "Lists" } ]
+          "views" => [ { "page" => "todo_list", "label" => "Lists" } ]
         }
       })
       expect(vg.public?).to be true

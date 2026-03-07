@@ -14,16 +14,16 @@ module LcpRuby
       classes.join(" ")
     end
 
-    def navigable_presenters
+    def navigable_entries
       LcpRuby.loader.navigable_view_groups.filter_map do |vg|
-        page = LcpRuby.loader.page_definitions[vg.primary_presenter]
+        page = LcpRuby.loader.page_definitions[vg.primary_page]
         next unless page&.routable?
 
-        presenter = LcpRuby.loader.presenter_definitions[vg.primary_presenter]
+        presenter = LcpRuby.loader.presenter_definitions[page.main_presenter_name]
         next unless presenter
         next unless presenter_accessible?(presenter)
 
-        all_slugs = vg.presenter_names.filter_map do |name|
+        all_slugs = vg.page_names.filter_map do |name|
           LcpRuby.loader.page_definitions[name]&.slug
         end
 
@@ -100,8 +100,11 @@ module LcpRuby
         vg = LcpRuby.loader.view_group_definitions[item.view_group_name]
         return false unless vg
 
-        presenter = LcpRuby.loader.presenter_definitions[vg.primary_presenter]
-        return false unless presenter&.routable?
+        page = LcpRuby.loader.page_definitions[vg.primary_page]
+        return false unless page&.routable?
+
+        presenter = LcpRuby.loader.presenter_definitions[page.main_presenter_name]
+        return false unless presenter
         return false unless presenter_accessible?(presenter)
       end
 

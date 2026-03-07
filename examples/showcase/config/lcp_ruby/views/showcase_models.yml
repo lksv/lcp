@@ -2,6 +2,6 @@ view_group:
   model: showcase_model
   primary: showcase_models
   views:
-    - presenter: showcase_models
+    - page: showcase_models
       label: "Model Features"
       icon: layers

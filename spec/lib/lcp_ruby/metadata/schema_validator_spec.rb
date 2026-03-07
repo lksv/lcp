@@ -32,7 +32,7 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
     hash["name"] ||= "test_group"
     hash["model"] ||= "widget"
     hash["primary"] ||= "widgets"
-    hash["views"] ||= [ { "presenter" => "widgets" } ]
+    hash["views"] ||= [ { "page" => "widgets" } ]
     LcpRuby::Metadata::ViewGroupDefinition.from_hash("view_group" => hash)
   end
 
@@ -452,8 +452,8 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
         model: "feature",
         primary: "features_card",
         views: [
-          { presenter: "features_card", label: "Card View", icon: "layout" },
-          { presenter: "features_table", label: "Table View", icon: "grid" }
+          { page: "features_card", label: "Card View", icon: "layout" },
+          { page: "features_table", label: "Table View", icon: "grid" }
         ]
       )
       expect(validator.validate_view_group(vg)).to be_empty
@@ -466,7 +466,7 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
         navigation: { position: 1, menu: "main" },
         breadcrumb: { relation: "parent" },
         public: true,
-        views: [ { presenter: "widgets" } ]
+        views: [ { page: "widgets" } ]
       )
       expect(validator.validate_view_group(vg)).to be_empty
     end
@@ -476,7 +476,7 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
         model: "widget",
         primary: "widgets",
         navigation: false,
-        views: [ { presenter: "widgets" } ]
+        views: [ { page: "widgets" } ]
       )
       expect(validator.validate_view_group(vg)).to be_empty
     end
@@ -488,7 +488,7 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
     end
 
     it "catches unknown view attribute" do
-      vg = build_view_group(views: [ { presenter: "widgets", bogus: true } ])
+      vg = build_view_group(views: [ { page: "widgets", bogus: true } ])
       errors = validator.validate_view_group(vg)
       expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
     end
@@ -507,7 +507,7 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
       raw = LcpRuby::HashUtils.stringify_deep(
         name: "test_group", model: "widget", primary: "widgets",
         switcher: %w[index details],
-        views: [ { presenter: "widgets" } ]
+        views: [ { page: "widgets" } ]
       )
       errors = validator.send(:validate, :view_group, raw, context_name: "View group 'test_group'")
       expect(errors).to include(a_string_matching(/invalid value 'details'/))
@@ -527,7 +527,7 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
       raw = LcpRuby::HashUtils.stringify_deep(
         name: "test_group", model: "widget", primary: "widgets",
         navigation: { position: 1, bogus: true },
-        views: [ { presenter: "widgets" } ]
+        views: [ { page: "widgets" } ]
       )
       errors = validator.send(:validate, :view_group, raw, context_name: "View group 'test_group'")
       expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))
@@ -537,7 +537,7 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
       raw = LcpRuby::HashUtils.stringify_deep(
         name: "test_group", model: "widget", primary: "widgets",
         breadcrumb: { relation: "parent", bogus: true },
-        views: [ { presenter: "widgets" } ]
+        views: [ { page: "widgets" } ]
       )
       errors = validator.send(:validate, :view_group, raw, context_name: "View group 'test_group'")
       expect(errors).to include(a_string_matching(/unknown attribute 'bogus'/))

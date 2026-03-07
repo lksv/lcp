@@ -3,6 +3,6 @@ view_group:
   primary: asset
   navigation: false
   views:
-    - presenter: asset
+    - page: asset
       label: "Assets"
       icon: box

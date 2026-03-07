@@ -2,9 +2,9 @@ view_group:
   model: showcase_aggregate
   primary: showcase_aggregates
   views:
-    - presenter: showcase_aggregates
+    - page: showcase_aggregates
       label: "Table"
       icon: calculator
-    - presenter: showcase_aggregates_tiles
+    - page: showcase_aggregates_tiles
       label: "Tiles"
       icon: grid-2x2

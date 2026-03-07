@@ -4,6 +4,6 @@ view_group:
   breadcrumb:
     relation: department
   views:
-    - presenter: projects
+    - page: projects
       label: "Projects"
       icon: briefcase

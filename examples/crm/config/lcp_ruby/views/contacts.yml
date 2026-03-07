@@ -5,12 +5,12 @@ view_group:
   breadcrumb:
     relation: company
   views:
-    - presenter: contact
+    - page: contact
       label: "Detailed"
       icon: maximize
-    - presenter: contact_short
+    - page: contact_short
       label: "Short"
       icon: list
-    - presenter: contact_tiles
+    - page: contact_tiles
       label: "Tiles"
       icon: grid

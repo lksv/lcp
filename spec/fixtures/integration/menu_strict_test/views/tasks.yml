@@ -3,4 +3,4 @@ view_group:
   primary: task
   navigation: false
   views:
-    - presenter: task
+    - page: task
