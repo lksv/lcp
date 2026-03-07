@@ -26,6 +26,10 @@ module IntegrationHelper
     loader = LcpRuby.loader
     loader.load_all
 
+    # Clear prepared statement cache to avoid stale column lists when tables
+    # are dropped and recreated with different schemas across fixture sets.
+    ActiveRecord::Base.connection.clear_cache!
+
     loader.model_definitions.each_value do |model_def|
       # Virtual models exist only as metadata (no table, no AR class)
       next if model_def.virtual?
