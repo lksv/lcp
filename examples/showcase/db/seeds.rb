@@ -3555,6 +3555,7 @@ features = [
     demo_path: "/showcase/weather-stations",
     demo_hint: "The resilience wrapper catches all errors — if the host provider raised an error, you would see an error banner instead of a crash.",
     status: "beta"
+  },
 
   # === Dialogs ===
   {
