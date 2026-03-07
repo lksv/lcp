@@ -10,17 +10,17 @@ module LcpRuby
         #   - group filters (target_group in user's groups)
         #   - global filters
         #
-        # @param presenter_slug [String]
+        # @param presenter_name [String] presenter name (stable identifier)
         # @param user [Object] current user
         # @param evaluator [Authorization::PermissionEvaluator]
         # @return [Array<ActiveRecord::Base>]
-        def visible_filters(presenter_slug:, user:, evaluator:)
+        def visible_filters(presenter_name:, user:, evaluator:)
           return [] unless Registry.available?
 
           model_class = Registry.model_class
           return [] unless model_class
 
-          scope = model_class.where(target_presenter: presenter_slug)
+          scope = model_class.where(target_presenter: presenter_name)
 
           # Build OR conditions for visibility
           conditions = []
@@ -61,12 +61,12 @@ module LcpRuby
         # Returns the default filter for the given context, following priority:
         # personal > group > role > global
         #
-        # @param presenter_slug [String]
+        # @param presenter_name [String] presenter name (stable identifier)
         # @param user [Object]
         # @param evaluator [Authorization::PermissionEvaluator]
         # @return [ActiveRecord::Base, nil]
-        def default_filter_for(presenter_slug:, user:, evaluator:)
-          filters = visible_filters(presenter_slug: presenter_slug, user: user, evaluator: evaluator)
+        def default_filter_for(presenter_name:, user:, evaluator:)
+          filters = visible_filters(presenter_name: presenter_name, user: user, evaluator: evaluator)
           defaults = filters.select { |f| f.respond_to?(:default_filter) && f.default_filter }
           return nil if defaults.empty?
 

@@ -50,7 +50,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
     it "lists visible saved filters via GET" do
       saved_filter_model.create!(
         name: "My Filter",
-        target_presenter: "filtered-tasks",
+        target_presenter: "filtered_task",
         condition_tree: { "combinator" => "and", "children" => [] },
         visibility: "personal",
         owner_id: 1
@@ -67,7 +67,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
     it "updates a saved filter via PATCH" do
       filter = saved_filter_model.create!(
         name: "Old Name",
-        target_presenter: "filtered-tasks",
+        target_presenter: "filtered_task",
         condition_tree: { "combinator" => "and", "children" => [] },
         visibility: "personal",
         owner_id: 1
@@ -85,7 +85,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
     it "deletes a saved filter via DELETE" do
       filter = saved_filter_model.create!(
         name: "To Delete",
-        target_presenter: "filtered-tasks",
+        target_presenter: "filtered_task",
         condition_tree: { "combinator" => "and", "children" => [] },
         visibility: "personal",
         owner_id: 1
@@ -103,7 +103,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
 
       filter = saved_filter_model.create!(
         name: "Other User Filter",
-        target_presenter: "filtered-tasks",
+        target_presenter: "filtered_task",
         condition_tree: { "combinator" => "and", "children" => [] },
         visibility: "personal",
         owner_id: 999
@@ -123,7 +123,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
 
       filter = saved_filter_model.create!(
         name: "Open Only",
-        target_presenter: "filtered-tasks",
+        target_presenter: "filtered_task",
         condition_tree: {
           "combinator" => "and",
           "children" => [
@@ -158,12 +158,12 @@ RSpec.describe "Saved Filters Integration", type: :request do
 
     it "shows personal filters only to the owner" do
       saved_filter_model.create!(
-        name: "My Filter", target_presenter: "filtered-tasks",
+        name: "My Filter", target_presenter: "filtered_task",
         condition_tree: { "combinator" => "and", "children" => [] },
         visibility: "personal", owner_id: 1
       )
       saved_filter_model.create!(
-        name: "Other Filter", target_presenter: "filtered-tasks",
+        name: "Other Filter", target_presenter: "filtered_task",
         condition_tree: { "combinator" => "and", "children" => [] },
         visibility: "personal", owner_id: 999
       )
@@ -178,7 +178,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
 
     it "shows global filters to everyone" do
       saved_filter_model.create!(
-        name: "Global Filter", target_presenter: "filtered-tasks",
+        name: "Global Filter", target_presenter: "filtered_task",
         condition_tree: { "combinator" => "and", "children" => [] },
         visibility: "global", owner_id: 999
       )
@@ -191,12 +191,12 @@ RSpec.describe "Saved Filters Integration", type: :request do
 
     it "shows role-matched filters" do
       saved_filter_model.create!(
-        name: "Admin Filter", target_presenter: "filtered-tasks",
+        name: "Admin Filter", target_presenter: "filtered_task",
         condition_tree: { "combinator" => "and", "children" => [] },
         visibility: "role", target_role: "admin", owner_id: 999
       )
       saved_filter_model.create!(
-        name: "Manager Filter", target_presenter: "filtered-tasks",
+        name: "Manager Filter", target_presenter: "filtered_task",
         condition_tree: { "combinator" => "and", "children" => [] },
         visibility: "role", target_role: "manager", owner_id: 999
       )
@@ -219,7 +219,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
 
       saved_filter_model.create!(
         name: "Default Open",
-        target_presenter: "filtered-tasks",
+        target_presenter: "filtered_task",
         condition_tree: {
           "combinator" => "and",
           "children" => [
@@ -244,7 +244,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
 
       saved_filter_model.create!(
         name: "Default Open",
-        target_presenter: "filtered-tasks",
+        target_presenter: "filtered_task",
         condition_tree: {
           "combinator" => "and",
           "children" => [
@@ -273,7 +273,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
 
       filter = saved_filter_model.create!(
         name: "Stale Filter",
-        target_presenter: "filtered-tasks",
+        target_presenter: "filtered_task",
         condition_tree: {
           "combinator" => "and",
           "children" => [
@@ -338,7 +338,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
       50.times do |i|
         saved_filter_model.create!(
           name: "Filter #{i}",
-          target_presenter: "filtered-tasks",
+          target_presenter: "filtered_task",
           condition_tree: { "combinator" => "and", "children" => [] },
           visibility: "personal",
           owner_id: 1
@@ -369,7 +369,7 @@ RSpec.describe "Saved Filters Integration", type: :request do
       50.times do |i|
         saved_filter_model.create!(
           name: "Filter #{i}",
-          target_presenter: "filtered-tasks",
+          target_presenter: "filtered_task",
           condition_tree: { "combinator" => "and", "children" => [] },
           visibility: "personal",
           owner_id: 1

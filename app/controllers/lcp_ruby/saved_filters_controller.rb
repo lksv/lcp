@@ -10,7 +10,7 @@ module LcpRuby
     def index
       authorize_index!
       filters = SavedFilters::Resolver.visible_filters(
-        presenter_slug: current_presenter.slug,
+        presenter_name: current_presenter.name,
         user: current_user,
         evaluator: current_evaluator
       )
@@ -89,7 +89,7 @@ module LcpRuby
       model_class = SavedFilters::Registry.model_class
       record = model_class.new(saved_filter_params)
       record.owner_id = current_user.id
-      record.target_presenter = current_presenter.slug
+      record.target_presenter = current_presenter.name
 
       sync_ql_text!(record)
       record
@@ -106,7 +106,7 @@ module LcpRuby
       @saved_filter = model_class.find(params[:id])
 
       # Verify it belongs to this presenter
-      unless @saved_filter.target_presenter == current_presenter.slug
+      unless @saved_filter.target_presenter == current_presenter.name
         raise ActiveRecord::RecordNotFound
       end
     end
@@ -170,25 +170,25 @@ module LcpRuby
     def check_limits(record)
       model_class = SavedFilters::Registry.model_class
       sf_config = current_presenter.saved_filters_config
-      presenter_slug = current_presenter.slug
+      presenter_name = current_presenter.name
 
       case record.visibility
       when "personal"
         max = sf_config["max_per_user"] || 50
         count = model_class.where(
-          target_presenter: presenter_slug, visibility: "personal", owner_id: current_user.id
+          target_presenter: presenter_name, visibility: "personal", owner_id: current_user.id
         ).count
         return I18n.t("lcp_ruby.saved_filters.limit_reached", default: "Maximum number of filters reached") if count >= max
       when "role"
         max = sf_config["max_per_role"] || 20
         count = model_class.where(
-          target_presenter: presenter_slug, visibility: "role", target_role: record.target_role
+          target_presenter: presenter_name, visibility: "role", target_role: record.target_role
         ).count
         return I18n.t("lcp_ruby.saved_filters.limit_reached", default: "Maximum number of filters reached") if count >= max
       when "global"
         max = sf_config["max_global"] || 30
         count = model_class.where(
-          target_presenter: presenter_slug, visibility: "global"
+          target_presenter: presenter_name, visibility: "global"
         ).count
         return I18n.t("lcp_ruby.saved_filters.limit_reached", default: "Maximum number of filters reached") if count >= max
       end

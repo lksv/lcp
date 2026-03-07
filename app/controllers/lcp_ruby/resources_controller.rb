@@ -22,7 +22,7 @@ module LcpRuby
       # Apply default saved filter when no explicit filter params are present
       if no_explicit_filter_params? && SavedFilters::Registry.available? && current_presenter.saved_filters_enabled?
         default = SavedFilters::Resolver.default_filter_for(
-          presenter_slug: current_presenter.slug,
+          presenter_name: current_presenter.name,
           user: current_user,
           evaluator: current_evaluator
         )
@@ -397,7 +397,7 @@ module LcpRuby
       # Load saved filters for the UI
       if SavedFilters::Registry.available? && current_presenter.saved_filters_enabled?
         @saved_filters = SavedFilters::Resolver.visible_filters(
-          presenter_slug: current_presenter.slug,
+          presenter_name: current_presenter.name,
           user: current_user,
           evaluator: current_evaluator
         )

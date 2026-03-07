@@ -1234,7 +1234,7 @@ if LcpRuby.registry.registered?("saved_filter")
     {
       name: "Published & Expensive",
       description: "Items that are published with price >= 100",
-      target_presenter: "showcase-search",
+      target_presenter: "showcase_searches",
       condition_tree: {
         logic: "and",
         conditions: [
@@ -1254,7 +1254,7 @@ if LcpRuby.registry.registered?("saved_filter")
     {
       name: "Critical Priority",
       description: "Items with high or critical priority",
-      target_presenter: "showcase-search",
+      target_presenter: "showcase_searches",
       condition_tree: {
         logic: "and",
         conditions: [
@@ -1272,7 +1272,7 @@ if LcpRuby.registry.registered?("saved_filter")
     {
       name: "Recent Drafts",
       description: "Draft items created in the last 30 days",
-      target_presenter: "showcase-search",
+      target_presenter: "showcase_searches",
       condition_tree: {
         logic: "and",
         conditions: [
@@ -1290,7 +1290,7 @@ if LcpRuby.registry.registered?("saved_filter")
     {
       name: "All Published",
       description: "All published items (visible to everyone)",
-      target_presenter: "showcase-search",
+      target_presenter: "showcase_searches",
       condition_tree: {
         logic: "and",
         conditions: [
@@ -1308,7 +1308,7 @@ if LcpRuby.registry.registered?("saved_filter")
     {
       name: "Admin: In Review",
       description: "Items currently in review (admin role filter)",
-      target_presenter: "showcase-search",
+      target_presenter: "showcase_searches",
       condition_tree: {
         logic: "and",
         conditions: [
@@ -1326,7 +1326,7 @@ if LcpRuby.registry.registered?("saved_filter")
     {
       name: "Engineering: High-Value Items",
       description: "Expensive items for engineering team review",
-      target_presenter: "showcase-search",
+      target_presenter: "showcase_searches",
       condition_tree: {
         logic: "and",
         conditions: [

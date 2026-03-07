@@ -936,7 +936,7 @@ owner_id = 1
 SavedFilter.create!(
   name: "High Value Open",
   description: "Open deals worth 50k+ EUR",
-  target_presenter: "deals",
+  target_presenter: "deal",
   condition_tree: {
     "type" => "group",
     "operator" => "and",
@@ -958,7 +958,7 @@ SavedFilter.create!(
 SavedFilter.create!(
   name: "Closing This Month",
   description: "Open deals expected to close this month",
-  target_presenter: "deals",
+  target_presenter: "deal",
   condition_tree: {
     "type" => "group",
     "operator" => "and",
@@ -978,7 +978,7 @@ SavedFilter.create!(
 SavedFilter.create!(
   name: "Won Deals",
   description: "All deals closed as won",
-  target_presenter: "deals",
+  target_presenter: "deal",
   condition_tree: {
     "type" => "group",
     "operator" => "and",
@@ -997,7 +997,7 @@ SavedFilter.create!(
 SavedFilter.create!(
   name: "Tech Companies",
   description: "Deals from technology companies",
-  target_presenter: "deals",
+  target_presenter: "deal",
   condition_tree: {
     "type" => "group",
     "operator" => "and",
@@ -1015,7 +1015,7 @@ SavedFilter.create!(
 SavedFilter.create!(
   name: "Needs Follow-up",
   description: "Proposal/negotiation deals worth 20k+ needing attention",
-  target_presenter: "deals",
+  target_presenter: "deal",
   condition_tree: {
     "type" => "group",
     "operator" => "and",
@@ -1037,7 +1037,7 @@ SavedFilter.create!(
 SavedFilter.create!(
   name: "Pending Tasks",
   description: "All incomplete tasks",
-  target_presenter: "activities",
+  target_presenter: "activity",
   condition_tree: {
     "type" => "group",
     "operator" => "and",
@@ -1058,7 +1058,7 @@ SavedFilter.create!(
 SavedFilter.create!(
   name: "Upcoming Meetings",
   description: "Future meetings not yet completed",
-  target_presenter: "activities",
+  target_presenter: "activity",
   condition_tree: {
     "type" => "group",
     "operator" => "and",
@@ -1079,7 +1079,7 @@ SavedFilter.create!(
 SavedFilter.create!(
   name: "My Calls This Week",
   description: "Call activities scheduled for this week",
-  target_presenter: "activities",
+  target_presenter: "activity",
   condition_tree: {
     "type" => "group",
     "operator" => "and",
