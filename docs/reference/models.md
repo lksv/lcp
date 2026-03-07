@@ -192,6 +192,7 @@ Determines the database column type and default form input behavior. Accepts one
 | `rich_text` | `:text` | Rich text content. Default form input: rich text editor. |
 | `json` | `:jsonb` / `:json` | JSON data. Uses jsonb on PostgreSQL, json on other adapters. |
 | `uuid` | `:string` | UUID stored as string. |
+| `array` | PG: native array / SQLite: `:json` | Typed array of scalars. Requires `item_type`. Default form input: tag chips. |
 | `attachment` | none (uses Active Storage) | File attachment (single or multiple). Requires Active Storage. |
 
 **Built-in business types:**
@@ -247,6 +248,55 @@ fields:
 ```
 
 Attachment fields require Active Storage to be set up in the host application. See the [Attachments Guide](../guides/attachments.md) for prerequisites and complete examples.
+
+##### Array Fields
+
+The `array` type stores a list of scalar values. It requires an `item_type` to specify the element type.
+
+**Supported item types:** `string`, `integer`, `float`
+
+**Storage:** On PostgreSQL, uses native array columns (`text[]`, `integer[]`, `float[]`). On SQLite and other adapters, uses a JSON column with transparent serialization.
+
+```yaml
+fields:
+  # String array (e.g., tags)
+  - name: tags
+    type: array
+    item_type: string
+    default: []
+
+  # Integer array (e.g., scores)
+  - name: scores
+    type: array
+    item_type: integer
+    default: []
+
+  # Float array (e.g., measurements)
+  - name: measurements
+    type: array
+    item_type: float
+```
+
+**Auto-generated scopes:** Each array field automatically creates two scopes:
+
+| Scope | Description | SQL (PostgreSQL) |
+|-------|-------------|------------------|
+| `with_<field>(values)` | Records whose array contains ALL given values | `@>` (array containment) |
+| `with_any_<field>(values)` | Records whose array contains ANY of the given values | `&&` (array overlap) |
+
+```ruby
+# Find records tagged with both "ruby" AND "rails"
+Article.with_tags(["ruby", "rails"])
+
+# Find records tagged with "ruby" OR "python"
+Article.with_any_tags(["ruby", "python"])
+```
+
+**Quick search:** Array fields with `item_type: string` are automatically included in quick search (`?qs=`). The search matches any element that contains the query text (case-insensitive on PostgreSQL, case-sensitive on SQLite).
+
+**Presenter defaults:** Array fields automatically use the `array_input` form input (tag-style chips) and the `collection` renderer. These can be overridden in the presenter.
+
+See also: [Array validations](#array_length), [Condition operators for arrays](condition-operators.md#array-operators).
 
 #### `label`
 
@@ -358,6 +408,26 @@ enum_values:
   - { value: draft, label: "Draft" }
   - { value: published, label: "Published" }
   - { value: archived, label: "Archived" }
+```
+
+#### `item_type`
+
+| | |
+|---|---|
+| **Required** | yes (when type is `array`) |
+| **Type** | string |
+
+Specifies the scalar type of array elements. Must be one of: `string`, `integer`, `float`.
+
+```yaml
+- name: tags
+  type: array
+  item_type: string
+```
+
+```ruby
+# DSL
+field :tags, :array, item_type: :string
 ```
 
 #### `transforms`
@@ -634,6 +704,77 @@ validates_model :service, service: "deal_credit_limit"
 ```
 
 Service contract: `def self.call(record, **opts) -> void` (adds errors directly to `record.errors`). Register in `app/lcp_services/validators/`. See [Extensibility Guide](../guides/extensibility.md).
+
+#### `array_length`
+
+Validates the number of items in an array field.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `minimum` | integer | Minimum number of items |
+| `maximum` | integer | Maximum number of items |
+
+```yaml
+fields:
+  - name: tags
+    type: array
+    item_type: string
+    validations:
+      - type: array_length
+        options: { minimum: 1, maximum: 10 }
+```
+
+```ruby
+# DSL
+field :tags, :array, item_type: :string do
+  validates :array_length, minimum: 1, maximum: 10
+end
+```
+
+#### `array_inclusion`
+
+Validates that all items in the array are within an allowed set.
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `in` | array | Allowed values |
+
+```yaml
+fields:
+  - name: tags
+    type: array
+    item_type: string
+    validations:
+      - type: array_inclusion
+        options: { in: [ruby, python, java, go, rust] }
+```
+
+```ruby
+# DSL
+field :tags, :array, item_type: :string do
+  validates :array_inclusion, in: %w[ruby python java go rust]
+end
+```
+
+#### `array_uniqueness`
+
+Validates that all items in the array are unique (no duplicates).
+
+```yaml
+fields:
+  - name: tags
+    type: array
+    item_type: string
+    validations:
+      - type: array_uniqueness
+```
+
+```ruby
+# DSL
+field :tags, :array, item_type: :string do
+  validates :array_uniqueness
+end
+```
 
 ### Conditional Validations (`when:`)
 

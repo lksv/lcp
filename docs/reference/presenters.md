@@ -1449,6 +1449,7 @@ Field-value conditions use client-side JavaScript for instant reactivity. Servic
 | `toggle` | Toggle switch (on/off) | - |
 | `rating` | Star rating input | - |
 | `file_upload` | File upload input with optional preview, drag-and-drop, and direct upload | `attachment` fields |
+| `array_input` | Tag-style chip input for multi-valued fields. Add items by typing and pressing Enter | `array` fields |
 
 #### Input Options
 
@@ -1675,6 +1676,26 @@ For `has_many :through` associations, use `input_type: multi_select` to render a
     min: 1
     max: 5
 ```
+
+**Array Input:**
+
+Tag-style chip input for `type: array` fields. Values appear as removable chips. Type text and press Enter to add, click x to remove.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `placeholder` | string | `"Add item..."` | Placeholder text for the text input |
+| `max` | integer | - | Maximum number of items allowed |
+| `suggestions` | array | `[]` | Static suggestion list shown as a dropdown. Already-added values are filtered out |
+
+```ruby
+field :tags, input_type: :array_input, input_options: {
+  placeholder: "Add a tag...",
+  max: 10,
+  suggestions: %w[ruby rails javascript python]
+}
+```
+
+Array fields automatically default to `input_type: array_input` and `renderer: collection` when no explicit override is set.
 
 #### Divider Pseudo-Field
 

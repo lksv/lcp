@@ -747,50 +747,50 @@ all_companies = [ acme, globex, initech, wayne, stark, umbrella, oscorp, lexcorp
 # CONTACTS (30 total, 2 per company)
 # ============================================================================
 
-john = Contact.create!(first_name: "John", last_name: "Smith", email: "john@acme.example.com", phone: "+1-555-0101", position: "CTO", company: acme)
-sarah = Contact.create!(first_name: "Sarah", last_name: "Connor", email: "sarah@acme.example.com", phone: "+1-555-0102", position: "VP Engineering", company: acme)
+john = Contact.create!(first_name: "John", last_name: "Smith", email: "john@acme.example.com", phone: "+1-555-0101", position: "CTO", company: acme, skills: %w[Cloud DevOps Java])
+sarah = Contact.create!(first_name: "Sarah", last_name: "Connor", email: "sarah@acme.example.com", phone: "+1-555-0102", position: "VP Engineering", company: acme, skills: %w[Ruby Python DevOps])
 
-jane = Contact.create!(first_name: "Jane", last_name: "Doe", email: "jane@globex.example.com", phone: "+1-555-0201", position: "VP Engineering", company: globex)
-marcus = Contact.create!(first_name: "Marcus", last_name: "Wright", email: "marcus@globex.example.com", phone: "+1-555-0202", position: "Production Manager", company: globex)
+jane = Contact.create!(first_name: "Jane", last_name: "Doe", email: "jane@globex.example.com", phone: "+1-555-0201", position: "VP Engineering", company: globex, skills: %w[JavaScript Cloud])
+marcus = Contact.create!(first_name: "Marcus", last_name: "Wright", email: "marcus@globex.example.com", phone: "+1-555-0202", position: "Production Manager", company: globex, skills: %w[Sales Marketing])
 
-bob = Contact.create!(first_name: "Bob", last_name: "Wilson", email: "bob@initech.example.com", phone: "+1-555-0301", position: "Director of IT", company: initech)
-peter = Contact.create!(first_name: "Peter", last_name: "Gibbons", email: "peter@initech.example.com", phone: "+1-555-0302", position: "Software Engineer", company: initech)
+bob = Contact.create!(first_name: "Bob", last_name: "Wilson", email: "bob@initech.example.com", phone: "+1-555-0301", position: "Director of IT", company: initech, skills: %w[Java Cloud DevOps])
+peter = Contact.create!(first_name: "Peter", last_name: "Gibbons", email: "peter@initech.example.com", phone: "+1-555-0302", position: "Software Engineer", company: initech, skills: %w[Ruby JavaScript Python])
 
-alice = Contact.create!(first_name: "Alice", last_name: "Johnson", email: "alice@wayne.example.com", phone: "+1-555-0401", position: "CFO", company: wayne)
-bruce = Contact.create!(first_name: "Bruce", last_name: "Thomas", email: "bruce@wayne.example.com", phone: "+1-555-0402", position: "Head of R&D", company: wayne)
+alice = Contact.create!(first_name: "Alice", last_name: "Johnson", email: "alice@wayne.example.com", phone: "+1-555-0401", position: "CFO", company: wayne, skills: %w[Finance Legal])
+bruce = Contact.create!(first_name: "Bruce", last_name: "Thomas", email: "bruce@wayne.example.com", phone: "+1-555-0402", position: "Head of R&D", company: wayne, skills: %w[Python Cloud])
 
-tony = Contact.create!(first_name: "Tony", last_name: "Martinez", email: "tony@stark.example.com", phone: "+1-555-0501", position: "CEO", company: stark)
-pepper = Contact.create!(first_name: "Virginia", last_name: "Potts", email: "pepper@stark.example.com", phone: "+1-555-0502", position: "COO", company: stark)
+tony = Contact.create!(first_name: "Tony", last_name: "Martinez", email: "tony@stark.example.com", phone: "+1-555-0501", position: "CEO", company: stark, skills: %w[Sales Marketing])
+pepper = Contact.create!(first_name: "Virginia", last_name: "Potts", email: "pepper@stark.example.com", phone: "+1-555-0502", position: "COO", company: stark, skills: %w[Finance Marketing Legal])
 
-albert = Contact.create!(first_name: "Albert", last_name: "Wesker", email: "albert@umbrella.example.com", phone: "+1-555-0601", position: "Head of Research", company: umbrella)
-jill = Contact.create!(first_name: "Jill", last_name: "Valentine", email: "jill@umbrella.example.com", phone: "+1-555-0602", position: "Lab Director", company: umbrella)
+albert = Contact.create!(first_name: "Albert", last_name: "Wesker", email: "albert@umbrella.example.com", phone: "+1-555-0601", position: "Head of Research", company: umbrella, skills: %w[Python Java])
+jill = Contact.create!(first_name: "Jill", last_name: "Valentine", email: "jill@umbrella.example.com", phone: "+1-555-0602", position: "Lab Director", company: umbrella, skills: %w[Python])
 
-norman = Contact.create!(first_name: "Norman", last_name: "Osborn", email: "norman@oscorp.example.com", phone: "+1-555-0701", position: "CEO", company: oscorp)
-gwen = Contact.create!(first_name: "Gwen", last_name: "Stacy", email: "gwen@oscorp.example.com", phone: "+1-555-0702", position: "Research Scientist", company: oscorp)
+norman = Contact.create!(first_name: "Norman", last_name: "Osborn", email: "norman@oscorp.example.com", phone: "+1-555-0701", position: "CEO", company: oscorp, skills: %w[Sales Finance])
+gwen = Contact.create!(first_name: "Gwen", last_name: "Stacy", email: "gwen@oscorp.example.com", phone: "+1-555-0702", position: "Research Scientist", company: oscorp, skills: %w[Python Ruby JavaScript])
 
-lex = Contact.create!(first_name: "Lex", last_name: "Luthor", email: "lex@lexcorp.example.com", phone: "+1-555-0801", position: "CEO", company: lexcorp)
-mercy = Contact.create!(first_name: "Mercy", last_name: "Graves", email: "mercy@lexcorp.example.com", phone: "+1-555-0802", position: "VP Operations", company: lexcorp)
+lex = Contact.create!(first_name: "Lex", last_name: "Luthor", email: "lex@lexcorp.example.com", phone: "+1-555-0801", position: "CEO", company: lexcorp, skills: %w[Finance Legal Sales])
+mercy = Contact.create!(first_name: "Mercy", last_name: "Graves", email: "mercy@lexcorp.example.com", phone: "+1-555-0802", position: "VP Operations", company: lexcorp, skills: %w[Marketing Sales])
 
-miles = Contact.create!(first_name: "Miles", last_name: "Dyson", email: "miles@cyberdyne.example.com", phone: "+1-555-0901", position: "VP Product", company: cyberdyne)
-kate = Contact.create!(first_name: "Kate", last_name: "Brewster", email: "kate@cyberdyne.example.com", phone: "+1-555-0902", position: "Sales Director", company: cyberdyne)
+miles = Contact.create!(first_name: "Miles", last_name: "Dyson", email: "miles@cyberdyne.example.com", phone: "+1-555-0901", position: "VP Product", company: cyberdyne, skills: %w[Python Java Cloud DevOps])
+kate = Contact.create!(first_name: "Kate", last_name: "Brewster", email: "kate@cyberdyne.example.com", phone: "+1-555-0902", position: "Sales Director", company: cyberdyne, skills: %w[Sales Marketing])
 
-eldon = Contact.create!(first_name: "Eldon", last_name: "Tyrell", email: "eldon@tyrell.example.com", phone: "+1-555-1001", position: "Founder", company: tyrell)
-rachael = Contact.create!(first_name: "Rachael", last_name: "Rosen", email: "rachael@tyrell.example.com", phone: "+1-555-1002", position: "Product Manager", company: tyrell)
+eldon = Contact.create!(first_name: "Eldon", last_name: "Tyrell", email: "eldon@tyrell.example.com", phone: "+1-555-1001", position: "Founder", company: tyrell, skills: %w[Cloud DevOps])
+rachael = Contact.create!(first_name: "Rachael", last_name: "Rosen", email: "rachael@tyrell.example.com", phone: "+1-555-1002", position: "Product Manager", company: tyrell, skills: %w[Marketing Sales JavaScript])
 
-sol = Contact.create!(first_name: "Sol", last_name: "Roth", email: "sol@soylent.example.com", phone: "+1-555-1101", position: "VP Supply Chain", company: soylent)
-frank = Contact.create!(first_name: "Frank", last_name: "Thorn", email: "frank@soylent.example.com", phone: "+1-555-1102", position: "Operations Manager", company: soylent)
+sol = Contact.create!(first_name: "Sol", last_name: "Roth", email: "sol@soylent.example.com", phone: "+1-555-1101", position: "VP Supply Chain", company: soylent, skills: %w[Finance])
+frank = Contact.create!(first_name: "Frank", last_name: "Thorn", email: "frank@soylent.example.com", phone: "+1-555-1102", position: "Operations Manager", company: soylent, skills: %w[Sales])
 
-cave = Contact.create!(first_name: "Cave", last_name: "Johnson", email: "cave@aperture.example.com", phone: "+1-555-1201", position: "CEO", company: aperture)
-caroline = Contact.create!(first_name: "Caroline", last_name: "McLain", email: "caroline@aperture.example.com", phone: "+1-555-1202", position: "Head of Testing", company: aperture)
+cave = Contact.create!(first_name: "Cave", last_name: "Johnson", email: "cave@aperture.example.com", phone: "+1-555-1201", position: "CEO", company: aperture, skills: %w[Sales Marketing Legal])
+caroline = Contact.create!(first_name: "Caroline", last_name: "McLain", email: "caroline@aperture.example.com", phone: "+1-555-1202", position: "Head of Testing", company: aperture, skills: %w[Python JavaScript DevOps])
 
-karl = Contact.create!(first_name: "Karl", last_name: "Bishop", email: "karl@weyland.example.com", phone: "+1-555-1301", position: "Colony Director", company: weyland)
-ellen = Contact.create!(first_name: "Ellen", last_name: "Ripley", email: "ellen@weyland.example.com", phone: "+1-555-1302", position: "Chief Engineer", company: weyland)
+karl = Contact.create!(first_name: "Karl", last_name: "Bishop", email: "karl@weyland.example.com", phone: "+1-555-1301", position: "Colony Director", company: weyland, skills: %w[Sales Legal])
+ellen = Contact.create!(first_name: "Ellen", last_name: "Ripley", email: "ellen@weyland.example.com", phone: "+1-555-1302", position: "Chief Engineer", company: weyland, skills: %w[Java Cloud DevOps])
 
-john_h = Contact.create!(first_name: "John", last_name: "Hammond", email: "john@ingen.example.com", phone: "+1-555-1401", position: "Founder", company: ingen)
-henry = Contact.create!(first_name: "Henry", last_name: "Wu", email: "henry@ingen.example.com", phone: "+1-555-1402", position: "Chief Geneticist", company: ingen)
+john_h = Contact.create!(first_name: "John", last_name: "Hammond", email: "john@ingen.example.com", phone: "+1-555-1401", position: "Founder", company: ingen, skills: %w[Finance Marketing])
+henry = Contact.create!(first_name: "Henry", last_name: "Wu", email: "henry@ingen.example.com", phone: "+1-555-1402", position: "Chief Geneticist", company: ingen, skills: %w[Python Java])
 
-walter = Contact.create!(first_name: "Walter", last_name: "Bishop", email: "walter@massive.example.com", phone: "+1-555-1501", position: "Chief Scientist", company: massive)
-olivia = Contact.create!(first_name: "Olivia", last_name: "Dunham", email: "olivia@massive.example.com", phone: "+1-555-1502", position: "VP Security", company: massive)
+walter = Contact.create!(first_name: "Walter", last_name: "Bishop", email: "walter@massive.example.com", phone: "+1-555-1501", position: "Chief Scientist", company: massive, skills: %w[Python Ruby Cloud])
+olivia = Contact.create!(first_name: "Olivia", last_name: "Dunham", email: "olivia@massive.example.com", phone: "+1-555-1502", position: "VP Security", company: massive, skills: %w[DevOps Cloud Legal])
 
 all_contacts = [ john, sarah, jane, marcus, bob, peter, alice, bruce, tony, pepper,
                 albert, jill, norman, gwen, lex, mercy, miles, kate, eldon, rachael,
@@ -803,22 +803,22 @@ all_contacts = [ john, sarah, jane, marcus, bob, peter, alice, bruce, tony, pepp
 # Create a dummy PDF for deals that require document attachments
 dummy_pdf = StringIO.new("%PDF-1.4 dummy")
 
-deal1 = Deal.new(title: "Enterprise License - Acme", stage: "negotiation", value: 150000.00, company: acme, contact: john, deal_category: new_biz)
+deal1 = Deal.new(title: "Enterprise License - Acme", stage: "negotiation", value: 150000.00, company: acme, contact: john, deal_category: new_biz, tags: %w[enterprise strategic long-term])
 deal1.documents.attach(io: StringIO.new("%PDF-1.4 dummy"), filename: "contract.pdf", content_type: "application/pdf")
 deal1.save!
 
-deal2 = Deal.new(title: "Consulting Package - Globex", stage: "proposal", value: 75000.00, company: globex, contact: jane, deal_category: consulting)
+deal2 = Deal.new(title: "Consulting Package - Globex", stage: "proposal", value: 75000.00, company: globex, contact: jane, deal_category: consulting, tags: %w[partner pilot])
 deal2.documents.attach(io: StringIO.new("%PDF-1.4 dummy"), filename: "proposal.pdf", content_type: "application/pdf")
 deal2.save!
 
-Deal.create!(title: "SaaS Migration - Initech", stage: "qualified", value: 200000.00, company: initech, contact: bob, deal_category: implementation)
+Deal.create!(title: "SaaS Migration - Initech", stage: "qualified", value: 200000.00, company: initech, contact: bob, deal_category: implementation, tags: %w[enterprise urgent])
 
-deal4 = Deal.new(title: "Financial Platform - Wayne", stage: "closed_won", value: 500000.00, company: wayne, contact: alice)
+deal4 = Deal.new(title: "Financial Platform - Wayne", stage: "closed_won", value: 500000.00, company: wayne, contact: alice, tags: %w[enterprise strategic])
 deal4.documents.attach(io: StringIO.new("%PDF-1.4 dummy"), filename: "agreement.pdf", content_type: "application/pdf")
 deal4.save!
 
-Deal.create!(title: "Hardware Supply - Stark", stage: "lead", value: 50000.00, company: stark, contact: tony)
-Deal.create!(title: "Support Contract - Acme", stage: "closed_lost", value: 30000.00, company: acme, contact: john)
+Deal.create!(title: "Hardware Supply - Stark", stage: "lead", value: 50000.00, company: stark, contact: tony, tags: %w[pilot])
+Deal.create!(title: "Support Contract - Acme", stage: "closed_lost", value: 30000.00, company: acme, contact: john, tags: %w[renewal])
 
 # Helper: stages requiring document attachments
 def create_deal_with_docs!(attrs)
@@ -829,43 +829,43 @@ def create_deal_with_docs!(attrs)
 end
 
 # New deals for expanded seed data
-create_deal_with_docs!(title: "Clinical Data Platform - Umbrella", stage: "proposal", value: 320000.00, company: umbrella, contact: albert, deal_category: new_biz, expected_close_date: 45.days.from_now)
-Deal.create!(title: "Lab Management System - Umbrella", stage: "qualified", value: 85000.00, company: umbrella, contact: jill, deal_category: consulting)
-create_deal_with_docs!(title: "Biotech Research License - Oscorp", stage: "negotiation", value: 450000.00, company: oscorp, contact: norman, deal_category: new_biz, expected_close_date: 20.days.from_now)
-Deal.create!(title: "Genome Sequencing Tools - Oscorp", stage: "lead", value: 120000.00, company: oscorp, contact: gwen)
-create_deal_with_docs!(title: "Financial Analytics Suite - LexCorp", stage: "closed_won", value: 680000.00, company: lexcorp, contact: lex, deal_category: upsell)
-create_deal_with_docs!(title: "Portfolio Management - LexCorp", stage: "proposal", value: 195000.00, company: lexcorp, contact: mercy, expected_close_date: 60.days.from_now)
-create_deal_with_docs!(title: "AI Safety Monitoring - Cyberdyne", stage: "negotiation", value: 275000.00, company: cyberdyne, contact: miles, deal_category: technology, expected_close_date: 15.days.from_now)
-Deal.create!(title: "Predictive Maintenance - Cyberdyne", stage: "qualified", value: 140000.00, company: cyberdyne, contact: kate, deal_category: implementation)
-create_deal_with_docs!(title: "Replicant Analytics - Tyrell", stage: "closed_won", value: 500000.00, company: tyrell, contact: eldon, deal_category: new_biz)
-create_deal_with_docs!(title: "Cloud Infrastructure - Tyrell", stage: "proposal", value: 210000.00, company: tyrell, contact: rachael, expected_close_date: 35.days.from_now)
+create_deal_with_docs!(title: "Clinical Data Platform - Umbrella", stage: "proposal", value: 320000.00, company: umbrella, contact: albert, deal_category: new_biz, expected_close_date: 45.days.from_now, tags: %w[enterprise strategic])
+Deal.create!(title: "Lab Management System - Umbrella", stage: "qualified", value: 85000.00, company: umbrella, contact: jill, deal_category: consulting, tags: %w[pilot])
+create_deal_with_docs!(title: "Biotech Research License - Oscorp", stage: "negotiation", value: 450000.00, company: oscorp, contact: norman, deal_category: new_biz, expected_close_date: 20.days.from_now, tags: %w[enterprise urgent long-term])
+Deal.create!(title: "Genome Sequencing Tools - Oscorp", stage: "lead", value: 120000.00, company: oscorp, contact: gwen, tags: %w[proof-of-concept])
+create_deal_with_docs!(title: "Financial Analytics Suite - LexCorp", stage: "closed_won", value: 680000.00, company: lexcorp, contact: lex, deal_category: upsell, tags: %w[enterprise upsell strategic])
+create_deal_with_docs!(title: "Portfolio Management - LexCorp", stage: "proposal", value: 195000.00, company: lexcorp, contact: mercy, expected_close_date: 60.days.from_now, tags: %w[partner])
+create_deal_with_docs!(title: "AI Safety Monitoring - Cyberdyne", stage: "negotiation", value: 275000.00, company: cyberdyne, contact: miles, deal_category: technology, expected_close_date: 15.days.from_now, tags: %w[urgent strategic])
+Deal.create!(title: "Predictive Maintenance - Cyberdyne", stage: "qualified", value: 140000.00, company: cyberdyne, contact: kate, deal_category: implementation, tags: %w[pilot])
+create_deal_with_docs!(title: "Replicant Analytics - Tyrell", stage: "closed_won", value: 500000.00, company: tyrell, contact: eldon, deal_category: new_biz, tags: %w[enterprise long-term])
+create_deal_with_docs!(title: "Cloud Infrastructure - Tyrell", stage: "proposal", value: 210000.00, company: tyrell, contact: rachael, expected_close_date: 35.days.from_now, tags: %w[partner strategic])
 Deal.create!(title: "Supply Chain Optimization - Soylent", stage: "lead", value: 95000.00, company: soylent, contact: sol)
-Deal.create!(title: "Factory Automation - Soylent", stage: "qualified", value: 180000.00, company: soylent, contact: frank, deal_category: implementation)
-create_deal_with_docs!(title: "Testing Platform - Aperture", stage: "negotiation", value: 350000.00, company: aperture, contact: cave, deal_category: technology, expected_close_date: 10.days.from_now)
-Deal.create!(title: "Portal Technology License - Aperture", stage: "closed_lost", value: 550000.00, company: aperture, contact: caroline)
-create_deal_with_docs!(title: "Colony Management System - Weyland", stage: "proposal", value: 425000.00, company: weyland, contact: karl, deal_category: new_biz, expected_close_date: 50.days.from_now)
-Deal.create!(title: "Deep Space Analytics - Weyland", stage: "qualified", value: 160000.00, company: weyland, contact: ellen, deal_category: consulting)
-create_deal_with_docs!(title: "Genetic Database - InGen", stage: "closed_won", value: 290000.00, company: ingen, contact: john_h, deal_category: new_biz)
-Deal.create!(title: "Cloning Research Platform - InGen", stage: "lead", value: 175000.00, company: ingen, contact: henry)
-create_deal_with_docs!(title: "Cross-dimensional Analytics - Massive", stage: "negotiation", value: 320000.00, company: massive, contact: walter, deal_category: technology, expected_close_date: 25.days.from_now)
-create_deal_with_docs!(title: "Security Monitoring - Massive", stage: "proposal", value: 135000.00, company: massive, contact: olivia, expected_close_date: 40.days.from_now)
+Deal.create!(title: "Factory Automation - Soylent", stage: "qualified", value: 180000.00, company: soylent, contact: frank, deal_category: implementation, tags: %w[enterprise])
+create_deal_with_docs!(title: "Testing Platform - Aperture", stage: "negotiation", value: 350000.00, company: aperture, contact: cave, deal_category: technology, expected_close_date: 10.days.from_now, tags: %w[urgent proof-of-concept])
+Deal.create!(title: "Portal Technology License - Aperture", stage: "closed_lost", value: 550000.00, company: aperture, contact: caroline, tags: %w[enterprise])
+create_deal_with_docs!(title: "Colony Management System - Weyland", stage: "proposal", value: 425000.00, company: weyland, contact: karl, deal_category: new_biz, expected_close_date: 50.days.from_now, tags: %w[enterprise strategic long-term])
+Deal.create!(title: "Deep Space Analytics - Weyland", stage: "qualified", value: 160000.00, company: weyland, contact: ellen, deal_category: consulting, tags: %w[pilot])
+create_deal_with_docs!(title: "Genetic Database - InGen", stage: "closed_won", value: 290000.00, company: ingen, contact: john_h, deal_category: new_biz, tags: %w[enterprise])
+Deal.create!(title: "Cloning Research Platform - InGen", stage: "lead", value: 175000.00, company: ingen, contact: henry, tags: %w[proof-of-concept])
+create_deal_with_docs!(title: "Cross-dimensional Analytics - Massive", stage: "negotiation", value: 320000.00, company: massive, contact: walter, deal_category: technology, expected_close_date: 25.days.from_now, tags: %w[strategic urgent])
+create_deal_with_docs!(title: "Security Monitoring - Massive", stage: "proposal", value: 135000.00, company: massive, contact: olivia, expected_close_date: 40.days.from_now, tags: %w[partner])
 
 # Additional deals for volume and variety
-Deal.create!(title: "DevOps Transformation - Acme", stage: "qualified", value: 110000.00, company: acme, contact: sarah, deal_category: consulting)
-create_deal_with_docs!(title: "Mobile App Development - Initech", stage: "proposal", value: 65000.00, company: initech, contact: peter, deal_category: new_biz, expected_close_date: 55.days.from_now)
-create_deal_with_docs!(title: "Wealth Management Platform - Wayne", stage: "negotiation", value: 380000.00, company: wayne, contact: bruce, deal_category: upsell, expected_close_date: 18.days.from_now)
-create_deal_with_docs!(title: "Hardware Refresh - Stark", stage: "closed_won", value: 240000.00, company: stark, contact: pepper, deal_category: cross_sell)
-Deal.create!(title: "Integration Services - Globex", stage: "qualified", value: 55000.00, company: globex, contact: marcus, deal_category: integration)
-Deal.create!(title: "Data Warehouse - Oscorp", stage: "closed_lost", value: 190000.00, company: oscorp, contact: gwen, deal_category: implementation)
-Deal.create!(title: "Compliance Toolkit - LexCorp", stage: "lead", value: 45000.00, company: lexcorp, contact: mercy)
-create_deal_with_docs!(title: "Robotics Platform - Cyberdyne", stage: "closed_won", value: 370000.00, company: cyberdyne, contact: kate, deal_category: technology)
-create_deal_with_docs!(title: "Support Renewal - Tyrell", stage: "proposal", value: 28000.00, company: tyrell, contact: rachael, deal_category: support, expected_close_date: 12.days.from_now)
+Deal.create!(title: "DevOps Transformation - Acme", stage: "qualified", value: 110000.00, company: acme, contact: sarah, deal_category: consulting, tags: %w[urgent])
+create_deal_with_docs!(title: "Mobile App Development - Initech", stage: "proposal", value: 65000.00, company: initech, contact: peter, deal_category: new_biz, expected_close_date: 55.days.from_now, tags: %w[pilot])
+create_deal_with_docs!(title: "Wealth Management Platform - Wayne", stage: "negotiation", value: 380000.00, company: wayne, contact: bruce, deal_category: upsell, expected_close_date: 18.days.from_now, tags: %w[enterprise upsell strategic])
+create_deal_with_docs!(title: "Hardware Refresh - Stark", stage: "closed_won", value: 240000.00, company: stark, contact: pepper, deal_category: cross_sell, tags: %w[renewal])
+Deal.create!(title: "Integration Services - Globex", stage: "qualified", value: 55000.00, company: globex, contact: marcus, deal_category: integration, tags: %w[partner])
+Deal.create!(title: "Data Warehouse - Oscorp", stage: "closed_lost", value: 190000.00, company: oscorp, contact: gwen, deal_category: implementation, tags: %w[enterprise])
+Deal.create!(title: "Compliance Toolkit - LexCorp", stage: "lead", value: 45000.00, company: lexcorp, contact: mercy, tags: %w[government])
+create_deal_with_docs!(title: "Robotics Platform - Cyberdyne", stage: "closed_won", value: 370000.00, company: cyberdyne, contact: kate, deal_category: technology, tags: %w[enterprise strategic long-term])
+create_deal_with_docs!(title: "Support Renewal - Tyrell", stage: "proposal", value: 28000.00, company: tyrell, contact: rachael, deal_category: support, expected_close_date: 12.days.from_now, tags: %w[renewal])
 create_deal_with_docs!(title: "Quality Assurance System - Soylent", stage: "negotiation", value: 105000.00, company: soylent, contact: sol, deal_category: consulting, expected_close_date: 30.days.from_now)
-Deal.create!(title: "Research Portal - Aperture", stage: "qualified", value: 78000.00, company: aperture, contact: caroline, deal_category: new_biz)
+Deal.create!(title: "Research Portal - Aperture", stage: "qualified", value: 78000.00, company: aperture, contact: caroline, deal_category: new_biz, tags: %w[pilot proof-of-concept])
 Deal.create!(title: "Fleet Management - Weyland", stage: "closed_lost", value: 220000.00, company: weyland, contact: ellen)
-create_deal_with_docs!(title: "Park Operations Suite - InGen", stage: "proposal", value: 310000.00, company: ingen, contact: henry, deal_category: implementation, expected_close_date: 65.days.from_now)
-Deal.create!(title: "Fringe Science Platform - Massive", stage: "lead", value: 250000.00, company: massive, contact: walter, deal_category: technology)
-create_deal_with_docs!(title: "Threat Intelligence - Massive", stage: "closed_won", value: 155000.00, company: massive, contact: olivia, deal_category: consulting)
+create_deal_with_docs!(title: "Park Operations Suite - InGen", stage: "proposal", value: 310000.00, company: ingen, contact: henry, deal_category: implementation, expected_close_date: 65.days.from_now, tags: %w[enterprise long-term])
+Deal.create!(title: "Fringe Science Platform - Massive", stage: "lead", value: 250000.00, company: massive, contact: walter, deal_category: technology, tags: %w[strategic proof-of-concept])
+create_deal_with_docs!(title: "Threat Intelligence - Massive", stage: "closed_won", value: 155000.00, company: massive, contact: olivia, deal_category: consulting, tags: %w[partner])
 Deal.create!(title: "ERP Integration - Globex", stage: "lead", value: 8500.00, company: globex, contact: jane, deal_category: integration)
 
 # ============================================================================

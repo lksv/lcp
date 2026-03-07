@@ -22,6 +22,7 @@ define_presenter :deal_tiles, inherits: :deal do
       field "company.name", label: "Company"
       field :progress, label: "Progress", renderer: :progress_bar
       field :priority, label: "Priority"
+      field :tags, label: "Tags", renderer: :collection, options: { item_renderer: "badge", separator: " " }
       field :expected_close_date, label: "Close Date"
     end
 

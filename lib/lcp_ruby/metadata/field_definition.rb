@@ -4,15 +4,17 @@ module LcpRuby
       BASE_TYPES = %w[
         string text integer float decimal boolean
         date datetime enum file rich_text json uuid
-        attachment
+        attachment array
       ].freeze
+
+      VALID_ARRAY_ITEM_TYPES = %w[string integer float].freeze
 
       # Backward compatibility
       VALID_TYPES = BASE_TYPES
 
       attr_reader :name, :type, :label, :column_options, :validations,
                   :enum_values, :default, :type_definition, :transforms, :computed,
-                  :attachment_options, :source
+                  :attachment_options, :source, :item_type
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -26,6 +28,7 @@ module LcpRuby
         @computed = attrs[:computed]
         @attachment_options = attrs[:attachment_options] || {}
         @source = attrs[:source]
+        @item_type = attrs[:item_type]&.to_s
 
         validate!
         resolve_type_definition!
@@ -43,7 +46,8 @@ module LcpRuby
           transforms: hash["transforms"],
           computed: hash["computed"],
           attachment_options: hash["options"] || {},
-          source: hash["source"]
+          source: hash["source"],
+          item_type: hash["item_type"]
         )
       end
 
@@ -67,7 +71,13 @@ module LcpRuby
         return nil if attachment?
         return nil if virtual?
 
-        if @type_definition
+        if array?
+          if LcpRuby.postgresql?
+            pg_array_column_type
+          else
+            LcpRuby.json_column_type
+          end
+        elsif @type_definition
           @type_definition.column_type
         else
           case type
@@ -97,6 +107,10 @@ module LcpRuby
         type == "attachment"
       end
 
+      def array?
+        type == "array"
+      end
+
       def attachment_multiple?
         attachment? && attachment_options["multiple"] == true
       end
@@ -114,9 +128,22 @@ module LcpRuby
           raise MetadataError, "Field type '#{@type}' is invalid for field '#{@name}'"
         end
 
+        if array? && !VALID_ARRAY_ITEM_TYPES.include?(@item_type)
+          raise MetadataError,
+            "Field '#{@name}': array type requires item_type (#{VALID_ARRAY_ITEM_TYPES.join(', ')})"
+        end
+
         if @source && @computed
           raise MetadataError,
             "Field '#{@name}': cannot have both 'source' and 'computed' — use one or the other"
+        end
+      end
+
+      def pg_array_column_type
+        case item_type
+        when "string"  then :text
+        when "integer" then :integer
+        when "float"   then :float
         end
       end
 

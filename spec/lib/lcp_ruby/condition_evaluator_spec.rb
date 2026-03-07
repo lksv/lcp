@@ -807,4 +807,73 @@ RSpec.describe LcpRuby::ConditionEvaluator do
       expect(described_class.evaluate_any(record_with_approvals, condition)).to be true
     end
   end
+
+  describe "array operators" do
+    let(:record_with_array) do
+      OpenStruct.new(tags: %w[ruby rails python], scores: [1, 2, 3], empty_tags: [])
+    end
+
+    describe "contains (polymorphic)" do
+      it "checks array containment when actual is Array" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "contains", "value" => "ruby" })).to be true
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "contains", "value" => "java" })).to be false
+      end
+
+      it "checks all values for array containment" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "contains", "value" => %w[ruby rails] })).to be true
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "contains", "value" => %w[ruby java] })).to be false
+      end
+
+      it "still does string substring matching for non-arrays" do
+        record = OpenStruct.new(name: "Test Record")
+        expect(described_class.evaluate_any(record, { "field" => "name", "operator" => "contains", "value" => "test" })).to be true
+      end
+    end
+
+    describe "not_contains" do
+      it "is true when array does not contain value" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "not_contains", "value" => "java" })).to be true
+      end
+
+      it "is false when array contains value" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "not_contains", "value" => "ruby" })).to be false
+      end
+
+      it "does string not-contains for non-arrays" do
+        record = OpenStruct.new(name: "Hello")
+        expect(described_class.evaluate_any(record, { "field" => "name", "operator" => "not_contains", "value" => "xyz" })).to be true
+        expect(described_class.evaluate_any(record, { "field" => "name", "operator" => "not_contains", "value" => "hello" })).to be false
+      end
+    end
+
+    describe "any_of" do
+      it "is true when array contains any of the values" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "any_of", "value" => %w[java ruby] })).to be true
+      end
+
+      it "is false when array contains none of the values" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "any_of", "value" => %w[java go] })).to be false
+      end
+    end
+
+    describe "empty" do
+      it "is true for empty array" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "empty_tags", "operator" => "empty" })).to be true
+      end
+
+      it "is false for non-empty array" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "empty" })).to be false
+      end
+    end
+
+    describe "not_empty" do
+      it "is true for non-empty array" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "tags", "operator" => "not_empty" })).to be true
+      end
+
+      it "is false for empty array" do
+        expect(described_class.evaluate_any(record_with_array, { "field" => "empty_tags", "operator" => "not_empty" })).to be false
+      end
+    end
+  end
 end

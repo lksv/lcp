@@ -34,6 +34,11 @@ define_model :deal do
       message: "cannot be before deal creation"
   end
 
+  field :tags, :array, item_type: :string, default: [] do
+    validates :array_length, maximum: 10
+    validates :array_uniqueness
+  end
+
   field :documents, :attachment, label: "Documents", options: {
     multiple: true,
     max_files: 20,

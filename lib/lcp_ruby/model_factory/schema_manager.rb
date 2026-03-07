@@ -287,7 +287,16 @@ module LcpRuby
         options[:precision] = col_opts[:precision] if col_opts[:precision]
         options[:scale] = col_opts[:scale] if col_opts[:scale]
         options[:null] = col_opts[:null] if col_opts.key?(:null)
-        options[:default] = field.default if field.default && !field.default.is_a?(Hash)
+        if field.array?
+          if LcpRuby.postgresql?
+            options[:array] = true
+            options[:default] = field.default || []
+          else
+            options[:default] = (field.default || []).to_json
+          end
+        elsif field.default && !field.default.is_a?(Hash) && !field.default.is_a?(Array)
+          options[:default] = field.default
+        end
 
         options
       end

@@ -31,7 +31,7 @@ module LcpRuby
 
       ConditionValidationContext = Struct.new(:name, :model)
       VALID_CRUD_ACTIONS = %w[index show create update destroy restore permanently_destroy].freeze
-      VALID_CONDITION_OPERATORS = %w[eq not_eq neq in not_in gt gte lt lte present blank matches not_matches starts_with ends_with contains].freeze
+      VALID_CONDITION_OPERATORS = %w[eq not_eq neq in not_in gt gte lt lte present blank matches not_matches starts_with ends_with contains not_contains any_of empty not_empty].freeze
       BUILT_IN_ACTION_NAMES = %w[show edit destroy create update restore permanently_destroy].freeze
       VALID_SORT_DIRECTIONS = %w[asc desc].freeze
       NUMERIC_OPERATORS = %w[gt gte lt lte].freeze
@@ -206,6 +206,7 @@ module LcpRuby
         model.fields.each do |field|
           validate_enum_field(model, field) if field.enum?
           validate_virtual_field(model, field) if field.virtual?
+          validate_array_field(model, field) if field.array?
         end
       end
 
@@ -235,6 +236,19 @@ module LcpRuby
         if field.transforms.any?
           @warnings << "Model '#{model.name}', field '#{field.name}': " \
                        "transforms are ignored on virtual fields"
+        end
+      end
+
+      def validate_array_field(model, field)
+        unless Metadata::FieldDefinition::VALID_ARRAY_ITEM_TYPES.include?(field.item_type)
+          @errors << "Model '#{model.name}', field '#{field.name}': " \
+                     "array field requires item_type (#{Metadata::FieldDefinition::VALID_ARRAY_ITEM_TYPES.join(', ')}), " \
+                     "got '#{field.item_type}'"
+        end
+
+        if field.default && !field.default.is_a?(Array)
+          @errors << "Model '#{model.name}', field '#{field.name}': " \
+                     "array field default must be an array, got #{field.default.class}"
         end
       end
 
@@ -1991,7 +2005,7 @@ module LcpRuby
                      "(type '#{resolved_type}'). Regex operators require: #{TEXT_TYPES.join(', ')}"
         end
 
-        if STRING_OPERATORS.include?(operator.to_s) && !TEXT_TYPES.include?(resolved_type)
+        if STRING_OPERATORS.include?(operator.to_s) && !TEXT_TYPES.include?(resolved_type) && resolved_type != "array"
           @errors << "#{source}, #{context}: " \
                      "operator '#{operator}' is not compatible with field '#{field_name}' " \
                      "(type '#{resolved_type}'). String operators require: #{TEXT_TYPES.join(', ')}"

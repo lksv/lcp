@@ -17,7 +17,8 @@ module LcpRuby
         date:     TEMPORAL_OPERATORS,
         datetime: TEMPORAL_OPERATORS,
         enum:     %i[eq not_eq in not_in present blank null not_null],
-        uuid:     %i[eq not_eq in not_in present blank null not_null]
+        uuid:     %i[eq not_eq in not_in present blank null not_null],
+        array:    %i[array_contains array_overlaps present blank null not_null]
       }.freeze
 
       # Union of all operators across all types (used for validation and metadata)

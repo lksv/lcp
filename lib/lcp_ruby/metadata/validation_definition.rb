@@ -4,6 +4,7 @@ module LcpRuby
       VALID_TYPES = %w[
         presence length numericality format inclusion exclusion
         uniqueness confirmation custom comparison service
+        array_length array_inclusion array_uniqueness
       ].freeze
 
       attr_reader :type, :options, :validator_class, :when_condition,

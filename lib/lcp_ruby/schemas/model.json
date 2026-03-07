@@ -272,8 +272,13 @@
         },
         "type": {
           "type": "string",
-          "description": "Data type. Base types: string, text, integer, float, decimal, boolean, date, datetime, enum, file, rich_text, json, uuid, attachment. Custom types (email, phone, url, color) and user-defined types from config/lcp_ruby/types/ are also valid.",
-          "examples": ["string", "integer", "boolean", "date", "enum", "email", "attachment"]
+          "description": "Data type. Base types: string, text, integer, float, decimal, boolean, date, datetime, enum, file, rich_text, json, uuid, attachment, array. Custom types (email, phone, url, color) and user-defined types from config/lcp_ruby/types/ are also valid.",
+          "examples": ["string", "integer", "boolean", "date", "enum", "email", "attachment", "array"]
+        },
+        "item_type": {
+          "type": "string",
+          "description": "Element type for array fields. Required when type is 'array'.",
+          "enum": ["string", "integer", "float"]
         },
         "label": {
           "type": "string",
@@ -372,7 +377,7 @@
         "type": {
           "type": "string",
           "description": "Validation type. Maps to Rails validators (e.g., presence → validates_presence_of).",
-          "enum": ["presence", "length", "numericality", "format", "inclusion", "exclusion", "uniqueness", "confirmation", "custom", "comparison", "service"]
+          "enum": ["presence", "length", "numericality", "format", "inclusion", "exclusion", "uniqueness", "confirmation", "custom", "comparison", "service", "array_length", "array_inclusion", "array_uniqueness"]
         },
         "options": {
           "type": "object",

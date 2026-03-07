@@ -77,6 +77,12 @@ module LcpRuby
           @model_class.validates field_name.to_sym, uniqueness: opts.empty? ? true : opts
         when "confirmation"
           @model_class.validates field_name.to_sym, confirmation: opts.empty? ? true : opts
+        when "array_length"
+          apply_array_length_validation(field_name, opts)
+        when "array_inclusion"
+          apply_array_inclusion_validation(field_name, opts)
+        when "array_uniqueness"
+          apply_array_uniqueness_validation(field_name, opts)
         end
       end
 
@@ -198,6 +204,46 @@ module LcpRuby
         opts[:message] = validation.message if validation&.message
 
         opts
+      end
+
+      def apply_array_length_validation(field_name, opts)
+        min = opts[:minimum]
+        max = opts[:maximum]
+        message = opts[:message]
+
+        @model_class.validate do |record|
+          value = Array(record.send(field_name))
+          if min && value.size < min
+            record.errors.add(field_name, message || "must have at least #{min} items")
+          end
+          if max && value.size > max
+            record.errors.add(field_name, message || "must have at most #{max} items")
+          end
+        end
+      end
+
+      def apply_array_inclusion_validation(field_name, opts)
+        allowed = Array(opts[:in] || opts[:within])
+        message = opts[:message]
+
+        @model_class.validate do |record|
+          value = Array(record.send(field_name))
+          invalid = value.map(&:to_s) - allowed.map(&:to_s)
+          if invalid.any?
+            record.errors.add(field_name, message || "contains invalid values: #{invalid.join(', ')}")
+          end
+        end
+      end
+
+      def apply_array_uniqueness_validation(field_name, opts)
+        message = opts[:message]
+
+        @model_class.validate do |record|
+          value = Array(record.send(field_name))
+          if value.size != value.uniq.size
+            record.errors.add(field_name, message || "must not contain duplicate values")
+          end
+        end
       end
 
       def apply_when_condition!(opts, validation)

@@ -49,6 +49,7 @@ module LcpRuby
           "type" => type.to_s
         }
 
+        field_hash["item_type"] = options[:item_type].to_s if options.key?(:item_type)
         field_hash["label"] = options[:label] if options.key?(:label)
         field_hash["default"] = options[:default] if options.key?(:default)
         field_hash["transforms"] = options[:transforms].map(&:to_s) if options[:transforms]

@@ -281,7 +281,26 @@ module LcpRuby
         when "ends_with"
           actual.to_s.end_with?(value.to_s)
         when "contains"
-          actual.to_s.downcase.include?(value.to_s.downcase)
+          if actual.is_a?(Array)
+            set = actual.map(&:to_s).to_set
+            Array(value).all? { |v| set.include?(v.to_s) }
+          else
+            actual.to_s.downcase.include?(value.to_s.downcase)
+          end
+        when "not_contains"
+          if actual.is_a?(Array)
+            set = actual.map(&:to_s).to_set
+            Array(value).none? { |v| set.include?(v.to_s) }
+          else
+            !actual.to_s.downcase.include?(value.to_s.downcase)
+          end
+        when "any_of"
+          set = Array(actual).map(&:to_s).to_set
+          Array(value).any? { |v| set.include?(v.to_s) }
+        when "empty"
+          Array(actual).empty?
+        when "not_empty"
+          Array(actual).any?
         when "matches"
           value.is_a?(String) && actual.to_s.match?(safe_regexp(value))
         when "not_matches"
