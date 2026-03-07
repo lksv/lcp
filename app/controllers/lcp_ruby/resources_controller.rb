@@ -397,15 +397,9 @@ module LcpRuby
 
     def load_dashboard
       @zone_data = current_page.zones.filter_map do |zone|
-        if zone.widget?
-          data = Widgets::DataResolver.new(zone, user: current_user).resolve
-        elsif zone.presenter_zone?
-          data = Widgets::PresenterZoneResolver.new(zone, user: current_user).resolve
-        else
-          next
-        end
+        next unless zone.widget? || zone.presenter_zone?
 
-        # Evaluate visible_when condition
+        # Evaluate visible_when before resolving data to avoid unnecessary queries
         if zone.visible_when.present?
           visible = ConditionEvaluator.evaluate(
             zone.visible_when,
@@ -413,6 +407,12 @@ module LcpRuby
             context: { current_user: current_user }
           )
           next unless visible
+        end
+
+        if zone.widget?
+          data = Widgets::DataResolver.new(zone, user: current_user).resolve
+        else
+          data = Widgets::PresenterZoneResolver.new(zone, user: current_user).resolve
         end
 
         [ zone, data ]

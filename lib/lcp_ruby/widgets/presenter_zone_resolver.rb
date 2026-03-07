@@ -1,6 +1,8 @@
 module LcpRuby
   module Widgets
     class PresenterZoneResolver
+      include ScopeApplicator
+
       def initialize(zone, user:)
         @zone = zone
         @user = user
@@ -14,7 +16,7 @@ module LcpRuby
         return { hidden: true } unless presenter
 
         model_name = presenter.model
-        model_class = LcpRuby.registry.model_for(model_name)
+        model_class = resolve_model_class(model_name)
         return { hidden: true } unless model_class
 
         model_def = LcpRuby.loader.model_definition(model_name)
@@ -45,34 +47,6 @@ module LcpRuby
       end
 
       private
-
-      def build_evaluator(model_name)
-        perm_def = LcpRuby.loader.permission_definition(model_name)
-        Authorization::PermissionEvaluator.new(perm_def, @user, model_name)
-      rescue LcpRuby::MetadataError
-        nil
-      end
-
-      def apply_policy_scope(model_class, evaluator)
-        evaluator.apply_scope(model_class.all)
-      end
-
-      def apply_soft_delete_filter(scope, model_def)
-        if model_def.soft_delete? && scope.respond_to?(:kept)
-          scope.kept
-        else
-          scope
-        end
-      end
-
-      def apply_zone_scope(scope, model_class)
-        scope_name = @zone.scope
-        if scope_name && model_class.respond_to?(scope_name)
-          scope.send(scope_name)
-        else
-          scope
-        end
-      end
 
       def apply_eager_loading(scope, presenter, model_def)
         strategy = Presenter::IncludesResolver.resolve(

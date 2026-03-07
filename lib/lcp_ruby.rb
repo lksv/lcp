@@ -204,6 +204,7 @@ require "lcp_ruby/presenter/breadcrumb_builder"
 require "lcp_ruby/presenter/breadcrumb_path_helper"
 
 # Widgets
+require "lcp_ruby/widgets/scope_applicator"
 require "lcp_ruby/widgets/data_resolver"
 require "lcp_ruby/widgets/presenter_zone_resolver"
 
