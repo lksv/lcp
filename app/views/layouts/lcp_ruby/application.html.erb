@@ -53,6 +53,24 @@
     </div>
   <% end %>
 
+  <!-- Dialog modal -->
+  <dialog id="lcp-dialog" class="lcp-dialog lcp-dialog-medium"></dialog>
+
+  <!-- Confirmation dialog -->
+  <dialog id="lcp-confirm-dialog" class="lcp-dialog lcp-dialog-small">
+    <div class="lcp-dialog-header">
+      <h3 id="lcp-confirm-title"></h3>
+      <button type="button" class="lcp-dialog-close" id="lcp-confirm-cancel-x">&times;</button>
+    </div>
+    <div class="lcp-dialog-body">
+      <p id="lcp-confirm-message"></p>
+      <div class="lcp-dialog-actions">
+        <button type="button" class="btn" id="lcp-confirm-cancel"><%= I18n.t("lcp_ruby.confirmations.cancel", default: "Cancel") %></button>
+        <button type="button" class="btn btn-primary" id="lcp-confirm-ok"><%= I18n.t("lcp_ruby.confirmations.confirm", default: "Confirm") %></button>
+      </div>
+    </div>
+  </dialog>
+
   <!-- Inline create dialog -->
   <dialog id="lcp-inline-create-dialog" class="lcp-inline-dialog">
     <h3 id="lcp-inline-dialog-title"></h3>

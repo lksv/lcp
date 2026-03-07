@@ -277,6 +277,20 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
       )
     end
 
+    let(:page_admin) do
+      zone = LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: "project")
+      LcpRuby::Metadata::PageDefinition.new(
+        name: "project", model: "project", slug: "projects", zones: [ zone ], auto_generated: true
+      )
+    end
+
+    let(:page_restricted) do
+      zone = LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: "project_public")
+      LcpRuby::Metadata::PageDefinition.new(
+        name: "project_public", model: "project", slug: "projects-public", zones: [ zone ], auto_generated: true
+      )
+    end
+
     before do
       loader = instance_double(LcpRuby::Metadata::Loader)
       allow(LcpRuby).to receive(:loader).and_return(loader)
@@ -288,6 +302,10 @@ RSpec.describe LcpRuby::LayoutHelper, type: :helper do
       allow(loader).to receive(:presenter_definitions).and_return(
         "project" => presenter_admin,
         "project_public" => presenter_restricted
+      )
+      allow(loader).to receive(:page_definitions).and_return(
+        "project" => page_admin,
+        "project_public" => page_restricted
       )
       allow(loader).to receive(:permission_definition).with("project").and_return(perm_def)
     end

@@ -68,6 +68,29 @@
       "description": "Base query scope applied to all records in this presenter. 'discarded' shows only soft-deleted records; 'with_discarded' includes both.",
       "enum": ["discarded", "with_discarded"]
     },
+    "dialog": {
+      "type": "object",
+      "description": "Dialog rendering configuration. When present, the presenter can be opened as a modal dialog. Presenters without a slug are dialog-only.",
+      "properties": {
+        "size": {
+          "type": "string",
+          "description": "Dialog size.",
+          "enum": ["small", "medium", "large", "fullscreen"],
+          "default": "medium"
+        },
+        "title_key": {
+          "type": "string",
+          "description": "I18n key for the dialog title.",
+          "examples": ["lcp_ruby.dialogs.quick_edit_title"]
+        },
+        "closable": {
+          "type": "boolean",
+          "description": "Whether the dialog shows a close button and can be dismissed.",
+          "default": true
+        }
+      },
+      "additionalProperties": false
+    },
     "index": { "$ref": "#/$defs/index_config" },
     "show": { "$ref": "#/$defs/show_config" },
     "form": { "$ref": "#/$defs/form_config" },
@@ -582,8 +605,8 @@
         },
         "type": {
           "type": "string",
-          "description": "'built_in' for standard CRUD actions; 'custom' for host-app actions defined in app/actions/.",
-          "enum": ["built_in", "custom"]
+          "description": "'built_in' for standard CRUD actions; 'custom' for host-app actions; 'dialog' for actions that open a modal dialog.",
+          "enum": ["built_in", "custom", "dialog"]
         },
         "label": {
           "type": "string",
@@ -595,12 +618,49 @@
           "examples": ["plus", "pencil", "trash-2", "archive"]
         },
         "confirm": {
-          "description": "Confirmation dialog before executing. true uses default message, string provides custom message, object limits confirmation to specific roles.",
+          "description": "Confirmation before executing. true uses browser confirm, string provides custom message, object for page-based or styled confirmation dialogs.",
           "oneOf": [
             { "type": "boolean" },
             { "type": "string" },
             {
               "type": "object",
+              "description": "Page-based confirmation dialog. Opens a presenter-driven dialog form; on success, executes the original action with form data forwarded as confirmation_data params.",
+              "properties": {
+                "page": {
+                  "type": "string",
+                  "description": "Page name referencing a dialog-only presenter (e.g., 'delete_reason_dialog')."
+                },
+                "size": {
+                  "type": "string",
+                  "description": "Override the dialog size from page config.",
+                  "enum": ["small", "medium", "large", "fullscreen"]
+                }
+              },
+              "required": ["page"],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "Styled confirmation dialog with custom title and message via i18n keys.",
+              "properties": {
+                "title_key": {
+                  "type": "string",
+                  "description": "I18n key for the confirmation dialog title."
+                },
+                "message_key": {
+                  "type": "string",
+                  "description": "I18n key for the confirmation dialog message."
+                },
+                "style": {
+                  "type": "string",
+                  "description": "Visual style of the confirmation dialog (e.g., 'danger')."
+                }
+              },
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "description": "Role-scoped confirmation.",
               "properties": {
                 "except": {
                   "type": "array",
@@ -616,7 +676,7 @@
               "additionalProperties": false
             }
           ],
-          "examples": [true, "Are you sure you want to delete this record?", { "except": ["admin"] }]
+          "examples": [true, "Are you sure?", { "page": "delete_reason_dialog" }, { "title_key": "lcp_ruby.dialogs.confirm_delete_title", "message_key": "lcp_ruby.dialogs.confirm_delete_message", "style": "danger" }]
         },
         "confirm_message": {
           "type": "string",
@@ -626,6 +686,43 @@
           "type": "string",
           "description": "Visual style of the button.",
           "examples": ["danger", "primary", "secondary", "warning"]
+        },
+        "dialog": {
+          "type": "object",
+          "description": "Dialog configuration for type: dialog actions.",
+          "properties": {
+            "page": {
+              "type": "string",
+              "description": "Page name referencing a dialog-only presenter."
+            },
+            "record": {
+              "type": "string",
+              "description": "'current' to open the dialog with the current record for editing.",
+              "enum": ["current"]
+            },
+            "on_success": {
+              "type": "string",
+              "description": "Action after successful dialog submission.",
+              "enum": ["reload", "close", "redirect", "confirm_action"]
+            },
+            "size": {
+              "type": "string",
+              "description": "Override the dialog size from page config.",
+              "enum": ["small", "medium", "large", "fullscreen"]
+            },
+            "defaults": {
+              "type": "object",
+              "description": "Default field values to pre-fill in the dialog form.",
+              "additionalProperties": { "type": "string" }
+            }
+          },
+          "required": ["page"],
+          "additionalProperties": false
+        },
+        "record": {
+          "type": "string",
+          "description": "Record context for dialog actions. 'current' passes the current record.",
+          "enum": ["current"]
         },
         "visible_when": {
           "$ref": "#/$defs/condition",

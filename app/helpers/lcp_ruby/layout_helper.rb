@@ -16,18 +16,21 @@ module LcpRuby
 
     def navigable_presenters
       LcpRuby.loader.navigable_view_groups.filter_map do |vg|
+        page = LcpRuby.loader.page_definitions[vg.primary_presenter]
+        next unless page&.routable?
+
         presenter = LcpRuby.loader.presenter_definitions[vg.primary_presenter]
-        next unless presenter&.routable?
+        next unless presenter
         next unless presenter_accessible?(presenter)
 
         all_slugs = vg.presenter_names.filter_map do |name|
-          LcpRuby.loader.presenter_definitions[name]&.slug
+          LcpRuby.loader.page_definitions[name]&.slug
         end
 
         {
           presenter: presenter,
           label: presenter.label,
-          slug: presenter.slug,
+          slug: page.slug,
           icon: presenter.icon,
           navigation: vg.navigation_config,
           all_slugs: all_slugs

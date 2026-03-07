@@ -1,0 +1,10 @@
+model:
+  name: bulk_status_change
+  table_name: _virtual
+  fields:
+    - name: new_status
+      type: string
+      validations:
+        - type: presence
+    - name: comment
+      type: text

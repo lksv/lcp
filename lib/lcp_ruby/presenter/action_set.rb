@@ -36,8 +36,11 @@ module LcpRuby
 
       def filter_actions(actions)
         actions.select do |action|
-          if action["type"] == "built_in"
+          case action["type"]
+          when "built_in"
             permission_evaluator.can?(action["name"])
+          when "dialog"
+            authorize_dialog_action(action)
           else
             permission_evaluator.can_execute_action?(action["name"])
           end
@@ -58,6 +61,12 @@ module LcpRuby
           elsif normalized.key?("only")
             only_roles = Array(normalized["only"]).map(&:to_s)
             (user_roles & only_roles).any?
+          elsif normalized.key?("title_key") || normalized.key?("message_key") || normalized.key?("style")
+            # Styled confirmation modal — pass through as hash
+            normalized
+          elsif normalized.key?("page")
+            # Full presenter-driven confirmation dialog — pass through as hash
+            normalized
           else
             !!confirm
           end
@@ -66,6 +75,32 @@ module LcpRuby
         end
 
         action.merge("confirm" => resolved)
+      end
+
+      def authorize_dialog_action(action)
+        dialog = action["dialog"]
+        return false unless dialog
+
+        page_name = dialog["page"]
+        return false unless page_name
+
+        @dialog_auth_cache ||= {}
+        return @dialog_auth_cache[page_name] if @dialog_auth_cache.key?(page_name)
+
+        @dialog_auth_cache[page_name] = begin
+          page = Pages::Resolver.find_by_name(page_name)
+          presenter_name = page.main_presenter_name
+          presenter = LcpRuby.loader.presenter_definition(presenter_name)
+          model_name = presenter.model
+
+          perm_def = LcpRuby.loader.permission_definition(model_name)
+          dialog_evaluator = Authorization::PermissionEvaluator.new(perm_def, permission_evaluator.user, model_name)
+          dialog_evaluator.can_access_presenter?(presenter_name)
+        rescue MetadataError => e
+          raise unless Rails.env.production?
+          Rails.logger.error("[LcpRuby] Dialog action auth failed for page '#{page_name}': #{e.message}")
+          false
+        end
       end
 
       def action_permitted_for_record?(action, record)

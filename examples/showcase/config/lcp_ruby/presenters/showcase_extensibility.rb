@@ -42,5 +42,7 @@ define_presenter :showcase_extensibility do
   action :create, type: :built_in, on: :collection, label: "New Record"
   action :show, type: :built_in, on: :single
   action :edit, type: :built_in, on: :single
+  action :quick_edit, type: :dialog, on: :single, label: "Quick Edit", icon: "edit-3",
+    dialog: { page: "extensibility_quick_edit_dialog", record: :current, on_success: :reload }
   action :destroy, type: :built_in, on: :single, confirm: true, style: :danger
 end

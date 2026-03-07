@@ -162,8 +162,8 @@ module LcpRuby
 
       def resolve_primary_slug(view_group)
         return nil unless view_group
-        presenter = LcpRuby.loader.presenter_definitions[view_group.primary_presenter]
-        presenter&.slug
+        page = LcpRuby.loader.page_definitions[view_group.primary_presenter]
+        page&.slug
       end
 
       def record_label(record)

@@ -18,6 +18,19 @@ en:
       restore: "Restore"
       permanently_destroy: "Permanently Delete"
       confirm_permanently_destroy: "This will permanently delete the record. Are you sure?"
+    dialogs:
+      close: "Close"
+      default_title: "Dialog"
+      delete_reason_title: "Reason for Deletion"
+      quick_note_title: "Quick Note"
+      confirm_delete_title: "Confirm Deletion"
+      confirm_delete_employee: "Are you sure you want to delete this employee? This action cannot be undone and all related records will be removed."
+      quick_edit_title: "Quick Edit"
+    confirmations:
+      confirm: "Confirm"
+      cancel: "Cancel"
+      confirm_delete: "Delete Record"
+      confirm_delete_message: "Are you sure you want to delete this record? This action cannot be undone."
     form:
       create: "Create"
       update: "Update"

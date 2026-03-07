@@ -16,6 +16,13 @@ LcpRuby::Engine.routes.draw do
   post   "impersonate",      to: "impersonation#create",  as: :impersonate
   delete "impersonate",      to: "impersonation#destroy", as: :stop_impersonate
 
+  scope "lcp_dialog/:page_name" do
+    get  "/new",       to: "dialogs#new",    as: :dialog_new
+    post "/",          to: "dialogs#create",  as: :dialog_create
+    get  "/:id/edit",  to: "dialogs#edit",    as: :dialog_edit
+    patch "/:id",      to: "dialogs#update",  as: :dialog_update
+  end
+
   scope ":lcp_slug" do
     # Saved filters API (must precede /:id to avoid matching "saved-filters" as id)
     scope "saved-filters", as: :saved_filters do

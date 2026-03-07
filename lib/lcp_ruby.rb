@@ -23,6 +23,8 @@ require "lcp_ruby/metadata/presenter_definition"
 require "lcp_ruby/metadata/permission_definition"
 require "lcp_ruby/metadata/group_definition"
 require "lcp_ruby/metadata/view_group_definition"
+require "lcp_ruby/metadata/zone_definition"
+require "lcp_ruby/metadata/page_definition"
 require "lcp_ruby/metadata/menu_item"
 require "lcp_ruby/metadata/menu_definition"
 require "lcp_ruby/metadata/loader"
@@ -201,6 +203,9 @@ require "lcp_ruby/presenter/field_value_resolver"
 require "lcp_ruby/presenter/breadcrumb_builder"
 require "lcp_ruby/presenter/breadcrumb_path_helper"
 
+# Pages
+require "lcp_ruby/pages/resolver"
+
 # Routing
 require "lcp_ruby/routing/presenter_routes"
 
@@ -323,6 +328,7 @@ module LcpRuby
       SavedFilters::Registry.clear!
       DataSource::Registry.clear!
       ViewSlots::Registry.clear!
+      Pages::Resolver.clear!
 
       # Remove dynamic constants to avoid "already initialized" warnings
       Dynamic.constants.each do |const|

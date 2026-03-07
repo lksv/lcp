@@ -7,8 +7,9 @@ module LcpRuby
         end
 
         def find_by_slug(slug)
-          LcpRuby.loader.presenter_definitions.values.find { |p| p.slug == slug } ||
-            raise(MetadataError, "No presenter found with slug '#{slug}'")
+          page = Pages::Resolver.find_by_slug(slug)
+          presenter_name = page.main_presenter_name
+          LcpRuby.loader.presenter_definition(presenter_name)
         end
 
         def presenters_for_model(model_name)

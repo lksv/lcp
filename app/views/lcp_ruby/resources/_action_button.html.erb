@@ -1,11 +1,72 @@
+<% action_label = action["label"] || action["name"].humanize %>
 <% if action["_disabled"] %>
-  <span class="<%= css_class %> lcp-action-disabled"><%= action["label"] || action["name"].humanize %></span>
-<% elsif action["type"] == "custom" %>
+  <span class="<%= css_class %> lcp-action-disabled"><%= action_label %></span>
+<% elsif action["type"] == "dialog" %>
+  <%
+    dialog_config = action["dialog"] || {}
+    page_name = dialog_config["page"]
+    on_success = dialog_config["on_success"] || "reload"
+    if dialog_config["record"] == "current" && record
+      dialog_url = lcp_ruby.dialog_edit_path(page_name: page_name, id: record.id)
+    else
+      dialog_url = lcp_ruby.dialog_new_path(page_name: page_name)
+    end
+    # Append defaults as query params
+    defaults = dialog_config["defaults"]
+    if defaults.is_a?(Hash)
+      query = defaults.map { |k, v| "defaults[#{k}]=#{ERB::Util.url_encode(v.to_s)}" }.join("&")
+      dialog_url = "#{dialog_url}?#{query}"
+    end
+    # Resolve dialog size: action override > page config > default
+    dialog_page = LcpRuby.loader.page_definitions[page_name]
+    dialog_size = dialog_config["size"] || dialog_page&.dialog_size || "medium"
+  %>
   <% btn_class = "#{css_class} #{'btn-danger' if action['style'] == 'danger'}" %>
-  <%= button_to action["label"] || action["name"].humanize,
-        single_action_path(record, action_name: action["name"]),
-        data: action["confirm"] ? { turbo_confirm: action["confirm_message"] || "Are you sure?" } : {},
-        class: btn_class, form_class: css_class %>
+  <a href="<%= dialog_url %>" class="<%= btn_class %>"
+     onclick="lcpOpenDialog(this.href, { onSuccess: '<%= on_success %>', size: '<%= dialog_size %>' }); return false;">
+    <%= action_label %>
+  </a>
+<% elsif action["type"] == "custom" %>
+  <%
+    confirm = action["confirm"]
+  %>
+  <% btn_class = "#{css_class} #{'btn-danger' if action['style'] == 'danger'}" %>
+  <% if confirm.is_a?(Hash) && confirm["page"] %>
+    <%
+      confirm_page = LcpRuby.loader.page_definitions[confirm["page"]]
+      confirm_size = confirm["size"] || confirm_page&.dialog_size || "medium"
+      confirm_url = lcp_ruby.dialog_new_path(page_name: confirm["page"])
+    %>
+    <a href="<%= single_action_path(record, action_name: action["name"]) %>"
+       class="<%= btn_class %>"
+       data-lcp-confirm-page="<%= confirm["page"] %>"
+       data-lcp-confirm-page-url="<%= confirm_url %>"
+       data-lcp-confirm-page-size="<%= confirm_size %>"
+       data-lcp-confirm-action-method="post">
+      <%= action_label %>
+    </a>
+  <% elsif confirm.is_a?(Hash) %>
+    <%
+      confirm_data = {
+        "lcp-confirm-title" => I18n.t(confirm["title_key"], default: "Confirm"),
+        "lcp-confirm-message" => I18n.t(confirm["message_key"], default: "Are you sure?"),
+        "lcp-confirm-style" => confirm["style"]
+      }.compact
+    %>
+    <%= button_to action_label,
+          single_action_path(record, action_name: action["name"]),
+          data: confirm_data,
+          class: btn_class, form_class: css_class %>
+  <% elsif confirm %>
+    <%= button_to action_label,
+          single_action_path(record, action_name: action["name"]),
+          data: { turbo_confirm: action["confirm_message"] || "Are you sure?" },
+          class: btn_class, form_class: css_class %>
+  <% else %>
+    <%= button_to action_label,
+          single_action_path(record, action_name: action["name"]),
+          class: btn_class, form_class: css_class %>
+  <% end %>
 <% else %>
   <% case action["name"] %>
   <% when "show" %>
@@ -13,10 +74,41 @@
   <% when "edit" %>
     <%= link_to "Edit", edit_resource_path(record), class: css_class %>
   <% when "destroy" %>
-    <%= button_to "Delete", resource_path(record),
-          method: :delete,
-          data: { turbo_confirm: action["confirm_message"] || "Are you sure?" },
-          class: "#{css_class} btn-danger", form_class: css_class %>
+    <%
+      confirm = action["confirm"]
+    %>
+    <% if confirm.is_a?(Hash) && confirm["page"] %>
+      <%
+        confirm_page = LcpRuby.loader.page_definitions[confirm["page"]]
+        confirm_size = confirm["size"] || confirm_page&.dialog_size || "medium"
+        confirm_url = lcp_ruby.dialog_new_path(page_name: confirm["page"])
+      %>
+      <a href="<%= resource_path(record) %>"
+         class="<%= css_class %> btn-danger"
+         data-lcp-confirm-page="<%= confirm["page"] %>"
+         data-lcp-confirm-page-url="<%= confirm_url %>"
+         data-lcp-confirm-page-size="<%= confirm_size %>"
+         data-lcp-confirm-action-method="delete">
+        Delete
+      </a>
+    <% elsif confirm.is_a?(Hash) %>
+      <%
+        destroy_confirm_data = {
+          "lcp-confirm-title" => I18n.t(confirm["title_key"], default: "Delete Record"),
+          "lcp-confirm-message" => I18n.t(confirm["message_key"], default: "Are you sure you want to delete this record? This action cannot be undone."),
+          "lcp-confirm-style" => confirm["style"] || "danger"
+        }.compact
+      %>
+      <%= button_to "Delete", resource_path(record),
+            method: :delete,
+            data: destroy_confirm_data,
+            class: "#{css_class} btn-danger", form_class: css_class %>
+    <% else %>
+      <%= button_to "Delete", resource_path(record),
+            method: :delete,
+            data: { turbo_confirm: action["confirm_message"] || "Are you sure?" },
+            class: "#{css_class} btn-danger", form_class: css_class %>
+    <% end %>
   <% when "restore" %>
     <%= button_to I18n.t("lcp_ruby.actions.restore", default: "Restore"),
           restore_resource_path(record),

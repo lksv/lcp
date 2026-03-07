@@ -2,7 +2,7 @@
 
 **Status:** Proposed
 **Date:** 2026-03-07
-**Updated:** 2026-03-07
+**Updated:** 2026-03-07 (dashboard convergence)
 
 ## Problem / Motivation
 
@@ -22,7 +22,7 @@ The solution is **Page** — a thin abstraction layer between the URL/trigger an
 | **Presenters** | Content: fields, sections, actions, conditional rendering | Pages contain presenters. Presenters define WHAT is rendered. Pages define HOW it is arranged. |
 | **View Groups** | Navigation: menu, breadcrumbs, view switching | View groups reference pages (not presenters directly). View groups define WHERE pages are accessed. |
 | **Modal Dialogs** | Render context: modal overlay, size, lifecycle | Dialogs open a page in a modal layout instead of a full-page layout. Dialog = render context, page = content layout. See [Modal Dialogs spec](modal_dialogs.md). |
-| **Dashboards** | Multi-model overview: KPIs, charts, widgets | Dashboards may converge with pages (a dashboard = a page with widget zones and no primary model) or remain a parallel concept. See [Open Question #1](#open-questions). |
+| **Dashboards** | Multi-model overview: KPIs, charts, widgets | Dashboards converge with pages. A dashboard is a standalone page (no model) with `layout: grid` and widget zones. No separate abstraction. See [Decision D14](#decisions) and [Dashboards spec](dashboards.md). |
 
 ## Core Concept
 
@@ -470,6 +470,91 @@ zones:
 
 When `width` is omitted, the layout engine distributes columns automatically: if only `main` is present, it gets 12; if `main` + `sidebar`, sidebar defaults to 4 and main gets 8; etc. Multiple zones within the same area (e.g., two sidebar zones) stack vertically within the area's column allocation.
 
+### Layout modes
+
+Pages support two layout modes:
+
+| Mode | Trigger | Behavior |
+|------|---------|----------|
+| **Semantic** (default) | No `layout:` key, or `layout: semantic` | Zones placed into named areas (`main`, `tabs`, `sidebar`, `below`). The layout engine generates CSS grid from populated areas. |
+| **Grid** | `layout: grid` | Zones use explicit `position: { row, col, width, height }`. Direct CSS grid positioning. Used for dashboard-style pages. |
+
+Semantic mode is a higher-level abstraction over grid — `main` maps to the top-left, `sidebar` to the top-right, `tabs` below main, etc. Both modes produce CSS grid output. A page chooses one mode; mixing is a Tier 2+ capability.
+
+```yaml
+# Semantic mode — composite page
+page:
+  name: employee_detail
+  model: employee
+  slug: employees
+  layout: semantic              # default when omitted, but can be stated explicitly
+  zones:
+    - name: header
+      presenter: employee_show
+      area: main
+    - name: leave_requests
+      presenter: leave_requests_index
+      area: tabs
+
+# Grid mode — dashboard page
+page:
+  name: main_dashboard
+  slug: main-dashboard
+  layout: grid
+  zones:
+    - name: total_orders
+      type: widget
+      widget: { type: kpi_card, model: order, aggregate: count, scope: this_month }
+      position: { row: 1, col: 1, width: 3, height: 1 }
+    - name: recent_orders
+      type: presenter
+      presenter: orders
+      limit: 5
+      position: { row: 2, col: 1, width: 8, height: 2 }
+```
+
+### Zone types
+
+Each zone has a `type` that determines what it renders:
+
+| Type | Description | Data source |
+|------|-------------|-------------|
+| `presenter` (default) | Renders a presenter (index, show, or form). This is the standard zone type for composite pages. | Presenter definition + model query |
+| `widget` | Renders a standalone data visualization (KPI card, chart, text). Used for dashboard-style pages. | Widget-specific data resolver |
+
+**Presenter zones** are the default (`type` can be omitted). They reference a presenter by name and render its content.
+
+**Widget zones** use `type: widget` with a nested `widget:` block:
+
+```yaml
+zones:
+  - name: revenue
+    type: widget
+    widget:
+      type: kpi_card           # kpi_card, text, list, chart (Tier 2), embed (Tier 3)
+      model: order
+      aggregate: sum
+      aggregate_field: total_amount
+      scope: this_month
+      format: currency
+      link_to: orders          # click → /orders?scope=this_month
+    position: { row: 1, col: 1, width: 3, height: 1 }
+```
+
+Widget types:
+
+| Widget type | Tier | Description |
+|-------------|------|-------------|
+| `kpi_card` | 1 | Large number with label and optional icon. Data from `Aggregates::QueryBuilder`. Optional `link_to` for drill-down. |
+| `text` | 1 | Static content from i18n key. For welcome messages, instructions, section headers. |
+| `list` | 1 | Simple record list (title + subtitle fields only). |
+| `chart` | 2 | Bar, line, pie, donut, area chart via Chartkick (wraps Chart.js). Data from `group_by` + `aggregate`. |
+| `embed` | 3 | Iframe embedding external content (Metabase, Grafana). Signed embed URL support. |
+
+Widget zones don't reference a presenter — they have their own data fetching logic. Widget data flows through existing infrastructure: `Aggregates::QueryBuilder` for KPIs, `ActiveRecord#group.calculate` for charts, `I18n.t` for text. All queries respect the current user's permission scope via `ScopeBuilder`.
+
+See [Dashboards spec](dashboards.md) for full dashboard configuration examples and widget details.
+
 ## Context Passing — scope_context
 
 Child zones receive data from the parent (primary record) via `scope_context`:
@@ -902,6 +987,17 @@ One pipeline. The difference between page, zone, and dialog is only the layout w
 - Confirmation dialogs (lightweight `confirm:` on actions)
 - Full page reload after dialog submit (`on_success: reload`)
 
+**Tier 1b (Dashboards):**
+- `layout: grid` mode on pages (explicit row/col/width/height positioning)
+- Widget zones (`type: widget`) with `kpi_card`, `text`, `list` widget types
+- Standalone pages (no primary model) with widget zones = dashboards
+- `WidgetDataResolver` for widget data fetching via `Aggregates::QueryBuilder`
+- Widget renderers (`KpiCardRenderer`, `TextRenderer`, `ListRenderer`)
+- Grid layout CSS template
+- `link_to` drill-down on KPI widgets
+- Landing page per role via engine configuration
+- `visible_when` conditions on zones
+
 **Tier 2:**
 - Explicit page YAML for composite layouts (master-detail, tabs, sidebar)
 - `scope_context` reference resolution (new infrastructure) + parameterized scope delegation
@@ -910,7 +1006,9 @@ One pipeline. The difference between page, zone, and dialog is only the layout w
 - Zone endpoint (`/:slug/:id/zones/:zone_name`) for frame `src`
 - Tab state in parent URL (`?tab=X`), zone state in frame URLs
 - `on_success: reload_zone` / `reload_zones` via Turbo Stream
-- Widget zones (new zone type, reusing dashboard/aggregate infrastructure)
+- Chart widget type via Chartkick gem (optional dependency)
+- KPI trend indicators (compare with previous period)
+- Auto-refresh via Turbo Frames (each zone is an independent frame)
 - `record_click: dialog` for inline child record editing
 - Form zones with `submit_redirect: self`
 - `record_source` for loading a zone's record from a param
@@ -919,9 +1017,10 @@ One pipeline. The difference between page, zone, and dialog is only the layout w
 - Master-detail split view (`selection: single`, `record_source: :selection`, `?selected=N`)
 - Composite dialog pages (multi-zone modals)
 - Model-based auto-refresh (`depends_on`)
+- Embed widget type for external BI tools (Metabase, Grafana)
 - DB-stored page definitions (Configuration Source Principle)
-- Page builder UI
-- User personalization (zone rearrangement)
+- Page builder UI / Dashboard builder UI
+- User personalization (zone rearrangement, drag-and-drop)
 
 ## Decisions
 
@@ -982,9 +1081,19 @@ The `presenters:` key in permissions YAML stays unchanged. Page-level authorizat
 
 Virtual models have no AR class and no registry entry. The controller must detect `model_definition.virtual?` and use `JsonItemWrapper` instead of AR records. Pundit authorization for virtual models uses action-level permission checks.
 
+### D14: Dashboards converge with pages
+
+A dashboard is a standalone page (no primary model) with `layout: grid` and widget zones. No separate `DashboardDefinition`, `DashboardController`, loader, permission key, or routing. This reuses the full pages infrastructure — permissions, menu, routing, view groups, slug ownership, dialog integration, Configuration Source Principle. Widget zones (`type: widget`) are a natural extension of the zone concept. See [Dashboards spec](dashboards.md) for full detail.
+
+**Rationale:** Dashboards and composite pages share nearly all infrastructure (layout, routing, permissions, menu, controller). The only new concept is widget zones — zones that render standalone data visualizations (KPI cards, charts, text) instead of presenter-driven content. Keeping dashboards as a parallel concept would require duplicating the entire page stack (definition, loader, controller, permissions, menu integration) for minimal benefit. Dashboard-style pages use `layout: grid` for explicit positioning; composite pages use `layout: semantic` for area-based layout. Both are valid layout modes on the same `PageDefinition`.
+
+### D15: Two layout modes — semantic and grid
+
+Semantic mode (default) places zones into named areas (`main`, `tabs`, `sidebar`, `below`). Grid mode (`layout: grid`) uses explicit `position: { row, col, width, height }`. Both produce CSS grid output. A page chooses one mode. This separates the common case (composite pages with semantic areas) from the dashboard case (explicit grid positioning) without introducing a separate abstraction.
+
 ## Open Questions
 
-1. **Relationship to dashboards** — A standalone page (no model) with widget zones is essentially a dashboard. Should dashboards converge into pages (a dashboard = a page with widget zones), or remain a parallel concept? Convergence eliminates duplication. Separation keeps dashboards simpler (no zone/area/scope_context complexity for pure KPI overview pages).
+1. ~~**Relationship to dashboards**~~ — **Resolved: converged.** See [Decision D14](#d14-dashboards-converge-with-pages).
 
 2. **Zone-level search and filtering** — Should child index zones support full advanced search (filter bar, query language, saved filters)? Or only basic scope + sort? Options: (a) full support; (b) quick search only; (c) configurable per zone (`filters: full | quick | none`).
 

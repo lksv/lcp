@@ -3,6 +3,7 @@ require "digest"
 module LcpRuby
   class ResourcesController < ApplicationController
     include LcpRuby::AssociationOptionsBuilder
+    include LcpRuby::DialogRendering
 
     before_action :set_record, only: [ :show, :edit, :update, :destroy, :evaluate_conditions, :reorder, :reparent ]
     before_action :set_record_with_discarded, only: [ :restore, :permanently_destroy ]
@@ -65,6 +66,11 @@ module LcpRuby
       @record = @model_class.new
       authorize @record
       apply_presenter_defaults(@record)
+
+      if dialog_context?
+        return render_dialog_form
+      end
+
       build_nested_records(@record)
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
     end
@@ -78,10 +84,18 @@ module LcpRuby
       validate_association_values!(@record)
 
       if @record.errors.none? && @record.save
+        if dialog_context?
+          return render_dialog_success(params[:on_success])
+        end
+
         redirect_to redirect_path_for("create", @record),
           notice: I18n.t("lcp_ruby.flash.created", model: current_model_definition.label,
             default: "%{model} was successfully created.")
       else
+        if dialog_context?
+          return render_dialog_form_with_errors
+        end
+
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
         render :new, status: :unprocessable_content
       end
@@ -90,6 +104,11 @@ module LcpRuby
     def edit
       return head(:not_found) if api_model?
       authorize @record
+
+      if dialog_context?
+        return render_dialog_form
+      end
+
       @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
       load_edit_virtual_columns
       preload_associations(@record, :form)
@@ -106,10 +125,18 @@ module LcpRuby
       validate_association_values!(@record)
 
       if @record.errors.none? && @record.save
+        if dialog_context?
+          return render_dialog_success(params[:on_success])
+        end
+
         redirect_to redirect_path_for("update", @record),
           notice: I18n.t("lcp_ruby.flash.updated", model: current_model_definition.label,
             default: "%{model} was successfully updated.")
       else
+        if dialog_context?
+          return render_dialog_form_with_errors
+        end
+
         @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
         load_dirty_record_virtual_columns
         render :edit, status: :unprocessable_content
@@ -1202,21 +1229,9 @@ module LcpRuby
       Rails.logger.warn("[LcpRuby] Failed to preload associations for #{context}: #{e.message}")
     end
 
-    # Pundit uses model class to find policy
-    def policy(record)
-      policy_class = Authorization::PolicyFactory.policy_for(current_presenter.model)
-      policy_class.new(current_user, record)
-    end
-
     def policy_scope(scope)
       policy_class = Authorization::PolicyFactory.policy_for(current_presenter.model)
       policy_class::Scope.new(current_user, scope).resolve
-    end
-
-    def authorize(record, query = nil)
-      pol = policy(record)
-      query ||= "#{action_name}?"
-      raise Pundit::NotAuthorizedError unless pol.public_send(query)
     end
 
     # -- Inline create helpers --

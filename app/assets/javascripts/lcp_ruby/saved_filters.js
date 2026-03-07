@@ -1,7 +1,7 @@
 // LCP Ruby — Saved Filters
 //
-// Handles save dialog, CRUD operations, filter activation, and dropdown toggles
-// for saved filters on index pages.
+// Handles save dialog (via presenter-driven dialog system), CRUD operations,
+// filter activation, and dropdown toggles for saved filters on index pages.
 (function() {
   "use strict";
 
@@ -15,9 +15,7 @@
 
   function initSavedFilters() {
     initDropdownToggles();
-    initSaveDialog();
     initSaveButton();
-    initVisibilityToggle();
   }
 
   // --- Dropdown toggle ---
@@ -48,30 +46,12 @@
     });
   }
 
-  // --- Save dialog ---
-
-  function initSaveDialog() {
-    // Close dialog on overlay or cancel click
-    document.querySelectorAll("[data-action='close-save-dialog']").forEach(function(el) {
-      el.addEventListener("click", function() {
-        closeSaveDialog();
-      });
-    });
-
-    // Form submission
-    var form = document.getElementById("lcp-save-filter-form");
-    if (form) {
-      form.addEventListener("submit", function(e) {
-        e.preventDefault();
-        submitSaveFilter(form);
-      });
-    }
-  }
+  // --- Save button ---
 
   function initSaveButton() {
-    document.querySelectorAll("[data-action='save-filter']").forEach(function(btn) {
+    document.querySelectorAll("[data-lcp-open-save-filter-dialog]").forEach(function(btn) {
       btn.addEventListener("click", function() {
-        openSaveDialog();
+        openSaveFilterDialog(btn);
       });
     });
 
@@ -86,109 +66,40 @@
     }
   }
 
-  function updateSaveButtonVisibility() {
-    var hasConditions = document.querySelectorAll(".lcp-filter-row").length > 0;
-    document.querySelectorAll(".lcp-save-filter-btn").forEach(function(btn) {
-      btn.style.display = hasConditions ? "" : "none";
-    });
-  }
-
-  function openSaveDialog() {
-    var dialog = document.getElementById("lcp-save-filter-dialog");
-    if (dialog) {
-      dialog.style.display = "flex";
-      var nameInput = dialog.querySelector("#saved_filter_name");
-      if (nameInput) nameInput.focus();
-    }
-  }
-
-  function closeSaveDialog() {
-    var dialog = document.getElementById("lcp-save-filter-dialog");
-    if (dialog) {
-      dialog.style.display = "none";
-    }
-  }
-
-  // --- Visibility field toggles ---
-
-  function initVisibilityToggle() {
-    var select = document.getElementById("saved_filter_visibility");
-    if (!select) return;
-
-    select.addEventListener("change", function() {
-      toggleVisibilityFields(select.value);
-    });
-    toggleVisibilityFields(select.value);
-  }
-
-  function toggleVisibilityFields(value) {
-    var roleWrapper = document.getElementById("saved_filter_target_role_wrapper");
-    var groupWrapper = document.getElementById("saved_filter_target_group_wrapper");
-
-    if (roleWrapper) {
-      roleWrapper.style.display = value === "role" ? "" : "none";
-    }
-    if (groupWrapper) {
-      groupWrapper.style.display = value === "group" ? "" : "none";
-    }
-  }
-
-  // --- CRUD operations ---
-
-  function submitSaveFilter(form) {
-    var url = form.dataset.url;
-    var formData = new FormData(form);
-    var data = {};
-
-    formData.forEach(function(value, key) {
-      // Convert form field names like "saved_filter[name]" to nested object
-      var match = key.match(/^saved_filter\[(.+)\]$/);
-      if (match) {
-        data[match[1]] = value;
-      }
-    });
-
-    // Get condition tree from the advanced filter state
+  function openSaveFilterDialog(button) {
     var conditionTree = getConditionTreeFromAdvancedFilter();
     if (!conditionTree) {
       alert("No filter conditions to save.");
       return;
     }
-    data.condition_tree = conditionTree;
 
-    // Get CSRF token
-    var csrfToken = document.querySelector("meta[name='csrf-token']");
-    var token = csrfToken ? csrfToken.content : "";
+    var dialogUrl = button.getAttribute("data-lcp-dialog-url");
+    var submitUrl = button.getAttribute("data-lcp-saved-filters-url");
 
-    // Determine if this is create or update
-    var method = form.dataset.filterId ? "PATCH" : "POST";
-    var requestUrl = form.dataset.filterId ? url + "/" + form.dataset.filterId : url;
-
-    fetch(requestUrl, {
-      method: method,
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-Token": token,
-        "Accept": "application/json"
-      },
-      body: JSON.stringify({ saved_filter: data })
-    })
-    .then(function(response) {
-      if (response.ok) {
-        return response.json();
-      } else {
-        return response.json().then(function(err) {
-          throw new Error(err.error || err.errors?.join(", ") || "Save failed");
+    lcpOpenDialog(dialogUrl, {
+      size: "medium",
+      onSuccess: "reload",
+      beforeSubmit: function(form) {
+        // Override form action to SavedFiltersController
+        form.action = submitUrl + "?_dialog=1";
+        // Change param scope from record[] to saved_filter[]
+        form.querySelectorAll('[name^="record["]').forEach(function(input) {
+          input.name = input.name.replace(/^record\[/, "saved_filter[");
         });
+        // Inject condition_tree
+        var hidden = document.createElement("input");
+        hidden.type = "hidden";
+        hidden.name = "saved_filter[condition_tree]";
+        hidden.value = JSON.stringify(conditionTree);
+        form.appendChild(hidden);
       }
-    })
-    .then(function(result) {
-      closeSaveDialog();
-      // Navigate to the saved filter URL
-      window.location.href = window.location.pathname + "?saved_filter=" + result.id;
-    })
-    .catch(function(error) {
-      alert(error.message);
+    });
+  }
+
+  function updateSaveButtonVisibility() {
+    var hasConditions = document.querySelectorAll(".lcp-filter-row").length > 0;
+    document.querySelectorAll(".lcp-save-filter-btn").forEach(function(btn) {
+      btn.style.display = hasConditions ? "" : "none";
     });
   }
 

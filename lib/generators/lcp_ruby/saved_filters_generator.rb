@@ -21,6 +21,10 @@ module LcpRuby
         template "permissions.yml", "config/lcp_ruby/permissions/saved_filter.yml"
       end
 
+      def copy_save_dialog_presenter
+        template "save_dialog_presenter.yml", "config/lcp_ruby/presenters/save_filter_dialog.yml"
+      end
+
       def show_post_install_message
         say ""
         say "LCP Ruby saved filters installed!", :green

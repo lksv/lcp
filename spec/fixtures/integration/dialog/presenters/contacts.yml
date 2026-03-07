@@ -1,0 +1,48 @@
+presenter:
+  name: contacts
+  model: contact
+  slug: contacts
+  index:
+    table_columns:
+      - field: first_name
+      - field: last_name
+      - field: email
+  form:
+    sections:
+      - title: Contact Info
+        fields:
+          - field: first_name
+          - field: last_name
+          - field: email
+  actions:
+    collection:
+      - name: create
+        type: built_in
+      - name: quick_add
+        type: dialog
+        label: Quick Add
+        dialog:
+          page: contact_quick_form
+          on_success: reload
+    single:
+      - name: show
+        type: built_in
+      - name: edit
+        type: built_in
+      - name: destroy
+        type: built_in
+      - name: quick_edit
+        type: dialog
+        label: Quick Edit
+        dialog:
+          page: contact_quick_form
+          record: current
+          on_success: reload
+      - name: delete_with_reason
+        type: custom
+        label: Delete with Reason
+        style: danger
+        confirm:
+          page: delete_reason_dialog
+  search:
+    enabled: true

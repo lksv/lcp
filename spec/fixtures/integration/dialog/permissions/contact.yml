@@ -1,0 +1,13 @@
+permissions:
+  model: contact
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      fields: { readable: all, writable: all }
+      actions: all
+      scope: all
+      presenters: all
+    viewer:
+      crud: [index, show]
+      fields: { readable: all, writable: [] }
+      presenters: [contacts]

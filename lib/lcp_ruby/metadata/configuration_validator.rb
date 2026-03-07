@@ -60,6 +60,7 @@ module LcpRuby
         validate_associations
         validate_presenters
         validate_permissions
+        validate_pages
         validate_uniqueness
         validate_view_groups
         validate_menu
@@ -1981,6 +1982,8 @@ module LcpRuby
 
           validate_action_visible_when(presenter, action)
           validate_custom_action_name(presenter, action)
+          validate_dialog_action(presenter, action) if action["type"].to_s == "dialog"
+          validate_confirm_page_reference(presenter, action)
         end
       end
 
@@ -1990,6 +1993,51 @@ module LcpRuby
         if BUILT_IN_ACTION_NAMES.include?(action["name"].to_s)
           @warnings << "Presenter '#{presenter.name}', action '#{action['name']}': " \
                        "custom action uses built-in name '#{action['name']}', likely misconfigured"
+        end
+      end
+
+      def validate_dialog_action(presenter, action)
+        dialog = action["dialog"]
+        unless dialog.is_a?(Hash)
+          @errors << "Presenter '#{presenter.name}', action '#{action['name']}': " \
+                     "type: dialog requires a 'dialog' configuration hash"
+          return
+        end
+
+        page_name = dialog["page"]
+        unless page_name.present?
+          @errors << "Presenter '#{presenter.name}', action '#{action['name']}': " \
+                     "dialog action requires 'dialog.page' reference"
+          return
+        end
+
+        page_defs = loader.respond_to?(:page_definitions) ? loader.page_definitions : {}
+        unless page_defs.key?(page_name)
+          @errors << "Presenter '#{presenter.name}', action '#{action['name']}': " \
+                     "dialog references unknown page '#{page_name}'"
+        end
+
+        on_success = dialog["on_success"]
+        if on_success.present? && !%w[reload close redirect confirm_action].include?(on_success)
+          @errors << "Presenter '#{presenter.name}', action '#{action['name']}': " \
+                     "dialog on_success must be one of: reload, close, redirect, confirm_action"
+        end
+
+        record = dialog["record"]
+        if record.present? && record != "current"
+          @errors << "Presenter '#{presenter.name}', action '#{action['name']}': " \
+                     "dialog record must be 'current' or absent"
+        end
+      end
+
+      def validate_confirm_page_reference(presenter, action)
+        confirm = action["confirm"]
+        return unless confirm.is_a?(Hash) && confirm["page"].present?
+
+        page_defs = loader.respond_to?(:page_definitions) ? loader.page_definitions : {}
+        unless page_defs.key?(confirm["page"])
+          @errors << "Presenter '#{presenter.name}', action '#{action['name']}': " \
+                     "confirm references unknown page '#{confirm['page']}'"
         end
       end
 
@@ -2429,6 +2477,24 @@ module LcpRuby
         end
       end
 
+      # --- Page validations ---
+
+      def validate_pages
+        return unless loader.respond_to?(:page_definitions)
+
+        loader.page_definitions.each_value do |page|
+          page.zones.each do |zone|
+            unless loader.presenter_definitions.key?(zone.presenter)
+              @errors << "Page '#{page.name}', zone '#{zone.name}': references unknown presenter '#{zone.presenter}'"
+            end
+          end
+
+          if page.model.present? && !loader.model_definitions.key?(page.model)
+            @errors << "Page '#{page.name}': references unknown model '#{page.model}'"
+          end
+        end
+      end
+
       # --- View group validations ---
 
       def validate_view_groups
@@ -2513,14 +2579,15 @@ module LcpRuby
 
       def validate_slug_uniqueness
         slugs = {}
-        loader.presenter_definitions.each_value do |presenter|
-          next unless presenter.slug.present?
+        page_defs = loader.respond_to?(:page_definitions) ? loader.page_definitions : {}
+        page_defs.each_value do |page|
+          next unless page.slug.present?
 
-          if slugs.key?(presenter.slug)
-            @errors << "Duplicate slug '#{presenter.slug}': used by presenters " \
-                       "'#{slugs[presenter.slug]}' and '#{presenter.name}'"
+          if slugs.key?(page.slug)
+            @errors << "Duplicate slug '#{page.slug}': used by pages " \
+                       "'#{slugs[page.slug]}' and '#{page.name}'"
           else
-            slugs[presenter.slug] = presenter.name
+            slugs[page.slug] = page.name
           end
         end
       end
@@ -2528,6 +2595,8 @@ module LcpRuby
       def validate_table_name_uniqueness
         tables = {}
         loader.model_definitions.each_value do |model|
+          next if model.virtual?
+
           if tables.key?(model.table_name)
             @errors << "Duplicate table_name '#{model.table_name}': used by models " \
                        "'#{tables[model.table_name]}' and '#{model.name}'"

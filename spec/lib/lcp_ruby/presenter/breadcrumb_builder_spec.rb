@@ -26,12 +26,23 @@ RSpec.describe LcpRuby::Presenter::BreadcrumbBuilder do
     allow(LcpRuby.loader).to receive(:presenter_definitions).and_return(
       LcpRuby.loader.presenter_definitions.merge(name => presenter)
     )
+
+    # Auto-page mirrors presenter slug for breadcrumb resolution
+    zone = LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: name)
+    page = LcpRuby::Metadata::PageDefinition.new(
+      name: name, model: name, slug: slug, zones: [ zone ], auto_generated: true
+    )
+    allow(LcpRuby.loader).to receive(:page_definitions).and_return(
+      LcpRuby.loader.page_definitions.merge(name => page)
+    )
+
     presenter
   end
 
   before do
     allow(LcpRuby).to receive(:loader).and_return(double("Loader").as_null_object)
     allow(LcpRuby.loader).to receive(:presenter_definitions).and_return({})
+    allow(LcpRuby.loader).to receive(:page_definitions).and_return({})
     allow(LcpRuby.loader).to receive(:view_groups_for_model).and_return([])
   end
 

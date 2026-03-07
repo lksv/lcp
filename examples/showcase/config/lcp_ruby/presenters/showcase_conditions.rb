@@ -184,9 +184,9 @@ define_presenter :showcase_conditions do
       end
     }
 
-  # --- NOT visible_when: destroy only when not closed ---
+  # --- Page-based confirmation dialog: user must provide a reason before deleting ---
   action :destroy, type: :built_in, on: :single,
-    confirm: true, style: :danger,
+    confirm: { page: "delete_reason_dialog" }, style: :danger,
     visible_when: proc {
       not_condition do
         field(:status).eq("closed")

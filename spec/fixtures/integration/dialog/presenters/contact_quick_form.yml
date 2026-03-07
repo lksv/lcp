@@ -1,0 +1,12 @@
+presenter:
+  name: contact_quick_form
+  model: contact
+  dialog:
+    size: small
+    closable: true
+  form:
+    sections:
+      - title: Quick Entry
+        fields:
+          - field: first_name
+          - field: last_name

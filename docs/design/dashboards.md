@@ -1,7 +1,12 @@
-# Feature Specification: Dashboards
+# Feature Specification: Dashboards (via Pages)
 
-**Status:** Proposed
+**Status:** Proposed (converged with Pages)
 **Date:** 2026-03-06
+**Updated:** 2026-03-07
+
+**Architectural decision:** Dashboards are **not** a separate metadata concept. A dashboard is a **standalone page** (no primary model) with **widget zones** and `layout: grid`. This eliminates a parallel abstraction (`DashboardDefinition`, `DashboardController`, dashboard-specific loader, permissions key, routing) and reuses the full Pages infrastructure — permissions, menu, routing, view groups, slug ownership, dialog integration.
+
+See [Pages spec](composite_pages_v2.md) for the page abstraction, layout modes, and widget zone types.
 
 ## Problem / Motivation
 
@@ -17,6 +22,25 @@ Real-world information systems need dashboards:
 
 Without platform-level dashboard support, host apps must build custom pages outside the declarative YAML model, losing permissions, routing, menu integration, and the consistent UI.
 
+## Why Dashboards Converge with Pages
+
+The original design proposed dashboards as a parallel metadata concept with their own `DashboardDefinition`, controller, loader, and permission key. However, dashboards and composite pages share nearly all infrastructure:
+
+| Concern | Dashboard (original) | Standalone Page (converged) |
+|---------|---------------------|-----------------------------|
+| Definition object | `DashboardDefinition` (new) | `PageDefinition` (existing) |
+| Layout | CSS grid with row/col/width/height | `layout: grid` mode on page (new) |
+| Content units | Widgets | Widget zones (`type: widget`) |
+| Table/list content | References presenter | Presenter zone (`type: presenter`) |
+| Routing | `/dashboards/:slug` (new) | `/:slug` (existing page routing) |
+| Permissions | New `dashboards:` permission key | Existing `presenters:` key per zone |
+| Menu | New menu item type | Existing view group menu integration |
+| Controller | `DashboardsController` (new) | Page rendering in `ResourcesController` |
+| YAML location | `config/lcp_ruby/dashboards/` (new) | `config/lcp_ruby/pages/` (existing) |
+| Config Source Principle | Separate implementation needed | Inherits from pages |
+
+Convergence eliminates an entire parallel stack. The only new concept is **widget zones** — zones with `type: widget` that render standalone data visualizations instead of presenter-driven content. Widget zones are a natural extension of the existing zone concept.
+
 ## User Scenarios
 
 **As a platform configurator,** I want to define a dashboard in YAML that shows KPI cards (total orders, open tasks, revenue this month) and a table of recent records, so that users see an at-a-glance overview when they log in.
@@ -31,165 +55,191 @@ Without platform-level dashboard support, host apps must build custom pages outs
 
 ## Configuration & Behavior
 
-### Dashboard definition
+### Dashboard as a standalone page
 
-Dashboards are a new top-level metadata concept, defined in `config/lcp_ruby/dashboards/`. Each YAML file defines one dashboard. Dashboards are not presenters — they do not map to a single model. They have their own loader, definition object, and controller.
+A dashboard is a page without a primary model, using grid layout:
 
 ```yaml
-# config/lcp_ruby/dashboards/main.yml
-slug: main-dashboard
-title_key: dashboards.main.title    # i18n key, fallback: "Main Dashboard"
-layout:
-  columns: 12                       # CSS grid columns (default: 12)
+# config/lcp_ruby/pages/main_dashboard.yml
+page:
+  name: main_dashboard
+  slug: main-dashboard
+  title_key: dashboards.main.title    # i18n key, fallback: "Main Dashboard"
+  # no model — standalone page
+  layout: grid                        # explicit grid positioning (row/col/width/height)
 
-widgets:
-  - name: total_orders
-    type: kpi_card
-    model: order
-    aggregate: count
-    scope: this_month
-    icon: shopping-cart
-    trend:
-      compare: previous_period      # Tier 2 — compare with previous month
-    position: { row: 1, col: 1, width: 3, height: 1 }
-    link_to: orders                  # click → /orders?scope=this_month
+  zones:
+    - name: total_orders
+      type: widget
+      widget:
+        type: kpi_card
+        model: order
+        aggregate: count
+        scope: this_month
+        icon: shopping-cart
+        link_to: orders               # click → /orders?scope=this_month
+      position: { row: 1, col: 1, width: 3, height: 1 }
 
-  - name: open_tasks
-    type: kpi_card
-    model: task
-    aggregate: count
-    scope: open
-    position: { row: 1, col: 4, width: 3, height: 1 }
-    link_to: tasks                   # click → /tasks?scope=open
+    - name: open_tasks
+      type: widget
+      widget:
+        type: kpi_card
+        model: task
+        aggregate: count
+        scope: open
+        link_to: tasks
+      position: { row: 1, col: 4, width: 3, height: 1 }
 
-  - name: revenue
-    type: kpi_card
-    model: order
-    aggregate: sum
-    aggregate_field: total_amount
-    scope: this_month
-    format: currency
-    position: { row: 1, col: 7, width: 3, height: 1 }
+    - name: revenue
+      type: widget
+      widget:
+        type: kpi_card
+        model: order
+        aggregate: sum
+        aggregate_field: total_amount
+        scope: this_month
+        format: currency
+      position: { row: 1, col: 7, width: 3, height: 1 }
 
-  - name: recent_orders
-    type: table
-    presenter: orders                # reuse existing presenter's columns
-    scope: recent
-    limit: 5
-    position: { row: 2, col: 1, width: 8, height: 2 }
+    - name: notes
+      type: widget
+      widget:
+        type: text
+        content_key: dashboards.main.welcome_note
+      position: { row: 1, col: 10, width: 3, height: 1 }
 
-  - name: orders_by_month
-    type: chart
-    chart_type: line                 # bar, line, pie, donut, area
-    model: order
-    group_by: created_at
-    group_period: month
-    aggregate: count
-    position: { row: 2, col: 9, width: 4, height: 2 }
+    - name: recent_orders
+      type: presenter
+      presenter: orders               # reuse existing presenter's columns
+      scope: recent
+      limit: 5
+      position: { row: 2, col: 1, width: 8, height: 2 }
 
-  - name: notes
-    type: text
-    content_key: dashboards.main.welcome_note  # i18n key
-    position: { row: 1, col: 10, width: 3, height: 1 }
+    - name: orders_by_month
+      type: widget
+      widget:
+        type: chart
+        chart_type: line              # bar, line, pie, donut, area
+        model: order
+        group_by: created_at
+        group_period: month
+        aggregate: count
+      position: { row: 2, col: 9, width: 4, height: 2 }
 ```
 
-### Widget types
+### Widget zone types
 
-| Type | Tier | Description |
-|------|------|-------------|
+Widget zones use `type: widget` with a nested `widget:` block that specifies the widget type and its data source:
+
+| Widget type | Tier | Description |
+|-------------|------|-------------|
 | `kpi_card` | 1 | Large number with label and optional icon. Data from aggregate query on a model + scope. Optional `link_to` for drill-down to filtered index. |
-| `table` | 1 | Compact record table. References an existing presenter (reuses its column definitions). Configurable `scope`, `limit`, and optional `link_to` for "view all". |
+| `table` | 1 | Alias for a presenter zone with `limit`. References an existing presenter (reuses its column definitions). Configurable `scope`, `limit`, and optional `link_to` for "view all". Equivalent to `type: presenter` with `limit:`. |
 | `list` | 1 | Simple record list (compact variant of table — title + subtitle fields only). |
 | `text` | 1 | Static content from i18n key. For welcome messages, instructions, section headers. |
 | `chart` | 2 | Bar, line, pie, donut, area chart. Rendered via Chartkick gem (wraps Chart.js). Data from `group_by` + `aggregate` on a model. |
 | `embed` | 3 | Iframe embedding external content (Metabase dashboard, Grafana panel, custom URL). Signed embed URL support. |
 
+**Note:** `type: presenter` zones (existing concept) also work on dashboard pages. A presenter zone on a dashboard renders a compact index table — the same infrastructure as a regular index page, just embedded in a grid cell with an optional `limit` and `scope`. This means a "table widget" is simply a presenter zone.
+
 ### Grid layout
 
-The dashboard uses a CSS grid with configurable column count (default 12). Each widget specifies its position and size via `row`, `col`, `width`, `height`. On smaller screens, widgets stack vertically (responsive fallback).
+Dashboard pages use `layout: grid` which switches from semantic areas (`main`, `tabs`, `sidebar`, `below`) to explicit CSS grid positioning. Each zone specifies `position: { row, col, width, height }`. The grid uses 12 columns by default.
+
+On smaller screens, zones stack vertically (responsive fallback via CSS media queries).
+
+See [Pages spec — Layout modes](composite_pages_v2.md#layout-modes) for the full layout system.
 
 ### Permissions
 
-Dashboard visibility is controlled through the existing permission system. Each dashboard can be restricted by role:
+Dashboard pages use the standard page permission model — no new `dashboards:` permission key needed.
 
-```yaml
-# config/lcp_ruby/permissions/default.yml
-roles:
-  admin:
-    dashboards: [main-dashboard, admin-overview]
-  manager:
-    dashboards: [main-dashboard]
-  user:
-    dashboards: [user-home]
-```
+**Page-level access:** A standalone page (no model) uses view group visibility. The view group's `public:` flag or `visible_when:` conditions control who sees the page in the menu and can access it.
+
+**Zone-level access:** Each zone independently checks access:
+- **Presenter zones** — check `can_access_presenter?(zone_presenter_name)` via the zone's model permissions. Zones the user can't access are hidden.
+- **Widget zones** — check the user's permission scope for the widget's model. KPI/chart widgets that reference a model apply `ScopeBuilder` to their queries, ensuring users only see data they're authorized to see. If the user has no access to the widget's model at all, the widget zone is hidden.
+- **Text/embed widgets** — always visible (no model). Use `visible_when` conditions for role-based visibility.
 
 Widget-level visibility can use the existing `visible_when` condition system:
 
 ```yaml
 - name: admin_stats
-  type: kpi_card
+  type: widget
   visible_when:
     operator: eq
     field: current_user.role
     value: admin
+  widget:
+    type: kpi_card
+    model: order
+    aggregate: count
 ```
 
 ### Dashboard as landing page
 
-The engine configuration specifies which dashboard (or presenter) is the landing page per role:
+The engine configuration specifies which page is the landing page per role:
 
-```yaml
-# config/lcp_ruby/dashboards/main.yml
-landing_page_for: [admin, manager]
+```ruby
+# config/initializers/lcp_ruby.rb
+LcpRuby.configure do |config|
+  config.landing_page = {
+    admin: "main-dashboard",      # page slug
+    manager: "main-dashboard",
+    default: "tasks"              # falls back to first permitted page
+  }
+end
 ```
 
-When a user logs in, the router checks their role and redirects to the matching dashboard. If no dashboard is configured, the existing behavior (first permitted presenter) is preserved.
+When a user logs in, the router checks their role and redirects to the matching page. If no landing page is configured, the existing behavior (first permitted presenter) is preserved.
 
 ### Routing
 
+Dashboard pages use standard page routing — no separate `/dashboards/` prefix:
+
 ```
-/dashboards/:slug    → dashboards#show
+/main-dashboard    → page rendered via existing ResourcesController
 ```
 
-The dashboard controller resolves the definition from the slug, checks permissions, evaluates widget data, and renders the grid layout.
+The page slug is the URL. The page controller detects a standalone page (no model) and renders the grid layout with its zones instead of a standard CRUD view.
 
 ### Data fetching
 
-Widgets fetch data using existing platform infrastructure — no new query language:
+Widget zones fetch data using existing platform infrastructure — no new query language:
 
 - **KPI cards:** `Aggregates::QueryBuilder` — COUNT, SUM, AVG, MIN, MAX on a model with optional scope
-- **Table/list:** Existing presenter logic — `model.scope.limit(n)` with `IncludesResolver` for eager loading
+- **Presenter zones (table/list):** Existing presenter logic — `model.scope.limit(n)` with `IncludesResolver` for eager loading
 - **Charts:** `model.scope.group(:field).count` (or sum/avg) — Chartkick handles rendering
 - **Scopes:** Reference existing model scopes defined in YAML
 - **Filters:** Optional Ransack predicates passed as widget config
 
-Each widget query respects the current user's row-level permissions (scope from `PermissionEvaluator`).
+Each widget query respects the current user's row-level permissions (scope from `ScopeBuilder`).
 
 ### DSL alternative
 
-```ruby
-LcpRuby.define_dashboard :main do
-  slug "main-dashboard"
-  layout columns: 12
+Pages DSL extended with widget zone support:
 
-  widget :total_orders, type: :kpi_card, position: { row: 1, col: 1, width: 3 } do
-    model :order
-    aggregate :count
-    scope :this_month
+```ruby
+LcpRuby.define_page :main_dashboard do
+  slug "main-dashboard"
+  layout :grid
+
+  zone :total_orders, type: :widget, position: { row: 1, col: 1, width: 3 } do
+    widget type: :kpi_card, model: :order, aggregate: :count, scope: :this_month
     link_to :orders
   end
 
-  widget :recent_orders, type: :table, position: { row: 2, col: 1, width: 8 } do
+  zone :recent_orders, type: :presenter, position: { row: 2, col: 1, width: 8 } do
     presenter :orders
     scope :recent
     limit 5
   end
 
-  widget :orders_chart, type: :chart, position: { row: 2, col: 9, width: 4 } do
-    chart_type :line
-    model :order
-    group_by :created_at, period: :month
-    aggregate :count
+  zone :orders_chart, type: :widget, position: { row: 2, col: 9, width: 4 } do
+    widget type: :chart, chart_type: :line, model: :order do
+      group_by :created_at, period: :month
+      aggregate :count
+    end
   end
 end
 ```
@@ -199,76 +249,126 @@ end
 ### Minimal dashboard — KPI + table
 
 ```yaml
-slug: task-overview
-widgets:
-  - name: open_count
-    type: kpi_card
-    model: task
-    aggregate: count
-    scope: open
-    position: { row: 1, col: 1, width: 4 }
-    link_to: tasks
+page:
+  name: task_overview
+  slug: task-overview
+  layout: grid
 
-  - name: my_tasks
-    type: table
-    presenter: tasks
-    scope: assigned_to_current_user
-    limit: 10
-    position: { row: 2, col: 1, width: 12 }
+  zones:
+    - name: open_count
+      type: widget
+      widget:
+        type: kpi_card
+        model: task
+        aggregate: count
+        scope: open
+        link_to: tasks
+      position: { row: 1, col: 1, width: 4, height: 1 }
+
+    - name: my_tasks
+      type: presenter
+      presenter: tasks
+      scope: assigned_to_current_user
+      limit: 10
+      position: { row: 2, col: 1, width: 12, height: 2 }
 ```
 
 ### Dashboard with charts (Tier 2)
 
 ```yaml
-slug: sales-dashboard
-widgets:
-  - name: monthly_revenue
-    type: chart
-    chart_type: area
-    model: order
-    group_by: created_at
-    group_period: month
-    aggregate: sum
-    aggregate_field: total_amount
-    position: { row: 1, col: 1, width: 8, height: 2 }
+page:
+  name: sales_dashboard
+  slug: sales-dashboard
+  layout: grid
 
-  - name: deals_by_stage
-    type: chart
-    chart_type: pie
-    model: deal
-    group_by: stage
-    aggregate: count
-    position: { row: 1, col: 9, width: 4, height: 2 }
+  zones:
+    - name: monthly_revenue
+      type: widget
+      widget:
+        type: chart
+        chart_type: area
+        model: order
+        group_by: created_at
+        group_period: month
+        aggregate: sum
+        aggregate_field: total_amount
+      position: { row: 1, col: 1, width: 8, height: 2 }
+
+    - name: deals_by_stage
+      type: widget
+      widget:
+        type: chart
+        chart_type: pie
+        model: deal
+        group_by: stage
+        aggregate: count
+      position: { row: 1, col: 9, width: 4, height: 2 }
 ```
 
 ### Dashboard with external BI embed (Tier 3)
 
 ```yaml
-slug: analytics
-widgets:
-  - name: quick_stats
-    type: kpi_card
-    model: order
-    aggregate: count
-    position: { row: 1, col: 1, width: 3 }
+page:
+  name: analytics
+  slug: analytics
+  layout: grid
 
-  - name: detailed_analytics
-    type: embed
-    provider: metabase
-    resource_type: dashboard     # or question
-    resource_id: 42
-    position: { row: 2, col: 1, width: 12, height: 4 }
+  zones:
+    - name: quick_stats
+      type: widget
+      widget:
+        type: kpi_card
+        model: order
+        aggregate: count
+      position: { row: 1, col: 1, width: 3, height: 1 }
+
+    - name: detailed_analytics
+      type: widget
+      widget:
+        type: embed
+        provider: metabase
+        resource_type: dashboard
+        resource_id: 42
+      position: { row: 2, col: 1, width: 12, height: 4 }
 ```
+
+### Mixed dashboard — KPIs + composite tabs
+
+A page can combine grid-positioned widget zones in one area with semantic areas elsewhere. However, for simplicity, Tier 1 dashboard pages use `layout: grid` exclusively. Mixing grid and semantic areas is a Tier 2+ capability.
+
+For now, if you need KPIs above a tabbed view, use two pages: a dashboard page for the KPIs, and a composite page with tabs for the detail views. Or combine them in a single page once Tier 2 mixed layout is available.
 
 ## General Implementation Approach
 
+### What is new (beyond existing pages infrastructure)
+
+1. **Widget zone rendering** — `WidgetRenderer` classes: `KpiCardRenderer`, `TextRenderer`, `ListRenderer`. Each receives the zone's `widget:` config, fetches data, and returns HTML.
+2. **`WidgetDataResolver`** — resolves widget data based on type:
+   - KPI: `model_class.scope.aggregate` via `Aggregates::QueryBuilder`
+   - Table/list: `model_class.scope.limit(n)` with presenter column selection
+   - Chart: `model_class.scope.group(field).calculate(aggregate)` → Chartkick helper
+   - Text: `I18n.t(content_key)`
+3. **Grid layout template** — CSS grid partial for `layout: grid` pages. Zones rendered into `grid-row` / `grid-column` based on `position:` config.
+4. **Standalone page controller branch** — `ResourcesController` detects `current_page.model.nil?` (standalone) and renders the page layout instead of CRUD views.
+5. **`link_to` drill-down** — KPI widget generates an `<a>` tag pointing to the referenced page slug with scope as query param.
+
+### What is reused from existing pages infrastructure
+
+- `PageDefinition`, `ZoneDefinition` (extended with `type`, `widget`, `position`)
+- `Pages::Resolver` (slug lookup)
+- Page routing, view groups, menu integration
+- Permission evaluation (zone-level `can_access_presenter?`)
+- `IncludesResolver` for presenter zones
+- `ScopeBuilder` for row-level permission scoping on widget queries
+- `ConditionEvaluator` for `visible_when` on zones
+
 ### Tiered delivery
 
-**Tier 1 (MVP):** Native server-side widgets only — KPI cards, tables, lists, text. No JavaScript dependencies. Pure HTML + CSS grid. Data via existing `Aggregates::QueryBuilder` and presenter infrastructure. Dashboard controller, YAML loader, `DashboardDefinition` / `WidgetDefinition` value objects, permission integration, routing, menu integration.
+**Tier 1 (MVP):** Native server-side widgets only — KPI cards, text, presenter-based tables. No JavaScript dependencies. Pure HTML + CSS grid. Data via existing `Aggregates::QueryBuilder` and presenter infrastructure. Widget renderers, `WidgetDataResolver`, grid layout template, standalone page controller branch.
 
-**Tier 2:** Add `chartkick` gem (wraps Chart.js) for chart widgets. Add trend indicators on KPI cards (compare with previous period). Add auto-refresh via Turbo Frames (each widget is an independent frame). Add global dashboard filters (date range, department) that propagate to all widgets. Add `visible_when` conditions on widgets.
+**Tier 2:** Add `chartkick` gem (wraps Chart.js) for chart widgets. Add trend indicators on KPI cards (compare with previous period). Add auto-refresh via Turbo Frames (each zone is an independent frame). Add global page filters (date range, department) that propagate to all zones. Add `visible_when` conditions on zones.
 
-**Tier 3:** Embed widget type for external BI tools (Metabase, Grafana, Superset) with signed URL generation. User personalization (drag-and-drop rearrangement stored in DB). Dashboard definitions via DB (Configuration Source Principle). Dashboard builder UI.
+**Tier 3:** Embed widget type for external BI tools (Metabase, Grafana, Superset) with signed URL generation. User personalization (drag-and-drop rearrangement stored in DB). Page definitions via DB (Configuration Source Principle). Dashboard builder UI.
 
 ### Hybrid architecture rationale
 
@@ -280,21 +380,6 @@ Building a full BI engine (interactive charts, drill-down, cross-filtering, sche
 
 This avoids reinventing BI while keeping simple dashboards declarative and integrated.
 
-### Data pipeline
-
-Widget data flows through existing infrastructure:
-
-1. `DashboardController#show` loads `DashboardDefinition` from metadata
-2. For each widget, a `WidgetDataResolver` fetches data based on widget type
-3. KPI: `model_class.scope.aggregate` via `Aggregates::QueryBuilder`
-4. Table/list: `model_class.scope.limit(n)` with presenter column selection and eager loading
-5. Chart: `model_class.scope.group(field).calculate(aggregate)` — result passed to Chartkick helper
-6. All queries are wrapped with the current user's permission scope from `ScopeBuilder`
-
-### Rendering
-
-Each widget renders as a standalone partial. In Tier 2, each widget becomes a Turbo Frame, enabling independent refresh and lazy loading of slow widgets without blocking the entire page.
-
 ### External embed providers
 
 The embed widget uses a provider adapter pattern:
@@ -303,26 +388,34 @@ The embed widget uses a provider adapter pattern:
 - `EmbedProviders::Grafana` — generates panel embed URLs with auth token
 - `EmbedProviders::Custom` — host app registers a provider via `LcpRuby.configure { |c| c.register_embed_provider(:name, MyProvider) }`
 
-Each provider implements `embed_url(resource_type:, resource_id:, params:) → String`.
+Each provider implements `embed_url(resource_type:, resource_id:, params:) -> String`.
 
 ## Decisions
 
-1. **Dashboards are a separate concept, not a presenter type.** Presenters are model-scoped (1 presenter = 1 model). Dashboards aggregate across models. A new `DashboardDefinition` avoids overloading the presenter abstraction, while sharing infrastructure (permissions, routing, menu, conditions).
+### D1: Dashboards converge with pages
 
-2. **Chartkick over raw Chart.js or D3.js.** Chartkick is a Rails-native gem with ERB helpers (`<%= line_chart data %>`), no build step, no JavaScript configuration. It wraps Chart.js for rendering. This matches the platform's server-side philosophy. If users need D3-level customization, they use the embed widget with an external tool.
+A dashboard is a standalone page with `layout: grid` and widget zones. No separate `DashboardDefinition`, controller, loader, or permission key. This reuses the full pages stack and avoids a parallel abstraction. See [Pages spec, Decision D15](composite_pages_v2.md#decisions).
 
-3. **CSS Grid over a JavaScript grid library.** The dashboard layout is static (defined in YAML), not drag-and-drop in Tier 1. CSS Grid handles the layout natively with no dependencies. User personalization (Tier 3) would add a JS drag library only when needed.
+### D2: Chartkick over raw Chart.js or D3.js
 
-4. **Widget data uses existing query infrastructure.** No new query language or data layer. KPI cards use `Aggregates::QueryBuilder`, tables reuse presenter column/scope logic, charts use ActiveRecord `group.calculate`. This keeps the implementation small and leverages tested code.
+Chartkick is a Rails-native gem with ERB helpers (`<%= line_chart data %>`), no build step, no JavaScript configuration. It wraps Chart.js for rendering. This matches the platform's server-side philosophy. If users need D3-level customization, they use the embed widget with an external tool.
+
+### D3: CSS Grid over a JavaScript grid library
+
+The dashboard layout is static (defined in YAML), not drag-and-drop in Tier 1. CSS Grid handles the layout natively with no dependencies. User personalization (Tier 3) would add a JS drag library only when needed.
+
+### D4: Widget data uses existing query infrastructure
+
+No new query language or data layer. KPI cards use `Aggregates::QueryBuilder`, tables reuse presenter column/scope logic, charts use ActiveRecord `group.calculate`. This keeps the implementation small and leverages tested code.
+
+### D5: Chartkick is an optional dependency
+
+Chart widget zones raise a clear error if the `chartkick` gem is not installed. Given LCP's minimal dependency philosophy, this avoids adding a hard dependency for a Tier 2 feature. KPI/table/text widgets work without any additional gems.
 
 ## Open Questions
 
-1. **Global dashboard filters** — Should filters be a special widget type (a `filter` widget that broadcasts to others), or a top-level dashboard config (`parameters:` key)? The filter widget approach is more flexible but needs a mechanism for inter-widget communication (Turbo Frames with shared query params?).
+1. **Global page filters** — Should filters be a special zone type (a `filter` zone that broadcasts to others), or a top-level page config (`parameters:` key)? The filter zone approach is more flexible but needs a mechanism for inter-zone communication (Turbo Frames with shared query params?).
 
 2. **Trend comparison period** — For KPI trend indicators, how to define the comparison period? Options: `previous_period` (auto-detect from scope), explicit `compare_scope`, or `compare_range: 30_days`. The auto-detect approach is simpler but may be ambiguous.
 
-3. **Dashboard caching** — Should widget results be cached? KPI queries on large tables can be slow. Options: fragment caching per widget with TTL, Russian doll caching tied to model `updated_at`, or leaving it to the database (materialized views). This may be premature for Tier 1.
-
-4. **Chartkick dependency** — Should `chartkick` be a hard dependency or optional? If optional, chart widgets would raise an error when the gem is missing. Given LCP's minimal dependency philosophy, optional (with a clear error message) seems better.
-
-5. **Configuration Source Principle timeline** — The principle requires YAML + DB + host API sources. For Tier 1, only YAML/DSL. DB source (runtime dashboard editor) is Tier 3. Should the `DashboardDefinition` value object be designed upfront to support all three sources, or evolve later? Other concepts (permissions, roles) added DB source retroactively without major refactoring.
+3. **Dashboard caching** — Should widget zone results be cached? KPI queries on large tables can be slow. Options: fragment caching per zone with TTL, Russian doll caching tied to model `updated_at`, or leaving it to the database (materialized views). This may be premature for Tier 1.

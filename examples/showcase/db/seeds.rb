@@ -3555,6 +3555,70 @@ features = [
     demo_path: "/showcase/weather-stations",
     demo_hint: "The resilience wrapper catches all errors — if the host provider raised an error, you would see an error banner instead of a crash.",
     status: "beta"
+
+  # === Dialogs ===
+  {
+    name: "Presenter-Driven Dialog",
+    category: "dialogs",
+    description: "Define a dialog form via a presenter with `dialog` config. The dialog is served by `DialogsController` at `/lcp_dialog/:page_name/new` — no slug or index page needed. Ideal for one-off forms like save filter, quick note, or feedback.\n\nThe form supports all standard features: sections, `visible_when`, toggles, validation, error display.",
+    config_example: "```ruby\ndefine_presenter :quick_note_dialog do\n  model :showcase_quick_note  # virtual model (table_name: _virtual)\n\n  dialog size: :small, title_key: \"lcp_ruby.dialogs.quick_note_title\"\n\n  form do\n    section \"Note\" do\n      field :title, autofocus: true\n      field :body, input_type: :textarea, input_options: { rows: 2 }\n      field :priority, input_type: :select\n    end\n  end\nend\n```",
+    demo_path: "/showcase/articles",
+    demo_hint: "Apply an advanced filter on Articles, then click **Save filter** — the dialog is a presenter-driven form with `visible_when` conditions (change Visibility to see Target Role/Group appear).",
+    status: "stable"
+  },
+  {
+    name: "Resource Dialog (?_dialog=1)",
+    category: "dialogs",
+    description: "Any existing resource can be opened as a dialog by adding `?_dialog=1` to new/edit URLs. Uses `type: :dialog` action in the presenter. The same controller, permissions, and form are reused — just rendered inside a dialog frame.\n\nThe `record: :current` option opens the edit form for the clicked record. On success, the page reloads.",
+    config_example: "```ruby\n# Opens the edit form for the current record in a dialog\naction :quick_edit, type: :dialog, on: :single,\n  label: \"Quick Edit\", icon: \"edit-3\",\n  record: :current, dialog: { size: :small }\n```",
+    demo_path: "/showcase/showcase-extensibility",
+    demo_hint: "Click **Actions** on any row in the Extensibility table — you'll see a **Quick Edit** option. It opens the edit form in a centered modal dialog instead of navigating to a new page.",
+    status: "stable"
+  },
+  {
+    name: "Page-Based Confirmation Dialog",
+    category: "dialogs",
+    description: "Replace simple `confirm: true` with a full form dialog before executing an action. The user must fill and submit the dialog form; on success, the original action is executed with the dialog data forwarded as `confirmation_data[...]` params.\n\nUses a virtual model (no DB table) — the form validates but doesn't persist.\n\nUse case: \"Delete with reason\", \"Approve with comment\", \"Reject with explanation\".",
+    config_example: "```ruby\n# Action with page-based confirmation\naction :destroy, type: :built_in, on: :single,\n  confirm: { page: \"delete_reason_dialog\" },\n  style: :danger\n\n# Virtual model for the confirmation form\ndefine_model :showcase_delete_reason do\n  table_name \"_virtual\"\n  field :reason, :text, null: false do\n    validates :presence\n    validates :length, minimum: 5\n  end\n  field :notify_owner, :boolean, default: false\nend\n\n# Dialog presenter\ndefine_presenter :delete_reason_dialog do\n  model :showcase_delete_reason\n  dialog size: :small, title_key: \"...\"\n  form do\n    section \"Reason\" do\n      field :reason, input_type: :textarea\n      field :notify_owner, input_type: :toggle\n    end\n  end\nend\n```",
+    demo_path: "/showcase/showcase-conditions",
+    demo_hint: "Click **Delete** on any row in the Conditions table — instead of a simple confirm, a dialog opens asking for a deletion reason. The reason field requires at least 5 characters.",
+    status: "stable"
+  },
+  {
+    name: "Styled Confirmation Dialog",
+    category: "dialogs",
+    description: "Custom yes/no confirmation with a title, message, and optional danger styling. No form — just a confirm/cancel prompt rendered in the platform's dialog component (not the browser's native `window.confirm`).\n\nUse `title_key` and `message_key` for i18n lookup, and `style: :danger` for red confirm button.",
+    config_example: "```ruby\naction :destroy, type: :built_in, on: :single,\n  style: :danger,\n  confirm: {\n    title_key: \"lcp_ruby.dialogs.confirm_delete_title\",\n    message_key: \"lcp_ruby.dialogs.confirm_delete_employee\",\n    style: :danger\n  }\n```",
+    demo_path: "/showcase/employees",
+    demo_hint: "Click **Delete** on any employee row — a styled confirmation dialog appears with a custom title and message (not the browser's native confirm popup).",
+    status: "stable"
+  },
+  {
+    name: "Simple Browser Confirm",
+    category: "dialogs",
+    description: "The simplest confirmation: `confirm: true` triggers the browser's native `window.confirm()` dialog. One line in the presenter. For a better UX, use styled or page-based confirmation instead.",
+    config_example: "```ruby\n# Boolean — native browser confirm\naction :destroy, type: :built_in, on: :single,\n  confirm: true, style: :danger\n\n# String — custom message in native confirm\naction :destroy, type: :built_in, on: :single,\n  confirm: \"Are you sure?\"\n```",
+    demo_path: "/showcase/showcase-positioning",
+    demo_hint: "Click **Delete** on any row — the browser's native confirmation popup appears. Compare with the styled and page-based dialogs on other pages.",
+    status: "stable"
+  },
+  {
+    name: "Dialog Sizing",
+    category: "dialogs",
+    description: "Dialogs support four sizes: `small` (400px), `medium` (600px), `large` (800px), and `fullscreen` (95vw). Set via `dialog: { size: :small }` in the presenter or action config.\n\nAll dialogs are centered with a backdrop overlay and drop shadow.",
+    config_example: "```ruby\n# In a dialog presenter\ndialog size: :small, title_key: \"...\"\n\n# In a dialog action\naction :quick_edit, type: :dialog, on: :single,\n  dialog: { size: :large }\n```",
+    demo_path: nil,
+    demo_hint: "Compare the Save Filter dialog (small, 400px) with a resource edit dialog (medium, 600px) to see the size difference.",
+    status: "stable"
+  },
+  {
+    name: "Saved Filter Dialog",
+    category: "dialogs",
+    description: "The \"Save filter\" button on index pages opens a presenter-driven dialog for creating saved filters. Demonstrates the full dialog pipeline: presenter-defined form, `visible_when` conditions (Target Role/Group appear based on Visibility), `beforeSubmit` JS hook (renames params, injects condition_tree), and custom controller handling.\n\nReplaces the previous 83-line hardcoded ERB template with a 17-line presenter definition.",
+    config_example: "```ruby\ndefine_presenter :save_filter_dialog do\n  model :saved_filter\n  dialog size: :small,\n    title_key: \"lcp_ruby.saved_filters.dialog_title\"\n  form do\n    section \"Filter\" do\n      field :name, autofocus: true\n      field :description, input_type: :textarea,\n        input_options: { rows: 2 }\n      field :visibility, input_type: :select\n      field :target_role,\n        visible_when: { field: :visibility,\n          operator: :eq, value: \"role\" }\n      field :target_group,\n        visible_when: { field: :visibility,\n          operator: :eq, value: \"group\" }\n      field :pinned, input_type: :toggle\n      field :default_filter, input_type: :toggle\n    end\n  end\nend\n```",
+    demo_path: "/showcase/articles",
+    demo_hint: "Apply any advanced filter on Articles, then click **Save filter**. Change Visibility to \"Role\" to see Target Role appear. Submit to save — the filter appears in the Saved Filters dropdown.",
+    status: "stable"
   }
 ]
 

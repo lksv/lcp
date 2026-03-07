@@ -87,12 +87,15 @@ module LcpRuby
         presenter&.icon
       end
 
-      # Resolve slug from view group's primary presenter
+      # Resolve slug from view group's primary page
       def resolved_slug(loader)
         return nil unless view_group?
 
-        presenter = primary_presenter(loader)
-        presenter&.slug
+        vg = loader.view_group_definitions[view_group_name]
+        return nil unless vg
+
+        page = loader.page_definitions[vg.primary_presenter]
+        page&.slug
       end
 
       # Recursively check if this item or any descendant contains the given slug
@@ -102,7 +105,7 @@ module LcpRuby
           return false unless vg
 
           all_slugs = vg.presenter_names.filter_map do |name|
-            loader.presenter_definitions[name]&.slug
+            loader.page_definitions[name]&.slug
           end
           return true if all_slugs.include?(slug)
         end

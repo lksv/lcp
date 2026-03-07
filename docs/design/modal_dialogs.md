@@ -1,8 +1,8 @@
 # Feature Specification: Modal Dialogs
 
-**Status:** Proposed
+**Status:** Tier 1 Implemented
 **Date:** 2026-03-03
-**Updated:** 2026-03-08
+**Updated:** 2026-03-07 (Tier 1 complete: dialog rendering, confirm dialogs, saved filter dialog)
 
 ## Problem / Motivation
 

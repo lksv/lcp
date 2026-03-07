@@ -1,0 +1,10 @@
+model:
+  name: delete_reason
+  table_name: _virtual
+  fields:
+    - name: reason
+      type: text
+      validations:
+        - type: presence
+    - name: notify
+      type: boolean

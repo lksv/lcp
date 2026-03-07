@@ -1,0 +1,36 @@
+<div class="lcp-dialog-header">
+  <h3>
+    <% if dialog_config["title_key"] %>
+      <%= I18n.t(dialog_config["title_key"], default: presenter.label) %>
+    <% else %>
+      <%= record.respond_to?(:persisted?) && record.persisted? ? I18n.t("lcp_ruby.form.update") : I18n.t("lcp_ruby.form.create") %> <%= presenter.label %>
+    <% end %>
+  </h3>
+  <% if dialog_config.fetch("closable", true) %>
+    <button type="button" class="lcp-dialog-close" data-action="close-dialog">&times;</button>
+  <% end %>
+</div>
+<div class="lcp-dialog-body" data-lcp-dialog-size="<%= dialog_config["size"] || "medium" %>">
+  <% form_url = controller.respond_to?(:dialog_form_url, true) ? controller.send(:dialog_form_url) : nil %>
+  <% has_attachments = model_definition.fields.any?(&:attachment?) %>
+  <%= form_with(model: record, url: form_url, scope: :record, method: record.respond_to?(:persisted?) && record.persisted? ? :patch : :post, class: "lcp-dialog-form", data: { "lcp-dialog-form" => true }, multipart: has_attachments) do |form| %>
+    <% if record.errors.any? %>
+      <div class="lcp-errors">
+        <ul>
+          <% record.errors.full_messages.each do |message| %>
+            <li><%= message %></li>
+          <% end %>
+        </ul>
+      </div>
+    <% end %>
+
+    <% layout_builder.form_sections.each do |section| %>
+      <%= render partial: "lcp_ruby/resources/form_section", locals: { form: form, section: section } %>
+    <% end %>
+
+    <div class="lcp-dialog-actions">
+      <button type="button" class="btn" data-action="close-dialog"><%= I18n.t("lcp_ruby.dialogs.close", default: "Close") %></button>
+      <%= form.submit record.respond_to?(:persisted?) && record.persisted? ? I18n.t("lcp_ruby.form.update") : I18n.t("lcp_ruby.form.create"), class: "btn btn-primary" %>
+    </div>
+  <% end %>
+</div>

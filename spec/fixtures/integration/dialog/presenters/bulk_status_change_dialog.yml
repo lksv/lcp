@@ -1,0 +1,13 @@
+presenter:
+  name: bulk_status_change_dialog
+  model: bulk_status_change
+  dialog:
+    size: small
+    closable: true
+    title_key: lcp_ruby.dialogs.default_title
+  form:
+    sections:
+      - title: Status Change
+        fields:
+          - field: new_status
+          - field: comment

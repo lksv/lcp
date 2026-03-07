@@ -54,6 +54,10 @@
 
   <div class="lcp-form-actions">
     <%= form.submit @record.new_record? ? I18n.t("lcp_ruby.form.create") : I18n.t("lcp_ruby.form.update"), class: "btn btn-primary" %>
-    <%= link_to I18n.t("lcp_ruby.form.cancel"), resources_path, class: "btn" %>
+    <% if defined?(dialog_context) && dialog_context %>
+      <button type="button" class="btn" data-action="close-dialog"><%= I18n.t("lcp_ruby.form.cancel") %></button>
+    <% else %>
+      <%= link_to I18n.t("lcp_ruby.form.cancel"), resources_path, class: "btn" %>
+    <% end %>
   </div>
 <% end %>

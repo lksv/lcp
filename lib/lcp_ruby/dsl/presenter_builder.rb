@@ -19,6 +19,7 @@ module LcpRuby
         @search_hash = nil
         @actions = []
         @options = {}
+        @dialog_hash = nil
       end
 
       # Top-level setters
@@ -61,6 +62,13 @@ module LcpRuby
         @options["scope"] = value.to_s
       end
 
+      def dialog(size: nil, closable: nil, title_key: nil)
+        @dialog_hash = {}
+        @dialog_hash["size"] = size.to_s if size
+        @dialog_hash["closable"] = closable unless closable.nil?
+        @dialog_hash["title_key"] = title_key.to_s if title_key
+      end
+
       # View blocks
       def index(&block)
         builder = IndexBuilder.new
@@ -98,9 +106,11 @@ module LcpRuby
         }
         action_hash["label"] = options[:label] if options.key?(:label)
         action_hash["icon"] = options[:icon].to_s if options.key?(:icon)
-        action_hash["confirm"] = options[:confirm] if options.key?(:confirm)
+        action_hash["confirm"] = options[:confirm].is_a?(Hash) ? HashUtils.stringify_deep(options[:confirm]) : options[:confirm] if options.key?(:confirm)
         action_hash["confirm_message"] = options[:confirm_message] if options.key?(:confirm_message)
         action_hash["style"] = options[:style].to_s if options.key?(:style)
+        action_hash["dialog"] = HashUtils.stringify_deep(options[:dialog]) if options.key?(:dialog)
+        action_hash["record"] = options[:record].to_s if options.key?(:record)
         action_hash["visible_when"] = resolve_condition(options[:visible_when]) if options.key?(:visible_when)
         action_hash["disable_when"] = resolve_condition(options[:disable_when]) if options.key?(:disable_when)
 
@@ -118,6 +128,7 @@ module LcpRuby
         hash["show"] = @show_hash if @show_hash
         hash["form"] = @form_hash if @form_hash
         hash["search"] = @search_hash if @search_hash
+        hash["dialog"] = @dialog_hash if @dialog_hash
 
         unless @actions.empty?
           hash["actions"] = build_actions_hash
@@ -141,7 +152,7 @@ module LcpRuby
         end
 
         # Section-level replace: child replaces parent entirely for these keys
-        %w[index show form search actions].each do |key|
+        %w[index show form search actions dialog].each do |key|
           merged[key] = child_hash[key] if child_hash.key?(key)
         end
 

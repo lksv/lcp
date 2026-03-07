@@ -1,0 +1,11 @@
+permissions:
+  model: delete_reason
+  roles:
+    admin:
+      crud: [create]
+      fields: { readable: all, writable: all }
+      presenters: [delete_reason_dialog]
+    viewer:
+      crud: []
+      fields: { readable: [], writable: [] }
+      presenters: []

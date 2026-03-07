@@ -16,7 +16,7 @@ module LcpRuby
     before_action :set_presenter_and_model
     before_action :authorize_presenter_access
 
-    helper_method :current_presenter, :current_model_definition, :current_evaluator,
+    helper_method :current_presenter, :current_page, :current_model_definition, :current_evaluator,
                   :resource_path, :resources_path, :new_resource_path, :edit_resource_path,
                   :reorder_resource_path, :reparent_resource_path,
                   :restore_resource_path, :permanently_destroy_resource_path,
@@ -91,7 +91,8 @@ module LcpRuby
       slug = params[:lcp_slug]
       return false unless slug
 
-      presenter = Presenter::Resolver.find_by_slug(slug)
+      page = Pages::Resolver.find_by_slug(slug)
+      presenter = LcpRuby.loader.presenter_definition(page.main_presenter_name)
       return false unless presenter
 
       view_group = LcpRuby.loader.view_group_for_presenter(presenter.name)
@@ -112,9 +113,10 @@ module LcpRuby
       slug = params[:lcp_slug]
       return unless slug
 
-      @presenter_definition = Presenter::Resolver.find_by_slug(slug)
+      @page_definition = Pages::Resolver.find_by_slug(slug)
+      @presenter_definition = LcpRuby.loader.presenter_definition(@page_definition.main_presenter_name)
       @model_definition = LcpRuby.loader.model_definition(@presenter_definition.model)
-      @model_class = LcpRuby.registry.model_for(@presenter_definition.model)
+      @model_class = @model_definition.virtual? ? nil : LcpRuby.registry.model_for(@presenter_definition.model)
     end
 
     def authorize_presenter_access
@@ -132,6 +134,10 @@ module LcpRuby
 
     def current_presenter
       @presenter_definition
+    end
+
+    def current_page
+      @page_definition
     end
 
     def current_model_definition
@@ -152,6 +158,18 @@ module LcpRuby
         user = impersonating? ? impersonated_user : current_user
         Authorization::PermissionEvaluator.new(perm_def, user, @presenter_definition.model)
       end
+    end
+
+    # Pundit uses model class to find policy — override to use dynamic PolicyFactory
+    def policy(record)
+      policy_class = Authorization::PolicyFactory.policy_for(current_presenter.model)
+      policy_class.new(current_user, record)
+    end
+
+    def authorize(record, query = nil)
+      pol = policy(record)
+      query ||= "#{action_name}?"
+      raise Pundit::NotAuthorizedError unless pol.public_send(query)
     end
 
     def filter_metadata
@@ -204,47 +222,47 @@ module LcpRuby
     # -- Path helpers --
 
     def resource_path(record)
-      lcp_ruby.resource_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record)
+      lcp_ruby.resource_path(lcp_slug: current_page.slug, id: record.respond_to?(:id) ? record.id : record)
     end
 
     def resources_path
-      lcp_ruby.resources_path(lcp_slug: current_presenter.slug)
+      lcp_ruby.resources_path(lcp_slug: current_page.slug)
     end
 
     def new_resource_path
-      lcp_ruby.new_resource_path(lcp_slug: current_presenter.slug)
+      lcp_ruby.new_resource_path(lcp_slug: current_page.slug)
     end
 
     def edit_resource_path(record)
-      lcp_ruby.edit_resource_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record)
+      lcp_ruby.edit_resource_path(lcp_slug: current_page.slug, id: record.respond_to?(:id) ? record.id : record)
     end
 
     def single_action_path(record, action_name:)
-      lcp_ruby.single_action_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record, action_name: action_name)
+      lcp_ruby.single_action_path(lcp_slug: current_page.slug, id: record.respond_to?(:id) ? record.id : record, action_name: action_name)
     end
 
     def reorder_resource_path(record)
-      lcp_ruby.reorder_resource_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record)
+      lcp_ruby.reorder_resource_path(lcp_slug: current_page.slug, id: record.respond_to?(:id) ? record.id : record)
     end
 
     def reparent_resource_path(record)
-      lcp_ruby.reparent_resource_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record)
+      lcp_ruby.reparent_resource_path(lcp_slug: current_page.slug, id: record.respond_to?(:id) ? record.id : record)
     end
 
     def restore_resource_path(record)
-      lcp_ruby.restore_resource_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record)
+      lcp_ruby.restore_resource_path(lcp_slug: current_page.slug, id: record.respond_to?(:id) ? record.id : record)
     end
 
     def permanently_destroy_resource_path(record)
-      lcp_ruby.permanently_destroy_resource_path(lcp_slug: current_presenter.slug, id: record.respond_to?(:id) ? record.id : record)
+      lcp_ruby.permanently_destroy_resource_path(lcp_slug: current_page.slug, id: record.respond_to?(:id) ? record.id : record)
     end
 
     def select_options_path
-      lcp_ruby.select_options_path(lcp_slug: current_presenter.slug)
+      lcp_ruby.select_options_path(lcp_slug: current_page.slug)
     end
 
     def saved_filters_path
-      lcp_ruby.saved_filters_path(lcp_slug: current_presenter.slug)
+      lcp_ruby.saved_filters_path(lcp_slug: current_page.slug)
     end
 
     # -- View group helpers --

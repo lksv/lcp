@@ -28,8 +28,4 @@
   <% end %>
 
   <%= render_slot(:below_content, page: :index) %>
-
-  <% if defined?(@saved_filters) && @saved_filters&.any? %>
-    <%= render "lcp_ruby/resources/saved_filter_save_dialog" %>
-  <% end %>
 </div>

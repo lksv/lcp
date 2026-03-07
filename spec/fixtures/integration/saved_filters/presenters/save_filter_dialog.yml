@@ -1,0 +1,18 @@
+presenter:
+  name: save_filter_dialog
+  model: saved_filter
+  dialog:
+    size: small
+    title_key: lcp_ruby.saved_filters.dialog_title
+  form:
+    sections:
+      - fields:
+          - { field: name }
+          - { field: description }
+          - { field: visibility }
+          - field: target_role
+            visible_when: { field: visibility, operator: eq, value: role }
+          - field: target_group
+            visible_when: { field: visibility, operator: eq, value: group }
+          - { field: pinned }
+          - { field: default_filter }

@@ -1,0 +1,11 @@
+permissions:
+  model: bulk_status_change
+  roles:
+    admin:
+      crud: [create]
+      fields: { readable: all, writable: all }
+      presenters: [bulk_status_change_dialog]
+    viewer:
+      crud: []
+      fields: { readable: [], writable: [] }
+      presenters: []

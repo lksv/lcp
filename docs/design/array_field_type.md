@@ -86,7 +86,7 @@ end
 | `integer`  | `integer[]`        | `json`        | `to_i`     |
 | `float`    | `float[]`          | `json`        | `to_f`     |
 
-Only scalar item types are supported. `item_type` is required when `type: array`.
+Only scalar item types are supported. `item_type` is required when `type: array`. `decimal` may be added in the future (see Decisions #1).
 
 ### Presenter Configuration
 
@@ -838,7 +838,7 @@ end
 | **PermissionEvaluator** | `readable_fields` / `writable_fields` reference field names — array fields are just strings |
 | **FieldValueResolver** | Calls `record.send(field_name)` — returns the Ruby Array |
 | **Display::Renderers::Collection** | Already handles `Array(value)` and renders with separator and item_renderer |
-| **TransformApplicator** | Skipped for virtual fields; for array fields, transforms would apply to the whole array (not useful, but harmless) |
+| **TransformApplicator** | Extended to map transforms over individual array items (see decision #2) |
 | **DefaultApplicator** | Array defaults (`[]`) are handled by `build_column_options` for DB-backed columns and by `attribute default:` for the AR type |
 
 ## Components Requiring Changes (not covered in numbered sections)
@@ -859,6 +859,7 @@ end
 | `lib/lcp_ruby/model_factory/builder.rb` | Add `apply_array_types` to pipeline |
 | `lib/lcp_ruby/model_factory/schema_manager.rb` | Handle `array: true` column option for PG |
 | `lib/lcp_ruby/model_factory/validation_applicator.rb` | Add `array_length`, `array_inclusion`, `array_uniqueness` |
+| `lib/lcp_ruby/model_factory/transform_applicator.rb` | Map transforms over individual array items via `before_validation` |
 | `lib/lcp_ruby/model_factory/scope_applicator.rb` | Auto-generate `with_<field>` / `with_any_<field>` scopes |
 | `lib/lcp_ruby/array_query.rb` | **New** — DB-portable array query helpers |
 | `lib/lcp_ruby/condition_evaluator.rb` | Add `contains`, `not_contains`, `any_of`, `empty`, `not_empty` operators |
@@ -992,8 +993,19 @@ before { skip "PostgreSQL only" unless LcpRuby.postgresql? }
 
 ## Open Questions
 
-1. **Should `item_type: decimal` be supported?** Decimals have precision/scale concerns that complicate array storage. Omitted for now — can be added later if needed.
+1. **`item_type: decimal` — not now, future addition.** Decimals have precision/scale concerns that complicate array storage (PG `numeric[]` needs precision/scale propagation, SQLite JSON has no decimal type). Omitted from v1. Can be added later when a concrete use case arises.
 
-2. **Should transforms apply to individual array items?** Currently transforms run on the whole field value. For arrays, it could be useful to strip/downcase each item (e.g., tag normalization). This could be a `before_validation` callback that maps transforms over items. Deferred to a follow-up.
+2. **Transforms apply to individual array items — yes.** `TransformApplicator` will map transforms (strip, downcase, etc.) over each item in the array via a `before_validation` callback. For example, a `tags` field with `transforms: [strip, downcase]` will normalize each tag individually. This enables tag normalization, whitespace cleanup, and type-specific transforms (e.g., `normalize_url` on an array of URLs) without any extra configuration.
 
-3. **GIN index for PG array columns?** PG arrays benefit from GIN indexes for `@>` and `&&` queries. Should the engine auto-create GIN indexes for array fields (like it does for `custom_data` JSONB)? Recommendation: yes, opt-in via `column_options: { index: gin }`.
+3. **GIN index for PG array columns — not automatic, but documented.** The engine will not auto-create GIN indexes for array fields. Instead, the documentation (models reference, array fields guide) will describe how to create GIN indexes manually via a Rails migration:
+
+   ```ruby
+   # db/migrate/XXXXXX_add_gin_index_to_articles_tags.rb
+   class AddGinIndexToArticlesTags < ActiveRecord::Migration[7.1]
+     def change
+       add_index :articles, :tags, using: :gin
+     end
+   end
+   ```
+
+   This keeps the engine simple and avoids implicit index creation that could slow down writes on large tables. Users who need fast `@>`/`&&` queries on array columns can add GIN indexes explicitly.

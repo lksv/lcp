@@ -18,6 +18,8 @@
 //= require lcp_ruby/conditional_rendering
 //= require lcp_ruby/custom_fields_manage
 //= require lcp_ruby/inline_create
+//= require lcp_ruby/dialog
+//= require lcp_ruby/confirm_dialog
 //= require lcp_ruby/cascading_selects
 //= require lcp_ruby/tom_select_init
 //= require lcp_ruby/advanced_filter

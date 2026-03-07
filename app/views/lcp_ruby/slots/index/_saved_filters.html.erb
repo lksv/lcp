@@ -77,7 +77,11 @@
   <% end %>
 
   <%# Save button (shown when conditions are active) %>
-  <button type="button" class="btn btn-filter lcp-save-filter-btn" data-action="save-filter" style="display: none;">
+  <button type="button" class="btn btn-filter lcp-save-filter-btn"
+          data-lcp-open-save-filter-dialog="true"
+          data-lcp-dialog-url="<%= lcp_ruby.dialog_new_path(page_name: 'save_filter_dialog') %>"
+          data-lcp-saved-filters-url="<%= saved_filters_path %>"
+          style="display: none;">
     <%= I18n.t("lcp_ruby.saved_filters.save", default: "Save filter") %>
   </button>
 </div>

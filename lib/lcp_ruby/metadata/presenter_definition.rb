@@ -5,7 +5,7 @@ module LcpRuby
 
       attr_reader :name, :model, :label, :slug, :icon,
                   :index_config, :show_config, :form_config, :search_config,
-                  :actions_config, :options, :raw_hash
+                  :actions_config, :options, :dialog_config, :raw_hash
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -19,6 +19,7 @@ module LcpRuby
         @search_config = HashUtils.stringify_deep(attrs[:search_config] || {})
         @actions_config = HashUtils.stringify_deep(attrs[:actions_config] || {})
         @options = HashUtils.stringify_deep(attrs[:options] || {})
+        @dialog_config = HashUtils.stringify_deep(attrs[:dialog_config] || {})
         @raw_hash = attrs[:raw_hash]
 
         validate!
@@ -37,6 +38,7 @@ module LcpRuby
           search_config: hash["search"] || {},
           actions_config: hash["actions"] || {},
           options: extract_options(hash),
+          dialog_config: hash["dialog"] || {},
           raw_hash: hash
         )
       end

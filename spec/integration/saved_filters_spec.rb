@@ -293,6 +293,73 @@ RSpec.describe "Saved Filters Integration", type: :request do
     end
   end
 
+  describe "Dialog-based saved filter creation" do
+    before { stub_current_user(role: "admin") }
+
+    it "creates a saved filter via POST with _dialog=1 and returns dialog success" do
+      condition_tree = {
+        "combinator" => "and",
+        "children" => [
+          { "field" => "status", "operator" => "eq", "value" => "open" }
+        ]
+      }
+
+      post "/filtered-tasks/saved-filters", params: {
+        _dialog: "1",
+        saved_filter: {
+          name: "Dialog Filter",
+          condition_tree: condition_tree.to_json,
+          visibility: "personal"
+        }
+      }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.body).to include("data-lcp-dialog-action")
+      expect(saved_filter_model.last.name).to eq("Dialog Filter")
+      expect(saved_filter_model.last.condition_tree).to be_present
+    end
+
+    it "returns JSON errors when dialog validation fails" do
+      post "/filtered-tasks/saved-filters", params: {
+        _dialog: "1",
+        saved_filter: {
+          name: "",
+          condition_tree: { "combinator" => "and", "children" => [] }.to_json,
+          visibility: "personal"
+        }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      json = JSON.parse(response.body)
+      expect(json["errors"]).to be_present
+    end
+
+    it "returns JSON error when limit is reached via dialog" do
+      50.times do |i|
+        saved_filter_model.create!(
+          name: "Filter #{i}",
+          target_presenter: "filtered-tasks",
+          condition_tree: { "combinator" => "and", "children" => [] },
+          visibility: "personal",
+          owner_id: 1
+        )
+      end
+
+      post "/filtered-tasks/saved-filters", params: {
+        _dialog: "1",
+        saved_filter: {
+          name: "Over Limit",
+          condition_tree: { "combinator" => "and", "children" => [] }.to_json,
+          visibility: "personal"
+        }
+      }
+
+      expect(response).to have_http_status(:unprocessable_content)
+      json = JSON.parse(response.body)
+      expect(json["error"]).to be_present
+    end
+  end
+
   describe "Saved filter limit enforcement" do
     before { stub_current_user(role: "admin") }
 

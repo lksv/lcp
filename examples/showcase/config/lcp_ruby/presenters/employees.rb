@@ -98,5 +98,6 @@ define_presenter :employees do
   action :create, type: :built_in, on: :collection, label: "New Employee"
   action :show, type: :built_in, on: :single
   action :edit, type: :built_in, on: :single
-  action :destroy, type: :built_in, on: :single, confirm: true, style: :danger
+  action :destroy, type: :built_in, on: :single, style: :danger,
+    confirm: { title_key: "lcp_ruby.dialogs.confirm_delete_title", message_key: "lcp_ruby.dialogs.confirm_delete_employee", style: :danger }
 end

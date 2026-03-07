@@ -1,5 +1,7 @@
 module LcpRuby
   class SavedFiltersController < ApplicationController
+    include DialogRendering
+
     before_action :verify_saved_filters_available
     before_action :set_saved_filter, only: [ :update, :destroy ]
 
@@ -19,6 +21,8 @@ module LcpRuby
     # POST /:lcp_slug/saved-filters
     # Creates a new saved filter.
     def create
+      return create_from_dialog if dialog_context?
+
       authorize_create!
       model_class = SavedFilters::Registry.model_class
 
@@ -73,6 +77,31 @@ module LcpRuby
     end
 
     private
+
+    def create_from_dialog
+      authorize_create!
+      model_class = SavedFilters::Registry.model_class
+
+      record = model_class.new(saved_filter_params)
+      record.owner_id = current_user.id
+      record.target_presenter = current_presenter.slug
+
+      if record.respond_to?(:ql_text=) && record.condition_tree.present?
+        record.ql_text = Search::QueryLanguageSerializer.serialize(record.condition_tree)
+      end
+
+      limit_error = check_limits(record)
+      if limit_error
+        render json: { error: limit_error }, status: :unprocessable_content
+        return
+      end
+
+      if record.save
+        render_dialog_success("reload")
+      else
+        render json: { errors: record.errors.full_messages }, status: :unprocessable_content
+      end
+    end
 
     def verify_saved_filters_available
       unless SavedFilters::Registry.available?

@@ -4,7 +4,8 @@ module LcpRuby
   module Metadata
     class Loader
       attr_reader :base_path, :model_definitions, :presenter_definitions,
-                  :permission_definitions, :view_group_definitions, :menu_definition
+                  :permission_definitions, :view_group_definitions, :page_definitions,
+                  :menu_definition
 
       def initialize(base_path)
         @base_path = Pathname.new(base_path)
@@ -12,6 +13,7 @@ module LcpRuby
         @presenter_definitions = {}
         @permission_definitions = {}
         @view_group_definitions = {}
+        @page_definitions = {}
         @menu_definition = nil
       end
 
@@ -19,6 +21,8 @@ module LcpRuby
         load_types
         load_models
         load_presenters
+        load_pages
+        auto_create_pages
         load_permissions
         load_view_groups
         validate_references
@@ -99,6 +103,10 @@ module LcpRuby
         @model_definitions[name.to_s] || raise(MetadataError, "Model '#{name}' not found")
       end
 
+      def page_definition(name)
+        @page_definitions[name.to_s] || raise(MetadataError, "Page '#{name}' not found")
+      end
+
       def presenter_definition(name)
         @presenter_definitions[name.to_s] || raise(MetadataError, "Presenter '#{name}' not found")
       end
@@ -112,6 +120,39 @@ module LcpRuby
       end
 
       private
+
+      def load_pages
+        @page_definitions = {}
+
+        load_yamls("pages") do |data, file_path|
+          page_data = data["page"] || raise(MetadataError, "Missing 'page' key in #{file_path}")
+          definition = PageDefinition.from_hash(page_data)
+          @page_definitions[definition.name] = definition
+        end
+      end
+
+      def auto_create_pages
+        # Collect presenter names already claimed by explicit pages
+        claimed_presenters = Set.new
+        @page_definitions.each_value do |page|
+          page.zones.each { |z| claimed_presenters << z.presenter }
+        end
+
+        @presenter_definitions.each_value do |presenter|
+          next if claimed_presenters.include?(presenter.name)
+
+          zone = ZoneDefinition.new(name: "main", presenter: presenter.name)
+          page = PageDefinition.new(
+            name: presenter.name,
+            model: presenter.model,
+            slug: presenter.slug,
+            dialog_config: presenter.dialog_config,
+            zones: [ zone ],
+            auto_generated: true
+          )
+          @page_definitions[page.name] = page
+        end
+      end
 
       def load_yamls(subdirectory)
         dir = base_path.join(subdirectory)
@@ -187,29 +228,36 @@ module LcpRuby
       end
 
       def auto_create_view_groups
-        # Group presenters by model
-        presenters_by_model = {}
-        @presenter_definitions.each_value do |presenter|
-          (presenters_by_model[presenter.model] ||= []) << presenter
+        # Group routable pages by model
+        pages_by_model = {}
+        @page_definitions.each_value do |page|
+          next unless page.routable?
+          model_name = page.model
+          next unless model_name
+          (pages_by_model[model_name] ||= []) << page
         end
 
-        presenters_by_model.each do |model_name, presenters|
+        pages_by_model.each do |model_name, pages|
           # Skip if an explicit view group already covers this model
           next if view_groups_for_model(model_name).any?
-          # Only auto-create if exactly one presenter for this model
-          next unless presenters.length == 1
+          # Only auto-create if exactly one routable page for this model
+          next unless pages.length == 1
 
-          presenter = presenters.first
+          page = pages.first
+          presenter_name = page.main_presenter_name
+          presenter = @presenter_definitions[presenter_name]
+          next unless presenter
+
           vg = ViewGroupDefinition.new(
             name: "#{model_name}_auto",
             model: model_name,
-            primary_presenter: presenter.name,
+            primary_presenter: presenter_name,
             navigation_config: { "menu" => "main", "position" => 99 },
-            views: [ { "presenter" => presenter.name, "label" => presenter.label } ]
+            views: [ { "presenter" => presenter_name, "label" => presenter.label } ]
           )
           @view_group_definitions[vg.name] = vg
 
-          Rails.logger.info("Auto-created view group for model '#{model_name}' with presenter '#{presenter.name}'") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
+          Rails.logger.info("Auto-created view group for model '#{model_name}' with presenter '#{presenter_name}'") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
         end
       end
 

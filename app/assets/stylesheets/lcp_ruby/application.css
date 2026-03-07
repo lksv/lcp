@@ -230,6 +230,32 @@ pre.lcp-code-block { display: block; padding: 0.75em 1em; overflow-x: auto; whit
 .lcp-ts-add-new-btn { background: none; border: none; color: #0d6efd; cursor: pointer; font-size: 0.875rem; padding: 0.25rem 0.5rem; width: 100%; text-align: left; }
 .lcp-ts-add-new-btn:hover { background: #f8f9fa; }
 
+/* Dialog modal */
+.lcp-dialog { border: 1px solid #dee2e6; border-radius: 8px; padding: 0; margin: auto; box-shadow: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.08); }
+.lcp-dialog::backdrop { background: rgba(0,0,0,0.4); }
+.lcp-dialog-small { width: 400px; max-width: 90vw; }
+.lcp-dialog-medium { width: 600px; max-width: 90vw; }
+.lcp-dialog-large { width: 800px; max-width: 90vw; }
+.lcp-dialog-fullscreen { width: 95vw; height: 90vh; }
+.lcp-dialog-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem 1.5rem; border-bottom: 1px solid #dee2e6; }
+.lcp-dialog-header h3 { margin: 0; font-size: 1.1rem; font-weight: 600; }
+.lcp-dialog-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #6c757d; padding: 0; line-height: 1; }
+.lcp-dialog-close:hover { color: #333; }
+.lcp-dialog-body { padding: 1.25rem 1.5rem; overflow-y: auto; max-height: 70vh; }
+.lcp-dialog .lcp-dialog-actions { display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #dee2e6; }
+.lcp-dialog .lcp-form-field { margin-bottom: 0.5rem; }
+.lcp-dialog .lcp-form-field:last-child { margin-bottom: 0; }
+.lcp-dialog .lcp-form-section { border: none; padding: 0; margin-bottom: 0; background: transparent; }
+.lcp-dialog .lcp-form-section legend { display: none; }
+.lcp-dialog .lcp-form-field textarea { min-height: 44px; }
+.lcp-dialog .lcp-form-field:has(.lcp-toggle) { display: flex; align-items: center; gap: 0.75rem; }
+.lcp-dialog .lcp-form-field:has(.lcp-toggle) label:first-child { margin-bottom: 0; }
+.lcp-dialog .lcp-errors { background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px; padding: 0.5rem 0.75rem; margin-bottom: 0.75rem; color: #721c24; font-size: 0.875rem; }
+.lcp-dialog .lcp-errors ul { margin: 0; padding-left: 1.25rem; }
+
+/* Confirmation dialog */
+#lcp-confirm-dialog .lcp-dialog-body p { margin-bottom: 0; font-size: 0.9375rem; color: #555; }
+
 /* Legacy (archived) options */
 .lcp-legacy-option { font-style: italic; color: #999; }
 .ts-wrapper .ts-dropdown .option.lcp-legacy-option { font-style: italic; color: #999; }

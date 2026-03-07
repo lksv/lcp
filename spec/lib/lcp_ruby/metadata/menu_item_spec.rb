@@ -221,6 +221,7 @@ RSpec.describe LcpRuby::Metadata::MenuItem do
       loader = instance_double(LcpRuby::Metadata::Loader)
       allow(loader).to receive(:view_group_definitions).and_return(view_group_defs)
       allow(loader).to receive(:presenter_definitions).and_return(presenter_defs)
+      allow(loader).to receive(:page_definitions).and_return(page_defs)
       loader
     end
 
@@ -241,6 +242,14 @@ RSpec.describe LcpRuby::Metadata::MenuItem do
         slug: "deals"
       )
       { "deal" => presenter }
+    end
+
+    let(:page_defs) do
+      zone = LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: "deal")
+      page = LcpRuby::Metadata::PageDefinition.new(
+        name: "deal", model: "deal", slug: "deals", zones: [ zone ], auto_generated: true
+      )
+      { "deal" => page }
     end
 
     it "returns true for a matching view group item" do
@@ -276,6 +285,7 @@ RSpec.describe LcpRuby::Metadata::MenuItem do
       loader = instance_double(LcpRuby::Metadata::Loader)
       allow(loader).to receive(:view_group_definitions).and_return(view_group_defs)
       allow(loader).to receive(:presenter_definitions).and_return(presenter_defs)
+      allow(loader).to receive(:page_definitions).and_return(page_defs)
       loader
     end
 
@@ -298,6 +308,14 @@ RSpec.describe LcpRuby::Metadata::MenuItem do
         icon: "dollar-sign"
       )
       { "deal" => presenter }
+    end
+
+    let(:page_defs) do
+      zone = LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: "deal")
+      page = LcpRuby::Metadata::PageDefinition.new(
+        name: "deal", model: "deal", slug: "deals", zones: [ zone ], auto_generated: true
+      )
+      { "deal" => page }
     end
 
     context "when label/icon not set explicitly" do

@@ -1,0 +1,11 @@
+model:
+  name: contact
+  fields:
+    - name: first_name
+      type: string
+      validations:
+        - type: presence
+    - name: last_name
+      type: string
+    - name: email
+      type: string
