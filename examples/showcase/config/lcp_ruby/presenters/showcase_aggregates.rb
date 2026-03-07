@@ -62,7 +62,7 @@ define_presenter :showcase_aggregates do
       field :unique_assignees
       field :total_hours
       field :completed_cost, renderer: :currency
-      field :avg_priority
+      field :avg_priority, renderer: :number, options: { precision: 1 }
     end
 
     section "Expression Columns", columns: 2, description: "Inline SQL expressions: boolean checks, derived values, auto-included flags." do
