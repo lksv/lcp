@@ -22,7 +22,7 @@ define_model :showcase_array do
 
   # Integer array — scores, ratings, numeric lists
   field :scores, :array, item_type: :integer, default: [] do
-    validates :array_inclusion, in: [1, 2, 3, 4, 5]
+    validates :array_inclusion, in: [ 1, 2, 3, 4, 5 ]
     validates :array_length, maximum: 5
   end
 

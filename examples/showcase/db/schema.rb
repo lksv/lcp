@@ -17,8 +17,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "record_id", null: false
     t.bigint "blob_id", null: false
     t.datetime "created_at", null: false
-    t.index ["blob_id"], name: "index_active_storage_attachments_on_blob_id"
-    t.index ["record_type", "record_id", "name", "blob_id"], name: "index_active_storage_attachments_uniqueness", unique: true
+    t.index [ "blob_id" ], name: "index_active_storage_attachments_on_blob_id"
+    t.index [ "record_type", "record_id", "name", "blob_id" ], name: "index_active_storage_attachments_uniqueness", unique: true
   end
 
   create_table "active_storage_blobs", force: :cascade do |t|
@@ -30,13 +30,13 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "byte_size", null: false
     t.string "checksum"
     t.datetime "created_at", null: false
-    t.index ["key"], name: "index_active_storage_blobs_on_key", unique: true
+    t.index [ "key" ], name: "index_active_storage_blobs_on_key", unique: true
   end
 
   create_table "active_storage_variant_records", force: :cascade do |t|
     t.bigint "blob_id", null: false
     t.string "variation_digest", null: false
-    t.index ["blob_id", "variation_digest"], name: "index_active_storage_variant_records_uniqueness", unique: true
+    t.index [ "blob_id", "variation_digest" ], name: "index_active_storage_variant_records_uniqueness", unique: true
   end
 
   create_table "article_tags", force: :cascade do |t|
@@ -44,8 +44,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "tag_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["article_id"], name: "index_article_tags_on_article_id"
-    t.index ["tag_id"], name: "index_article_tags_on_tag_id"
+    t.index [ "article_id" ], name: "index_article_tags_on_article_id"
+    t.index [ "tag_id" ], name: "index_article_tags_on_tag_id"
   end
 
   create_table "articles", force: :cascade do |t|
@@ -59,10 +59,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.datetime "updated_at", null: false
     t.bigint "created_by_id"
     t.bigint "updated_by_id"
-    t.index ["author_id"], name: "index_articles_on_author_id"
-    t.index ["category_id"], name: "index_articles_on_category_id"
-    t.index ["created_by_id"], name: "index_articles_on_created_by_id"
-    t.index ["updated_by_id"], name: "index_articles_on_updated_by_id"
+    t.index [ "author_id" ], name: "index_articles_on_author_id"
+    t.index [ "category_id" ], name: "index_articles_on_category_id"
+    t.index [ "created_by_id" ], name: "index_articles_on_created_by_id"
+    t.index [ "updated_by_id" ], name: "index_articles_on_updated_by_id"
   end
 
   create_table "authors", force: :cascade do |t|
@@ -79,7 +79,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "parent_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["parent_id"], name: "index_categories_on_parent_id"
+    t.index [ "parent_id" ], name: "index_categories_on_parent_id"
   end
 
   create_table "comments", force: :cascade do |t|
@@ -89,7 +89,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "article_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["article_id"], name: "index_comments_on_article_id"
+    t.index [ "article_id" ], name: "index_comments_on_article_id"
   end
 
   create_table "custom_field_definitions", force: :cascade do |t|
@@ -133,7 +133,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "parent_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["parent_id"], name: "index_departments_on_parent_id"
+    t.index [ "parent_id" ], name: "index_departments_on_parent_id"
   end
 
   create_table "employee_skills", force: :cascade do |t|
@@ -141,8 +141,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "skill_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["employee_id"], name: "index_employee_skills_on_employee_id"
-    t.index ["skill_id"], name: "index_employee_skills_on_skill_id"
+    t.index [ "employee_id" ], name: "index_employee_skills_on_employee_id"
+    t.index [ "skill_id" ], name: "index_employee_skills_on_skill_id"
   end
 
   create_table "employees", force: :cascade do |t|
@@ -155,8 +155,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.json "custom_data", default: {}
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["department_id"], name: "index_employees_on_department_id"
-    t.index ["mentor_id"], name: "index_employees_on_mentor_id"
+    t.index [ "department_id" ], name: "index_employees_on_department_id"
+    t.index [ "mentor_id" ], name: "index_employees_on_mentor_id"
   end
 
   create_table "features", force: :cascade do |t|
@@ -177,7 +177,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "group_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["group_id"], name: "index_group_memberships_on_group_id"
+    t.index [ "group_id" ], name: "index_group_memberships_on_group_id"
   end
 
   create_table "group_role_mappings", force: :cascade do |t|
@@ -185,7 +185,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "group_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["group_id"], name: "index_group_role_mappings_on_group_id"
+    t.index [ "group_id" ], name: "index_group_role_mappings_on_group_id"
   end
 
   create_table "groups", force: :cascade do |t|
@@ -201,7 +201,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
 
   create_table "lcp_ruby_users", force: :cascade do |t|
     t.string "name", null: false
-    t.json "lcp_role", default: ["viewer"]
+    t.json "lcp_role", default: [ "viewer" ]
     t.boolean "active", default: true, null: false
     t.json "profile_data", default: {}
     t.string "email", default: "", null: false
@@ -219,9 +219,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.datetime "locked_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["email"], name: "index_lcp_ruby_users_on_email", unique: true
-    t.index ["reset_password_token"], name: "index_lcp_ruby_users_on_reset_password_token", unique: true
-    t.index ["unlock_token"], name: "index_lcp_ruby_users_on_unlock_token", unique: true
+    t.index [ "email" ], name: "index_lcp_ruby_users_on_email", unique: true
+    t.index [ "reset_password_token" ], name: "index_lcp_ruby_users_on_reset_password_token", unique: true
+    t.index [ "unlock_token" ], name: "index_lcp_ruby_users_on_unlock_token", unique: true
   end
 
   create_table "lcp_saved_filters", force: :cascade do |t|
@@ -243,8 +243,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.datetime "updated_at", null: false
     t.bigint "created_by_id"
     t.bigint "updated_by_id"
-    t.index ["created_by_id"], name: "index_lcp_saved_filters_on_created_by_id"
-    t.index ["updated_by_id"], name: "index_lcp_saved_filters_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_lcp_saved_filters_on_created_by_id"
+    t.index [ "updated_by_id" ], name: "index_lcp_saved_filters_on_updated_by_id"
   end
 
   create_table "permission_configs", force: :cascade do |t|
@@ -282,10 +282,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.datetime "updated_at", null: false
     t.bigint "created_by_id"
     t.bigint "updated_by_id"
-    t.index ["created_by_id"], name: "index_projects_on_created_by_id"
-    t.index ["department_id"], name: "index_projects_on_department_id"
-    t.index ["lead_id"], name: "index_projects_on_lead_id"
-    t.index ["updated_by_id"], name: "index_projects_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_projects_on_created_by_id"
+    t.index [ "department_id" ], name: "index_projects_on_department_id"
+    t.index [ "lead_id" ], name: "index_projects_on_lead_id"
+    t.index [ "updated_by_id" ], name: "index_projects_on_updated_by_id"
   end
 
   create_table "roles", force: :cascade do |t|
@@ -309,7 +309,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "showcase_aggregate_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["showcase_aggregate_id"], name: "index_showcase_aggregate_items_on_showcase_aggregate_id"
+    t.index [ "showcase_aggregate_id" ], name: "index_showcase_aggregate_items_on_showcase_aggregate_id"
   end
 
   create_table "showcase_aggregates", force: :cascade do |t|
@@ -343,7 +343,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "showcase_condition_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["showcase_condition_id"], name: "index_showcase_condition_tasks_on_showcase_condition_id"
+    t.index [ "showcase_condition_id" ], name: "index_showcase_condition_tasks_on_showcase_condition_id"
   end
 
   create_table "showcase_condition_thresholds", force: :cascade do |t|
@@ -367,7 +367,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "showcase_condition_category_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["showcase_condition_category_id"], name: "index_showcase_conditions_on_showcase_condition_category_id"
+    t.index [ "showcase_condition_category_id" ], name: "index_showcase_conditions_on_showcase_condition_category_id"
   end
 
   create_table "showcase_extensibilities", force: :cascade do |t|
@@ -504,9 +504,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "author_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
-    t.index ["author_id"], name: "index_showcase_searches_on_author_id"
-    t.index ["category_id"], name: "index_showcase_searches_on_category_id"
-    t.index ["department_id"], name: "index_showcase_searches_on_department_id"
+    t.index [ "author_id" ], name: "index_showcase_searches_on_author_id"
+    t.index [ "category_id" ], name: "index_showcase_searches_on_category_id"
+    t.index [ "department_id" ], name: "index_showcase_searches_on_department_id"
   end
 
   create_table "showcase_soft_delete_items", force: :cascade do |t|
@@ -518,9 +518,9 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.datetime "discarded_at"
     t.string "discarded_by_type"
     t.bigint "discarded_by_id"
-    t.index ["discarded_at"], name: "index_showcase_soft_delete_items_on_discarded_at"
-    t.index ["discarded_by_type", "discarded_by_id"], name: "idx_on_discarded_by_type_discarded_by_id_3c9f556729"
-    t.index ["showcase_soft_delete_id"], name: "index_showcase_soft_delete_items_on_showcase_soft_delete_id"
+    t.index [ "discarded_at" ], name: "index_showcase_soft_delete_items_on_discarded_at"
+    t.index [ "discarded_by_type", "discarded_by_id" ], name: "idx_on_discarded_by_type_discarded_by_id_3c9f556729"
+    t.index [ "showcase_soft_delete_id" ], name: "index_showcase_soft_delete_items_on_showcase_soft_delete_id"
   end
 
   create_table "showcase_soft_deletes", force: :cascade do |t|
@@ -537,10 +537,10 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.datetime "discarded_at"
     t.string "discarded_by_type"
     t.bigint "discarded_by_id"
-    t.index ["created_by_id"], name: "index_showcase_soft_deletes_on_created_by_id"
-    t.index ["discarded_at"], name: "index_showcase_soft_deletes_on_discarded_at"
-    t.index ["discarded_by_type", "discarded_by_id"], name: "idx_on_discarded_by_type_discarded_by_id_715a1ad887"
-    t.index ["updated_by_id"], name: "index_showcase_soft_deletes_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_showcase_soft_deletes_on_created_by_id"
+    t.index [ "discarded_at" ], name: "index_showcase_soft_deletes_on_discarded_at"
+    t.index [ "discarded_by_type", "discarded_by_id" ], name: "idx_on_discarded_by_type_discarded_by_id_715a1ad887"
+    t.index [ "updated_by_id" ], name: "index_showcase_soft_deletes_on_updated_by_id"
   end
 
   create_table "showcase_userstamps", force: :cascade do |t|
@@ -554,8 +554,8 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_20_072723) do
     t.bigint "updated_by_id"
     t.string "created_by_name"
     t.string "updated_by_name"
-    t.index ["created_by_id"], name: "index_showcase_userstamps_on_created_by_id"
-    t.index ["updated_by_id"], name: "index_showcase_userstamps_on_updated_by_id"
+    t.index [ "created_by_id" ], name: "index_showcase_userstamps_on_created_by_id"
+    t.index [ "updated_by_id" ], name: "index_showcase_userstamps_on_updated_by_id"
   end
 
   create_table "showcase_virtual_fields", force: :cascade do |t|
