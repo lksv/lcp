@@ -1,0 +1,17 @@
+<div class="lcp-list-content">
+  <h3 class="lcp-widget-title"><%= zone.name.humanize %></h3>
+  <% if data[:records].present? %>
+    <ul class="lcp-widget-list-items">
+      <% data[:records].each do |record| %>
+        <li><%= record.respond_to?(:to_label) ? record.to_label : record.to_s %></li>
+      <% end %>
+    </ul>
+  <% else %>
+    <p class="lcp-widget-empty"><%= I18n.t("lcp_ruby.dashboard.no_records", default: "No records") %></p>
+  <% end %>
+  <% if data[:link_to].present? %>
+    <a href="<%= url_for(controller: "lcp_ruby/resources", action: "index", lcp_slug: data[:link_to]) %>" class="lcp-widget-link">
+      <%= I18n.t("lcp_ruby.dashboard.view_all", default: "View all") %>
+    </a>
+  <% end %>
+</div>

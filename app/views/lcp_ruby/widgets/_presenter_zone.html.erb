@@ -1,0 +1,25 @@
+<div class="lcp-presenter-zone-content">
+  <h3 class="lcp-widget-title"><%= data[:presenter].label %></h3>
+  <% if data[:records].present? %>
+    <table class="lcp-table lcp-table-compact">
+      <thead>
+        <tr>
+          <% data[:column_set].visible_columns.each do |col| %>
+            <th><%= col["label"] || col["field"].humanize %></th>
+          <% end %>
+        </tr>
+      </thead>
+      <tbody>
+        <% data[:records].each do |record| %>
+          <tr>
+            <% data[:column_set].visible_columns.each do |col| %>
+              <td><%= data[:field_value_resolver].resolve(record, col["field"]) %></td>
+            <% end %>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  <% else %>
+    <p class="lcp-widget-empty"><%= I18n.t("lcp_ruby.dashboard.no_records", default: "No records") %></p>
+  <% end %>
+</div>

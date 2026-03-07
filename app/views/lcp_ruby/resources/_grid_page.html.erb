@@ -1,0 +1,10 @@
+<div class="lcp-grid-container">
+  <% @zone_data.each do |zone, data| %>
+    <% next if data[:hidden] %>
+    <div class="lcp-grid-zone" style="<%= grid_style_for(zone) %>">
+      <div class="lcp-widget lcp-widget-<%= zone.widget? ? zone.widget['type'] : 'presenter-zone' %>">
+        <%= render partial: widget_partial_for(zone), locals: { zone: zone, data: data } %>
+      </div>
+    </div>
+  <% end %>
+</div>

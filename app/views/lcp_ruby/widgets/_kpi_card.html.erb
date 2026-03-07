@@ -1,0 +1,14 @@
+<div class="lcp-kpi-content">
+  <% if zone.widget["icon"].present? %>
+    <div class="lcp-kpi-icon">
+      <i data-lucide="<%= zone.widget["icon"] %>"></i>
+    </div>
+  <% end %>
+  <div class="lcp-kpi-value"><%= format_kpi_value(data[:value], data[:format]) %></div>
+  <div class="lcp-kpi-label"><%= data[:label] %></div>
+  <% if data[:link_to].present? %>
+    <a href="<%= url_for(controller: "lcp_ruby/resources", action: "index", lcp_slug: data[:link_to]) %>" class="lcp-kpi-link">
+      <%= I18n.t("lcp_ruby.dashboard.view_all", default: "View all") %>
+    </a>
+  <% end %>
+</div>
