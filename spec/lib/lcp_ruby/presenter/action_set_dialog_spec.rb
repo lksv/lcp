@@ -2,7 +2,7 @@ require "spec_helper"
 require "ostruct"
 
 RSpec.describe LcpRuby::Presenter::ActionSet, "dialog actions" do
-  let(:user) { OpenStruct.new(id: 1, lcp_role: ["admin"], name: "Test") }
+  let(:user) { OpenStruct.new(id: 1, lcp_role: [ "admin" ], name: "Test") }
 
   def build_presenter(actions_config)
     LcpRuby::Metadata::PresenterDefinition.new(
@@ -17,7 +17,7 @@ RSpec.describe LcpRuby::Presenter::ActionSet, "dialog actions" do
     page = LcpRuby::Metadata::PageDefinition.new(
       name: page_name,
       model: model_name,
-      zones: [LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: presenter_name)]
+      zones: [ LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: presenter_name) ]
     )
     LcpRuby.loader.page_definitions[page_name] = page
 
@@ -30,7 +30,7 @@ RSpec.describe LcpRuby::Presenter::ActionSet, "dialog actions" do
 
     # Permission definition for the dialog model
     roles = if presenter_access
-      { "admin" => { "crud" => ["create"], "presenters" => [presenter_name] } }
+      { "admin" => { "crud" => [ "create" ], "presenters" => [ presenter_name ] } }
     else
       { "admin" => { "crud" => [], "presenters" => [] } }
     end
@@ -204,7 +204,7 @@ RSpec.describe LcpRuby::Presenter::ActionSet, "dialog actions" do
       allow(evaluator).to receive(:can?).and_return(true)
       allow(evaluator).to receive(:can_execute_action?).and_return(true)
       allow(evaluator).to receive(:can_for_record?).and_return(true)
-      allow(evaluator).to receive(:roles).and_return(["admin"])
+      allow(evaluator).to receive(:roles).and_return([ "admin" ])
       evaluator
     end
 

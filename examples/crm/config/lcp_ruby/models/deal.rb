@@ -3,7 +3,7 @@ define_model :deal do
   label_plural "Deals"
 
   field :deal_number, :string,
-    sequence: { scope: [:_year], format: "DEAL-%{_year}-%{sequence:04d}" }
+    sequence: { scope: [ :_year ], format: "DEAL-%{_year}-%{sequence:04d}" }
 
   field :title, :string, label: "Title", limit: 255, null: false do
     validates :presence

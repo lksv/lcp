@@ -121,7 +121,7 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
     end
 
     def build_seq_model(sequence_config, extra_fields: [], table: table_name)
-      fields = [{ "name" => "code", "type" => "string", "sequence" => sequence_config }] + extra_fields
+      fields = [ { "name" => "code", "type" => "string", "sequence" => sequence_config } ] + extra_fields
       hash = {
         "name" => "seq_test_record",
         "table_name" => table,
@@ -137,39 +137,39 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
 
       index = ActiveRecord::Base.connection.indexes(table_name).find { |i| i.name == "idx_#{table_name}_seq_code" }
       expect(index).to be_present
-      expect(index.columns).to eq(["code"])
+      expect(index.columns).to eq([ "code" ])
       expect(index.unique).to be true
     end
 
     it "creates a unique compound index with real scope columns" do
-      extra = [{ "name" => "department_id", "type" => "integer" }]
-      definition = build_seq_model({ "scope" => ["department_id"] }, extra_fields: extra)
+      extra = [ { "name" => "department_id", "type" => "integer" } ]
+      definition = build_seq_model({ "scope" => [ "department_id" ] }, extra_fields: extra)
       described_class.new(definition).ensure_table!
 
       index = ActiveRecord::Base.connection.indexes(table_name).find { |i| i.name == "idx_#{table_name}_seq_code" }
       expect(index).to be_present
-      expect(index.columns).to eq(["department_id", "code"])
+      expect(index.columns).to eq([ "department_id", "code" ])
       expect(index.unique).to be true
     end
 
     it "creates a non-unique index when scope contains only virtual keys" do
-      definition = build_seq_model({ "scope" => ["_year"] })
+      definition = build_seq_model({ "scope" => [ "_year" ] })
       described_class.new(definition).ensure_table!
 
       index = ActiveRecord::Base.connection.indexes(table_name).find { |i| i.name == "idx_#{table_name}_seq_code" }
       expect(index).to be_present
-      expect(index.columns).to eq(["code"])
+      expect(index.columns).to eq([ "code" ])
       expect(index.unique).to be false
     end
 
     it "creates a non-unique index on real columns when scope mixes real and virtual keys" do
-      extra = [{ "name" => "department_id", "type" => "integer" }]
-      definition = build_seq_model({ "scope" => ["department_id", "_year"] }, extra_fields: extra)
+      extra = [ { "name" => "department_id", "type" => "integer" } ]
+      definition = build_seq_model({ "scope" => [ "department_id", "_year" ] }, extra_fields: extra)
       described_class.new(definition).ensure_table!
 
       index = ActiveRecord::Base.connection.indexes(table_name).find { |i| i.name == "idx_#{table_name}_seq_code" }
       expect(index).to be_present
-      expect(index.columns).to eq(["department_id", "code"])
+      expect(index.columns).to eq([ "department_id", "code" ])
       expect(index.unique).to be false
     end
   end
@@ -190,7 +190,7 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
           { "name" => "name", "type" => "string" }
         ],
         "indexes" => [
-          { "columns" => ["email"], "unique" => true }
+          { "columns" => [ "email" ], "unique" => true }
         ],
         "options" => { "timestamps" => false }
       }
@@ -198,7 +198,7 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
       described_class.new(definition).ensure_table!
 
       indexes = ActiveRecord::Base.connection.indexes(table_name)
-      email_index = indexes.find { |i| i.columns == ["email"] }
+      email_index = indexes.find { |i| i.columns == [ "email" ] }
       expect(email_index).to be_present
       expect(email_index.unique).to be true
     end
@@ -212,7 +212,7 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
           { "name" => "name", "type" => "string" }
         ],
         "indexes" => [
-          { "columns" => ["name"] }
+          { "columns" => [ "name" ] }
         ],
         "options" => { "timestamps" => false }
       }
@@ -220,7 +220,7 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
       described_class.new(definition).ensure_table!
 
       indexes = ActiveRecord::Base.connection.indexes(table_name)
-      name_index = indexes.find { |i| i.columns == ["name"] }
+      name_index = indexes.find { |i| i.columns == [ "name" ] }
       expect(name_index).to be_present
       expect(name_index.unique).to be false
     end
@@ -233,7 +233,7 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
           { "name" => "email", "type" => "string" }
         ],
         "indexes" => [
-          { "columns" => ["email"], "unique" => true, "name" => "custom_email_idx" }
+          { "columns" => [ "email" ], "unique" => true, "name" => "custom_email_idx" }
         ],
         "options" => { "timestamps" => false }
       }
@@ -243,7 +243,7 @@ RSpec.describe LcpRuby::ModelFactory::SchemaManager do
       indexes = ActiveRecord::Base.connection.indexes(table_name)
       custom_index = indexes.find { |i| i.name == "custom_email_idx" }
       expect(custom_index).to be_present
-      expect(custom_index.columns).to eq(["email"])
+      expect(custom_index.columns).to eq([ "email" ])
       expect(custom_index.unique).to be true
     end
   end

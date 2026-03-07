@@ -87,7 +87,7 @@ RSpec.describe LcpRuby::ModelFactory::SequenceApplicator do
         "fields" => [
           { "name" => "invoice_number", "type" => "string",
             "sequence" => {
-              "scope" => ["_year"],
+              "scope" => [ "_year" ],
               "format" => "INV-%{_year}-%{sequence:04d}"
             } },
           { "name" => "amount", "type" => "decimal" }
@@ -121,7 +121,7 @@ RSpec.describe LcpRuby::ModelFactory::SequenceApplicator do
         "fields" => [
           { "name" => "reg_number", "type" => "string",
             "sequence" => {
-              "scope" => ["department_id"],
+              "scope" => [ "department_id" ],
               "format" => "DOC-%{sequence:05d}"
             } },
           { "name" => "department_id", "type" => "integer" },
@@ -271,7 +271,7 @@ RSpec.describe LcpRuby::ModelFactory::SequenceApplicator do
         "fields" => [
           { "name" => "code", "type" => "string",
             "sequence" => {
-              "scope" => ["dept_code"],
+              "scope" => [ "dept_code" ],
               "format" => "%{dept_code}-%{sequence:04d}"
             } },
           { "name" => "dept_code", "type" => "string" },

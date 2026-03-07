@@ -8,11 +8,11 @@ define_model :showcase_sequence do
 
   # 2. Yearly scope — resets each year
   field :invoice_number, :string,
-    sequence: { scope: [:_year], format: "INV-%{_year}-%{sequence:04d}" }
+    sequence: { scope: [ :_year ], format: "INV-%{_year}-%{sequence:04d}" }
 
   # 3. Field-based scope — independent counter per category
   field :category_seq, :string,
-    sequence: { scope: [:category], format: "%{category}-%{sequence:05d}" }
+    sequence: { scope: [ :category ], format: "%{category}-%{sequence:05d}" }
 
   # 4. Raw integer — no format, simple counter
   field :raw_counter, :integer,

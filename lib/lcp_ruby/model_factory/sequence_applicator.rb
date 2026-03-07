@@ -73,7 +73,7 @@ module LcpRuby
           # The UPDATE acquires an implicit row lock held until transaction commit,
           # so the subsequent SELECT is safe from concurrent increments.
           updated = counter_model.where(attrs).update_all(
-            ["current_value = current_value + ?, updated_at = ?", step, Time.current]
+            [ "current_value = current_value + ?, updated_at = ?", step, Time.current ]
           )
 
           if updated == 0
@@ -85,7 +85,7 @@ module LcpRuby
               # Another thread beat us to the INSERT — increment the row they created.
               # The losing thread gets start + step (the winner got start).
               retried = counter_model.where(attrs).update_all(
-                ["current_value = current_value + ?, updated_at = ?", step, Time.current]
+                [ "current_value = current_value + ?, updated_at = ?", step, Time.current ]
               )
               raise "Sequence counter row vanished for #{attrs.inspect}" if retried == 0
             end

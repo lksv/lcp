@@ -221,7 +221,7 @@ module LcpRuby
           # Only include real DB columns in the index (skip virtual keys like _year, _month, _day)
           real_scope_cols = scope_cols.reject { |c| c.start_with?("_") }
           has_virtual_scope = real_scope_cols.size < scope_cols.size
-          index_columns = real_scope_cols + [field.name]
+          index_columns = real_scope_cols + [ field.name ]
           index_name = "idx_#{table}_seq_#{field.name}"
 
           # When virtual scope keys are present, uniqueness cannot be enforced at the DB level
