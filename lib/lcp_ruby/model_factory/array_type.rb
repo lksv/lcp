@@ -37,7 +37,7 @@ module LcpRuby
           end
           cast_items(value.split(",").map(&:strip).reject(&:blank?))
         when nil then []
-        else [cast_item(value)]
+        else [ cast_item(value) ]
         end
       end
 

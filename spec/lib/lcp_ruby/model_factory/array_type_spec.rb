@@ -18,7 +18,7 @@ RSpec.describe LcpRuby::ModelFactory::ArrayType do
       end
 
       it "rejects blank items from array" do
-        expect(type.cast(["a", "", "b"])).to eq(%w[a b])
+        expect(type.cast([ "a", "", "b" ])).to eq(%w[a b])
       end
 
       it "casts nil to empty array" do
@@ -26,7 +26,7 @@ RSpec.describe LcpRuby::ModelFactory::ArrayType do
       end
 
       it "wraps single value" do
-        expect(type.cast(42)).to eq(["42"])
+        expect(type.cast(42)).to eq([ "42" ])
       end
     end
 
@@ -77,15 +77,15 @@ RSpec.describe LcpRuby::ModelFactory::ArrayType do
     subject(:type) { described_class.new("integer") }
 
     it "casts string items to integers" do
-      expect(type.cast(["1", "2", "3"])).to eq([1, 2, 3])
+      expect(type.cast([ "1", "2", "3" ])).to eq([ 1, 2, 3 ])
     end
 
     it "casts JSON string with integers" do
-      expect(type.cast("[1,2,3]")).to eq([1, 2, 3])
+      expect(type.cast("[1,2,3]")).to eq([ 1, 2, 3 ])
     end
 
     it "deserializes to integers" do
-      expect(type.deserialize('[1,2,3]')).to eq([1, 2, 3])
+      expect(type.deserialize('[1,2,3]')).to eq([ 1, 2, 3 ])
     end
   end
 
@@ -93,11 +93,11 @@ RSpec.describe LcpRuby::ModelFactory::ArrayType do
     subject(:type) { described_class.new("float") }
 
     it "casts string items to floats" do
-      expect(type.cast(["1.5", "2.7"])).to eq([1.5, 2.7])
+      expect(type.cast([ "1.5", "2.7" ])).to eq([ 1.5, 2.7 ])
     end
 
     it "deserializes to floats" do
-      expect(type.deserialize('[1.5,2.7]')).to eq([1.5, 2.7])
+      expect(type.deserialize('[1.5,2.7]')).to eq([ 1.5, 2.7 ])
     end
   end
 end

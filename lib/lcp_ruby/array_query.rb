@@ -109,10 +109,10 @@ module LcpRuby
 
       def pg_array_literal(values, c, item_type)
         pg_type = case item_type
-                  when "integer" then "integer[]"
-                  when "float"   then "float8[]"
-                  else "text[]"
-                  end
+        when "integer" then "integer[]"
+        when "float"   then "float8[]"
+        else "text[]"
+        end
         "ARRAY[#{quoted_values(values, c)}]::#{pg_type}"
       end
     end

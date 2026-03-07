@@ -810,7 +810,7 @@ RSpec.describe LcpRuby::ConditionEvaluator do
 
   describe "array operators" do
     let(:record_with_array) do
-      OpenStruct.new(tags: %w[ruby rails python], scores: [1, 2, 3], empty_tags: [])
+      OpenStruct.new(tags: %w[ruby rails python], scores: [ 1, 2, 3 ], empty_tags: [])
     end
 
     describe "contains (polymorphic)" do
