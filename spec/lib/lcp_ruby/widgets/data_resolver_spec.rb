@@ -19,7 +19,7 @@ RSpec.describe LcpRuby::Widgets::DataResolver do
   end
 
   let(:admin_user) do
-    OpenStruct.new(id: 1, lcp_role: ["admin"], name: "Admin")
+    OpenStruct.new(id: 1, lcp_role: [ "admin" ], name: "Admin")
   end
 
   let(:task_model) { LcpRuby.registry.model_for("dashboard_task") }
