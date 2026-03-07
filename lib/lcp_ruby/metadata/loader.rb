@@ -132,10 +132,10 @@ module LcpRuby
       end
 
       def auto_create_pages
-        # Collect presenter names already claimed by explicit pages
+        # Collect presenter names already claimed by explicit pages (presenter zones only)
         claimed_presenters = Set.new
         @page_definitions.each_value do |page|
-          page.zones.each { |z| claimed_presenters << z.presenter }
+          page.zones.each { |z| claimed_presenters << z.presenter if z.presenter_zone? }
         end
 
         @presenter_definitions.each_value do |presenter|
@@ -230,11 +230,18 @@ module LcpRuby
       def auto_create_view_groups
         # Group routable pages by model
         pages_by_model = {}
+        standalone_pages = []
+
         @page_definitions.each_value do |page|
           next unless page.routable?
-          model_name = page.model
-          next unless model_name
-          (pages_by_model[model_name] ||= []) << page
+
+          if page.standalone?
+            standalone_pages << page
+          else
+            model_name = page.model
+            next unless model_name
+            (pages_by_model[model_name] ||= []) << page
+          end
         end
 
         pages_by_model.each do |model_name, pages|
@@ -257,6 +264,23 @@ module LcpRuby
           @view_group_definitions[vg.name] = vg
 
           Rails.logger.info("Auto-created view group for model '#{model_name}' with page '#{page.name}'") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
+        end
+
+        # Auto-create view groups for standalone pages not referenced by any VG
+        all_vg_pages = Set.new(@view_group_definitions.values.flat_map(&:page_names))
+        standalone_pages.each do |page|
+          next if all_vg_pages.include?(page.name)
+
+          vg = ViewGroupDefinition.new(
+            name: "#{page.name}_auto",
+            model: nil,
+            primary_page: page.name,
+            navigation_config: { "menu" => "main", "position" => 99 },
+            views: [ { "page" => page.name, "label" => page.title } ]
+          )
+          @view_group_definitions[vg.name] = vg
+
+          Rails.logger.info("Auto-created view group for standalone page '#{page.name}'") if defined?(Rails) && Rails.respond_to?(:logger) && Rails.logger
         end
       end
 

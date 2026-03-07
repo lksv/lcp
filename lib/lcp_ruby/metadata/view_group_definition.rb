@@ -8,7 +8,7 @@ module LcpRuby
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
-        @model = attrs[:model].to_s
+        @model = attrs[:model]&.to_s.presence
         @primary_page = attrs[:primary_page].to_s
         raw_nav = attrs.fetch(:navigation_config, {})
         @navigation_config = raw_nav == false ? false : HashUtils.stringify_deep(raw_nav || {})

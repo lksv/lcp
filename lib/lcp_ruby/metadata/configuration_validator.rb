@@ -2484,13 +2484,39 @@ module LcpRuby
 
         loader.page_definitions.each_value do |page|
           page.zones.each do |zone|
-            unless loader.presenter_definitions.key?(zone.presenter)
-              @errors << "Page '#{page.name}', zone '#{zone.name}': references unknown presenter '#{zone.presenter}'"
+            if zone.presenter_zone?
+              unless loader.presenter_definitions.key?(zone.presenter)
+                @errors << "Page '#{page.name}', zone '#{zone.name}': references unknown presenter '#{zone.presenter}'"
+              end
+            elsif zone.widget?
+              validate_widget_zone(page, zone)
             end
           end
 
           if page.model.present? && !loader.model_definitions.key?(page.model)
             @errors << "Page '#{page.name}': references unknown model '#{page.model}'"
+          end
+
+          if page.grid?
+            zones_without_position = page.zones.select { |z| z.position.nil? }
+            if zones_without_position.any?
+              names = zones_without_position.map(&:name).join(", ")
+              @warnings << "Page '#{page.name}' uses grid layout but zones [#{names}] have no position"
+            end
+          end
+        end
+      end
+
+      def validate_widget_zone(page, zone)
+        widget = zone.widget
+        return unless widget
+
+        widget_type = widget["type"]
+        case widget_type
+        when "kpi_card", "list"
+          model_name = widget["model"]
+          if model_name && !loader.model_definitions.key?(model_name)
+            @errors << "Page '#{page.name}', zone '#{zone.name}': widget references unknown model '#{model_name}'"
           end
         end
       end
