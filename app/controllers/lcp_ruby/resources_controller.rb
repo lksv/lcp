@@ -9,6 +9,12 @@ module LcpRuby
     before_action :set_record_with_discarded, only: [ :restore, :permanently_destroy ]
 
     def index
+      # Standalone grid pages (dashboards) bypass normal CRUD
+      if current_page&.standalone? && current_page&.grid?
+        load_dashboard
+        return
+      end
+
       authorize @model_class
 
       if api_model?
@@ -387,6 +393,30 @@ module LcpRuby
       ).page(page).per(per)
 
       setup_index_view_objects
+    end
+
+    def load_dashboard
+      @zone_data = current_page.zones.filter_map do |zone|
+        if zone.widget?
+          data = Widgets::DataResolver.new(zone, user: current_user).resolve
+        elsif zone.presenter_zone?
+          data = Widgets::PresenterZoneResolver.new(zone, user: current_user).resolve
+        else
+          next
+        end
+
+        # Evaluate visible_when condition
+        if zone.visible_when.present?
+          visible = ConditionEvaluator.evaluate(
+            zone.visible_when,
+            { current_user: current_user },
+            context: { current_user: current_user }
+          )
+          next unless visible
+        end
+
+        [ zone, data ]
+      end
     end
 
     def load_flat_index(scope)

@@ -112,9 +112,18 @@ module LcpRuby
       return unless slug
 
       @page_definition = Pages::Resolver.find_by_slug(slug)
-      @presenter_definition = LcpRuby.loader.presenter_definition(@page_definition.main_presenter_name)
-      @model_definition = LcpRuby.loader.model_definition(@presenter_definition.model)
-      @model_class = @model_definition.virtual? ? nil : LcpRuby.registry.model_for(@presenter_definition.model)
+
+      main_presenter_name = @page_definition.main_presenter_name
+      if main_presenter_name
+        @presenter_definition = LcpRuby.loader.presenter_definition(main_presenter_name)
+        @model_definition = LcpRuby.loader.model_definition(@presenter_definition.model)
+        @model_class = @model_definition.virtual? ? nil : LcpRuby.registry.model_for(@presenter_definition.model)
+      else
+        # Standalone page with no presenter (e.g., widget-only dashboard)
+        @presenter_definition = nil
+        @model_definition = nil
+        @model_class = nil
+      end
     end
 
     def authorize_presenter_access
@@ -151,6 +160,8 @@ module LcpRuby
     end
 
     def current_evaluator
+      return nil unless @presenter_definition
+
       @current_evaluator ||= begin
         perm_def = LcpRuby.loader.permission_definition(@presenter_definition.model)
         user = impersonating? ? impersonated_user : current_user

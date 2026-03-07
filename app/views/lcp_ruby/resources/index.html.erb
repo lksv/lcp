@@ -1,31 +1,40 @@
-<div class="lcp-resources-index">
-  <%= render_slot(:page_header, page: :index) %>
-  <div class="lcp-header">
-    <h1><%= current_presenter.label %></h1>
-    <% if current_presenter.index_config["description"].present? %>
-      <p class="lcp-view-description"><%= current_presenter.index_config["description"] %></p>
-    <% end %>
-    <div class="lcp-toolbar">
-      <%= render_slot(:toolbar_start, page: :index) %>
-      <%= render_slot(:toolbar_center, page: :index) %>
-      <%= render_slot(:toolbar_end, page: :index) %>
+<% if current_page&.grid? %>
+  <div class="lcp-resources-index lcp-dashboard">
+    <div class="lcp-header">
+      <h1><%= current_page.title %></h1>
     </div>
+    <%= render "lcp_ruby/resources/grid_page" %>
   </div>
+<% else %>
+  <div class="lcp-resources-index">
+    <%= render_slot(:page_header, page: :index) %>
+    <div class="lcp-header">
+      <h1><%= current_presenter.label %></h1>
+      <% if current_presenter.index_config["description"].present? %>
+        <p class="lcp-view-description"><%= current_presenter.index_config["description"] %></p>
+      <% end %>
+      <div class="lcp-toolbar">
+        <%= render_slot(:toolbar_start, page: :index) %>
+        <%= render_slot(:toolbar_center, page: :index) %>
+        <%= render_slot(:toolbar_end, page: :index) %>
+      </div>
+    </div>
 
-  <% if api_model? %>
+  <% if respond_to?(:api_model?) && api_model? %>
     <%= render "lcp_ruby/resources/api_status_banner" %>
   <% end %>
 
-  <%= render_slot(:filter_bar, page: :index) %>
+    <%= render_slot(:filter_bar, page: :index) %>
 
-  <% case current_presenter.index_layout %>
-  <% when :tree %>
-    <%= render "lcp_ruby/resources/tree_index" %>
-  <% when :tiles %>
-    <%= render "lcp_ruby/resources/tiles_index" %>
-  <% else %>
-    <%= render "lcp_ruby/resources/table_index" %>
-  <% end %>
+    <% case current_presenter.index_layout %>
+    <% when :tree %>
+      <%= render "lcp_ruby/resources/tree_index" %>
+    <% when :tiles %>
+      <%= render "lcp_ruby/resources/tiles_index" %>
+    <% else %>
+      <%= render "lcp_ruby/resources/table_index" %>
+    <% end %>
 
-  <%= render_slot(:below_content, page: :index) %>
-</div>
+    <%= render_slot(:below_content, page: :index) %>
+  </div>
+<% end %>
