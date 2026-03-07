@@ -1,0 +1,9 @@
+permissions:
+  model: dashboard_order
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      presenters: all
+    viewer:
+      crud: [index, show]
+      presenters: all

@@ -1,0 +1,22 @@
+model:
+  name: dashboard_task
+  label: "Task"
+
+  fields:
+    - name: name
+      type: string
+      validations:
+        - type: presence
+    - name: status
+      type: string
+
+  scopes:
+    - name: open_tasks
+      where: { status: "open" }
+    - name: recent
+      order: { created_at: desc }
+      limit: 5
+
+  options:
+    timestamps: true
+    label_method: name

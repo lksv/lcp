@@ -1,0 +1,56 @@
+page:
+  name: main_dashboard
+  slug: dashboard
+  layout: grid
+  title_key: lcp_ruby.dashboard.title
+  zones:
+    - name: order_count
+      type: widget
+      widget:
+        type: kpi_card
+        model: dashboard_order
+        aggregate: count
+        icon: shopping-cart
+        link_to: dashboard-orders
+      position: { row: 1, col: 1, width: 4, height: 1 }
+
+    - name: total_revenue
+      type: widget
+      widget:
+        type: kpi_card
+        model: dashboard_order
+        aggregate: sum
+        aggregate_field: total_amount
+        format: currency
+        icon: dollar-sign
+      position: { row: 1, col: 5, width: 4, height: 1 }
+
+    - name: open_tasks
+      type: widget
+      widget:
+        type: kpi_card
+        model: dashboard_task
+        aggregate: count
+        icon: check-square
+        link_to: dashboard-tasks
+      scope: open_tasks
+      position: { row: 1, col: 9, width: 4, height: 1 }
+
+    - name: welcome_text
+      type: widget
+      widget:
+        type: text
+        content_key: lcp_ruby.dashboard.welcome
+      position: { row: 2, col: 1, width: 12, height: 1 }
+
+    - name: recent_tasks
+      presenter: dashboard_tasks
+      scope: recent
+      limit: 5
+      position: { row: 3, col: 1, width: 6, height: 2 }
+
+    - name: recent_orders
+      presenter: dashboard_orders
+      scope: recent
+      limit: 5
+      position: { row: 3, col: 7, width: 6, height: 2 }

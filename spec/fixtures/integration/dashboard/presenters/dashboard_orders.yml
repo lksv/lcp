@@ -1,0 +1,30 @@
+presenter:
+  name: dashboard_orders
+  model: dashboard_order
+  slug: dashboard-orders
+  label: "Orders"
+
+  index:
+    table_columns:
+      - { field: name, sortable: true, link_to: show }
+      - { field: total_amount, sortable: true }
+
+  form:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+          - { field: total_amount }
+
+  show:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+          - { field: total_amount }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }

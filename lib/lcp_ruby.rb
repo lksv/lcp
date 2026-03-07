@@ -203,6 +203,10 @@ require "lcp_ruby/presenter/field_value_resolver"
 require "lcp_ruby/presenter/breadcrumb_builder"
 require "lcp_ruby/presenter/breadcrumb_path_helper"
 
+# Widgets
+require "lcp_ruby/widgets/data_resolver"
+require "lcp_ruby/widgets/presenter_zone_resolver"
+
 # Pages
 require "lcp_ruby/pages/resolver"
 

@@ -1,0 +1,32 @@
+presenter:
+  name: dashboard_tasks
+  model: dashboard_task
+  slug: dashboard-tasks
+  label: "Tasks"
+
+  index:
+    table_columns:
+      - { field: name, sortable: true, link_to: show }
+      - { field: status, sortable: true }
+
+  form:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+          - { field: status }
+
+  show:
+    sections:
+      - section: details
+        fields:
+          - { field: name }
+          - { field: status }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }
+      - { name: edit, type: built_in }
+      - { name: destroy, type: built_in }

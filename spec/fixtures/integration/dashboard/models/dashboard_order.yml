@@ -1,0 +1,23 @@
+model:
+  name: dashboard_order
+  label: "Order"
+
+  fields:
+    - name: name
+      type: string
+      validations:
+        - type: presence
+    - name: total_amount
+      type: decimal
+      column_options:
+        precision: 10
+        scale: 2
+
+  scopes:
+    - name: recent
+      order: { created_at: desc }
+      limit: 5
+
+  options:
+    timestamps: true
+    label_method: name
