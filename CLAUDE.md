@@ -106,6 +106,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Tiles View Guide](docs/guides/tiles.md) — Card grid layout: tile configuration, sort dropdown, per-page selector, summary bar
 - [View Slots Guide](docs/guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components
 - [API-Backed Models Guide](docs/guides/api-backed-models.md) — Integrating external REST APIs and host-provided data sources
+- [Dashboards Guide](docs/guides/dashboards.md) — Standalone grid pages: KPI cards, text widgets, list widgets, presenter zones, landing page
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Host Application Guide](docs/guides/host-application.md) — Creating a new host application from scratch: scaffold, models, presenters, permissions, groups, seeds
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views

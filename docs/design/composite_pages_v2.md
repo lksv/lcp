@@ -987,16 +987,18 @@ One pipeline. The difference between page, zone, and dialog is only the layout w
 - Confirmation dialogs (lightweight `confirm:` on actions)
 - Full page reload after dialog submit (`on_success: reload`)
 
-**Tier 1b (Dashboards):**
+**Tier 1b (Dashboards) — Implemented:**
 - `layout: grid` mode on pages (explicit row/col/width/height positioning)
 - Widget zones (`type: widget`) with `kpi_card`, `text`, `list` widget types
 - Standalone pages (no primary model) with widget zones = dashboards
-- `WidgetDataResolver` for widget data fetching via `Aggregates::QueryBuilder`
-- Widget renderers (`KpiCardRenderer`, `TextRenderer`, `ListRenderer`)
-- Grid layout CSS template
+- `Widgets::DataResolver` for widget data (aggregates, i18n text, limited records)
+- `Widgets::PresenterZoneResolver` for presenter zones on dashboard pages
+- Widget view partials (`_kpi_card`, `_text`, `_list`, `_presenter_zone`)
+- Grid layout CSS template (12-column grid, responsive)
 - `link_to` drill-down on KPI widgets
-- Landing page per role via engine configuration
+- Landing page per role via engine configuration (`landing_page`)
 - `visible_when` conditions on zones
+- Auto-created view groups for standalone pages
 
 **Tier 2:**
 - Explicit page YAML for composite layouts (master-detail, tabs, sidebar)

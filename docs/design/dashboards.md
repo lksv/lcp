@@ -1,6 +1,6 @@
 # Feature Specification: Dashboards (via Pages)
 
-**Status:** Proposed (converged with Pages)
+**Status:** Tier 1b Implemented
 **Date:** 2026-03-06
 **Updated:** 2026-03-07
 
