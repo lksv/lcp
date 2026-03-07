@@ -118,6 +118,7 @@ module LcpRuby
         when "json" then LcpRuby.json_column_type.to_s
         when "file" then "string"
         when "rich_text" then "text"
+        when "array" then "array"
         else type
         end
       end

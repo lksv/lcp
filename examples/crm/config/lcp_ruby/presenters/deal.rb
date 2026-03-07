@@ -18,6 +18,7 @@ define_presenter :deal do
     column :value, width: "15%", renderer: :currency, options: { currency: "EUR" }, sortable: true, summary: "sum"
     column :weighted_value, width: "10%", renderer: :currency, options: { currency: "EUR" }
     column :progress, width: "10%", renderer: :progress_bar
+    column :tags, width: "15%", renderer: :collection, options: { item_renderer: "badge", separator: " " }
     column :priority, width: "10%", sortable: true
 
     item_class "lcp-row-success", when: { field: :stage, operator: :eq, value: "closed_won" }
@@ -50,6 +51,7 @@ define_presenter :deal do
       field :created_at, renderer: :relative_date
       field :created_by_name
       field :updated_by_name
+      field :tags, renderer: :collection, options: { item_renderer: "badge", separator: " " }
       field :documents, renderer: :attachment_list
     end
 
@@ -84,6 +86,12 @@ define_presenter :deal do
           label_method: :full_name
         },
         visible_when: { field: :stage, operator: :not_in, value: [ :lead ] }
+      field :tags, input_type: :array_input,
+        input_options: {
+          placeholder: "Add tag...",
+          max: 10,
+          suggestions: %w[enterprise urgent renewal upsell partner strategic long-term pilot proof-of-concept government]
+        }
       field :deal_category_id, input_type: :tree_select,
         input_options: {
           parent_field: :parent_id,
@@ -105,7 +113,7 @@ define_presenter :deal do
   end
 
   search do
-    searchable_fields :title
+    searchable_fields :title, :tags
     placeholder "Search deals..."
     filter :all, label: "All", default: true
     filter :open, label: "Open", scope: :open_deals
@@ -120,7 +128,7 @@ define_presenter :deal do
       allow_or_groups true
       query_language true
 
-      filterable_fields :title, :stage, :value, :priority, :progress,
+      filterable_fields :title, :stage, :value, :tags, :priority, :progress,
                         :expected_close_date, :created_at,
                         "company.name", "company.industry",
                         "contact.last_name", "contact.email",

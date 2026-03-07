@@ -11,6 +11,7 @@ module LcpRuby
         model_class = create_model_class
         apply_table_name(model_class)
         apply_enums(model_class)
+        apply_array_types(model_class)
         apply_validations(model_class)
         apply_transforms(model_class)
         apply_associations(model_class)
@@ -68,6 +69,10 @@ module LcpRuby
           values = field.enum_value_names.index_with(&:itself)
           model_class.enum field.name.to_sym, values, default: field.default, prefix: true
         end
+      end
+
+      def apply_array_types(model_class)
+        ArrayTypeApplicator.new(model_class, model_definition).apply!
       end
 
       def apply_validations(model_class)

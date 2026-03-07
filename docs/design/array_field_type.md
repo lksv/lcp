@@ -1,6 +1,6 @@
 # Design: Array Field Type
 
-**Status:** Proposed
+**Status:** Implemented
 **Date:** 2026-02-21
 
 ## Problem
@@ -339,10 +339,10 @@ module LcpRuby
         when Array then cast_items(value.reject(&:blank?))
         when String
           # Try JSON parse first, fall back to comma-split
-          parsed = JSON.parse(value) rescue nil
-          if parsed.is_a?(Array)
-            cast_items(parsed)
-          else
+          begin
+            parsed = JSON.parse(value)
+            parsed.is_a?(Array) ? cast_items(parsed) : cast_items(value.split(",").map(&:strip).reject(&:blank?))
+          rescue JSON::ParserError
             cast_items(value.split(",").map(&:strip).reject(&:blank?))
           end
         when nil then []
@@ -478,7 +478,8 @@ module LcpRuby
     class << self
       # Records where the array field contains ALL of the given values.
       # SQL: PG `@>`, SQLite `json_each` with COUNT match.
-      def contains(scope, table_name, field_name, values)
+      # item_type is required for PG to generate correctly typed array literals.
+      def contains(scope, table_name, field_name, values, item_type: "string")
         values = Array(values)
         return scope if values.empty?
 
@@ -488,7 +489,7 @@ module LcpRuby
 
         condition = if LcpRuby.postgresql?
           # PG: tags @> ARRAY['ruby','rails']::text[]
-          array_literal = pg_array_literal(values, conn)
+          array_literal = pg_array_literal(values, conn, item_type)
           "#{quoted_table}.#{quoted_field} @> #{array_literal}"
         else
           # SQLite: every value must appear in json_each()
@@ -506,7 +507,7 @@ module LcpRuby
 
       # Records where the array field contains ANY of the given values.
       # SQL: PG `&&`, SQLite `json_each` with EXISTS.
-      def overlaps(scope, table_name, field_name, values)
+      def overlaps(scope, table_name, field_name, values, item_type: "string")
         values = Array(values)
         return scope.none if values.empty?
 
@@ -515,7 +516,7 @@ module LcpRuby
         quoted_field = conn.quote_column_name(field_name)
 
         condition = if LcpRuby.postgresql?
-          array_literal = pg_array_literal(values, conn)
+          array_literal = pg_array_literal(values, conn, item_type)
           "#{quoted_table}.#{quoted_field} && #{array_literal}"
         else
           in_list = values.map { |v| conn.quote(v.to_s) }.join(", ")
@@ -528,7 +529,7 @@ module LcpRuby
 
       # Records where the array field is a subset of the given values.
       # SQL: PG `<@`, SQLite `json_each` with NOT EXISTS of unmatched.
-      def contained_by(scope, table_name, field_name, values)
+      def contained_by(scope, table_name, field_name, values, item_type: "string")
         values = Array(values)
         return scope if values.empty?
 
@@ -537,7 +538,7 @@ module LcpRuby
         quoted_field = conn.quote_column_name(field_name)
 
         condition = if LcpRuby.postgresql?
-          array_literal = pg_array_literal(values, conn)
+          array_literal = pg_array_literal(values, conn, item_type)
           "#{quoted_table}.#{quoted_field} <@ #{array_literal}"
         else
           in_list = values.map { |v| conn.quote(v.to_s) }.join(", ")
@@ -564,9 +565,14 @@ module LcpRuby
 
       private
 
-      def pg_array_literal(values, conn)
+      def pg_array_literal(values, conn, item_type)
         escaped = values.map { |v| conn.quote(v.to_s) }.join(", ")
-        "ARRAY[#{escaped}]::text[]"
+        pg_type = case item_type
+                  when "integer" then "integer[]"
+                  when "float"   then "float8[]"
+                  else "text[]"
+                  end
+        "ARRAY[#{escaped}]::#{pg_type}"
       end
     end
   end
@@ -597,15 +603,16 @@ def apply_array_scopes
   table = @model_definition.table_name
   @model_definition.fields.select(&:array?).each do |field|
     field_name = field.name
+    item_type = field.item_type
 
     # Model.with_<field>(values) — contains ALL values
     @model_class.scope :"with_#{field_name}", ->(values) {
-      ArrayQuery.contains(all, table, field_name, Array(values))
+      ArrayQuery.contains(all, table, field_name, Array(values), item_type: item_type)
     }
 
     # Model.with_any_<field>(values) — contains ANY value
     @model_class.scope :"with_any_#{field_name}", ->(values) {
-      ArrayQuery.overlaps(all, table, field_name, Array(values))
+      ArrayQuery.overlaps(all, table, field_name, Array(values), item_type: item_type)
     }
   end
 end
@@ -620,34 +627,46 @@ Article.with_any_tags(["ruby", "python"])   # articles with EITHER tag
 
 ### 9. `ConditionEvaluator`
 
-Add array-aware operators for `visible_when` / `disable_when`:
+Add array-aware operators for `visible_when` / `disable_when`.
+
+**Important:** The `contains` operator already exists and performs **string substring matching** (`actual.to_s.downcase.include?(value.to_s.downcase)`). It is listed in `STRING_OPERATORS` in `ConfigurationValidator`. The solution is to make `contains` **polymorphic**: when `actual` is an Array, use array containment semantics; when it is a scalar/string, keep the existing string substring behavior. This avoids a breaking change.
 
 ```ruby
-# In evaluate():
+# In compare() — replace existing "contains" case:
 when "contains"
-  # actual is an array, value is a single item or array
-  arr = Array(actual)
-  Array(value).all? { |v| arr.map(&:to_s).include?(v.to_s) }
+  if actual.is_a?(Array)
+    # Array containment: all given values must be present
+    arr = actual.map(&:to_s)
+    Array(value).all? { |v| arr.include?(v.to_s) }
+  else
+    # Existing string substring behavior (unchanged)
+    actual.to_s.downcase.include?(value.to_s.downcase)
+  end
 when "not_contains"
-  arr = Array(actual)
-  Array(value).none? { |v| arr.map(&:to_s).include?(v.to_s) }
+  if actual.is_a?(Array)
+    arr = actual.map(&:to_s)
+    Array(value).none? { |v| arr.include?(v.to_s) }
+  else
+    !actual.to_s.downcase.include?(value.to_s.downcase)
+  end
 when "any_of"
-  arr = Array(actual)
-  Array(value).any? { |v| arr.map(&:to_s).include?(v.to_s) }
+  arr = Array(actual).map(&:to_s)
+  Array(value).any? { |v| arr.include?(v.to_s) }
 when "empty"
   Array(actual).empty?
 when "not_empty"
   Array(actual).any?
 ```
 
-These operators also work with the existing `present` / `blank` operators since `Array([])` is blank.
+The `empty` / `not_empty` operators are explicit aliases — `blank` / `present` already work for arrays (`[].blank? == true`), but `empty` / `not_empty` read more naturally in YAML configs targeting array fields.
 
-Update `VALID_CONDITION_OPERATORS` in `ConfigurationValidator`:
+Update `VALID_CONDITION_OPERATORS` in `ConfigurationValidator` — add only the **new** operators (`not_contains`, `any_of`, `empty`, `not_empty`); `contains` is already present:
 
 ```ruby
 VALID_CONDITION_OPERATORS = %w[
   eq not_eq neq in not_in gt gte lt lte present blank
-  matches not_matches contains not_contains any_of empty not_empty
+  matches not_matches starts_with ends_with contains
+  not_contains any_of empty not_empty
 ].freeze
 ```
 
@@ -783,19 +802,15 @@ end
 
 ### 15. Search Integration
 
-In `ApplicationController#apply_search`, array string fields should participate in text search:
+In `Search::QuickSearch.condition_for_field`, add a case for array fields so that array string fields participate in quick text search:
 
 ```ruby
-# In apply_search:
-array_string_fields = model_definition.fields
-  .select { |f| f.array? && f.item_type == "string" }
-  .map(&:name)
-
-array_string_fields.each do |field_name|
-  # PG: field @> ARRAY[query]
-  # SQLite: EXISTS (SELECT 1 FROM json_each(field) WHERE value LIKE ...)
-  conditions << ArrayQuery.text_search_condition(table_name, field_name, query)
-end
+# In condition_for_field, add new case:
+when "array"
+  if field_def.item_type == "string"
+    sql = ArrayQuery.text_search_condition(model_class.table_name, field_def.name, sanitize_like(query))
+    Arel.sql("(#{sql})")
+  end
 ```
 
 ```ruby
@@ -826,6 +841,13 @@ end
 | **TransformApplicator** | Skipped for virtual fields; for array fields, transforms would apply to the whole array (not useful, but harmless) |
 | **DefaultApplicator** | Array defaults (`[]`) are handled by `build_column_options` for DB-backed columns and by `attribute default:` for the AR type |
 
+## Components Requiring Changes (not covered in numbered sections)
+
+| Component | Change |
+|---|---|
+| **RansackApplicator** | Exclude array fields from `ransackable_attributes` — PG array columns (`text[]`) do not support standard Ransack predicates (`_cont`, `_eq`). Array fields should be filtered via custom filter interceptors or the `ArrayQuery` scopes instead. |
+| **ErdGenerator** | Add `when "array"` to `mermaid_type` mapping → display as `array<item_type>` |
+
 ## File Changes Summary
 
 | File | Change |
@@ -844,8 +866,10 @@ end
 | `lib/lcp_ruby/metadata/configuration_validator.rb` | Validate array fields, new condition operators |
 | `app/helpers/lcp_ruby/form_helper.rb` | Add `array_input` renderer |
 | `app/controllers/lcp_ruby/resources_controller.rb` | Permit array fields in params |
-| `app/controllers/lcp_ruby/application_controller.rb` | Include array fields in text search |
+| `lib/lcp_ruby/search/quick_search.rb` | Add `"array"` case in `condition_for_field` for text search |
 | `lib/lcp_ruby/presenter/layout_builder.rb` | Default renderer/input_type for array fields |
+| `lib/lcp_ruby/model_factory/ransack_applicator.rb` | Exclude array fields from `ransackable_attributes` |
+| `lib/lcp_ruby/metadata/erd_generator.rb` | Add `array` type mapping to `mermaid_type` |
 
 ## Examples
 
@@ -953,6 +977,18 @@ All `ArrayQuery` tests run on SQLite in the default test suite using `json_each(
 ```ruby
 before { skip "PostgreSQL only" unless LcpRuby.postgresql? }
 ```
+
+## Decisions
+
+1. **`contains` operator is polymorphic, not renamed.** The `contains` operator already exists for string substring matching. Rather than introducing `array_contains` (awkward in YAML), the existing operator is made polymorphic: when `actual.is_a?(Array)`, use array containment semantics; otherwise keep string substring behavior. This avoids breaking existing configs.
+
+2. **`empty`/`not_empty` are explicit aliases.** The existing `blank`/`present` operators already work for arrays (`[].blank? == true`). Adding `empty`/`not_empty` is intentional for readability in YAML configs targeting array fields — they express intent more clearly than `blank`/`present`.
+
+3. **PG array literals are type-aware.** The `pg_array_literal` helper casts to the correct PG type based on `item_type` (`::text[]`, `::integer[]`, `::float8[]`) to avoid type mismatch errors with PG `@>`, `&&`, `<@` operators on typed array columns.
+
+4. **Array fields excluded from Ransack.** PG array columns do not support standard Ransack predicates (`_cont`, `_eq`). Array fields are excluded from `ransackable_attributes` and filtered via `ArrayQuery` scopes or custom filter interceptors.
+
+5. **Search integration targets `QuickSearch`.** Text search lives in `Search::QuickSearch.condition_for_field`, not `ApplicationController`.
 
 ## Open Questions
 

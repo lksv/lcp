@@ -7,7 +7,7 @@ connection = ActiveRecord::Base.connection
   saved_filter feature pipeline_stage pipeline showcase_item_class showcase_recipe showcase_positioning showcase_userstamps
   showcase_soft_delete_item showcase_soft_delete showcase_aggregate_item showcase_aggregate
   showcase_virtual_field showcase_extensibility permission_config role showcase_permission
-  showcase_attachment custom_field_definition employee_skill project showcase_search
+  showcase_attachment custom_field_definition employee_skill project showcase_search showcase_array
   employee skill department showcase_form comment article_tag tag article
   author category showcase_model showcase_field
   group_role_mapping group_membership group
@@ -1399,6 +1399,80 @@ if LcpRuby.registry.registered?("saved_filter")
   puts "  Created #{SavedFilterModel.count} saved filters"
 end
 
+# Phase: Array Fields Showcase
+ArrayModel = LcpRuby.registry.model_for("showcase_array")
+
+[
+  {
+    title: "Web Framework Comparison",
+    description: "Comparing popular web frameworks across multiple dimensions.",
+    tags: %w[ruby rails javascript react comparison],
+    categories: %w[frontend backend],
+    scores: [5, 4, 3, 5, 4],
+    measurements: [98.5, 72.3, 88.1],
+    default_labels: %w[important review],
+    record_type: "advanced",
+    featured: true
+  },
+  {
+    title: "DevOps Pipeline Setup",
+    description: "Setting up CI/CD pipeline with automated testing and deployment.",
+    tags: %w[devops ci cd docker kubernetes urgent],
+    categories: %w[devops backend],
+    scores: [5, 5, 4],
+    measurements: [150.0, 200.5],
+    default_labels: %w[important],
+    record_type: "special",
+    featured: true
+  },
+  {
+    title: "Quick Start Guide",
+    description: "A simple getting started tutorial for beginners.",
+    tags: %w[tutorial beginner],
+    categories: %w[frontend],
+    scores: [3, 4],
+    measurements: [],
+    default_labels: %w[important review],
+    record_type: "basic",
+    featured: false
+  },
+  {
+    title: "Performance Optimization",
+    description: "Database query optimization and caching strategies.",
+    tags: %w[performance database caching optimization],
+    categories: %w[backend devops],
+    scores: [5, 4, 5, 3, 2],
+    measurements: [12.5, 8.3, 45.7, 3.2],
+    default_labels: [],
+    record_type: "advanced",
+    featured: false
+  },
+  {
+    title: "Empty Arrays Demo",
+    description: "Record with no array values to demonstrate empty state rendering.",
+    tags: [],
+    categories: [],
+    scores: [],
+    measurements: [],
+    default_labels: %w[important review],
+    record_type: "basic",
+    featured: false
+  },
+  {
+    title: "Design System Components",
+    description: "Building a component library with design tokens and variants.",
+    tags: %w[design components ui ux],
+    categories: %w[design frontend],
+    scores: [4, 4, 5],
+    measurements: [16.0, 24.0, 32.0, 48.0],
+    default_labels: %w[review],
+    record_type: "special",
+    featured: true
+  }
+].each { |attrs| ArrayModel.create!(attrs) }
+
+puts "  Created #{ArrayModel.count} array demo records"
+
 # Phase 13: Feature Catalog
 FeatureModel = LcpRuby.registry.model_for("feature")
 
@@ -1538,6 +1612,35 @@ features = [
     config_example: "```yaml\nfields:\n  - name: avatar\n    type: attachment\n    attachment:\n      mode: single\n      max_size: 5MB\n      content_types: [image/png, image/jpeg]\n      variants:\n        thumb: { resize_to_limit: [100, 100] }\n```",
     demo_path: "/showcase/showcase-attachments",
     demo_hint: "The attachment showcase has fields for single file, multiple files, and image-only uploads.",
+    status: "stable"
+  },
+
+  # === Array Field Types ===
+  {
+    name: "Array Field (String)",
+    category: "field_types",
+    description: "Multi-valued string field stored as native `text[]` on PostgreSQL and `json` on SQLite. Supports `array_length`, `array_uniqueness`, and `array_inclusion` validations.\n\nAuto-generates `with_<field>` (contains ALL) and `with_any_<field>` (contains ANY) query scopes. Participates in quick text search.",
+    config_example: "```ruby\nfield :tags, :array, item_type: :string, default: [] do\n  validates :array_length, maximum: 10\n  validates :array_uniqueness\nend\n```",
+    demo_path: "/showcase/showcase-arrays",
+    demo_hint: "Look at the **Tags** column — string arrays rendered as badge collections. Edit a record to see the chip-style input.",
+    status: "stable"
+  },
+  {
+    name: "Array Field (Integer)",
+    category: "field_types",
+    description: "Multi-valued integer field. Items are cast to integers on save. Supports `array_inclusion` to restrict to allowed values.\n\nStored as `integer[]` on PostgreSQL, `json` on SQLite. Same query scopes and validations as string arrays.",
+    config_example: "```ruby\nfield :scores, :array, item_type: :integer, default: [] do\n  validates :array_inclusion, in: [1, 2, 3, 4, 5]\n  validates :array_length, maximum: 5\nend\n```",
+    demo_path: "/showcase/showcase-arrays",
+    demo_hint: "Look at the **Scores** column — integer arrays displayed as comma-separated values. Edit a record and try adding values outside 1-5.",
+    status: "stable"
+  },
+  {
+    name: "Array Field (Float)",
+    category: "field_types",
+    description: "Multi-valued float field for measurements, coordinates, weights. Items are cast to floats on save.\n\nStored as `float[]` on PostgreSQL, `json` on SQLite.",
+    config_example: "```ruby\nfield :measurements, :array, item_type: :float, default: []\n```",
+    demo_path: "/showcase/showcase-arrays",
+    demo_hint: "Look at the **Measurements** column on the show page — float arrays displayed as comma-separated decimals.",
     status: "stable"
   },
 
@@ -1770,7 +1873,44 @@ features = [
     status: "stable"
   },
 
+  {
+    name: "Array Input",
+    category: "input_types",
+    description: "Tag-style chip input for array fields. Type a value and press Enter to add a chip. Click the x to remove. Supports `suggestions` (autocomplete list), `max` (item limit), and `placeholder`.\n\nDefault input type for all `type: array` fields. Submits as JSON via a hidden field.",
+    config_example: "```ruby\nfield :tags, input_type: :array_input, input_options: {\n  placeholder: \"Add a tag...\",\n  max: 10,\n  suggestions: %w[ruby rails javascript python]\n}\n```",
+    demo_path: "/showcase/showcase-arrays/1/edit",
+    demo_hint: "Edit any array demo record. **Tags** has suggestions and a max of 10. **Scores** has numeric suggestions 1-5.",
+    status: "stable"
+  },
+
   # === Model Features ===
+  {
+    name: "Array Validations",
+    category: "model_features",
+    description: "Three array-specific validation types:\n\n- `array_length` — min/max number of items\n- `array_inclusion` — every item must be in an allowed list\n- `array_uniqueness` — no duplicate items\n\nApplied like standard validations in the field definition.",
+    config_example: "```ruby\nfield :tags, :array, item_type: :string do\n  validates :array_length, maximum: 10\n  validates :array_uniqueness\nend\n\nfield :scores, :array, item_type: :integer do\n  validates :array_inclusion, in: [1, 2, 3, 4, 5]\nend\n```",
+    demo_path: "/showcase/showcase-arrays/1/edit",
+    demo_hint: "Edit a record — try adding more than 10 tags, duplicate tags, or scores outside 1-5. Validation errors appear on save.",
+    status: "stable"
+  },
+  {
+    name: "Array Query Scopes",
+    category: "model_features",
+    description: "Every array field auto-generates two query scopes:\n\n- `with_<field>(values)` — records containing ALL given values (PG `@>`, SQLite `json_each` COUNT)\n- `with_any_<field>(values)` — records containing ANY given value (PG `&&`, SQLite `json_each` EXISTS)\n\nDB-portable: same YAML works on PostgreSQL and SQLite.",
+    config_example: "```ruby\n# All records with BOTH tags\nShowcaseArray.with_tags([\"ruby\", \"rails\"])\n\n# Records with EITHER tag\nShowcaseArray.with_any_tags([\"ruby\", \"python\"])\n```",
+    demo_path: "/showcase/showcase-arrays",
+    demo_hint: "Array scopes are available in code. Use quick search to find records by tag content.",
+    status: "stable"
+  },
+  {
+    name: "Array Condition Operators",
+    category: "model_features",
+    description: "Array-aware operators for `visible_when` / `disable_when` conditional rendering:\n\n- `contains` — polymorphic: array containment when field is Array, string substring when scalar\n- `not_contains` — inverse of contains\n- `any_of` — any of the given values appear in the array\n- `empty` / `not_empty` — array has zero / one-or-more items\n\nUsed in presenter sections and field conditions.",
+    config_example: "```ruby\nsection \"Urgent Details\",\n  visible_when: { field: :tags, operator: :contains, value: \"urgent\" }\n\nsection \"Score Analysis\",\n  visible_when: { field: :scores, operator: :not_empty }\n```",
+    demo_path: "/showcase/showcase-arrays/2",
+    demo_hint: "Open the 'DevOps Pipeline Setup' record — it has the 'urgent' tag, so the **Urgent Details** section is visible. The **Score Analysis** section appears because scores is not empty.",
+    status: "stable"
+  },
   {
     name: "Validations",
     category: "model_features",

@@ -16,14 +16,17 @@ module LcpRuby
 
       def define_ransackable_attributes
         model_name = @model_definition.name
+        array_field_names = @model_definition.fields.select(&:array?).map(&:name).to_set.freeze
 
         @model_class.define_singleton_method(:ransackable_attributes) do |auth_object = nil|
-          if auth_object.is_a?(LcpRuby::Authorization::PermissionEvaluator) &&
-             auth_object.model_name == model_name
+          attrs = if auth_object.is_a?(LcpRuby::Authorization::PermissionEvaluator) &&
+                     auth_object.model_name == model_name
             auth_object.readable_fields.map(&:to_s)
           else
             column_names
           end
+          # Exclude array fields — PG array columns don't support Ransack predicates
+          attrs.reject { |a| array_field_names.include?(a) }
         end
       end
 

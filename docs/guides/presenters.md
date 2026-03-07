@@ -604,6 +604,17 @@ LCP Ruby picks a default input type based on the field's model type, but you can
 | `slider` | Range slider | - |
 | `toggle` | Toggle switch | - |
 | `rating` | Star rating input | - |
+| `array_input` | Tag-style chip input | `array` fields |
+
+Array fields (`type: array`) automatically use `array_input` in forms and `collection` renderer in display. Configure suggestions and limits via `input_options`:
+
+```ruby
+field :tags, input_type: :array_input, input_options: {
+  placeholder: "Add a tag...",
+  max: 10,
+  suggestions: %w[ruby rails javascript python]
+}
+```
 
 ### Field Options
 

@@ -1,0 +1,7 @@
+view_group:
+  model: showcase_array
+  primary: showcase_arrays
+  views:
+    - presenter: showcase_arrays
+      label: "Array Fields"
+      icon: list

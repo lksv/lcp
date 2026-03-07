@@ -82,6 +82,7 @@ Implemented:
 - [Aggregate Columns](design/aggregate_columns.md) — Virtual computed columns (COUNT, SUM, MIN, MAX, AVG) from associated records, custom SQL, service-based aggregates
 - [Tiles View](design/tiles_view.md) — Card grid layout for index pages with sort dropdown, per-page selector, and summary bar
 - [Row Styling](design/row_styling.md) — Conditional CSS classes on index rows (tables, trees, tiles) based on field conditions or services
+- [Array Field Type](design/array_field_type.md) — Native array fields with typed items, array-specific operators, and auto-generated scopes
 
 In Progress:
 
@@ -94,7 +95,6 @@ Partially Implemented:
 - [Virtual Columns](design/virtual_columns.md) — Generalized query extensions: raw SQL, JOINs, EXISTS, window functions, LATERAL JOINs, service-based with Arel
 - [Data Retention](design/data_retention.md) — Automatic purge policies for audit logs, soft-deleted records, and attachments
 - [Multiselect and Batch Actions](design/multiselect_and_batch_actions.md) — Checkbox selection and bulk operations on index pages
-- [Array Field Type](design/array_field_type.md) — Native array fields with typed items and array-specific operators
 - [Advanced Search & Filter Builder](design/advanced_search.md) — Multi-field search, saved filters, and visual filter builder
 - [Context-Aware Presenters](design/context_aware_presenters.md) — Parent-context-dependent presenter resolution for polymorphic sub-resources
 - [Dynamic Presenters](design/dynamic_presenters.md) — DB-backed presenter overrides (user/role/system personalization layer)

@@ -180,6 +180,11 @@ module LcpRuby
             f = f.merge("field_definition" => field_def)
             # Computed fields are readonly in forms
             f = f.merge("readonly" => true) if field_def.computed?
+            # Default input_type and renderer for array fields
+            if field_def.array?
+              f = f.merge("input_type" => "array_input") unless f.key?("input_type")
+              f = f.merge("renderer" => "collection") unless f.key?("renderer")
+            end
 
             # Attach association metadata for FK fields that are also declared as fields
             # (e.g., tree parent_id declared in fields + tree generates belongs_to :parent)

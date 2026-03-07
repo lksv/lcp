@@ -82,6 +82,11 @@ module LcpRuby
           datetime_condition(col, query)
         when "enum"
           enum_condition(col, field_def, query, model_class)
+        when "array"
+          if field_def.item_type == "string"
+            sql = ArrayQuery.text_search_condition(model_class.table_name, field_def.name, sanitize_like(query))
+            Arel.sql("(#{sql})")
+          end
         end
       end
 

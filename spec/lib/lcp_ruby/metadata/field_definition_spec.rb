@@ -115,9 +115,56 @@ RSpec.describe LcpRuby::Metadata::FieldDefinition do
 
     LcpRuby::Metadata::FieldDefinition::VALID_TYPES.each do |type|
       it "accepts type '#{type}'" do
+        hash = { "name" => "test_field", "type" => type }
+        hash["item_type"] = "string" if type == "array"
         expect {
-          described_class.from_hash("name" => "test_field", "type" => type)
+          described_class.from_hash(hash)
         }.not_to raise_error
+      end
+    end
+  end
+
+  describe "array fields" do
+    it "parses an array field with item_type" do
+      field = described_class.from_hash(
+        "name" => "tags", "type" => "array", "item_type" => "string"
+      )
+      expect(field.array?).to be true
+      expect(field.item_type).to eq("string")
+    end
+
+    it "raises when item_type is missing" do
+      expect {
+        described_class.from_hash("name" => "tags", "type" => "array")
+      }.to raise_error(LcpRuby::MetadataError, /requires item_type/)
+    end
+
+    it "raises when item_type is invalid" do
+      expect {
+        described_class.from_hash("name" => "tags", "type" => "array", "item_type" => "boolean")
+      }.to raise_error(LcpRuby::MetadataError, /requires item_type/)
+    end
+
+    it "returns json column type on SQLite" do
+      field = described_class.from_hash(
+        "name" => "tags", "type" => "array", "item_type" => "string"
+      )
+      expect(field.column_type).to eq(LcpRuby.json_column_type)
+    end
+
+    it "supports default value" do
+      field = described_class.from_hash(
+        "name" => "tags", "type" => "array", "item_type" => "string", "default" => []
+      )
+      expect(field.default).to eq([])
+    end
+
+    %w[string integer float].each do |item_type|
+      it "accepts item_type '#{item_type}'" do
+        field = described_class.from_hash(
+          "name" => "vals", "type" => "array", "item_type" => item_type
+        )
+        expect(field.item_type).to eq(item_type)
       end
     end
   end

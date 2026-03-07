@@ -13,7 +13,7 @@ permissions:
       crud: [index, show, create, update, destroy]
       fields:
         readable: all
-        writable: [title, stage, company_id, contact_id]
+        writable: [title, stage, tags, company_id, contact_id]
       actions:
         allowed: [close_won]
         denied: []
@@ -22,7 +22,7 @@ permissions:
 
     viewer:
       crud: [index, show]
-      fields: { readable: [title, stage, value], writable: [] }
+      fields: { readable: [title, stage, value, tags], writable: [] }
       actions: { allowed: [] }
       scope: all
       presenters: [deal_pipeline]

@@ -8,6 +8,7 @@ require "lcp_ruby/user_snapshot"
 require "lcp_ruby/bulk_updater"
 require "lcp_ruby/condition_evaluator"
 require "lcp_ruby/condition_service_registry"
+require "lcp_ruby/array_query"
 
 # Metadata
 require "lcp_ruby/metadata/validation_definition"
@@ -87,6 +88,8 @@ require "lcp_ruby/model_factory/tree_applicator"
 require "lcp_ruby/model_factory/auditing_applicator"
 require "lcp_ruby/model_factory/ransack_applicator"
 require "lcp_ruby/model_factory/aggregate_applicator"
+require "lcp_ruby/model_factory/array_type"
+require "lcp_ruby/model_factory/array_type_applicator"
 require "lcp_ruby/model_factory/builder"
 
 # Aggregates

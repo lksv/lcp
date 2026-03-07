@@ -91,14 +91,47 @@ These operators compare natively when both sides are the same comparable type (N
 { field: code, operator: not_matches, value: "^TEMP" }
 ```
 
+### Array Operators
+
+These operators work on array fields (type `array`). The `contains` and `not_contains` operators are **polymorphic** — they perform array containment when the field value is an Array, and fall back to string substring matching for non-array fields.
+
+| Operator | Description | Value Type |
+|----------|-------------|------------|
+| `contains` | Array: field contains ALL given values. String: case-insensitive substring match. | scalar or array |
+| `not_contains` | Array: field does not contain ANY given value. String: does not contain substring. | scalar or array |
+| `any_of` | Array field contains at least one of the given values | array |
+| `empty` | Array field is empty (`[]`) | — |
+| `not_empty` | Array field has at least one item | — |
+
+**Examples:**
+
+```yaml
+# Array contains all specified values
+{ field: tags, operator: contains, value: [ruby, rails] }
+
+# Array does not contain any of the values
+{ field: tags, operator: not_contains, value: [deprecated] }
+
+# Array contains at least one of the values
+{ field: tags, operator: any_of, value: [ruby, python] }
+
+# Array is empty
+{ field: tags, operator: empty }
+
+# Array has items
+{ field: tags, operator: not_empty }
+```
+
+> **Note:** `contains` on a string field still performs case-insensitive substring matching (e.g., `{ field: title, operator: contains, value: "urgent" }`). The operator detects the field type at runtime.
+
 ### Presence Checks
 
-These operators ignore the `value` field.
+These operators ignore the `value` field. They also work on array fields (`[].blank?` is `true`, `[1].present?` is `true`).
 
 | Operator | Description | Value Type |
 |----------|-------------|------------|
 | `present` | Field is present (not nil, not empty) | — |
-| `blank` | Field is blank (nil, empty string, etc.) | — |
+| `blank` | Field is blank (nil, empty string, empty array, etc.) | — |
 
 **Examples:**
 
@@ -130,8 +163,10 @@ The `ConfigurationValidator` checks operator-type compatibility at boot time:
 | `eq`, `not_eq`/`neq`, `in`, `not_in` | all types |
 | `gt`, `gte`, `lt`, `lte` | `integer`, `float`, `decimal`, `date`, `datetime` |
 | `present`, `blank` | all types |
-| `starts_with`, `ends_with`, `contains` | `string`, `text` (including custom types with string/text base) |
+| `starts_with`, `ends_with` | `string`, `text` (including custom types with string/text base) |
+| `contains`, `not_contains` | `string`, `text` (substring match), `array` (containment check) |
 | `matches`, `not_matches` | `string`, `text` (including custom types with string/text base) |
+| `any_of`, `empty`, `not_empty` | `array` |
 
 For custom types (e.g., `email` with base type `string`), the validator resolves the base type before checking compatibility.
 

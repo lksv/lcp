@@ -108,6 +108,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.string "phone", limit: 50
     t.string "position"
     t.boolean "active", default: true
+    t.json "skills", default: "[]"
     t.bigint "company_id", null: false
     t.json "custom_data", default: {}
     t.datetime "created_at", null: false
@@ -186,6 +187,7 @@ ActiveRecord::Schema[7.2].define(version: 2026_02_19_104942) do
     t.integer "progress", default: 0
     t.decimal "weighted_value", precision: 12, scale: 2
     t.date "expected_close_date"
+    t.json "tags", default: "[]"
     t.bigint "company_id", null: false
     t.bigint "contact_id"
     t.bigint "deal_category_id"

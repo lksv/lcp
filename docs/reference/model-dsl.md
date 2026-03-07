@@ -276,6 +276,7 @@ end
 | `:rich_text` | `:text` | Rich text content. Default form input: rich text editor. |
 | `:json` | `:jsonb` / `:json` | JSON data. Uses jsonb on PostgreSQL, json on other adapters. |
 | `:uuid` | `:string` | UUID stored as string. |
+| `:array` | PG: native array / SQLite: `:json` | Typed array of scalars. Requires `item_type:` option. Default form input: tag chips. |
 | `:attachment` | none (Active Storage) | File attachment (single or multiple). No DB column — uses Active Storage. |
 
 ### Business Types
@@ -310,6 +311,7 @@ See [Types Reference](types.md) for the full list of built-in types and how to d
 | `precision:` | `column_options[:precision]` | Total number of digits (decimal). |
 | `scale:` | `column_options[:scale]` | Digits after decimal point (decimal). |
 | `null:` | `column_options[:null]` | Allow NULL values. |
+| `item_type:` | `FieldDefinition.item_type` | Element type for array fields (`:string`, `:integer`, `:float`). Required for `:array` type. |
 | `options:` | `FieldDefinition.options` | Additional type-specific options (used by `attachment` fields). |
 
 Column options (`limit`, `precision`, `scale`, `null`) are flattened to top-level keyword arguments for conciseness. The builder separates them back into a `column_options` hash internally.
@@ -352,6 +354,27 @@ field :documents, :attachment, label: "Documents", options: {
 > **Note:** `accept` is an HTML hint that filters the file browser — it does **not** validate on the server. Use `content_types` for server-side validation.
 
 See the [Attachments Guide](../guides/attachments.md) for prerequisites and complete examples.
+
+### Array Fields
+
+The `:array` type stores a list of scalar values. Requires the `item_type:` keyword.
+
+```ruby
+# String array (e.g., tags)
+field :tags, :array, item_type: :string, default: []
+
+# Integer array (e.g., scores)
+field :scores, :array, item_type: :integer, default: []
+
+# Array with validations
+field :categories, :array, item_type: :string, default: [] do
+  validates :array_length, minimum: 1, maximum: 5
+  validates :array_inclusion, in: %w[tech finance health sports]
+  validates :array_uniqueness
+end
+```
+
+Auto-generated scopes: `with_<field>(values)` (contains ALL) and `with_any_<field>(values)` (contains ANY). See [Models Reference](models.md#array-fields) for details.
 
 ### Examples
 
@@ -539,6 +562,30 @@ validates :custom, validator_class: "EmailFormatValidator", strict: true
 ```
 
 All additional keyword arguments are passed as validation options.
+
+#### `array_length`
+
+Validates the number of items in an array field.
+
+```ruby
+validates :array_length, minimum: 1, maximum: 10
+```
+
+#### `array_inclusion`
+
+Validates that all items are within an allowed set.
+
+```ruby
+validates :array_inclusion, in: %w[ruby python java go rust]
+```
+
+#### `array_uniqueness`
+
+Validates that all items are unique (no duplicates).
+
+```ruby
+validates :array_uniqueness
+```
 
 ### Common Validation Options
 

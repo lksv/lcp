@@ -20,6 +20,11 @@ define_model :contact do
   field :position, :string, label: "Position"
   field :active, :boolean, label: "Active", default: true
 
+  field :skills, :array, item_type: :string, default: [] do
+    validates :array_length, maximum: 15
+    validates :array_uniqueness
+  end
+
   field :avatar, :attachment, label: "Avatar", options: {
     accept: "image/*",
     max_size: "5MB",

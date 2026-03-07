@@ -17,6 +17,7 @@ define_presenter :contact do
     column :phone, width: "10%", renderer: :phone_link
     column :activities_count, width: "10%", sortable: true
     column :completed_activities_count, width: "10%", sortable: true
+    column :skills, width: "15%", renderer: :collection, options: { item_renderer: "badge", separator: " " }
     column :active, width: "10%", renderer: :boolean_icon
 
     item_class "lcp-row-muted", when: { field: :active, operator: :eq, value: false }
@@ -29,6 +30,7 @@ define_presenter :contact do
       field :phone, renderer: :phone_link
       field :position
       field :active, renderer: :boolean_icon
+      field :skills, renderer: :collection, options: { item_renderer: "badge", separator: " " }
       field :avatar, renderer: :attachment_preview, options: { variant: "medium" }
       field "company.name", label: "Company"
       field "company.industry", label: "Industry", renderer: :badge
@@ -62,6 +64,12 @@ define_presenter :contact do
       field :email, placeholder: "email@example.com"
       field :phone, placeholder: "+1..."
       field :position, placeholder: "Job title..."
+      field :skills, input_type: :array_input,
+        input_options: {
+          placeholder: "Add skill...",
+          max: 15,
+          suggestions: %w[Ruby Python JavaScript Java DevOps Cloud Finance Sales Marketing Legal]
+        }
       field :active, input_type: :toggle
       field :avatar, input_options: { preview: true, drag_drop: true }
       field :company_id, input_type: :association_select,
@@ -74,7 +82,7 @@ define_presenter :contact do
   end
 
   search do
-    searchable_fields :first_name, :last_name, :email
+    searchable_fields :first_name, :last_name, :email, :skills
     placeholder "Search contacts..."
 
     advanced_filter do

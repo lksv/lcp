@@ -65,6 +65,8 @@ module LcpRuby
         render_toggle_input(form, field_name)
       when "rating"
         render_rating_input(form, field_name, input_options)
+      when "array_input"
+        render_array_input(form, field_name, field_config, field_def)
       else
         form.text_field(field_name,
           placeholder: field_config["placeholder"],
@@ -139,6 +141,45 @@ module LcpRuby
       return io["values"] if io.is_a?(Hash) && io["values"].is_a?(Array)
 
       nil
+    end
+
+    def render_array_input(form, field_name, field_config, field_def)
+      input_options = field_config["input_options"] || {}
+      current_value = Array(form.object&.send(field_name))
+      placeholder = input_options["placeholder"] || I18n.t("lcp_ruby.array_input.placeholder", default: "Add item...")
+      max = input_options["max"]
+      suggestions = input_options["suggestions"] || []
+
+      data_attrs = { "lcp-array-input": true }
+      data_attrs["lcp-max"] = max if max
+      data_attrs["lcp-suggestions"] = suggestions.to_json if suggestions.any?
+
+      content_tag(:div, class: "lcp-array-input-wrapper", data: data_attrs) do
+        parts = ActiveSupport::SafeBuffer.new
+
+        # Hidden field to submit the array as JSON
+        parts << form.hidden_field(field_name,
+          value: current_value.to_json,
+          data: { "lcp-array-value": true })
+
+        # Tag chips container
+        parts << content_tag(:div, class: "lcp-array-chips", data: { "lcp-array-chips": true }) {
+          safe_join(current_value.map { |item|
+            content_tag(:span, class: "lcp-array-chip") do
+              content_tag(:span, item.to_s, class: "lcp-array-chip-text") +
+                content_tag(:button, "\u00d7", type: "button", class: "lcp-array-chip-remove",
+                  data: { "lcp-array-remove": item.to_s })
+            end
+          })
+        }
+
+        # Text input for adding new items
+        parts << tag(:input, type: "text", class: "lcp-array-text-input",
+          placeholder: placeholder,
+          data: { "lcp-array-text-input": true })
+
+        parts
+      end
     end
 
     def render_file_upload_input(form, field_name, field_config, field_def)
