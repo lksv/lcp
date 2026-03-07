@@ -62,7 +62,18 @@ define_presenter :showcase_aggregates do
       field :unique_assignees
       field :total_hours
       field :completed_cost, renderer: :currency
-      field :avg_priority
+      field :avg_priority, renderer: :number, options: { precision: 1 }
+    end
+
+    section "Expression Columns", columns: 2, description: "Inline SQL expressions: boolean checks, derived values, auto-included flags." do
+      field :has_overdue_tasks, renderer: :boolean_icon
+      field :is_over_budget, renderer: :boolean_icon
+      field :budget_per_task, renderer: :currency
+    end
+
+    section "Window & Service", columns: 2, description: "ROW_NUMBER() window function and service-computed health score." do
+      field :budget_rank
+      field :health_score, renderer: :number
     end
 
     section "Expression Columns", columns: 2, description: "Inline SQL expressions: boolean checks, derived values, auto-included flags." do
