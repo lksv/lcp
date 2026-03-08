@@ -1,0 +1,20 @@
+page:
+  name: articles
+  model: article
+  slug: articles
+  zones:
+    - name: header
+      presenter: articles
+      area: main
+    - name: comments
+      presenter: article_comments_zone
+      area: tabs
+      label_key: lcp_ruby.composite.article_detail.tabs.comments
+      scope_context:
+        article_id: ":record_id"
+    - name: related_articles
+      presenter: article_related_zone
+      area: tabs
+      label_key: lcp_ruby.composite.article_detail.tabs.related
+      scope_context:
+        category_id: ":record.category_id"

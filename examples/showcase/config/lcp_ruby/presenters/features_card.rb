@@ -21,7 +21,8 @@ define_presenter :features_card do
         navigation: "gray", attachments: "yellow", authentication: "indigo",
         custom_fields: "cyan", virtual_fields: "emerald",
         positioning: "lime", search: "sky", tiles: "amber", dialogs: "rose",
-        dashboards: "fuchsia"
+        dashboards: "fuchsia",
+        composite_pages: "slate"
       }
     }, sortable: true
     column :status, renderer: :badge, options: {
@@ -112,6 +113,7 @@ define_presenter :features_card do
     filter :tiles, label: "Tiles", scope: :by_category_tiles
     filter :dialogs, label: "Dialogs", scope: :by_category_dialogs
     filter :dashboards, label: "Dashboards", scope: :by_category_dashboards
+    filter :composite_pages, label: "Composite Pages", scope: :by_category_composite_pages
   end
 
   action :create, type: :built_in, on: :collection, label: "New Feature", icon: "plus"

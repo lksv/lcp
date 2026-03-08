@@ -1,0 +1,24 @@
+page:
+  name: authors
+  model: author
+  slug: authors
+  zones:
+    - name: header
+      presenter: authors
+      area: main
+    - name: article_count
+      type: widget
+      area: sidebar
+      widget:
+        type: kpi_card
+        model: article
+        aggregate: count
+        icon: file-text
+        label_key: lcp_ruby.composite.author_detail.sidebar.article_count
+      scope_context:
+        author_id: ":record_id"
+    - name: recent_articles
+      presenter: author_articles_zone
+      area: sidebar
+      scope_context:
+        author_id: ":record_id"

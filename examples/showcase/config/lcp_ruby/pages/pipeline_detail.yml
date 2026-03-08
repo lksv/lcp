@@ -1,0 +1,13 @@
+page:
+  name: pipelines
+  model: pipeline
+  slug: pipelines
+  zones:
+    - name: header
+      presenter: pipelines
+      area: main
+    - name: stages
+      presenter: pipeline_stages_zone
+      area: below
+      scope_context:
+        pipeline_id: ":record_id"

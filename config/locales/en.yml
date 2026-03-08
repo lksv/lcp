@@ -25,6 +25,24 @@ en:
       published_articles: "Published Articles"
       total_features: "Total Features"
       draft_articles: "Draft Articles (Admin)"
+    composite:
+      article_detail:
+        tabs:
+          comments: "Comments"
+          related: "Related Articles"
+      pipeline_detail:
+        below:
+          stages: "Stages"
+      author_detail:
+        sidebar:
+          article_count: "Articles"
+      department_detail:
+        tabs:
+          employees: "Employees"
+          sub_departments: "Sub-departments"
+        sidebar:
+          employee_count: "Total Employees"
+          active_count: "Active Employees"
     dialogs:
       close: "Close"
       default_title: "Dialog"

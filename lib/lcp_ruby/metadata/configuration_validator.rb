@@ -2546,10 +2546,10 @@ module LcpRuby
         main_presenter = loader.presenter_definitions[main_zone.presenter]
         return unless main_presenter
 
-        if main_presenter.index_config["table_columns"].present?
+        if main_presenter.index_config["table_columns"].present? && main_presenter.show_config["layout"].blank?
           @errors << "Page '#{page.name}': main zone presenter '#{main_zone.presenter}' " \
-                     "is an index presenter, but page has tab zones. This causes query parameter " \
-                     "collisions (page, sort, q[...]). Use a show presenter for the main zone."
+                     "is an index-only presenter, but page has tab zones. This causes query parameter " \
+                     "collisions (page, sort, q[...]). Use a presenter with a show section for the main zone."
         end
 
         if page.model.present? && main_presenter.model != page.model

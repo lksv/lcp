@@ -16,7 +16,8 @@ define_presenter :features_table, inherits: :features_card do
         groups: "violet", extensibility: "pink", navigation: "gray", attachments: "yellow",
         authentication: "indigo", custom_fields: "cyan", virtual_fields: "emerald",
         positioning: "lime", search: "sky", dialogs: "rose",
-        dashboards: "fuchsia", tiles: "amber"
+        dashboards: "fuchsia", tiles: "amber",
+        composite_pages: "slate"
       }
     }, sortable: true
     column :description, renderer: :truncate, options: { max: 80 }

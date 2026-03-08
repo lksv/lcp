@@ -7563,7 +7563,7 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       )
       result = v.validate
       expect(result.errors).to include(
-        a_string_matching(/main zone presenter 'employee_index' is an index presenter.*tab zones/)
+        a_string_matching(/main zone presenter 'employee_index' is an index-only presenter.*tab zones/)
       )
     end
 
@@ -7587,6 +7587,43 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       )
       result = v.validate
       main_errors = result.errors.select { |e| e.include?("index presenter") }
+      expect(main_errors).to be_empty
+    end
+
+    it "does not error when main zone presenter has both index and show with tabs" do
+      full_presenter_yaml = <<~YAML
+        presenter:
+          name: employee_full
+          model: employee
+          slug: emp-full
+          index:
+            table_columns:
+              - { field: name }
+          show:
+            layout:
+              - section: Details
+                fields:
+                  - { field: name }
+      YAML
+      v = with_metadata(
+        models: [ model_yaml, leave_model_yaml ],
+        presenters: [ full_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_full
+                area: main
+              - name: leaves
+                presenter: leaves_index
+                area: tabs
+                label_key: tabs.leaves
+        YAML
+      )
+      result = v.validate
+      main_errors = result.errors.select { |e| e.include?("index-only presenter") }
       expect(main_errors).to be_empty
     end
 

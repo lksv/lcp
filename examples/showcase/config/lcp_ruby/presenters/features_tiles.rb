@@ -19,7 +19,8 @@ define_presenter :features_tiles, inherits: :features_card do
           navigation: "gray", attachments: "yellow", authentication: "indigo",
           custom_fields: "cyan", virtual_fields: "emerald",
           positioning: "lime", search: "sky", tiles: "amber",
-          dialogs: "rose", dashboards: "fuchsia"
+          dialogs: "rose", dashboards: "fuchsia",
+          composite_pages: "slate"
         }
       }
       description_field :description, max_lines: 2

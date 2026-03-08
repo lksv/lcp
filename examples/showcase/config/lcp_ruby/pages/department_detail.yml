@@ -1,0 +1,45 @@
+page:
+  name: departments
+  model: department
+  slug: departments
+  zones:
+    - name: header
+      presenter: departments
+      area: main
+    - name: employees
+      presenter: dept_employees_zone
+      area: tabs
+      label_key: lcp_ruby.composite.department_detail.tabs.employees
+      scope_context:
+        department_id: ":record_id"
+    - name: sub_departments
+      presenter: dept_children_zone
+      area: tabs
+      label_key: lcp_ruby.composite.department_detail.tabs.sub_departments
+      scope_context:
+        parent_id: ":record_id"
+    - name: employee_count
+      type: widget
+      area: sidebar
+      widget:
+        type: kpi_card
+        model: employee
+        aggregate: count
+        icon: users
+        label_key: lcp_ruby.composite.department_detail.sidebar.employee_count
+      scope_context:
+        department_id: ":record_id"
+    - name: active_count
+      type: widget
+      area: sidebar
+      widget:
+        type: kpi_card
+        model: employee
+        aggregate: count
+        icon: check-circle
+        label_key: lcp_ruby.composite.department_detail.sidebar.active_count
+      scope: active_employees
+      scope_context:
+        department_id: ":record_id"
+      visible_when:
+        role: admin

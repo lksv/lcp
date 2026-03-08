@@ -3696,6 +3696,98 @@ features = [
     status: "stable"
   },
 
+  # === Composite Pages ===
+  {
+    name: "Composite Page (Semantic Layout)",
+    category: "composite_pages",
+    description: "A record-bound page with multiple zones arranged in a semantic layout (main, tabs, sidebar, below). Unlike grid dashboards, composite pages are tied to a specific record and show related data. Defined in YAML under `config/lcp_ruby/pages/` with `area:` on each zone.",
+    config_example: "```yaml\npage:\n  name: articles\n  model: article\n  slug: articles\n  zones:\n    - name: header\n      presenter: articles\n      area: main\n    - name: comments\n      presenter: article_comments_zone\n      area: tabs\n      scope_context:\n        article_id: \":record_id\"\n```",
+    demo_path: "/showcase/articles/1",
+    demo_hint: "The article show page is a composite page — the main record details are in the `main` area, and related comments/articles appear as tabs below.",
+    status: "stable"
+  },
+  {
+    name: "Main + Tabs Layout",
+    category: "composite_pages",
+    description: "Classic master-detail layout: the main zone shows the record details, and tab zones appear below as a tab bar. Each tab is a separate zone with `area: tabs`. The first tab is active by default.",
+    config_example: "```yaml\nzones:\n  - name: header\n    presenter: articles\n    area: main\n  - name: comments\n    presenter: article_comments_zone\n    area: tabs\n    label_key: lcp_ruby.composite.article_detail.tabs.comments\n    scope_context:\n      article_id: \":record_id\"\n  - name: related_articles\n    presenter: article_related_zone\n    area: tabs\n    scope_context:\n      category_id: \":record.category_id\"\n```",
+    demo_path: "/showcase/articles/1",
+    demo_hint: "Below the article details, notice the tab bar with **Comments** and **Related Articles** tabs. Click each tab to switch content.",
+    status: "stable"
+  },
+  {
+    name: "Tab Navigation (?tab=)",
+    category: "composite_pages",
+    description: "Tab switching is server-side via the `?tab=` query parameter. The URL updates to reflect the active tab, making tabs bookmarkable and shareable. The first tab is the default when no `?tab=` parameter is present.",
+    config_example: "```\n/showcase/articles/1                        → Comments tab (default)\n/showcase/articles/1?tab=related_articles   → Related Articles tab\n```",
+    demo_path: "/showcase/articles/1?tab=related_articles",
+    demo_hint: "Notice the URL changes to `?tab=related_articles` when you click the second tab. Copy and paste this URL in a new tab — it opens directly to the Related Articles tab.",
+    status: "stable"
+  },
+  {
+    name: "scope_context (Record Scoping)",
+    category: "composite_pages",
+    description: "Each zone can define `scope_context` — a hash of field-to-value mappings that filter the zone's data. Values support dynamic references: `:record_id` (current record's ID), `:record.<field>` (any field on the current record), `:current_user`, `:current_user_id`, `:current_year`, `:current_date`.",
+    config_example: "```yaml\n# Filter comments by the current article's ID\nscope_context:\n  article_id: \":record_id\"\n\n# Filter related articles by the current article's category\nscope_context:\n  category_id: \":record.category_id\"\n```",
+    demo_path: "/showcase/articles/1",
+    demo_hint: "The Comments tab only shows comments belonging to this article (scoped by `article_id`). The Related Articles tab shows articles in the same category (scoped by `category_id` from the current record).",
+    status: "stable"
+  },
+  {
+    name: "Main + Below Layout",
+    category: "composite_pages",
+    description: "A layout with the main zone on top and a related list below — no tabs, no sidebar. The `below` area renders a full-width zone after the main content. Ideal for parent-child relationships where only one related list is needed.",
+    config_example: "```yaml\nzones:\n  - name: header\n    presenter: pipelines\n    area: main\n  - name: stages\n    presenter: pipeline_stages_zone\n    area: below\n    scope_context:\n      pipeline_id: \":record_id\"\n```",
+    demo_path: "/showcase/pipelines/1",
+    demo_hint: "The pipeline show page has the pipeline details on top and its stages listed below in a full-width table. No tab bar — just a clean master-detail view.",
+    status: "stable"
+  },
+  {
+    name: "Main + Sidebar Layout",
+    category: "composite_pages",
+    description: "A layout with the main zone on the left and sidebar zones on the right. Sidebar zones can be KPI widgets, presenter zones, or any widget type. The sidebar is narrower than the main area.",
+    config_example: "```yaml\nzones:\n  - name: header\n    presenter: authors\n    area: main\n  - name: article_count\n    type: widget\n    area: sidebar\n    widget:\n      type: kpi_card\n      model: article\n      aggregate: count\n      icon: file-text\n    scope_context:\n      author_id: \":record_id\"\n  - name: recent_articles\n    presenter: author_articles_zone\n    area: sidebar\n    scope_context:\n      author_id: \":record_id\"\n```",
+    demo_path: "/showcase/authors/1",
+    demo_hint: "The author show page has details on the left and a sidebar on the right with a KPI card (article count) and a compact article list — both scoped to this author.",
+    status: "stable"
+  },
+  {
+    name: "Main + Tabs + Sidebar Layout",
+    category: "composite_pages",
+    description: "The full semantic layout with all areas populated: main content, a tab bar with multiple tabs, and a sidebar with widgets. Demonstrates combining all composite page features in a single page.",
+    config_example: "```yaml\nzones:\n  - name: header\n    presenter: departments\n    area: main\n  - name: employees\n    presenter: dept_employees_zone\n    area: tabs\n    scope_context:\n      department_id: \":record_id\"\n  - name: sub_departments\n    presenter: dept_children_zone\n    area: tabs\n    scope_context:\n      parent_id: \":record_id\"\n  - name: employee_count\n    type: widget\n    area: sidebar\n    widget:\n      type: kpi_card\n      model: employee\n      aggregate: count\n      icon: users\n    scope_context:\n      department_id: \":record_id\"\n```",
+    demo_path: "/showcase/departments/1",
+    demo_hint: "The department show page has all areas: main details, two tabs (Employees and Sub-departments), and a sidebar with KPI cards. This is the most complete composite layout.",
+    status: "stable"
+  },
+  {
+    name: "Sidebar Widget with scope_context",
+    category: "composite_pages",
+    description: "KPI widgets in the sidebar can use `scope_context` to filter their aggregate queries by the parent record. This enables record-specific metrics — e.g., showing the article count for a specific author.",
+    config_example: "```yaml\n- name: article_count\n  type: widget\n  area: sidebar\n  widget:\n    type: kpi_card\n    model: article\n    aggregate: count\n    icon: file-text\n    label_key: lcp_ruby.composite.author_detail.sidebar.article_count\n  scope_context:\n    author_id: \":record_id\"\n```",
+    demo_path: "/showcase/authors/1",
+    demo_hint: "The sidebar KPI card shows the number of articles by this specific author — not the total across all authors. The count changes when you view different authors.",
+    status: "stable"
+  },
+  {
+    name: "Conditional Zone on Composite Page",
+    category: "composite_pages",
+    description: "Zones on composite pages support `visible_when` conditions, just like dashboard zones. A zone with `visible_when: { role: admin }` is only rendered for admin users. The condition is evaluated before any data queries run.",
+    config_example: "```yaml\n- name: active_count\n  type: widget\n  area: sidebar\n  widget:\n    type: kpi_card\n    model: employee\n    aggregate: count\n    icon: check-circle\n    label_key: lcp_ruby.composite.department_detail.sidebar.active_count\n  scope: active_employees\n  scope_context:\n    department_id: \":record_id\"\n  visible_when:\n    role: admin\n```",
+    demo_path: "/showcase/departments/1",
+    demo_hint: "The \"Active Employees\" KPI in the department sidebar is only visible to admins. Use the impersonation switcher to switch to a viewer role — the card disappears.",
+    status: "stable"
+  },
+  {
+    name: "Tab Label i18n (label_key)",
+    category: "composite_pages",
+    description: "Tab zones use `label_key` to define their tab label via i18n. The key is looked up in the locale file and falls back to a humanized version of the zone name if the key is missing.",
+    config_example: "```yaml\n# Zone definition\n- name: comments\n  presenter: article_comments_zone\n  area: tabs\n  label_key: lcp_ruby.composite.article_detail.tabs.comments\n\n# config/locales/en.yml\nen:\n  lcp_ruby:\n    composite:\n      article_detail:\n        tabs:\n          comments: \"Comments\"\n          related: \"Related Articles\"\n```",
+    demo_path: "/showcase/articles/1",
+    demo_hint: "The tab labels \"Comments\" and \"Related Articles\" come from i18n keys. They can be translated to any language by adding the corresponding locale file.",
+    status: "stable"
+  },
+
   # === Dialogs (additional) ===
   {
     name: "Quick Create Dialog",
