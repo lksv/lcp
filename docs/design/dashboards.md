@@ -414,8 +414,8 @@ Chart widget zones raise a clear error if the `chartkick` gem is not installed. 
 
 ## Open Questions
 
-1. **Global page filters** — Should filters be a special zone type (a `filter` zone that broadcasts to others), or a top-level page config (`parameters:` key)? The filter zone approach is more flexible but needs a mechanism for inter-zone communication (Turbo Frames with shared query params?).
+1. ~~**Global page filters**~~ — **Resolved: top-level `parameters:` key, deferred to Tier 2+.** A top-level `parameters:` key on the page definition is simpler than a filter zone and avoids inter-zone communication complexity. Parameters are passed as query params and propagated to all zone queries. The filter zone approach (broadcasting) is not needed — parameters are resolved once at page level and injected into each zone's scope. Implementation deferred until composite pages (Tier 2) are stable.
 
-2. **Trend comparison period** — For KPI trend indicators, how to define the comparison period? Options: `previous_period` (auto-detect from scope), explicit `compare_scope`, or `compare_range: 30_days`. The auto-detect approach is simpler but may be ambiguous.
+2. ~~**Trend comparison period**~~ — **Resolved: explicit `compare_scope`.** The widget config uses `compare_scope:` to reference a named scope on the same model (e.g., `compare_scope: last_month` alongside `scope: this_month`). Auto-detection from scope names is fragile and ambiguous. Explicit scopes are consistent with the existing scope system and give the configurator full control over the comparison window.
 
-3. **Dashboard caching** — Should widget zone results be cached? KPI queries on large tables can be slow. Options: fragment caching per zone with TTL, Russian doll caching tied to model `updated_at`, or leaving it to the database (materialized views). This may be premature for Tier 1.
+3. ~~**Dashboard caching**~~ — **Resolved: deferred to Tier 3.** Premature for Tier 2. Lazy loading (Turbo Frames) and independent zone queries already mitigate the cost. When caching becomes necessary, fragment caching per zone with configurable TTL (`cache: { ttl: 5_minutes }` on the zone) is the recommended approach. Database-level solutions (materialized views) are the host app's responsibility.

@@ -1094,15 +1094,31 @@ A dashboard is a standalone page (no primary model) with `layout: grid` and widg
 
 Semantic mode (default) places zones into named areas (`main`, `tabs`, `sidebar`, `below`). Grid mode (`layout: grid`) uses explicit `position: { row, col, width, height }`. Both produce CSS grid output. A page chooses one mode. This separates the common case (composite pages with semantic areas) from the dashboard case (explicit grid positioning) without introducing a separate abstraction.
 
+### D16: Zone-level search is configurable per zone
+
+The `filters:` key on a zone definition controls the filtering level: `full` (complete advanced search — Ransack, query language, saved filters), `quick` (quick search text input only), `none` (no filtering UI). Default is `quick` for tab zones and `none` for sidebar zones. This avoids the performance cost of full Ransack in every tab while letting configurators opt in where needed.
+
+### D17: Separate presenters over zone-level overrides
+
+All presenter variation goes through separate presenter definitions (e.g., `contacts_compact`, `contacts_sidebar`). No zone-level column/action overrides on `ZoneDefinition`. This is simpler, more explicit, and avoids coupling layout (zones) with content (presenter config). Presenter DSL inheritance (`inherit_from`) supports creating variants with minimal duplication.
+
+### D18: Maximum zones — warning at 10, hard limit at 20
+
+Boot-time validator emits a warning when a page has more than 10 zones and raises a validation error above 20. Lazy loading (Turbo Frames for tab zones) mitigates the performance cost, so the limit is a safety net rather than a hard constraint.
+
+### D19: DSL syntax deferred until YAML is stable
+
+The Ruby DSL for pages will mirror the YAML structure but is lower priority than getting YAML-based composite pages working end-to-end. Implement after Tier 2 YAML is proven.
+
 ## Open Questions
 
 1. ~~**Relationship to dashboards**~~ — **Resolved: converged.** See [Decision D14](#d14-dashboards-converge-with-pages).
 
-2. **Zone-level search and filtering** — Should child index zones support full advanced search (filter bar, query language, saved filters)? Or only basic scope + sort? Options: (a) full support; (b) quick search only; (c) configurable per zone (`filters: full | quick | none`).
+2. ~~**Zone-level search and filtering**~~ — **Resolved: option (c) — configurable per zone.** Default is `quick` for tab zones and `none` for sidebar zones. Full advanced search (Ransack, query language, saved filters) is opt-in via `filters: full`. This avoids the performance cost of full Ransack in every tab while letting configurators opt in where needed. The `filters:` key on the zone definition controls the level: `full` (complete advanced search), `quick` (quick search text input only), `none` (no filtering UI).
 
 3. ~~**Conditional zones**~~ — **Resolved: implemented.** Zones support `visible_when` with a role shortcut (`visible_when: { role: admin }` or `visible_when: { role: [admin, manager] }`) and full `ConditionEvaluator` conditions (`visible_when: { field: status, operator: eq, value: active }`). Evaluated at render time against the current user context.
 
-4. **DSL syntax** — Ruby DSL for pages:
+4. ~~**DSL syntax**~~ — **Resolved: deferred until YAML is stable.** The DSL will mirror YAML structure (as sketched below) but is lower priority than getting the YAML-based composite pages working end-to-end. Implement after Tier 2 YAML is proven.
    ```ruby
    define_page :employee_detail do
      model :employee
@@ -1116,10 +1132,10 @@ Semantic mode (default) places zones into named areas (`main`, `tabs`, `sidebar`
    end
    ```
 
-5. **Maximum zones** — Configurable limit (default: 10) to prevent performance issues? Lazy loading mitigates cost for tab zones.
+5. ~~**Maximum zones**~~ — **Resolved: warning at 10, hard limit at 20.** Boot-time validator emits a warning when a page has more than 10 zones and raises a validation error above 20. Lazy loading (Turbo Frames for tab zones) mitigates the performance cost, so the limit is a safety net rather than a hard constraint for typical pages.
 
 6. **Unreachable presenter warning** — When a presenter's auto-page loses its slug (because an explicit page claimed it) AND the presenter is not used as a zone in any explicit page, the presenter is unreachable. Boot-time validator should warn.
 
-7. **Zone-level presenter overrides** — A presenter (e.g., `contacts_index`) can be a zone in multiple composite pages AND have its own auto-page. The auto-page is "this presenter rendered standalone." No conflict. But should zone-level overrides (e.g., zone-specific hidden columns, row click behavior) be possible? Or should all variation go through separate presenter definitions? Separate presenters are simpler and more explicit but may lead to presenter proliferation for minor differences.
+7. ~~**Zone-level presenter overrides**~~ — **Resolved: separate presenters.** All variation goes through separate presenter definitions (e.g., `contacts_compact`, `contacts_sidebar`). This is simpler, more explicit, and avoids adding complexity to `ZoneDefinition`. The naming convention `<model>_<context>` (e.g., `contacts_sidebar`, `deals_tab`) keeps things organized. Presenter DSL inheritance (`inherit_from`) already supports creating variants with minimal duplication.
 
 8. ~~**Pundit policy for virtual models**~~ — **Resolved: option (b).** Virtual models skip Pundit entirely. Dialog actions use action-level permission checks (`can_access_presenter?` on the dialog page's presenter). The `DialogsController` handles authorization through the page's presenter context, not Pundit policies.
