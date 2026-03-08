@@ -210,6 +210,7 @@ require "lcp_ruby/widgets/presenter_zone_resolver"
 
 # Pages
 require "lcp_ruby/pages/resolver"
+require "lcp_ruby/pages/scope_context_resolver"
 
 # Routing
 require "lcp_ruby/routing/presenter_routes"

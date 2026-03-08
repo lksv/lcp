@@ -1,0 +1,19 @@
+permissions:
+  model: comp_leave_request
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      presenters: all
+      fields:
+        readable: all
+        writable: all
+    viewer:
+      crud: [index, show]
+      presenters: all
+      fields:
+        readable: all
+    restricted:
+      crud: [index, show]
+      presenters: all
+      fields:
+        readable: all

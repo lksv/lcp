@@ -93,8 +93,9 @@
         "area": {
           "type": "string",
           "description": "Named area for semantic layout placement.",
+          "enum": ["main", "tabs", "sidebar", "below"],
           "default": "main",
-          "examples": ["main", "sidebar"]
+          "examples": ["main", "tabs", "sidebar", "below"]
         },
         "widget": {
           "description": "Widget configuration for widget zones.",
@@ -122,6 +123,23 @@
         "visible_when": {
           "description": "Condition for conditional zone visibility. Supports role shortcut or full condition objects.",
           "type": "object"
+        },
+        "scope_context": {
+          "type": "object",
+          "description": "Mapping of column names on the zone's model to dynamic references resolved from the parent record or request context. Used to scope zone data to the parent record (e.g., { employee_id: ':record_id' }).",
+          "additionalProperties": {
+            "oneOf": [
+              { "type": "string" },
+              { "type": "integer" },
+              { "type": "number" },
+              { "type": "boolean" }
+            ]
+          }
+        },
+        "label_key": {
+          "type": "string",
+          "description": "i18n key for the zone's tab label. Recommended for tab zones. Falls back to humanized zone name.",
+          "examples": ["pages.employee_detail.tabs.leave_requests", "pages.employee_detail.tabs.trainings"]
         }
       },
       "required": ["name"],

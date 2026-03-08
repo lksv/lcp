@@ -1,0 +1,9 @@
+view_group:
+  name: comp_employees
+  primary: comp_employee_detail
+  navigation:
+    menu: main
+    position: 1
+  views:
+    - page: comp_employee_detail
+      label: "Employees"

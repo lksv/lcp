@@ -50,21 +50,20 @@ module LcpRuby
     def show
       authorize @record
 
-      if api_model?
-        @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
-        @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
-        @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator, context: condition_context)
-        @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
+      if current_page&.composite?
+        load_composite_page
         return
       end
 
-      @layout_builder = Presenter::LayoutBuilder.new(current_presenter, current_model_definition)
+      if api_model?
+        setup_show_view_objects(current_presenter)
+        return
+      end
+
+      setup_show_view_objects(current_presenter)
       load_show_virtual_columns
       preload_associations(@record, :show)
       @record.strict_loading! if LcpRuby.configuration.strict_loading_enabled?
-      @column_set = Presenter::ColumnSet.new(current_presenter, current_evaluator)
-      @action_set = Presenter::ActionSet.new(current_presenter, current_evaluator, context: condition_context)
-      @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
     end
 
     def new
@@ -395,8 +394,97 @@ module LcpRuby
       setup_index_view_objects
     end
 
+    def load_composite_page
+      @active_tab = params[:tab]
+
+      # Set up main zone view objects
+      main_zone = current_page.main_zone
+      if main_zone&.presenter_zone?
+        main_presenter = LcpRuby.loader.presenter_definition(main_zone.presenter)
+        setup_show_view_objects(main_presenter)
+        load_show_virtual_columns
+        preload_associations(@record, :show)
+        @record.strict_loading! if LcpRuby.configuration.strict_loading_enabled?
+      end
+
+      # Collect visible zones (filtering by visibility and authorization)
+      visible_zones = []
+      current_page.zones.each do |zone|
+        next if zone == main_zone
+
+        # Skip invisible zones
+        next if zone.visible_when.present? && !zone_visible?(zone.visible_when)
+
+        # Per-zone authorization — check before loading data or marking tab_only,
+        # so unauthorized zones don't appear in the tab bar at all
+        if zone.presenter_zone?
+          zone_evaluator = build_zone_evaluator(zone)
+          next unless zone_evaluator&.can_access_presenter?(zone.presenter)
+        end
+
+        visible_zones << zone
+      end
+
+      # Default to first authorized tab if none specified
+      if @active_tab.blank?
+        first_tab = visible_zones.find { |z| z.area == "tabs" }
+        @active_tab = first_tab.name if first_tab
+      end
+
+      # Load visible zone data
+      @zone_data = {}
+      visible_zones.each do |zone|
+        # Skip inactive tabs (only load active tab data)
+        if zone.area == "tabs" && zone.name != @active_tab
+          @zone_data[zone] = { tab_only: true }
+          next
+        end
+
+        # Resolve scope_context
+        resolved_context = resolve_zone_scope_context(zone)
+
+        # Load zone data
+        if zone.widget?
+          data = Widgets::DataResolver.new(zone, user: effective_user, scope_context: resolved_context).resolve
+        else
+          data = Widgets::PresenterZoneResolver.new(zone, user: effective_user, scope_context: resolved_context).resolve
+        end
+
+        @zone_data[zone] = data
+      end
+    end
+
+    def setup_show_view_objects(presenter)
+      @layout_builder = Presenter::LayoutBuilder.new(presenter, current_model_definition)
+      @column_set = Presenter::ColumnSet.new(presenter, current_evaluator)
+      @action_set = Presenter::ActionSet.new(presenter, current_evaluator, context: condition_context)
+      @field_resolver = Presenter::FieldValueResolver.new(current_model_definition, current_evaluator)
+    end
+
+    def resolve_zone_scope_context(zone)
+      return {} if zone.scope_context.blank?
+
+      Pages::ScopeContextResolver.new(
+        zone.scope_context,
+        record: @record,
+        user: effective_user
+      ).resolve
+    end
+
+    def build_zone_evaluator(zone)
+      presenter = LcpRuby.loader.presenter_definitions[zone.presenter]
+      return nil unless presenter
+
+      perm_def = LcpRuby.loader.permission_definition(presenter.model)
+      Authorization::PermissionEvaluator.new(perm_def, effective_user, presenter.model)
+    rescue LcpRuby::MetadataError => e
+      Rails.logger.warn("[LcpRuby] Failed to build zone evaluator for '#{zone.name}': #{e.message}")
+      nil
+    end
+
     def load_dashboard
-      @zone_data = current_page.zones.filter_map do |zone|
+      @zone_data = {}
+      current_page.zones.each do |zone|
         next unless zone.widget? || zone.presenter_zone?
 
         # Evaluate visible_when before resolving data to avoid unnecessary queries
@@ -410,7 +498,7 @@ module LcpRuby
           data = Widgets::PresenterZoneResolver.new(zone, user: effective_user).resolve
         end
 
-        [ zone, data ]
+        @zone_data[zone] = data
       end
     end
 

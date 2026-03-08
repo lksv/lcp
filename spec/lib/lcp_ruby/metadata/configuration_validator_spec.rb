@@ -6961,6 +6961,240 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
   end
 
+  context "zone scope_context validations" do
+    let(:metadata_path) { "" }
+
+    let(:employee_model_yaml) do
+      <<~YAML
+        model:
+          name: employee
+          fields:
+            - { name: name, type: string }
+            - { name: department_id, type: integer }
+      YAML
+    end
+
+    let(:leave_model_yaml) do
+      <<~YAML
+        model:
+          name: leave_request
+          fields:
+            - { name: employee_id, type: integer }
+            - { name: status, type: string }
+      YAML
+    end
+
+    let(:employee_presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: employee_show
+          model: employee
+          slug: employees
+      YAML
+    end
+
+    let(:leave_presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: leave_requests_index
+          model: leave_request
+          slug: leave-requests
+      YAML
+    end
+
+    it "accepts valid scope_context with :record_id reference" do
+      v = with_metadata(
+        models: [ employee_model_yaml, leave_model_yaml ],
+        presenters: [ employee_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_show
+                area: main
+              - name: leaves
+                presenter: leave_requests_index
+                area: tabs
+                label_key: tabs.leaves
+                scope_context:
+                  employee_id: ":record_id"
+        YAML
+      )
+      result = v.validate
+      sc_warnings = result.warnings.select { |w| w.include?("scope_context") }
+      expect(sc_warnings).to be_empty
+    end
+
+    it "warns when scope_context key is not a field on zone model" do
+      v = with_metadata(
+        models: [ employee_model_yaml, leave_model_yaml ],
+        presenters: [ employee_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_show
+                area: main
+              - name: leaves
+                presenter: leave_requests_index
+                area: tabs
+                scope_context:
+                  nonexistent_field: ":record_id"
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/scope_context key 'nonexistent_field' is not a known field/)
+      )
+    end
+
+    it "warns when scope_context has unrecognized dynamic reference" do
+      v = with_metadata(
+        models: [ employee_model_yaml, leave_model_yaml ],
+        presenters: [ employee_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_show
+                area: main
+              - name: leaves
+                presenter: leave_requests_index
+                area: tabs
+                scope_context:
+                  employee_id: ":unknown_ref"
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/scope_context value ':unknown_ref' is not a recognized dynamic reference/)
+      )
+    end
+
+    it "warns when :record.<field> references unknown field on page model" do
+      v = with_metadata(
+        models: [ employee_model_yaml, leave_model_yaml ],
+        presenters: [ employee_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_show
+                area: main
+              - name: leaves
+                presenter: leave_requests_index
+                area: tabs
+                scope_context:
+                  employee_id: ":record.nonexistent_field"
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/field 'nonexistent_field' not found on page model 'employee'/)
+      )
+    end
+
+    it "accepts :current_user_id and :current_year references" do
+      v = with_metadata(
+        models: [ employee_model_yaml, leave_model_yaml ],
+        presenters: [ employee_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_show
+                area: main
+              - name: leaves
+                presenter: leave_requests_index
+                area: tabs
+                scope_context:
+                  employee_id: ":current_user_id"
+        YAML
+      )
+      result = v.validate
+      sc_warnings = result.warnings.select { |w| w.include?("scope_context") && w.include?("not a recognized") }
+      expect(sc_warnings).to be_empty
+    end
+  end
+
+  context "tab zone label_key warnings" do
+    let(:metadata_path) { "" }
+
+    let(:model_yaml) do
+      <<~YAML
+        model:
+          name: task
+          fields:
+            - { name: title, type: string }
+      YAML
+    end
+
+    let(:presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: tasks
+          model: task
+          slug: tasks
+      YAML
+    end
+
+    it "warns when tab zone has no label_key" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: detail
+            model: task
+            zones:
+              - name: header
+                presenter: tasks
+                area: main
+              - name: tab1
+                presenter: tasks
+                area: tabs
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/tab zone has no label_key/)
+      )
+    end
+
+    it "does not warn when tab zone has label_key" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: detail
+            model: task
+            zones:
+              - name: header
+                presenter: tasks
+                area: main
+              - name: tab1
+                presenter: tasks
+                area: tabs
+                label_key: my.tab
+        YAML
+      )
+      result = v.validate
+      tab_warnings = result.warnings.select { |w| w.include?("label_key") }
+      expect(tab_warnings).to be_empty
+    end
+  end
+
   context "zone visible_when validations" do
     let(:metadata_path) { "" }
 
@@ -7246,6 +7480,183 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       result = v.validate
       link_warnings = result.warnings.select { |w| w.include?("link_to") }
       expect(link_warnings).to be_empty
+    end
+  end
+
+  context "composite page main zone index constraint" do
+    let(:metadata_path) { "" }
+
+    let(:model_yaml) do
+      <<~YAML
+        model:
+          name: employee
+          fields:
+            - { name: name, type: string }
+      YAML
+    end
+
+    let(:leave_model_yaml) do
+      <<~YAML
+        model:
+          name: leave_request
+          fields:
+            - { name: employee_id, type: integer }
+            - { name: reason, type: string }
+      YAML
+    end
+
+    let(:show_presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: employee_show
+          model: employee
+          slug: employees
+          show:
+            layout:
+              - section: Details
+                fields:
+                  - { field: name }
+      YAML
+    end
+
+    let(:index_presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: employee_index
+          model: employee
+          slug: emp-index
+          index:
+            table_columns:
+              - { field: name }
+      YAML
+    end
+
+    let(:leave_presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: leaves_index
+          model: leave_request
+          slug: leaves
+          index:
+            table_columns:
+              - { field: reason }
+      YAML
+    end
+
+    it "errors when main zone is an index presenter and page has tabs" do
+      v = with_metadata(
+        models: [ model_yaml, leave_model_yaml ],
+        presenters: [ index_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_index
+                area: main
+              - name: leaves
+                presenter: leaves_index
+                area: tabs
+                label_key: tabs.leaves
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/main zone presenter 'employee_index' is an index presenter.*tab zones/)
+      )
+    end
+
+    it "does not error when main zone is a show presenter with tabs" do
+      v = with_metadata(
+        models: [ model_yaml, leave_model_yaml ],
+        presenters: [ show_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_show
+                area: main
+              - name: leaves
+                presenter: leaves_index
+                area: tabs
+                label_key: tabs.leaves
+        YAML
+      )
+      result = v.validate
+      main_errors = result.errors.select { |e| e.include?("index presenter") }
+      expect(main_errors).to be_empty
+    end
+
+    it "does not error when main zone is index but no tabs" do
+      v = with_metadata(
+        models: [ model_yaml, leave_model_yaml ],
+        presenters: [ index_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_index
+                area: main
+              - name: leaves
+                presenter: leaves_index
+                area: below
+        YAML
+      )
+      result = v.validate
+      main_errors = result.errors.select { |e| e.include?("index presenter") }
+      expect(main_errors).to be_empty
+    end
+
+    it "warns when main zone presenter model does not match page model" do
+      v = with_metadata(
+        models: [ model_yaml, leave_model_yaml ],
+        presenters: [ show_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: leave_request
+            zones:
+              - name: header
+                presenter: employee_show
+                area: main
+              - name: leaves
+                presenter: leaves_index
+                area: tabs
+                label_key: tabs.leaves
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/main zone presenter 'employee_show' uses model 'employee' but page model is 'leave_request'/)
+      )
+    end
+
+    it "does not warn when main zone presenter model matches page model" do
+      v = with_metadata(
+        models: [ model_yaml, leave_model_yaml ],
+        presenters: [ show_presenter_yaml, leave_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: emp_detail
+            model: employee
+            zones:
+              - name: header
+                presenter: employee_show
+                area: main
+              - name: leaves
+                presenter: leaves_index
+                area: tabs
+                label_key: tabs.leaves
+        YAML
+      )
+      result = v.validate
+      model_warnings = result.warnings.select { |w| w.include?("page model is") }
+      expect(model_warnings).to be_empty
     end
   end
 

@@ -1,0 +1,19 @@
+model:
+  name: comp_employee
+  label: "Employee"
+
+  fields:
+    - name: name
+      type: string
+      validations:
+        - type: presence
+    - name: email
+      type: string
+    - name: department
+      type: string
+    - name: status
+      type: string
+
+  options:
+    timestamps: true
+    label_method: name

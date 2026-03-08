@@ -3,9 +3,10 @@ module LcpRuby
     class DataResolver
       include ScopeApplicator
 
-      def initialize(zone, user:)
+      def initialize(zone, user:, scope_context: nil)
         @zone = zone
         @user = user
+        @scope_context = scope_context || {}
       end
 
       def resolve
@@ -36,6 +37,7 @@ module LcpRuby
         scope = apply_policy_scope(model_class, evaluator)
         scope = apply_soft_delete_filter(scope, model_def)
         scope = apply_zone_scope(scope, model_class)
+        scope = apply_scope_context(scope, model_class)
 
         aggregate = widget["aggregate"]&.to_sym
         aggregate_field = widget["aggregate_field"]
@@ -72,6 +74,7 @@ module LcpRuby
         scope = apply_policy_scope(model_class, evaluator)
         scope = apply_soft_delete_filter(scope, model_def)
         scope = apply_zone_scope(scope, model_class)
+        scope = apply_scope_context(scope, model_class)
 
         limit = @zone.limit || 5
         records = scope.limit(limit).to_a

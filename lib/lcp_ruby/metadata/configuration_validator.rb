@@ -2508,9 +2508,14 @@ module LcpRuby
             validate_zone_scope(page, zone)
             validate_zone_visible_when(page, zone)
             validate_zone_position(page, zone)
+            validate_zone_scope_context(page, zone)
 
             if zone.limit && zone.limit < 1
               @errors << "Page '#{page.name}', zone '#{zone.name}': limit must be positive"
+            end
+
+            if zone.area == "tabs" && zone.label_key.blank?
+              @warnings << "Page '#{page.name}', zone '#{zone.name}': tab zone has no label_key (will use humanized name)"
             end
           end
 
@@ -2527,6 +2532,29 @@ module LcpRuby
           end
 
           validate_page_dialog_config(page)
+
+          validate_composite_main_zone(page)
+        end
+      end
+
+      def validate_composite_main_zone(page)
+        return unless page.has_tabs?
+
+        main_zone = page.main_zone
+        return unless main_zone&.presenter_zone?
+
+        main_presenter = loader.presenter_definitions[main_zone.presenter]
+        return unless main_presenter
+
+        if main_presenter.index_config["table_columns"].present?
+          @errors << "Page '#{page.name}': main zone presenter '#{main_zone.presenter}' " \
+                     "is an index presenter, but page has tab zones. This causes query parameter " \
+                     "collisions (page, sort, q[...]). Use a show presenter for the main zone."
+        end
+
+        if page.model.present? && main_presenter.model != page.model
+          @warnings << "Page '#{page.name}': main zone presenter '#{main_zone.presenter}' uses model " \
+                       "'#{main_presenter.model}' but page model is '#{page.model}'"
         end
       end
 
@@ -2627,6 +2655,41 @@ module LcpRuby
           unless val.is_a?(Integer) && val >= 1
             @errors << "Page '#{page.name}', zone '#{zone.name}': " \
                        "position #{key} must be a positive integer, got '#{val}'"
+          end
+        end
+      end
+
+      def validate_zone_scope_context(page, zone)
+        return unless zone.scope_context.is_a?(Hash)
+
+        zone_model_name = resolve_zone_model(page, zone)
+        zone_fields = zone_model_name ? model_all_field_names(zone_model_name) : nil
+        page_fields = page.model.present? ? model_all_field_names(page.model) : nil
+
+        zone.scope_context.each do |key, value|
+          # Validate key is a column on the zone's model
+          if zone_fields && !zone_fields.include?(key.to_s)
+            @warnings << "Page '#{page.name}', zone '#{zone.name}': " \
+                         "scope_context key '#{key}' is not a known field on model '#{zone_model_name}'"
+          end
+
+          # Validate reference format for dynamic values
+          next unless value.is_a?(String) && value.start_with?(":")
+          reference = value.delete_prefix(":")
+
+          if Pages::ScopeContextResolver::VALID_REFERENCES.include?(reference) || reference.match?(Pages::ScopeContextResolver::RECORD_DOT_PATTERN)
+            # For :record.<field>, validate that the field exists on the page's model
+            if reference.start_with?("record.") && page_fields
+              record_field = reference.delete_prefix("record.")
+              unless page_fields.include?(record_field)
+                @warnings << "Page '#{page.name}', zone '#{zone.name}': " \
+                             "scope_context reference ':#{reference}' — field '#{record_field}' " \
+                             "not found on page model '#{page.model}'"
+              end
+            end
+          else
+            @warnings << "Page '#{page.name}', zone '#{zone.name}': " \
+                         "scope_context value '#{value}' is not a recognized dynamic reference"
           end
         end
       end

@@ -1,0 +1,33 @@
+presenter:
+  name: comp_trainings_index
+  model: comp_training
+  slug: comp-trainings
+  label: "Trainings"
+
+  index:
+    table_columns:
+      - { field: title }
+      - { field: training_date }
+      - { field: status }
+
+  show:
+    sections:
+      - section: details
+        fields:
+          - { field: title }
+          - { field: training_date }
+          - { field: status }
+
+  form:
+    sections:
+      - section: details
+        fields:
+          - { field: title }
+          - { field: training_date }
+          - { field: status }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }

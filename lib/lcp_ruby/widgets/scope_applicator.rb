@@ -38,6 +38,30 @@ module LcpRuby
           scope
         end
       end
+
+      def apply_scope_context(scope, model_class)
+        return scope if @scope_context.blank?
+
+        @scope_context.each do |key, value|
+          next if value.nil?
+
+          filter_method = "filter_#{key}"
+          if model_class.respond_to?(filter_method)
+            method_obj = model_class.method(filter_method)
+            if method_obj.arity == 3 || method_obj.parameters.size >= 3
+              scope = model_class.public_send(filter_method, scope, value, nil)
+            else
+              scope = model_class.public_send(filter_method, scope, value)
+            end
+          elsif model_class.column_names.include?(key.to_s)
+            scope = scope.where(key => value)
+          else
+            Rails.logger.warn("[LcpRuby::Widgets] scope_context key '#{key}' not found as column on #{model_class.name}")
+          end
+        end
+
+        scope
+      end
     end
   end
 end

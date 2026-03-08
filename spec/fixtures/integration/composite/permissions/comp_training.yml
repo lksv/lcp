@@ -1,0 +1,14 @@
+permissions:
+  model: comp_training
+  roles:
+    admin:
+      crud: [index, show, create, update, destroy]
+      presenters: all
+      fields:
+        readable: all
+        writable: all
+    restricted:
+      crud: [index]
+      presenters: []
+      fields:
+        readable: all

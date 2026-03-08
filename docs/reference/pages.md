@@ -227,6 +227,177 @@ page:
       presenter: feedback_create
 ```
 
+## Composite Pages (Semantic Layout)
+
+Composite pages combine multiple zones into a record-bound layout with named areas: `main`, `tabs`, `sidebar`, and `below`. They use semantic layout (the default) to arrange zones into a structured detail page — for example, an employee detail page with a header, tabbed related records, and a sidebar.
+
+A page is composite when it:
+- Is explicitly defined (not auto-generated)
+- Has more than one zone
+- Is not standalone (has a `model:`)
+
+### Areas
+
+| Area | Description |
+|------|-------------|
+| `main` | Primary content area. Typically renders a show presenter with record details. |
+| `tabs` | Tabbed content below the main area. Each tab zone becomes a tab in the tab bar. Only the active tab's data is loaded. |
+| `sidebar` | Side panel alongside the main content. |
+| `below` | Full-width area below the tabs. |
+
+### Zone Attributes for Composite Pages
+
+In addition to the [standard zone attributes](#zone-attributes), composite page zones support:
+
+| Attribute | Type | Required | Default | Description |
+|-----------|------|----------|---------|-------------|
+| `scope_context` | object | no | — | Maps column names on the zone's model to dynamic references resolved from the parent record or request context. |
+| `label_key` | string | no | — | i18n key for the zone's tab label. Recommended for tab zones. Falls back to humanized zone name. |
+
+### scope_context
+
+`scope_context` scopes a zone's data query to the parent record. Each key is a column name on the zone's model, and each value is either a static value or a dynamic reference prefixed with `:`.
+
+**Dynamic references:**
+
+| Reference | Resolves to |
+|-----------|-------------|
+| `:record_id` | The parent record's `id` |
+| `:record.<field>` | A field value from the parent record (single-level dot-path only, e.g., `:record.department_id`) |
+| `:current_user` | The full `current_user` object (useful with `filter_*` interceptors) |
+| `:current_user_id` | The current user's `id` |
+| `:current_year` | The current year (integer) |
+| `:current_date` | Today's date |
+
+Static values (without `:` prefix) pass through unchanged.
+
+**Dot-path depth limit:** Only single-level dot-paths are supported (e.g., `:record.department_id`). Multi-level paths like `:record.department.company_id` raise a `MetadataError`.
+
+```yaml
+# Scope leave requests to the current employee
+scope_context:
+  employee_id: ":record_id"
+
+# Scope by a field on the parent record
+scope_context:
+  department_id: ":record.department_id"
+
+# Scope to current user
+scope_context:
+  assigned_to_id: ":current_user_id"
+
+# Static value
+scope_context:
+  year: 2024
+```
+
+**Scope application:** Each `scope_context` key is applied to the zone's query in this order:
+
+1. If the zone's model defines a `filter_<key>` class method, that method is called. The method may accept 2 arguments `(scope, value)` or 3 arguments `(scope, value, evaluator)` — both signatures are supported.
+2. Otherwise, if the key is a column name on the model, a `where(key => value)` clause is applied.
+3. If neither exists, a warning is logged and the key is skipped.
+
+### Main Zone Selection
+
+The main zone is selected automatically with this priority:
+
+1. First presenter zone with `area: main`
+2. First presenter zone (any area)
+3. First zone of any type
+
+### Tab Navigation
+
+Tab zones render as a tab bar with links. The first tab is active by default. Users switch tabs via the `?tab=<zone_name>` query parameter. Only the active tab's data is loaded on each request (server-side full page reload).
+
+Inactive tabs are skipped during data resolution, keeping queries efficient.
+
+### Per-Zone Authorization
+
+Each presenter zone checks whether the current user has presenter access for that zone's presenter. If the user lacks access (via the `presenters` key in permissions YAML), the zone is completely hidden — no tab link appears in the tab bar and no data is loaded.
+
+This differs from `visible_when`, which also hides zones but is based on conditions (role, field values) rather than presenter permissions. Both mechanisms produce the same result: the zone is excluded from rendering.
+
+### Composite Page Example
+
+```yaml
+page:
+  name: employee_detail
+  model: employee
+  slug: employees
+  zones:
+    - name: header
+      presenter: employee_show
+      area: main
+
+    - name: leave_requests
+      presenter: leave_requests_index
+      area: tabs
+      label_key: pages.employee_detail.tabs.leave_requests
+      scope_context:
+        employee_id: ":record_id"
+
+    - name: trainings
+      presenter: trainings_index
+      area: tabs
+      label_key: pages.employee_detail.tabs.trainings
+      scope_context:
+        employee_id: ":record_id"
+
+    - name: notes
+      presenter: employee_notes
+      area: sidebar
+      scope_context:
+        employee_id: ":record_id"
+
+    - name: activity_log
+      presenter: audit_entries
+      area: below
+      scope_context:
+        record_id: ":record_id"
+      visible_when:
+        role: admin
+```
+
+This renders:
+- **Main area**: Employee detail (show presenter)
+- **Tab bar**: "Leave requests" and "Trainings" tabs, each scoped to this employee
+- **Sidebar**: Notes panel scoped to this employee
+- **Below**: Activity log visible only to admins
+
+### Widget Zones with scope_context
+
+Widget zones on composite pages can also use `scope_context` to scope their data to the parent record:
+
+```yaml
+zones:
+  - name: header
+    presenter: employee_show
+    area: main
+
+  - name: leave_count
+    type: widget
+    area: sidebar
+    widget:
+      type: kpi_card
+      model: leave_request
+      aggregate: count
+      label_key: pages.employee.sidebar.leave_count
+    scope_context:
+      employee_id: ":record_id"
+```
+
+### Constraints
+
+The configuration validator enforces these rules for composite pages:
+
+- **Main zone must not be an index presenter when tabs are present.** Index presenters use `page`, `sort`, and `q[...]` query parameters that collide with tab parameters. Use a show presenter for the main zone.
+- **Main zone model should match the page model.** A warning is produced if the main zone's presenter references a different model than the page's `model:` attribute.
+- **Tab zones should have `label_key`.** Tabs fall back to the humanized zone name, but explicit labels are recommended.
+
+### Claimed Presenters
+
+Presenters used as zones in a composite page are "claimed" and do not get auto-generated pages. This prevents duplicate routes — the composite page owns the rendering for those presenters.
+
 ## Conditional Zone Visibility
 
 Use `visible_when` to show zones only to specific users.

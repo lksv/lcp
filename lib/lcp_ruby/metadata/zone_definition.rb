@@ -1,12 +1,15 @@
 module LcpRuby
   module Metadata
     class ZoneDefinition
+      VALID_AREAS = %w[main tabs sidebar below].freeze
       VALID_WIDGET_TYPES = %w[kpi_card text list].freeze
 
-      attr_reader :name, :presenter, :area, :type, :widget, :position, :scope, :limit, :visible_when
+      attr_reader :name, :presenter, :area, :type, :widget, :position, :scope, :limit, :visible_when,
+                  :scope_context, :label_key
 
       def initialize(name:, presenter: nil, area: "main", type: :presenter, widget: nil,
-                     position: nil, scope: nil, limit: nil, visible_when: nil)
+                     position: nil, scope: nil, limit: nil, visible_when: nil,
+                     scope_context: nil, label_key: nil)
         @name = name.to_s
         @presenter = presenter&.to_s
         @area = (area || "main").to_s
@@ -16,6 +19,8 @@ module LcpRuby
         @scope = scope&.to_s
         @limit = limit&.to_i
         @visible_when = visible_when.is_a?(Hash) ? HashUtils.stringify_deep(visible_when) : nil
+        @scope_context = scope_context.is_a?(Hash) ? HashUtils.stringify_deep(scope_context) : nil
+        @label_key = label_key&.to_s
 
         validate!
       end
@@ -31,7 +36,9 @@ module LcpRuby
           position: hash["position"],
           scope: hash["scope"],
           limit: hash["limit"],
-          visible_when: hash["visible_when"]
+          visible_when: hash["visible_when"],
+          scope_context: hash["scope_context"],
+          label_key: hash["label_key"]
         )
       end
 
@@ -41,6 +48,14 @@ module LcpRuby
 
       def presenter_zone?
         @type == :presenter
+      end
+
+      def label
+        if @label_key.present?
+          I18n.t(@label_key, default: @name.humanize)
+        else
+          @name.humanize
+        end
       end
 
       def grid_position
@@ -56,6 +71,10 @@ module LcpRuby
 
       def validate!
         raise MetadataError, "Zone name is required" if @name.blank?
+
+        unless VALID_AREAS.include?(@area)
+          raise MetadataError, "Zone '#{@name}' has invalid area '#{@area}'. Must be one of: #{VALID_AREAS.join(', ')}"
+        end
 
         if presenter_zone?
           raise MetadataError, "Zone '#{@name}' requires a presenter reference" if @presenter.blank?

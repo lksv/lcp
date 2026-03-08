@@ -31,5 +31,11 @@ module LcpRuby
         "lcp_ruby/widgets/presenter_zone"
       end
     end
+
+    alias_method :zone_partial_for, :widget_partial_for
+
+    def zone_renderable?(data)
+      data.present? && !data[:hidden] && !data[:tab_only]
+    end
   end
 end

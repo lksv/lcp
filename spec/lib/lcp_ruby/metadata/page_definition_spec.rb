@@ -213,6 +213,100 @@ RSpec.describe LcpRuby::Metadata::PageDefinition do
     end
   end
 
+  describe "#semantic?" do
+    it "returns true when layout is semantic" do
+      page = described_class.new(name: "test", zones: [ main_zone ])
+      expect(page.semantic?).to be true
+    end
+
+    it "returns false when layout is grid" do
+      page = described_class.new(name: "test", layout: :grid, zones: [ main_zone ])
+      expect(page.semantic?).to be false
+    end
+  end
+
+  describe "#composite?" do
+    it "returns true for multi-zone, non-auto, non-standalone page" do
+      tab_zone = LcpRuby::Metadata::ZoneDefinition.new(name: "tab1", presenter: "tasks", area: "tabs")
+      page = described_class.new(name: "detail", model: "employee", zones: [ main_zone, tab_zone ])
+      expect(page.composite?).to be true
+    end
+
+    it "returns false for auto-generated page" do
+      tab_zone = LcpRuby::Metadata::ZoneDefinition.new(name: "tab1", presenter: "tasks", area: "tabs")
+      page = described_class.new(name: "detail", model: "employee", zones: [ main_zone, tab_zone ], auto_generated: true)
+      expect(page.composite?).to be false
+    end
+
+    it "returns false for standalone page (no model)" do
+      other_zone = LcpRuby::Metadata::ZoneDefinition.new(name: "zone2", presenter: "tasks")
+      page = described_class.new(name: "dashboard", zones: [ main_zone, other_zone ])
+      expect(page.composite?).to be false
+    end
+
+    it "returns false for single-zone page" do
+      page = described_class.new(name: "detail", model: "employee", zones: [ main_zone ])
+      expect(page.composite?).to be false
+    end
+  end
+
+  describe "#zones_for_area" do
+    it "returns zones matching the given area" do
+      sidebar_zone = LcpRuby::Metadata::ZoneDefinition.new(name: "info", presenter: "sidebar", area: "sidebar")
+      tab_zone = LcpRuby::Metadata::ZoneDefinition.new(name: "tab1", presenter: "tasks", area: "tabs")
+      page = described_class.new(name: "test", model: "m", zones: [ main_zone, sidebar_zone, tab_zone ])
+      expect(page.zones_for_area("sidebar")).to eq([ sidebar_zone ])
+      expect(page.zones_for_area("tabs")).to eq([ tab_zone ])
+      expect(page.zones_for_area("main")).to eq([ main_zone ])
+    end
+
+    it "returns empty array for nonexistent area" do
+      page = described_class.new(name: "test", model: "m", zones: [ main_zone ])
+      expect(page.zones_for_area("sidebar")).to eq([])
+    end
+  end
+
+  describe "#tab_zones and #has_tabs?" do
+    it "returns tab zones" do
+      tab1 = LcpRuby::Metadata::ZoneDefinition.new(name: "t1", presenter: "p1", area: "tabs")
+      tab2 = LcpRuby::Metadata::ZoneDefinition.new(name: "t2", presenter: "p2", area: "tabs")
+      page = described_class.new(name: "test", model: "m", zones: [ main_zone, tab1, tab2 ])
+      expect(page.tab_zones).to eq([ tab1, tab2 ])
+      expect(page.has_tabs?).to be true
+    end
+
+    it "returns false when no tabs" do
+      page = described_class.new(name: "test", zones: [ main_zone ])
+      expect(page.has_tabs?).to be false
+    end
+  end
+
+  describe "#has_sidebar?" do
+    it "returns true when sidebar zones exist" do
+      sidebar = LcpRuby::Metadata::ZoneDefinition.new(name: "side", presenter: "p", area: "sidebar")
+      page = described_class.new(name: "test", model: "m", zones: [ main_zone, sidebar ])
+      expect(page.has_sidebar?).to be true
+    end
+
+    it "returns false when no sidebar zones" do
+      page = described_class.new(name: "test", zones: [ main_zone ])
+      expect(page.has_sidebar?).to be false
+    end
+  end
+
+  describe "#has_below?" do
+    it "returns true when below zones exist" do
+      below = LcpRuby::Metadata::ZoneDefinition.new(name: "extra", presenter: "p", area: "below")
+      page = described_class.new(name: "test", model: "m", zones: [ main_zone, below ])
+      expect(page.has_below?).to be true
+    end
+
+    it "returns false when no below zones" do
+      page = described_class.new(name: "test", zones: [ main_zone ])
+      expect(page.has_below?).to be false
+    end
+  end
+
   describe ".from_hash" do
     it "parses a hash with zones" do
       page = described_class.from_hash(

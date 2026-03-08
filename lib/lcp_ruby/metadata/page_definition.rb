@@ -52,6 +52,35 @@ module LcpRuby
         @layout == :grid
       end
 
+      def semantic?
+        @layout == :semantic
+      end
+
+      def composite?
+        !auto_generated? && zones.size > 1 && !standalone?
+      end
+
+      def zones_for_area(area)
+        @zones_by_area ||= zones.group_by(&:area)
+        @zones_by_area.fetch(area.to_s, [])
+      end
+
+      def tab_zones
+        zones_for_area("tabs")
+      end
+
+      def has_tabs?
+        tab_zones.any?
+      end
+
+      def has_sidebar?
+        zones_for_area("sidebar").any?
+      end
+
+      def has_below?
+        zones_for_area("below").any?
+      end
+
       def dialog_only?
         !routable? && dialog_config.any?
       end

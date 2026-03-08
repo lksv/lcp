@@ -235,6 +235,25 @@ User-persistent named filters stored as a standard LCP dynamic model. Not a hard
 - **Configuration** — presenter-level `saved_filters` block inside `advanced_filter` controls display mode (`inline`, `dropdown`, `sidebar`), max visible pinned filters, and enable/disable toggle
 - **Visibility** — four levels: `personal` (owner only), `role` (matching `target_role`), `group` (matching `target_group`), `global` (all users). Record rules enforce who can create/edit/delete at each level
 
+### Pages (`lib/lcp_ruby/pages/`)
+
+Page rendering infrastructure. Pages are the top-level layout unit — every routable URL maps to a page, which contains one or more zones.
+
+- **Resolver** — slug/name lookup for `PageDefinition` objects; resolves URL slug to the correct page
+- **ScopeContextResolver** — resolves dynamic references in zone `scope_context` to concrete values; supports `:record_id`, `:record.<field>` (single-level dot-path), `:current_user`, `:current_user_id`, `:current_year`, `:current_date`; static values pass through; raises `MetadataError` on unknown references or dot-path depth > 1
+- **PageDefinition** — value object: `name`, `slug`, `model`, `layout` (`:semantic` or `:grid`), `dialog_config`, `zones`; composite helpers: `composite?` (multi-zone, record-bound, explicit), `semantic?`, `zones_for_area(area)`, `tab_zones`, `has_tabs?`, `has_sidebar?`, `has_below?`, `main_zone`
+- **ZoneDefinition** — value object: `name`, `type` (`:presenter` or `:widget`), `presenter`, `area`, `widget`, `position`, `scope`, `limit`, `visible_when`, `scope_context`, `label_key`; `#label` returns i18n-resolved label
+
+Auto-page creation: presenters not claimed by any explicit page zone get a simple auto-generated page at boot. Claimed presenters do not get auto-pages, preventing duplicate routes.
+
+### Widgets (`lib/lcp_ruby/widgets/`)
+
+Data resolution and scope application for page zones.
+
+- **DataResolver** — resolves widget zone data: `kpi_card` (aggregate queries), `text` (i18n content), `list` (recent records); accepts `scope_context:` for parent-record scoping
+- **PresenterZoneResolver** — resolves presenter zone data (index table records); applies zone scope, scope_context, limit, and policy scope
+- **ScopeApplicator** — shared module included by both resolvers; provides `resolve_model_class`, `apply_zone_scope`, `apply_scope_context` (column-based WHERE or `filter_*` interceptor delegation), and policy scope application
+
 ### Routing (`lib/lcp_ruby/routing/`)
 
 - **PresenterRoutes** — exists but is unused; only static engine routes defined in `config/routes.rb` are active
@@ -253,6 +272,7 @@ User-persistent named filters stored as a standard LCP dynamic model. Not a hard
 ### ResourcesController (`app/controllers/lcp_ruby/resources_controller.rb`)
 
 - CRUD: `index`, `show`, `new`, `create`, `edit`, `update`, `destroy`, `restore`, `permanently_destroy`
+- Composite pages: `show` branches on `current_page.composite?` → `load_composite_page` sets up main zone (show presenter), determines active tab (`?tab=` param, defaults to first), resolves `scope_context` per zone via `ScopeContextResolver`, checks per-zone authorization (`can_access_presenter?`), evaluates `visible_when` conditions, delegates to `PresenterZoneResolver`/`DataResolver` for data loading; inactive tabs are skipped
 - Index pipeline: `policy_scope` -> `apply_soft_delete_scope` -> `apply_advanced_search` -> `apply_sort` -> paginate (Kaminari)
 - Soft delete: `destroy` branches on `soft_delete?` — calls `discard!` instead of `destroy!`; `restore` calls `undiscard!`; `permanently_destroy` calls `destroy!` on discarded records; `set_record` scopes to `kept` when soft delete is enabled
 - `apply_advanced_search` 7-step pipeline: (1) apply predefined filter scope, (2) sanitize `?f[...]` params via `ParamSanitizer`, (3) build Ransack params via `FilterParamBuilder`, (4) intercept `filter_*` methods via `CustomFilterInterceptor`, (5) apply Ransack query via `RansackApplicator`, (6) apply quick search (`?qs=`) via `QuickSearch`, (7) apply custom field filters
@@ -327,7 +347,7 @@ Plain ERB templates (no ViewComponents despite gemspec dependency).
 
 - **Layout** (`application.html.erb`) — inline CSS (Bootstrap-inspired), confirm dialog JS
 - **Index** (`index.html.erb`) — table with sortable columns, search bar, predefined filter buttons, Kaminari pagination, row actions; renderers: `badge`, `currency`, `relative_date`
-- **Show** (`show.html.erb`) — sections with field grid or `association_list`; renderers: `heading`, `badge`, `link`, `rich_text`, `currency`, `relative_date`
+- **Show** (`show.html.erb`) — branches: composite pages render `_semantic_page` (main area + tab bar + sidebar + below), non-composite pages render `_show_sections` (extracted section loop). Sections with field grid or `association_list`; renderers: `heading`, `badge`, `link`, `rich_text`, `currency`, `relative_date`
 - **Form** (`_form.html.erb`) — sections with grid; resolves input type as: explicit presenter `input_type` → `type_definition.input_type` → base field type. Supported inputs: text/textarea, select (enum), number, date, datetime, boolean, `association_select`, `rich_text_editor`, email, tel, url, color
 - **New/Edit** — thin wrappers that render the `_form` partial
 

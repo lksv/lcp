@@ -13,7 +13,7 @@ Complete attribute reference for every YAML configuration file:
 - [Models](reference/models.md) — Fields, validations, associations, scopes, events, display templates, virtual columns (aggregates)
 - [Types](reference/types.md) — Custom business types (email, phone, url, color, and user-defined)
 - [Presenters](reference/presenters.md) — Index, show, form, search, actions, navigation
-- [Pages](reference/pages.md) — Page YAML format, zones, widget types (kpi_card, text, list), grid positioning, auto-pages, dialog-only pages
+- [Pages](reference/pages.md) — Page YAML format, zones, widget types (kpi_card, text, list), grid positioning, auto-pages, dialog-only pages, composite pages (semantic layout, tabs, scope_context)
 - [Dialogs](reference/dialogs.md) — Dialog actions, confirm variants (boolean, role, styled, page-based), routing, virtual model flow
 - [View Groups](reference/view-groups.md) — Navigation menu, view switching, auto-creation
 - [Menu](reference/menu.md) — Configurable navigation: top bar, sidebar, dropdowns, badges, role visibility
@@ -66,6 +66,7 @@ Complete attribute reference for every YAML configuration file:
 - [Impersonation](guides/impersonation.md) — "View as Role X" for testing permissions
 - [Tiles View](guides/tiles.md) — Card grid layout for index pages: tile configuration, sort dropdown, per-page selector, summary bar
 - [Dashboards](guides/dashboards.md) — Standalone grid pages: KPI cards, text widgets, list widgets, presenter zones, landing page
+- [Composite Pages](guides/composite-pages.md) — Record-bound multi-zone pages: semantic layout, tabs, scope_context, per-zone authorization
 - [Dialogs](guides/dialogs.md) — Quick create/edit dialogs, virtual model dialogs, styled/page-based confirms
 - [View Slots](guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components, overriding built-ins
 - [API-Backed Models](guides/api-backed-models.md) — Integrating external REST APIs and host-provided data sources: setup, cross-source associations, caching, error handling, testing
@@ -93,7 +94,7 @@ Implemented:
 - [Row Styling](design/row_styling.md) — Conditional CSS classes on index rows (tables, trees, tiles) based on field conditions or services
 - [Array Field Type](design/array_field_type.md) — Native array fields with typed items, array-specific operators, and auto-generated scopes
 - [API-Backed Models](design/api_backed_models.md) — External data sources (REST JSON, host adapters): read-only access, cross-source associations, caching, graceful degradation
-- [Pages — Unified Rendering Abstraction](design/composite_pages_v2.md) — Tier 1 + Tier 1b: pages, zones, auto-pages, grid layout, widget zones, dashboard convergence
+- [Pages — Unified Rendering Abstraction](design/composite_pages_v2.md) — Tier 1 + Tier 1b + Tier 2 Phase A: pages, zones, auto-pages, grid layout, widget zones, dashboard convergence, composite pages with semantic layout and tabs
 - [Modal Dialogs](design/modal_dialogs.md) — Dialog actions, virtual model flow, confirm variants, routing, authorization
 - [Dashboards](design/dashboards.md) — Tier 1b: standalone grid pages with KPI cards, text, list widgets, presenter zones
 

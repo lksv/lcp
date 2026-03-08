@@ -2,6 +2,8 @@
 
 Dashboards in LCP Ruby are **standalone pages** with `layout: grid` and widget zones. They reuse the full Pages infrastructure — no separate abstraction is needed.
 
+For record-bound multi-zone pages with tabs and related data (e.g., employee detail with leave requests and trainings), see the [Composite Pages Guide](composite-pages.md) instead.
+
 ## Quick Start
 
 ### 1. Define a Dashboard Page

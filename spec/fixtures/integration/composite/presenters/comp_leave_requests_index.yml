@@ -1,0 +1,36 @@
+presenter:
+  name: comp_leave_requests_index
+  model: comp_leave_request
+  slug: comp-leave-requests
+  label: "Leave Requests"
+
+  index:
+    table_columns:
+      - { field: start_date }
+      - { field: end_date }
+      - { field: status }
+      - { field: reason }
+
+  show:
+    sections:
+      - section: details
+        fields:
+          - { field: start_date }
+          - { field: end_date }
+          - { field: status }
+          - { field: reason }
+
+  form:
+    sections:
+      - section: details
+        fields:
+          - { field: start_date }
+          - { field: end_date }
+          - { field: status }
+          - { field: reason }
+
+  actions:
+    collection:
+      - { name: create, type: built_in }
+    single:
+      - { name: show, type: built_in }

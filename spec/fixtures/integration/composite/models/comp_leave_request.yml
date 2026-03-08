@@ -1,0 +1,18 @@
+model:
+  name: comp_leave_request
+  label: "Leave Request"
+
+  fields:
+    - name: employee_id
+      type: integer
+    - name: start_date
+      type: date
+    - name: end_date
+      type: date
+    - name: status
+      type: string
+    - name: reason
+      type: string
+
+  options:
+    timestamps: true

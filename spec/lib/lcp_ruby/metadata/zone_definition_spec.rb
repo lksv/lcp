@@ -160,6 +160,59 @@ RSpec.describe LcpRuby::Metadata::ZoneDefinition do
     end
   end
 
+  describe "scope_context and label_key" do
+    it "stores scope_context as stringified hash" do
+      zone = described_class.new(
+        name: "leave_requests",
+        presenter: "leave_requests_index",
+        area: "tabs",
+        scope_context: { employee_id: ":record_id" },
+        label_key: "pages.employee.tabs.leave"
+      )
+      expect(zone.scope_context).to eq("employee_id" => ":record_id")
+      expect(zone.label_key).to eq("pages.employee.tabs.leave")
+    end
+
+    it "defaults scope_context to nil when not provided" do
+      zone = described_class.new(name: "main", presenter: "contacts")
+      expect(zone.scope_context).to be_nil
+    end
+
+    it "defaults label_key to nil when not provided" do
+      zone = described_class.new(name: "main", presenter: "contacts")
+      expect(zone.label_key).to be_nil
+    end
+  end
+
+  describe "#label" do
+    it "returns humanized name when no label_key" do
+      zone = described_class.new(name: "leave_requests", presenter: "leave_requests_index")
+      expect(zone.label).to eq("Leave requests")
+    end
+
+    it "uses label_key for i18n lookup" do
+      zone = described_class.new(
+        name: "leave_requests",
+        presenter: "leave_requests_index",
+        label_key: "pages.employee.tabs.leave"
+      )
+      # Falls back to humanized name since key isn't defined
+      expect(zone.label).to eq("Leave requests")
+    end
+
+    it "returns translated label when i18n key exists" do
+      I18n.backend.store_translations(:en, { my_tabs: { leave: "Leave Requests" } })
+      zone = described_class.new(
+        name: "leave_requests",
+        presenter: "leave_requests_index",
+        label_key: "my_tabs.leave"
+      )
+      expect(zone.label).to eq("Leave Requests")
+    ensure
+      I18n.backend.reload!
+    end
+  end
+
   describe ".from_hash" do
     it "parses a presenter zone hash" do
       zone = described_class.from_hash("name" => "main", "presenter" => "contacts", "area" => "sidebar")
@@ -187,6 +240,30 @@ RSpec.describe LcpRuby::Metadata::ZoneDefinition do
       expect(zone.widget["model"]).to eq("order")
       expect(zone.position).to eq("row" => 1, "col" => 1, "width" => 3, "height" => 1)
       expect(zone.visible_when).to be_a(Hash)
+    end
+
+    it "parses scope_context and label_key" do
+      zone = described_class.from_hash(
+        "name" => "leave_requests",
+        "presenter" => "leave_requests_index",
+        "area" => "tabs",
+        "scope_context" => { "employee_id" => ":record_id" },
+        "label_key" => "pages.employee.tabs.leave"
+      )
+      expect(zone.scope_context).to eq("employee_id" => ":record_id")
+      expect(zone.label_key).to eq("pages.employee.tabs.leave")
+    end
+
+    it "handles symbol keys in scope_context" do
+      zone = described_class.from_hash(
+        name: "tab",
+        presenter: "tasks",
+        area: "tabs",
+        scope_context: { employee_id: ":record_id" },
+        label_key: :my_label
+      )
+      expect(zone.scope_context).to eq("employee_id" => ":record_id")
+      expect(zone.label_key).to eq("my_label")
     end
   end
 end

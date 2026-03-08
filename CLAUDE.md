@@ -74,7 +74,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Auditing Reference](docs/reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Tree Structures Reference](docs/reference/tree-structures.md) — Declarative tree hierarchies: model options, traversal, reparenting, tree index view
-- [Pages Reference](docs/reference/pages.md) — Page YAML format, zones, widget types (kpi_card, text, list), grid positioning, auto-pages, dialog-only pages
+- [Pages Reference](docs/reference/pages.md) — Page YAML format, zones, widget types (kpi_card, text, list), grid positioning, auto-pages, dialog-only pages, composite pages (semantic layout, tabs, scope_context)
 - [Dialogs Reference](docs/reference/dialogs.md) — Dialog actions, confirm variants (boolean, role, styled, page-based), routing, virtual model flow
 - [View Slots Reference](docs/reference/view-slots.md) — Extensible page layout: slot registry, slot names, SlotContext, position ordering
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
@@ -109,6 +109,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [View Slots Guide](docs/guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components
 - [API-Backed Models Guide](docs/guides/api-backed-models.md) — Integrating external REST APIs and host-provided data sources
 - [Dashboards Guide](docs/guides/dashboards.md) — Standalone grid pages: KPI cards, text widgets, list widgets, presenter zones, landing page
+- [Composite Pages Guide](docs/guides/composite-pages.md) — Record-bound multi-zone pages: semantic layout, tabs, scope_context, per-zone authorization
 - [Dialogs Guide](docs/guides/dialogs.md) — Quick create/edit dialogs, virtual model dialogs, styled/page-based confirms
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Host Application Guide](docs/guides/host-application.md) — Creating a new host application from scratch: scaffold, models, presenters, permissions, groups, seeds
@@ -200,7 +201,8 @@ YAML metadata (config/lcp_ruby/)
                                 ↓
               Engine routes (/:lcp_slug/*) → ResourcesController
               Dialog routes (/lcp_dialog/:page_name/*) → DialogsController
-              (CRUD with Pundit authorization, presenter-driven UI, conditional rendering)
+              (CRUD with Pundit authorization, presenter-driven UI, conditional rendering,
+               composite pages with semantic layout, tabs, scope_context scoping)
 ```
 
 ### Key Modules
@@ -230,8 +232,8 @@ YAML metadata (config/lcp_ruby/)
 | `Auditing` | `lib/lcp_ruby/auditing/` | Registry (available? flag), ContractValidator (audit model contract checks), AuditWriter (field diffs, JSON/custom field expansion, nested changes), Setup (boot orchestration). AuditingApplicator installs AR callbacks on audited models |
 | `UserSnapshot` | `lib/lcp_ruby/user_snapshot.rb` | Captures `{id, email, name, role}` from user objects; used by auditing and userstamps |
 | `BulkUpdater` | `lib/lcp_ruby/bulk_updater.rb` | `tracked_update_all` wrapper with yield hook for post-update callbacks (auditing, events) |
-| `Pages` | `lib/lcp_ruby/pages/` | Resolver (slug/name lookup), auto-page creation from presenters, PageDefinition (name, slug, model, layout, dialog_config, zones), ZoneDefinition (presenter/widget zones, grid positioning, visible_when) |
-| `Widgets` | `lib/lcp_ruby/widgets/` | DataResolver (kpi_card aggregate, text i18n, list records), PresenterZoneResolver, ScopeApplicator (shared scope/model resolution, policy scope, soft delete filtering) |
+| `Pages` | `lib/lcp_ruby/pages/` | Resolver (slug/name lookup), ScopeContextResolver (dynamic reference resolution: `:record_id`, `:record.<field>`, `:current_user`, `:current_user_id`, `:current_year`, `:current_date`; single-level dot-path depth limit enforced via `MAX_DOT_PATH_DEPTH = 1`), auto-page creation from presenters, PageDefinition (name, slug, model, layout, dialog_config, zones; composite helpers: `composite?`, `semantic?`, `zones_for_area`, `tab_zones`, `has_tabs?`, `has_sidebar?`, `has_below?`), ZoneDefinition (presenter/widget zones, grid positioning, visible_when, scope_context, label_key) |
+| `Widgets` | `lib/lcp_ruby/widgets/` | DataResolver (kpi_card aggregate, text i18n, list records; accepts scope_context), PresenterZoneResolver (accepts scope_context), ScopeApplicator (shared scope/model resolution, policy scope, soft delete filtering, scope_context WHERE/filter_* application) |
 | `ViewSlots` | `lib/lcp_ruby/view_slots/` | Registry (page+slot component store with position ordering), SlotComponent (immutable value object: name, partial, position, enabled callback), SlotContext (immutable data bag for slot partials: presenter, evaluator, params, records, record, locals). ViewSlotHelper provides `render_slot` for ERB templates. 11 built-in components registered at boot |
 | `JsonItemWrapper` | `lib/lcp_ruby/json_item_wrapper.rb` | ActiveModel wrapper for JSON hash items; dynamic getter/setter per field from ModelDefinition; type coercion (integer, float, boolean); `validate_with_model_rules!` (presence, length, numericality, format); `to_hash` for persistence. Used by `json_field:` + `target_model:` nested sections |
 
@@ -245,6 +247,7 @@ YAML metadata (config/lcp_ruby/)
 
 `ResourcesController` (`app/controllers/lcp_ruby/resources_controller.rb`):
 - Standard CRUD (index/show/new/create/edit/update/destroy)
+- Composite pages: `show` branches on `current_page.composite?` → `load_composite_page` resolves main zone, active tab (`?tab=`), scope_context per zone via `ScopeContextResolver`, per-zone authorization, `visible_when` conditions, and delegates to `PresenterZoneResolver`/`DataResolver`
 - `permitted_params` filters by writable fields + association FK fields
 - `apply_advanced_search` 7-step pipeline: default scope, predefined filter scope, param sanitization, custom filter interception, Ransack query, quick search (`?qs=`), custom field filters (`?cf[...]`)
 - Authorization via Pundit on every action

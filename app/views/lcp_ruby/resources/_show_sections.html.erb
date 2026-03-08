@@ -1,0 +1,70 @@
+<% if current_presenter&.show_config&.dig("description").present? %>
+  <p class="lcp-view-description"><%= current_presenter.show_config["description"] %></p>
+<% end %>
+
+<% layout_builder.show_sections.each do |section| %>
+  <%
+    section_visible = condition_visible?(section, record)
+    section_disabled = condition_disabled?(section, record)
+  %>
+  <% next unless section_visible %>
+  <div class="lcp-section <%= 'lcp-conditionally-disabled' if section_disabled %>">
+    <h2><%= section["section"] || section["title"] %></h2>
+    <% if section["description"].present? %>
+      <p class="lcp-section-description"><%= section["description"] %></p>
+    <% end %>
+
+    <% if section["type"] == "association_list" %>
+      <%= render "lcp_ruby/resources/association_list",
+                 section: section, record: record %>
+    <% elsif section["type"] == "json_items_list" %>
+      <%= render "lcp_ruby/resources/json_items_list",
+                 section: section, record: record %>
+    <% elsif section["type"] == "audit_history" %>
+      <%= render "lcp_ruby/resources/audit_history",
+                 section: section, record: record %>
+    <% else %>
+      <div class="lcp-fields lcp-grid" style="display: grid; grid-template-columns: repeat(<%= section['columns'] || 1 %>, 1fr); gap: 1rem;"
+           <%= "data-responsive-mobile=\"#{section.dig('responsive', 'mobile', 'columns')}\"" if section.dig('responsive', 'mobile', 'columns') %>
+           <%= "data-responsive-tablet=\"#{section.dig('responsive', 'tablet', 'columns')}\"" if section.dig('responsive', 'tablet', 'columns') %>>
+        <% visible_fields = column_set.visible_show_fields(section["fields"]) %>
+        <% visible_fields.each do |field_config| %>
+
+          <% if field_config["type"] == "info" %>
+            <div class="lcp-info-text" style="grid-column: 1 / -1;"><%= field_config["text"] %></div>
+            <% next %>
+          <% end %>
+
+          <% field_name = field_config["field"] %>
+          <% next unless field_name %>
+          <% next unless record.respond_to?(field_name) || field_name.include?(".") || field_name.include?("{") || field_config["custom_field"] %>
+          <% value = field_resolver.resolve(record, field_name) %>
+
+          <div class="lcp-field <%= hidden_on_classes(field_config) %>"
+               id="field-<%= field_name.to_s.tr('.', '-') %>"
+               <%= "style=\"grid-column: span #{field_config['col_span']}\"" if field_config["col_span"] %>>
+            <% field_def = field_config["field_definition"] %>
+            <label><%= field_config["label"] || field_def&.label || field_name.to_s.split(".").last.humanize %></label>
+            <div class="lcp-field-value">
+              <% if field_config["partial"] %>
+                <%= render partial: field_config["partial"], locals: { value: value, record: record, options: field_config["options"] || {} } %>
+              <% elsif field_config["renderer"] %>
+                <%= render_display_value(value, field_config["renderer"], field_config["options"], field_def, record: record) %>
+              <% elsif value.is_a?(Array) %>
+                <%= render_display_value(value, "collection", {}) %>
+              <% else %>
+                <%= empty_value_placeholder(value, current_presenter) %>
+              <% end %>
+              <% if field_config["copyable"] && value.present? %>
+                <% copy_value = value.is_a?(Array) ? value.join(", ") : strip_tags(value.to_s) %>
+                <button type="button" class="lcp-copy-field" data-lcp-copy-value="<%= copy_value %>" title="<%= I18n.t('lcp_ruby.toolbar.copy_value', default: 'Copy value') %>">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                </button>
+              <% end %>
+            </div>
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

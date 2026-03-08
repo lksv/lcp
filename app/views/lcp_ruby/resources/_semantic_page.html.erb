@@ -1,0 +1,71 @@
+<div class="lcp-semantic-layout
+  <%= 'lcp-has-sidebar' if current_page.has_sidebar? %>
+  <%= 'lcp-has-tabs' if current_page.has_tabs? %>
+  <%= 'lcp-has-below' if current_page.has_below? %>">
+
+  <%# Main area %>
+  <div class="lcp-area-main">
+    <%= render "lcp_ruby/resources/show_sections",
+          layout_builder: @layout_builder,
+          column_set: @column_set,
+          field_resolver: @field_resolver,
+          record: @record %>
+  </div>
+
+  <%# Sidebar area %>
+  <% if current_page.has_sidebar? %>
+    <div class="lcp-area-sidebar">
+      <% current_page.zones_for_area("sidebar").each do |zone| %>
+        <% data = @zone_data[zone] %>
+        <% next unless zone_renderable?(data) %>
+        <div class="lcp-zone lcp-zone-sidebar">
+          <%= render partial: zone_partial_for(zone),
+                locals: { zone: zone, data: data } %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# Tabs area %>
+  <% if current_page.has_tabs? %>
+    <div class="lcp-area-tabs">
+      <%# Tab navigation bar %>
+      <div class="lcp-tab-bar">
+        <% current_page.tab_zones.each do |zone| %>
+          <% data = @zone_data[zone] %>
+          <% next if data.nil? %>
+          <a href="<%= request.path %>?tab=<%= zone.name %>"
+             class="lcp-tab <%= 'lcp-tab-active' if zone.name == @active_tab %>">
+            <%= zone.label %>
+          </a>
+        <% end %>
+      </div>
+
+      <%# Active tab content %>
+      <% active_zone = current_page.tab_zones.find { |z| z.name == @active_tab } %>
+      <% if active_zone %>
+        <% data = @zone_data[active_zone] %>
+        <% if data && !data[:hidden] && !data[:tab_only] %>
+          <div class="lcp-tab-content">
+            <%= render partial: zone_partial_for(active_zone),
+                  locals: { zone: active_zone, data: data } %>
+          </div>
+        <% end %>
+      <% end %>
+    </div>
+  <% end %>
+
+  <%# Below area %>
+  <% if current_page.has_below? %>
+    <div class="lcp-area-below">
+      <% current_page.zones_for_area("below").each do |zone| %>
+        <% data = @zone_data[zone] %>
+        <% next unless zone_renderable?(data) %>
+        <div class="lcp-zone lcp-zone-below">
+          <%= render partial: zone_partial_for(zone),
+                locals: { zone: zone, data: data } %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

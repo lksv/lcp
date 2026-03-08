@@ -1,0 +1,20 @@
+page:
+  name: comp_employee_detail
+  model: comp_employee
+  slug: comp-employees
+  zones:
+    - name: header
+      presenter: comp_employee_show
+      area: main
+    - name: leave_requests
+      presenter: comp_leave_requests_index
+      area: tabs
+      label_key: lcp_ruby.composite_test.tabs.leave_requests
+      scope_context:
+        employee_id: ":record_id"
+    - name: trainings
+      presenter: comp_trainings_index
+      area: tabs
+      label_key: lcp_ruby.composite_test.tabs.trainings
+      scope_context:
+        employee_id: ":record_id"

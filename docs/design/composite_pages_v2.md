@@ -1,8 +1,8 @@
 # Feature Specification: Pages — Unified Rendering Abstraction
 
-**Status:** Tier 1 + Tier 1b Implemented
+**Status:** Tier 1 + Tier 1b + Tier 2 Phase A Implemented
 **Date:** 2026-03-07
-**Updated:** 2026-03-08 (status update, open questions resolved)
+**Updated:** 2026-03-08 (Tier 2 Phase A: composite page rendering with semantic layout, tabs, scope_context, per-zone authorization)
 
 ## Problem / Motivation
 
@@ -573,17 +573,18 @@ scope_context:
 | Reference | Resolved from |
 |-----------|--------------|
 | `:record_id` | Primary record's `id` |
-| `:record.<field>` | Dot-path into primary record (e.g., `:record.department_id` → `record.department_id`) |
-| `:current_user` | `current_user` object (existing in controller context) |
+| `:record.<field>` | Dot-path into primary record (e.g., `:record.department_id` → `record.department_id`). Single-level only in Phase A. |
+| `:current_user` | `current_user` object (useful with `filter_*` interceptors) |
+| `:current_user_id` | `current_user.id` |
 | `:current_year`, `:current_date` | `Date.current.year`, `Date.current` |
 | `:selection_id` | Selected record ID from master-detail (Tier 3) |
 
 After references are resolved to concrete values, the resulting hash (e.g., `{ employee_id: 42 }`) is applied to the child zone's query. The application strategy is:
 
-1. **If the child model has a matching parameterized scope** — delegate to `ParameterizedScopeApplicator` (existing infrastructure).
+1. **If the child model has a `filter_<key>` class method** — delegate to it. Both 2-arg `(scope, value)` and 3-arg `(scope, value, evaluator)` signatures are supported.
 2. **Otherwise** — apply as `where(key: value)` directly.
 
-This keeps the common case simple (`where(employee_id: 42)`) while supporting complex scoping via parameterized scopes when needed.
+This keeps the common case simple (`where(employee_id: 42)`) while supporting complex scoping via filter methods when needed.
 
 ## URL Routing and Zone State Encoding
 
