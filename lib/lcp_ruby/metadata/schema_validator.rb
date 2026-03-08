@@ -5,7 +5,7 @@ require "json_schemer"
 module LcpRuby
   module Metadata
     class SchemaValidator
-      SCHEMA_TYPES = %w[model presenter permission view_group menu type].freeze
+      SCHEMA_TYPES = %w[model presenter permission view_group menu type page].freeze
 
       def initialize
         @schemas = {}
@@ -55,6 +55,13 @@ module LcpRuby
 
         context = name ? "Type '#{name}'" : "Type"
         validate(:type, hash, context_name: context)
+      end
+
+      def validate_page(page_definition)
+        raw = page_definition.raw_hash
+        return [] unless raw
+
+        validate(:page, raw, context_name: "Page '#{page_definition.name}'")
       end
 
       private

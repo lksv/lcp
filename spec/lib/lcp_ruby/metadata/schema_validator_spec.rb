@@ -42,6 +42,13 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
     LcpRuby::Metadata::MenuDefinition.from_hash("menu" => hash)
   end
 
+  def build_page(hash)
+    hash = LcpRuby::HashUtils.stringify_deep(hash)
+    hash["name"] ||= "test_page"
+    hash["zones"] ||= [ { "name" => "main", "presenter" => "widgets" } ]
+    LcpRuby::Metadata::PageDefinition.from_hash(hash)
+  end
+
   # === Model schema ===
 
   describe "#validate_model" do
@@ -1450,6 +1457,127 @@ RSpec.describe LcpRuby::Metadata::SchemaValidator do
         expect(errors.first).to include("index.table_columns")
         expect(errors.first).to include("unknown attribute 'bogus'")
       end
+    end
+  end
+
+  # === Page schema ===
+
+  describe "#validate_page" do
+    it "accepts valid minimal page" do
+      page = build_page(
+        name: "test_page",
+        zones: [ { name: "main", presenter: "widgets" } ]
+      )
+      expect(validator.validate_page(page)).to be_empty
+    end
+
+    it "accepts valid full page with all zone types" do
+      page = build_page(
+        name: "dashboard",
+        slug: "dashboard",
+        model: "widget",
+        layout: "grid",
+        title_key: "lcp_ruby.dashboard.title",
+        dialog: { size: "large", closable: false, title_key: "lcp_ruby.dialogs.test" },
+        zones: [
+          {
+            name: "count",
+            type: "widget",
+            widget: {
+              type: "kpi_card",
+              model: "widget",
+              aggregate: "count",
+              aggregate_field: "amount",
+              format: "currency",
+              icon: "dollar-sign",
+              link_to: "widgets",
+              label_key: "lcp_ruby.dashboard.count"
+            },
+            position: { row: 1, col: 1, width: 4, height: 1 },
+            scope: "active",
+            limit: 10,
+            visible_when: { role: "admin" }
+          },
+          {
+            name: "welcome",
+            type: "widget",
+            widget: { type: "text", content_key: "lcp_ruby.welcome" },
+            position: { row: 2, col: 1, width: 12, height: 1 }
+          },
+          {
+            name: "recent",
+            type: "widget",
+            widget: { type: "list", model: "widget", link_to: "widgets", label_key: "lcp_ruby.recent" },
+            position: { row: 3, col: 1, width: 6, height: 2 }
+          },
+          {
+            name: "main",
+            presenter: "widgets",
+            area: "main",
+            position: { row: 3, col: 7, width: 6, height: 2 }
+          }
+        ]
+      )
+      expect(validator.validate_page(page)).to be_empty
+    end
+
+    it "rejects unknown attributes" do
+      page = build_page(
+        name: "test",
+        bogus: "value",
+        zones: [ { name: "main", presenter: "widgets" } ]
+      )
+      errors = validator.validate_page(page)
+      expect(errors).not_to be_empty
+      expect(errors.first).to include("unknown attribute 'bogus'")
+    end
+
+    it "rejects invalid layout value" do
+      # layout is validated at parse time by PageDefinition, so raw_hash is needed
+      hash = LcpRuby::HashUtils.stringify_deep(
+        name: "test",
+        layout: "flex",
+        zones: [ { name: "main", presenter: "widgets" } ]
+      )
+      # Build manually with raw_hash since PageDefinition.from_hash would raise
+      zones = [ LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: "widgets") ]
+      page = LcpRuby::Metadata::PageDefinition.new(
+        name: "test", zones: zones, layout: :semantic, raw_hash: hash
+      )
+      errors = validator.validate_page(page)
+      expect(errors).not_to be_empty
+      expect(errors.first).to include("layout")
+    end
+
+    it "rejects invalid dialog size" do
+      hash = LcpRuby::HashUtils.stringify_deep(
+        name: "test",
+        dialog: { size: "huge" },
+        zones: [ { name: "main", presenter: "widgets" } ]
+      )
+      zones = [ LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: "widgets") ]
+      page = LcpRuby::Metadata::PageDefinition.new(
+        name: "test", zones: zones, dialog_config: { "size" => "huge" }, raw_hash: hash
+      )
+      errors = validator.validate_page(page)
+      expect(errors).not_to be_empty
+      expect(errors.first).to include("size")
+    end
+
+    it "rejects unknown zone attributes" do
+      page = build_page(
+        name: "test",
+        zones: [ { name: "main", presenter: "widgets", bogus_attr: true } ]
+      )
+      errors = validator.validate_page(page)
+      expect(errors).not_to be_empty
+      expect(errors.first).to include("unknown attribute 'bogus_attr'")
+    end
+
+    it "returns empty for page with nil raw_hash" do
+      zones = [ LcpRuby::Metadata::ZoneDefinition.new(name: "main", presenter: "widgets") ]
+      page = LcpRuby::Metadata::PageDefinition.new(name: "test", zones: zones)
+      expect(validator.validate_page(page)).to be_empty
     end
   end
 end

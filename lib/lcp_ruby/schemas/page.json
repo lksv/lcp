@@ -1,0 +1,288 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://lcp-ruby.dev/schemas/page.json",
+  "title": "LCP Ruby Page Definition",
+  "description": "Schema for page metadata that defines a standalone page composed of zones (presenter regions and/or widgets). Pages are defined in config/lcp_ruby/pages/ as YAML files. Each page has a unique name, optional slug for routing, and one or more zones that display presenter content or widgets (KPI cards, text blocks, lists).",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Unique identifier for this page. Used in view group references and dialog targets.",
+      "examples": ["main_dashboard", "quick_create_order", "employee_overview"]
+    },
+    "slug": {
+      "type": "string",
+      "description": "URL slug that makes this page routable. Pages without a slug are only accessible as dialog targets. Must be unique across all pages.",
+      "examples": ["dashboard", "overview", "reports"]
+    },
+    "model": {
+      "type": "string",
+      "description": "The model this page is associated with. Standalone dashboard pages may omit this. Used for permission checks and breadcrumb context.",
+      "examples": ["employee", "order", "task"]
+    },
+    "layout": {
+      "type": "string",
+      "description": "Layout mode for zone arrangement. 'semantic' uses named areas (main, sidebar). 'grid' uses CSS grid with explicit row/col positioning.",
+      "enum": ["semantic", "grid"],
+      "default": "semantic",
+      "examples": ["semantic", "grid"]
+    },
+    "title_key": {
+      "type": "string",
+      "description": "i18n key for the page title. Falls back to humanized page name when not set or translation missing.",
+      "examples": ["lcp_ruby.dashboard.title", "lcp_ruby.pages.overview"]
+    },
+    "dialog": {
+      "$ref": "#/$defs/dialog_config",
+      "description": "Dialog rendering configuration. When present, this page can be rendered inside a modal dialog."
+    },
+    "zones": {
+      "type": "array",
+      "description": "List of zones (content regions) on this page. Each zone displays either a presenter or a widget. Order matters for semantic layout; grid layout uses explicit positions.",
+      "items": { "$ref": "#/$defs/zone" },
+      "minItems": 1
+    }
+  },
+  "required": ["name", "zones"],
+  "additionalProperties": false,
+
+  "$defs": {
+    "dialog_config": {
+      "type": "object",
+      "description": "Configuration for rendering this page as a modal dialog.",
+      "properties": {
+        "size": {
+          "type": "string",
+          "description": "Dialog size preset.",
+          "enum": ["small", "medium", "large", "fullscreen"],
+          "default": "medium"
+        },
+        "closable": {
+          "type": "boolean",
+          "description": "Whether the dialog can be closed by clicking outside or pressing Escape.",
+          "default": true
+        },
+        "title_key": {
+          "type": "string",
+          "description": "i18n key for the dialog title bar. Falls back to page title.",
+          "examples": ["lcp_ruby.dialogs.quick_create", "lcp_ruby.dialogs.confirm"]
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "zone": {
+      "type": "object",
+      "description": "A content region within the page. Either a presenter zone (displays a full presenter) or a widget zone (displays a KPI card, text block, or list).",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Unique identifier for this zone within the page."
+        },
+        "type": {
+          "type": "string",
+          "description": "Zone type. 'presenter' (default) renders a full presenter. 'widget' renders a standalone widget.",
+          "enum": ["presenter", "widget"],
+          "default": "presenter"
+        },
+        "presenter": {
+          "type": "string",
+          "description": "Presenter name to render in this zone. Required for presenter zones.",
+          "examples": ["employees", "dashboard_tasks"]
+        },
+        "area": {
+          "type": "string",
+          "description": "Named area for semantic layout placement.",
+          "default": "main",
+          "examples": ["main", "sidebar"]
+        },
+        "widget": {
+          "description": "Widget configuration for widget zones.",
+          "oneOf": [
+            { "$ref": "#/$defs/kpi_card_widget" },
+            { "$ref": "#/$defs/text_widget" },
+            { "$ref": "#/$defs/list_widget" }
+          ]
+        },
+        "position": {
+          "$ref": "#/$defs/grid_position",
+          "description": "Explicit grid positioning for grid layout pages."
+        },
+        "scope": {
+          "type": "string",
+          "description": "Named scope to apply to the zone's data query. Must exist on the resolved model.",
+          "examples": ["recent", "active", "open_tasks"]
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of records to display in this zone.",
+          "minimum": 1,
+          "examples": [5, 10]
+        },
+        "visible_when": {
+          "description": "Condition for conditional zone visibility. Supports role shortcut or full condition objects.",
+          "type": "object"
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+
+    "kpi_card_widget": {
+      "type": "object",
+      "description": "KPI card widget displaying an aggregate value (count, sum, avg, min, max) over a model's records.",
+      "properties": {
+        "type": { "type": "string", "const": "kpi_card" },
+        "model": {
+          "type": "string",
+          "description": "Model to aggregate over.",
+          "examples": ["order", "task"]
+        },
+        "aggregate": {
+          "type": "string",
+          "description": "Aggregate function to compute.",
+          "enum": ["count", "sum", "avg", "min", "max"]
+        },
+        "aggregate_field": {
+          "type": "string",
+          "description": "Field to aggregate. Required for sum/avg/min/max. Defaults to 'id' for count.",
+          "examples": ["total_amount", "price", "score"]
+        },
+        "format": {
+          "type": "string",
+          "description": "Display format for the aggregate value.",
+          "examples": ["currency", "number", "percent"]
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon name displayed on the KPI card.",
+          "examples": ["shopping-cart", "dollar-sign", "check-square"]
+        },
+        "link_to": {
+          "type": "string",
+          "description": "Page slug to navigate to when the KPI card is clicked.",
+          "examples": ["orders", "tasks"]
+        },
+        "label_key": {
+          "type": "string",
+          "description": "i18n key for the KPI card label.",
+          "examples": ["lcp_ruby.dashboard.total_orders"]
+        }
+      },
+      "required": ["type", "model", "aggregate"],
+      "additionalProperties": false
+    },
+
+    "text_widget": {
+      "type": "object",
+      "description": "Text widget displaying translated content.",
+      "properties": {
+        "type": { "type": "string", "const": "text" },
+        "content_key": {
+          "type": "string",
+          "description": "i18n key for the text content.",
+          "examples": ["lcp_ruby.dashboard.welcome"]
+        }
+      },
+      "required": ["type", "content_key"],
+      "additionalProperties": false
+    },
+
+    "list_widget": {
+      "type": "object",
+      "description": "List widget displaying recent records from a model.",
+      "properties": {
+        "type": { "type": "string", "const": "list" },
+        "model": {
+          "type": "string",
+          "description": "Model to list records from.",
+          "examples": ["task", "order"]
+        },
+        "link_to": {
+          "type": "string",
+          "description": "Page slug for the 'view all' link.",
+          "examples": ["tasks", "orders"]
+        },
+        "label_key": {
+          "type": "string",
+          "description": "i18n key for the list widget header.",
+          "examples": ["lcp_ruby.dashboard.recent_tasks"]
+        }
+      },
+      "required": ["type", "model"],
+      "additionalProperties": false
+    },
+
+    "grid_position": {
+      "type": "object",
+      "description": "CSS grid positioning for grid layout pages. Uses a 12-column grid.",
+      "properties": {
+        "row": {
+          "type": "integer",
+          "description": "Starting grid row.",
+          "minimum": 1
+        },
+        "col": {
+          "type": "integer",
+          "description": "Starting grid column (1-12).",
+          "minimum": 1
+        },
+        "width": {
+          "type": "integer",
+          "description": "Number of columns to span.",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "description": "Number of rows to span.",
+          "minimum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+
+    "role_condition": {
+      "type": "object",
+      "description": "Simple role-based visibility condition. Zone is visible only to users with the specified role(s).",
+      "properties": {
+        "role": {
+          "oneOf": [
+            { "type": "string" },
+            {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          ],
+          "description": "Role name or array of role names."
+        }
+      },
+      "required": ["role"],
+      "additionalProperties": false
+    },
+
+    "condition_object": {
+      "type": "object",
+      "description": "Full condition object supporting field, service, compound (all/any/not), and collection conditions. See condition operators reference for details.",
+      "properties": {
+        "field": { "type": "string" },
+        "operator": { "type": "string" },
+        "value": {},
+        "all": {
+          "type": "array",
+          "items": {}
+        },
+        "any": {
+          "type": "array",
+          "items": {}
+        },
+        "not": {
+          "type": "object"
+        },
+        "service": { "type": "string" },
+        "collection": { "type": "string" },
+        "quantifier": { "type": "string" },
+        "condition": { "type": "object" }
+      }
+    }
+  }
+}

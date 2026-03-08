@@ -3,7 +3,7 @@ module LcpRuby
     class PageDefinition
       VALID_LAYOUTS = %i[semantic grid].freeze
 
-      attr_reader :name, :model, :slug, :dialog_config, :zones, :auto_generated, :layout, :title_key
+      attr_reader :name, :model, :slug, :dialog_config, :zones, :auto_generated, :layout, :title_key, :raw_hash
 
       def initialize(attrs = {})
         @name = attrs[:name].to_s
@@ -14,6 +14,7 @@ module LcpRuby
         @auto_generated = !!attrs[:auto_generated]
         @layout = (attrs[:layout] || :semantic).to_sym
         @title_key = attrs[:title_key]&.to_s
+        @raw_hash = attrs[:raw_hash]
 
         validate!
       end
@@ -30,7 +31,8 @@ module LcpRuby
           zones: zones,
           auto_generated: hash["auto_generated"] || false,
           layout: hash["layout"] || :semantic,
-          title_key: hash["title_key"]
+          title_key: hash["title_key"],
+          raw_hash: hash
         )
       end
 

@@ -1,8 +1,8 @@
 # Feature Specification: Pages — Unified Rendering Abstraction
 
-**Status:** Proposed
+**Status:** Tier 1 + Tier 1b Implemented
 **Date:** 2026-03-07
-**Updated:** 2026-03-07 (dashboard convergence)
+**Updated:** 2026-03-08 (status update, open questions resolved)
 
 ## Problem / Motivation
 
@@ -1099,7 +1099,7 @@ Semantic mode (default) places zones into named areas (`main`, `tabs`, `sidebar`
 
 2. **Zone-level search and filtering** — Should child index zones support full advanced search (filter bar, query language, saved filters)? Or only basic scope + sort? Options: (a) full support; (b) quick search only; (c) configurable per zone (`filters: full | quick | none`).
 
-3. **Conditional zones** — Should zones support `visible_when` conditions? E.g., show "Approvals" tab only when the employee is a manager. The condition would evaluate against the primary record or current user.
+3. ~~**Conditional zones**~~ — **Resolved: implemented.** Zones support `visible_when` with a role shortcut (`visible_when: { role: admin }` or `visible_when: { role: [admin, manager] }`) and full `ConditionEvaluator` conditions (`visible_when: { field: status, operator: eq, value: active }`). Evaluated at render time against the current user context.
 
 4. **DSL syntax** — Ruby DSL for pages:
    ```ruby
@@ -1121,4 +1121,4 @@ Semantic mode (default) places zones into named areas (`main`, `tabs`, `sidebar`
 
 7. **Zone-level presenter overrides** — A presenter (e.g., `contacts_index`) can be a zone in multiple composite pages AND have its own auto-page. The auto-page is "this presenter rendered standalone." No conflict. But should zone-level overrides (e.g., zone-specific hidden columns, row click behavior) be possible? Or should all variation go through separate presenter definitions? Separate presenters are simpler and more explicit but may lead to presenter proliferation for minor differences.
 
-8. **Pundit policy for virtual models** — Virtual models have no AR class for Pundit policy lookup. Options: (a) a `VirtualModelPolicy` that checks action-level permissions from the virtual model's permission YAML; (b) skip Pundit entirely for virtual models and rely on action authorization; (c) register a lightweight policy class at boot for each virtual model.
+8. ~~**Pundit policy for virtual models**~~ — **Resolved: option (b).** Virtual models skip Pundit entirely. Dialog actions use action-level permission checks (`can_access_presenter?` on the dialog page's presenter). The `DialogsController` handles authorization through the page's presenter context, not Pundit policies.

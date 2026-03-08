@@ -75,7 +75,7 @@
       ]
     }
   },
-  "required": ["model", "primary", "views"],
+  "required": ["primary", "views"],
   "additionalProperties": false,
 
   "$defs": {

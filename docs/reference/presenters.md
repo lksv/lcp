@@ -17,6 +17,7 @@ presenter:
   embeddable: false
   redirect_after: { create: show, update: show }
   scope: <soft_delete_scope>
+  dialog: { size: medium, closable: true, title_key: <i18n_key> }
   index: {}
   show: {}
   form: {}
@@ -151,6 +152,27 @@ presenter:
 ```
 
 See [Soft Delete Guide](../guides/soft-delete.md) for a complete example.
+
+### `dialog`
+
+| | |
+|---|---|
+| **Required** | no |
+| **Type** | object |
+
+Dialog rendering configuration for when this presenter's auto-generated page is opened as a modal. Properties: `size` (`small`/`medium`/`large`/`fullscreen`, default `medium`), `closable` (boolean, default `true`), `title_key` (i18n key). When present on a presenter, the auto-generated page inherits this dialog config.
+
+```yaml
+presenter:
+  name: task_quick_form
+  model: task
+  dialog:
+    size: large
+    closable: false
+    title_key: lcp_ruby.dialogs.quick_task
+```
+
+See [Dialogs Reference](dialogs.md) for details.
 
 ## Index Configuration
 
@@ -2244,19 +2266,21 @@ actions:
 | Attribute | Type | Description |
 |-----------|------|-------------|
 | `name` | string | Action identifier. For built-in: `show`, `edit`, `destroy`, `create`, `restore`, `permanently_destroy` |
-| `type` | string | `built_in` or `custom` |
+| `type` | string | `built_in`, `custom`, or `dialog` |
 | `label` | string | Display text |
 | `icon` | string | Icon name |
-| `confirm` | boolean or hash | Show a confirmation dialog before executing (see [Confirm Per Role](#confirm-per-role)) |
+| `confirm` | boolean or hash | Show a confirmation dialog before executing (see [Confirm Per Role](#confirm-per-role) and [Styled Confirm](#styled-confirm)) |
 | `confirm_message` | string | Custom text for the confirmation dialog |
 | `style` | string | CSS style hint (e.g., `danger` for destructive actions) |
 | `visible_when` | object | Condition controlling visibility (see below) |
 | `disable_when` | object | Condition controlling disabled state. When true, the action button renders as a disabled span instead of a clickable link/button (see below) |
+| `dialog` | object | Dialog configuration (for `type: dialog` actions only). Keys: `page`, `on_success`, `record`, `defaults`. See [Dialogs Reference](dialogs.md). |
 
 ### Action Types
 
 - **`built_in`** — standard CRUD actions (`show`, `edit`, `destroy`, `create`, `restore`, `permanently_destroy`). Authorization checked via `PermissionEvaluator.can?`. The `restore` and `permanently_destroy` actions are used with [soft delete](models.md#soft_delete) archive presenters.
 - **`custom`** — user-defined actions. Authorization checked via `can_execute_action?`. Dispatched to registered action classes. See [Custom Actions](../guides/custom-actions.md).
+- **`dialog`** — opens a page in a modal dialog. Authorization checked against the dialog page's presenter. Config: `dialog: { page: <page_name>, on_success: reload|close|redirect|confirm_action, record: current, defaults: {...} }`. See [Dialogs Reference](dialogs.md).
 
 ### Action Visibility
 
@@ -2328,6 +2352,38 @@ actions:
 | `{ only: [roles] }` | Confirm ONLY for the listed roles |
 
 The resolved `confirm` value (true/false) is set on the action before rendering, so view templates work unchanged.
+
+### Styled Confirm
+
+For custom confirmation styling with title, message, and button style:
+
+```yaml
+- name: deactivate
+  type: custom
+  confirm:
+    title_key: lcp_ruby.confirm.deactivate_title
+    message_key: lcp_ruby.confirm.deactivate_message
+    style: danger
+```
+
+| Key | Type | Description |
+|-----|------|-------------|
+| `title_key` | string | i18n key for the dialog title |
+| `message_key` | string | i18n key for the confirmation message |
+| `style` | string | Button style: `danger`, `warning`, `primary` |
+
+### Page-Based Confirm
+
+For complex confirmations requiring user input (e.g., a reason field), use a page reference:
+
+```yaml
+- name: delete_with_reason
+  type: custom
+  confirm:
+    page: delete_reason_form
+```
+
+The confirmation page is typically a virtual model (`table_name: _virtual`) with validation. On success, `on_success: confirm_action` submits the original action with `confirmation_data[...]` params. See [Dialogs Reference](dialogs.md) for details.
 
 ## Navigation
 

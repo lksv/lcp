@@ -9,9 +9,9 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
   before { loader.load_all }
 
   # Helper to create a temporary metadata directory with YAML files
-  def create_metadata(models: [], presenters: [], permissions: [], view_groups: [], menu: nil)
+  def create_metadata(models: [], presenters: [], permissions: [], view_groups: [], menu: nil, pages: [])
     dir = Dir.mktmpdir("lcp_test")
-    %w[models presenters permissions views].each { |d| FileUtils.mkdir_p(File.join(dir, d)) }
+    %w[models presenters permissions views pages].each { |d| FileUtils.mkdir_p(File.join(dir, d)) }
 
     models.each_with_index do |yaml, i|
       File.write(File.join(dir, "models", "model_#{i}.yml"), yaml)
@@ -24,6 +24,9 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
     end
     view_groups.each_with_index do |yaml, i|
       File.write(File.join(dir, "views", "vg_#{i}.yml"), yaml)
+    end
+    pages.each_with_index do |yaml, i|
+      File.write(File.join(dir, "pages", "page_#{i}.yml"), yaml)
     end
     File.write(File.join(dir, "menu.yml"), menu) if menu
 
@@ -6686,6 +6689,668 @@ RSpec.describe LcpRuby::Metadata::ConfigurationValidator do
       result = v.validate
       eager_warnings = result.warnings.select { |w| w.include?("N+1") || (w.include?("includes") && w.include?("company.verified")) }
       expect(eager_warnings).to be_empty
+    end
+  end
+
+  # --- Page / Zone / Widget / Dialog validations ---
+
+  context "page validations" do
+    let(:metadata_path) { "" }
+
+    let(:base_model_yaml) do
+      <<~YAML
+        model:
+          name: task
+          fields:
+            - { name: title, type: string }
+            - { name: amount, type: decimal }
+          scopes:
+            - { name: recent, order: { created_at: desc }, limit: 10 }
+            - { name: active, where: { status: active } }
+      YAML
+    end
+
+    let(:base_presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: tasks
+          model: task
+          slug: tasks
+      YAML
+    end
+
+    it "accepts a valid dashboard page with all zone types" do
+      v = with_metadata(
+        models: [ base_model_yaml ],
+        presenters: [ base_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: dashboard
+            slug: dashboard
+            layout: grid
+            zones:
+              - name: task_count
+                type: widget
+                widget:
+                  type: kpi_card
+                  model: task
+                  aggregate: count
+                  icon: check
+                position: { row: 1, col: 1, width: 4, height: 1 }
+              - name: welcome
+                type: widget
+                widget:
+                  type: text
+                  content_key: welcome
+                position: { row: 1, col: 5, width: 8, height: 1 }
+              - name: recent_tasks
+                presenter: tasks
+                scope: recent
+                limit: 5
+                position: { row: 2, col: 1, width: 12, height: 2 }
+        YAML
+      )
+      result = v.validate
+      page_errors = result.errors.select { |e| e.include?("Page") || e.include?("page") }
+      expect(page_errors).to be_empty
+    end
+
+    it "reports error when page references unknown model" do
+      v = with_metadata(
+        models: [ base_model_yaml ],
+        presenters: [ base_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: bad_page
+            model: nonexistent
+            zones:
+              - name: main
+                presenter: tasks
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/Page 'bad_page': references unknown model 'nonexistent'/)
+      )
+    end
+
+    it "reports error when presenter zone references unknown presenter" do
+      v = with_metadata(
+        models: [ base_model_yaml ],
+        presenters: [ base_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: bad_page
+            zones:
+              - name: main
+                presenter: ghost_presenter
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/references unknown presenter 'ghost_presenter'/)
+      )
+    end
+
+    it "reports error when kpi_card widget references unknown model" do
+      v = with_metadata(
+        models: [ base_model_yaml ],
+        presenters: [ base_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: bad_page
+            zones:
+              - name: count
+                type: widget
+                widget:
+                  type: kpi_card
+                  model: nonexistent
+                  aggregate: count
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/widget references unknown model 'nonexistent'/)
+      )
+    end
+
+    it "reports error when list widget references unknown model" do
+      v = with_metadata(
+        models: [ base_model_yaml ],
+        presenters: [ base_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: bad_page
+            zones:
+              - name: items
+                type: widget
+                widget:
+                  type: list
+                  model: nonexistent
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/widget references unknown model 'nonexistent'/)
+      )
+    end
+
+    it "warns when grid page zones have no position" do
+      v = with_metadata(
+        models: [ base_model_yaml ],
+        presenters: [ base_presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: grid_page
+            layout: grid
+            zones:
+              - name: main
+                presenter: tasks
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/grid layout but zones.*main.*have no position/)
+      )
+    end
+  end
+
+  context "zone scope validations" do
+    let(:metadata_path) { "" }
+
+    let(:model_yaml) do
+      <<~YAML
+        model:
+          name: task
+          fields:
+            - { name: title, type: string }
+          scopes:
+            - { name: recent, order: { created_at: desc }, limit: 10 }
+      YAML
+    end
+
+    let(:presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: tasks
+          model: task
+          slug: tasks
+      YAML
+    end
+
+    it "reports error when presenter zone scope does not exist on model" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: main
+                presenter: tasks
+                scope: nonexistent_scope
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/scope 'nonexistent_scope' does not exist on model 'task'/)
+      )
+    end
+
+    it "reports error when widget zone scope does not exist on model" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: count
+                type: widget
+                widget:
+                  type: kpi_card
+                  model: task
+                  aggregate: count
+                scope: nonexistent_scope
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/scope 'nonexistent_scope' does not exist on model 'task'/)
+      )
+    end
+
+    it "warns when text widget has scope" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: welcome
+                type: widget
+                widget:
+                  type: text
+                  content_key: welcome
+                scope: recent
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/text widget has scope but no model context/)
+      )
+    end
+
+    it "accepts valid scope" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: main
+                presenter: tasks
+                scope: recent
+        YAML
+      )
+      result = v.validate
+      scope_errors = result.errors.select { |e| e.include?("scope") }
+      expect(scope_errors).to be_empty
+    end
+  end
+
+  context "zone visible_when validations" do
+    let(:metadata_path) { "" }
+
+    let(:model_yaml) do
+      <<~YAML
+        model:
+          name: task
+          fields:
+            - { name: title, type: string }
+            - { name: status, type: string }
+      YAML
+    end
+
+    let(:presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: tasks
+          model: task
+          slug: tasks
+      YAML
+    end
+
+    it "accepts visible_when with role string" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: main
+                presenter: tasks
+                visible_when:
+                  role: admin
+        YAML
+      )
+      result = v.validate
+      vw_errors = result.errors.select { |e| e.include?("visible_when") }
+      expect(vw_errors).to be_empty
+    end
+
+    it "accepts visible_when with role array" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: main
+                presenter: tasks
+                visible_when:
+                  role:
+                    - admin
+                    - manager
+        YAML
+      )
+      result = v.validate
+      vw_errors = result.errors.select { |e| e.include?("visible_when") }
+      expect(vw_errors).to be_empty
+    end
+
+    it "reports error when visible_when role is not string" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: main
+                presenter: tasks
+                visible_when:
+                  role: 123
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/visible_when role must be a string/)
+      )
+    end
+
+    it "accepts visible_when with valid field condition" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: main
+                presenter: tasks
+                visible_when:
+                  field: status
+                  operator: eq
+                  value: active
+        YAML
+      )
+      result = v.validate
+      vw_errors = result.errors.select { |e| e.include?("visible_when") }
+      expect(vw_errors).to be_empty
+    end
+
+    it "reports error when visible_when references unknown field" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: main
+                presenter: tasks
+                visible_when:
+                  field: nonexistent_field
+                  operator: eq
+                  value: true
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/visible_when.*references unknown field 'nonexistent_field'/)
+      )
+    end
+
+    it "warns when visible_when condition has no model context" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: welcome
+                type: widget
+                widget:
+                  type: text
+                  content_key: welcome
+                visible_when:
+                  field: status
+                  operator: eq
+                  value: active
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/visible_when condition has no model context/)
+      )
+    end
+  end
+
+  context "widget field validations" do
+    let(:metadata_path) { "" }
+
+    let(:model_yaml) do
+      <<~YAML
+        model:
+          name: order
+          fields:
+            - { name: title, type: string }
+            - { name: total_amount, type: decimal }
+      YAML
+    end
+
+    let(:presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: orders
+          model: order
+          slug: orders
+      YAML
+    end
+
+    it "reports error when aggregate_field references unknown field" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: total
+                type: widget
+                widget:
+                  type: kpi_card
+                  model: order
+                  aggregate: sum
+                  aggregate_field: nonexistent_field
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/aggregate_field 'nonexistent_field' does not exist on model 'order'/)
+      )
+    end
+
+    it "accepts valid aggregate_field" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: total
+                type: widget
+                widget:
+                  type: kpi_card
+                  model: order
+                  aggregate: sum
+                  aggregate_field: total_amount
+        YAML
+      )
+      result = v.validate
+      agg_errors = result.errors.select { |e| e.include?("aggregate_field") }
+      expect(agg_errors).to be_empty
+    end
+
+    it "warns when aggregate sum/avg/min/max used without aggregate_field" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            zones:
+              - name: total
+                type: widget
+                widget:
+                  type: kpi_card
+                  model: order
+                  aggregate: sum
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/kpi_card uses 'sum' without aggregate_field/)
+      )
+    end
+
+    it "warns when link_to references unknown slug" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            slug: test
+            zones:
+              - name: total
+                type: widget
+                widget:
+                  type: kpi_card
+                  model: order
+                  aggregate: count
+                  link_to: unknown-slug
+        YAML
+      )
+      result = v.validate
+      expect(result.warnings).to include(
+        a_string_matching(/link_to 'unknown-slug' does not match any known page slug/)
+      )
+    end
+
+    it "does not warn when link_to references valid slug" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            slug: orders
+            zones:
+              - name: total
+                type: widget
+                widget:
+                  type: kpi_card
+                  model: order
+                  aggregate: count
+                  link_to: orders
+        YAML
+      )
+      result = v.validate
+      link_warnings = result.warnings.select { |w| w.include?("link_to") }
+      expect(link_warnings).to be_empty
+    end
+  end
+
+  context "zone limit and position validations" do
+    let(:metadata_path) { "" }
+
+    let(:model_yaml) do
+      <<~YAML
+        model:
+          name: task
+          fields:
+            - { name: title, type: string }
+      YAML
+    end
+
+    let(:presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: tasks
+          model: task
+          slug: tasks
+      YAML
+    end
+
+    it "reports error when position has row: 0" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_page
+            layout: grid
+            zones:
+              - name: main
+                presenter: tasks
+                position: { row: 0, col: 1, width: 12, height: 1 }
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/position row must be a positive integer/)
+      )
+    end
+  end
+
+  context "dialog config validations" do
+    let(:metadata_path) { "" }
+
+    let(:model_yaml) do
+      <<~YAML
+        model:
+          name: task
+          fields:
+            - { name: title, type: string }
+      YAML
+    end
+
+    let(:presenter_yaml) do
+      <<~YAML
+        presenter:
+          name: tasks
+          model: task
+          slug: tasks
+      YAML
+    end
+
+    it "reports error when dialog size is invalid" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_dialog
+            dialog:
+              size: huge
+            zones:
+              - name: main
+                presenter: tasks
+        YAML
+      )
+      result = v.validate
+      expect(result.errors).to include(
+        a_string_matching(/dialog size 'huge' is invalid/)
+      )
+    end
+
+    it "accepts valid dialog config" do
+      v = with_metadata(
+        models: [ model_yaml ],
+        presenters: [ presenter_yaml ],
+        pages: [ <<~YAML ]
+          page:
+            name: test_dialog
+            dialog:
+              size: large
+              closable: false
+              title_key: lcp_ruby.dialogs.test
+            zones:
+              - name: main
+                presenter: tasks
+        YAML
+      )
+      result = v.validate
+      dialog_errors = result.errors.select { |e| e.include?("dialog") }
+      expect(dialog_errors).to be_empty
     end
   end
 end

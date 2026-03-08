@@ -74,6 +74,8 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [Auditing Reference](docs/reference/auditing.md) — Change tracking: audit log model, field diffs, JSON/custom field expansion, configuration
 - [Eager Loading Reference](docs/reference/eager-loading.md) — Auto-detection, manual overrides, strategy resolution, strict_loading
 - [Tree Structures Reference](docs/reference/tree-structures.md) — Declarative tree hierarchies: model options, traversal, reparenting, tree index view
+- [Pages Reference](docs/reference/pages.md) — Page YAML format, zones, widget types (kpi_card, text, list), grid positioning, auto-pages, dialog-only pages
+- [Dialogs Reference](docs/reference/dialogs.md) — Dialog actions, confirm variants (boolean, role, styled, page-based), routing, virtual model flow
 - [View Slots Reference](docs/reference/view-slots.md) — Extensible page layout: slot registry, slot names, SlotContext, position ordering
 - [Engine Configuration](docs/reference/engine-configuration.md) — `LcpRuby.configure` options
 - [Model DSL Reference](docs/reference/model-dsl.md) — Ruby DSL alternative to YAML for models
@@ -107,6 +109,7 @@ The fallback (`default:`) is always the humanized key name so the app works with
 - [View Slots Guide](docs/guides/view-slots.md) — Extending page layouts: custom toolbar buttons, widgets, conditional components
 - [API-Backed Models Guide](docs/guides/api-backed-models.md) — Integrating external REST APIs and host-provided data sources
 - [Dashboards Guide](docs/guides/dashboards.md) — Standalone grid pages: KPI cards, text widgets, list widgets, presenter zones, landing page
+- [Dialogs Guide](docs/guides/dialogs.md) — Quick create/edit dialogs, virtual model dialogs, styled/page-based confirms
 - [Developer Tools](docs/guides/developer-tools.md) — Validate, ERD, and permissions rake tasks
 - [Host Application Guide](docs/guides/host-application.md) — Creating a new host application from scratch: scaffold, models, presenters, permissions, groups, seeds
 - [Architecture](docs/architecture.md) — Module structure, data flow, controllers, views
@@ -193,7 +196,10 @@ YAML metadata (config/lcp_ruby/)
               Display::RendererRegistry.discover! → custom renderers from app/renderers/
               ViewSlots::Registry.register_built_ins! → 11 built-in slot components (toolbar, filters, pagination)
                                 ↓
+              Pages::Resolver → slug/name lookup → PageDefinition → zones → presenters
+                                ↓
               Engine routes (/:lcp_slug/*) → ResourcesController
+              Dialog routes (/lcp_dialog/:page_name/*) → DialogsController
               (CRUD with Pundit authorization, presenter-driven UI, conditional rendering)
 ```
 
@@ -224,6 +230,8 @@ YAML metadata (config/lcp_ruby/)
 | `Auditing` | `lib/lcp_ruby/auditing/` | Registry (available? flag), ContractValidator (audit model contract checks), AuditWriter (field diffs, JSON/custom field expansion, nested changes), Setup (boot orchestration). AuditingApplicator installs AR callbacks on audited models |
 | `UserSnapshot` | `lib/lcp_ruby/user_snapshot.rb` | Captures `{id, email, name, role}` from user objects; used by auditing and userstamps |
 | `BulkUpdater` | `lib/lcp_ruby/bulk_updater.rb` | `tracked_update_all` wrapper with yield hook for post-update callbacks (auditing, events) |
+| `Pages` | `lib/lcp_ruby/pages/` | Resolver (slug/name lookup), auto-page creation from presenters, PageDefinition (name, slug, model, layout, dialog_config, zones), ZoneDefinition (presenter/widget zones, grid positioning, visible_when) |
+| `Widgets` | `lib/lcp_ruby/widgets/` | DataResolver (kpi_card aggregate, text i18n, list records), PresenterZoneResolver, ScopeApplicator (shared scope/model resolution, policy scope, soft delete filtering) |
 | `ViewSlots` | `lib/lcp_ruby/view_slots/` | Registry (page+slot component store with position ordering), SlotComponent (immutable value object: name, partial, position, enabled callback), SlotContext (immutable data bag for slot partials: presenter, evaluator, params, records, record, locals). ViewSlotHelper provides `render_slot` for ERB templates. 11 built-in components registered at boot |
 | `JsonItemWrapper` | `lib/lcp_ruby/json_item_wrapper.rb` | ActiveModel wrapper for JSON hash items; dynamic getter/setter per field from ModelDefinition; type coercion (integer, float, boolean); `validate_with_model_rules!` (presence, length, numericality, format); `to_hash` for persistence. Used by `json_field:` + `target_model:` nested sections |
 
@@ -248,6 +256,13 @@ YAML metadata (config/lcp_ruby/)
 - Reuses `lcp_ruby/resources` views via `controller_path` override
 - Separate authorization via `custom_field_definition` permissions
 
+`DialogsController` (`app/controllers/lcp_ruby/dialogs_controller.rb`):
+- Handles dialog-only pages (no slug) at `/lcp_dialog/:page_name/*`
+- Resolves presenter and model from the page definition
+- Supports both persistent models (AR create/update) and virtual models (JsonItemWrapper validation + `dialog_submit` event)
+- Uses `DialogRendering` concern for dialog frame rendering and success responses
+- `DialogRendering` concern also mixed into `ResourcesController` for `?_dialog=1` context detection
+
 ### Routing
 
 Engine mounts at a configurable path (default `/`). All resources use a slug-based pattern:
@@ -261,9 +276,13 @@ Engine mounts at a configurable path (default `/`). All resources use a slug-bas
 /:lcp_slug/custom-fields           → custom_fields#index
 /:lcp_slug/custom-fields/manage    → custom_fields#manage (bulk editor)
 /:lcp_slug/custom-fields/:id       → custom_fields#show
+/lcp_dialog/:page_name/new        → dialogs#new (dialog-only page)
+/lcp_dialog/:page_name            → dialogs#create (POST)
+/lcp_dialog/:page_name/:id/edit   → dialogs#edit
+/lcp_dialog/:page_name/:id        → dialogs#update (PATCH)
 ```
 
-The slug comes from the presenter YAML (e.g., `slug: deals` → `/deals`).
+The slug comes from the presenter YAML (e.g., `slug: deals` → `/deals`). Dialog routes use page names instead of slugs.
 
 ### How Association Selects Work
 

@@ -181,7 +181,11 @@ On screens narrower than 768px, zones stack into a single column.
 
 ## Conditional Zones
 
-Use `visible_when` to show/hide zones based on conditions:
+Use `visible_when` to show/hide zones based on conditions.
+
+### Role Shortcut
+
+The simplest form — show a zone only to specific roles:
 
 ```yaml
 - name: admin_stats
@@ -191,10 +195,71 @@ Use `visible_when` to show/hide zones based on conditions:
     model: user
     aggregate: count
   visible_when:
+    role: admin
+  position: { row: 1, col: 1, width: 4, height: 1 }
+
+# Multiple roles:
+- name: management_kpi
+  type: widget
+  widget:
+    type: kpi_card
+    model: order
+    aggregate: sum
+    aggregate_field: total_amount
+  visible_when:
+    role: [admin, manager]
+  position: { row: 1, col: 5, width: 4, height: 1 }
+```
+
+### Condition Object
+
+Full condition expressions for dynamic visibility:
+
+```yaml
+- name: status_alert
+  type: widget
+  widget:
+    type: kpi_card
+    model: task
+    aggregate: count
+  visible_when:
     field: role
     operator: eq
     value: admin
   position: { row: 1, col: 1, width: 4, height: 1 }
+```
+
+## Dedicated Dashboard Presenter
+
+For presenter zones on dashboards, you can create a dedicated presenter with a compact column set:
+
+```yaml
+# config/lcp_ruby/presenters/dashboard_tasks.yml
+presenter:
+  name: dashboard_tasks
+  model: task
+  embeddable: true
+  read_only: true
+  index:
+    table_columns:
+      - { field: title }
+      - { field: status }
+      - { field: due_date }
+    default_sort: { field: due_date, direction: asc }
+  actions:
+    collection: []
+    single:
+      - { name: show, type: built_in }
+```
+
+Reference it in the dashboard page:
+
+```yaml
+- name: upcoming_tasks
+  presenter: dashboard_tasks
+  scope: upcoming
+  limit: 5
+  position: { row: 3, col: 1, width: 6, height: 2 }
 ```
 
 ## Permissions

@@ -39,6 +39,7 @@ module LcpRuby
       STRING_OPERATORS  = %w[starts_with ends_with contains].freeze
       NUMERIC_TYPES     = %w[integer float decimal date datetime].freeze
       TEXT_TYPES         = %w[string text].freeze
+      VALID_DIALOG_SIZES = %w[small medium large fullscreen].freeze
 
       attr_reader :loader
 
@@ -95,6 +96,14 @@ module LcpRuby
 
         if loader.menu_definition
           schema_validator.validate_menu(loader.menu_definition).each { |msg| @warnings << msg }
+        end
+
+        if loader.respond_to?(:page_definitions)
+          loader.page_definitions.each_value do |page|
+            next if page.auto_generated?
+
+            schema_validator.validate_page(page).each { |msg| @warnings << msg }
+          end
         end
       end
 
@@ -2482,14 +2491,26 @@ module LcpRuby
       def validate_pages
         return unless loader.respond_to?(:page_definitions)
 
+        all_slugs = loader.page_definitions.values.select(&:routable?).map(&:slug)
+
         loader.page_definitions.each_value do |page|
+          next if page.auto_generated?
+
           page.zones.each do |zone|
             if zone.presenter_zone?
               unless loader.presenter_definitions.key?(zone.presenter)
                 @errors << "Page '#{page.name}', zone '#{zone.name}': references unknown presenter '#{zone.presenter}'"
               end
             elsif zone.widget?
-              validate_widget_zone(page, zone)
+              validate_widget_zone(page, zone, all_slugs)
+            end
+
+            validate_zone_scope(page, zone)
+            validate_zone_visible_when(page, zone)
+            validate_zone_position(page, zone)
+
+            if zone.limit && zone.limit < 1
+              @errors << "Page '#{page.name}', zone '#{zone.name}': limit must be positive"
             end
           end
 
@@ -2504,10 +2525,12 @@ module LcpRuby
               @warnings << "Page '#{page.name}' uses grid layout but zones [#{names}] have no position"
             end
           end
+
+          validate_page_dialog_config(page)
         end
       end
 
-      def validate_widget_zone(page, zone)
+      def validate_widget_zone(page, zone, all_slugs)
         widget = zone.widget
         return unless widget
 
@@ -2518,6 +2541,111 @@ module LcpRuby
           if model_name && !loader.model_definitions.key?(model_name)
             @errors << "Page '#{page.name}', zone '#{zone.name}': widget references unknown model '#{model_name}'"
           end
+        end
+
+        if widget_type == "kpi_card"
+          validate_kpi_card_widget(page, zone, widget)
+        end
+
+        if widget["link_to"] && widget_type != "text"
+          unless all_slugs.include?(widget["link_to"])
+            @warnings << "Page '#{page.name}', zone '#{zone.name}': widget link_to '#{widget["link_to"]}' " \
+                         "does not match any known page slug"
+          end
+        end
+      end
+
+      def validate_kpi_card_widget(page, zone, widget)
+        aggregate = widget["aggregate"]
+        aggregate_field = widget["aggregate_field"]
+        model_name = widget["model"]
+
+        if %w[sum avg min max].include?(aggregate) && aggregate_field.nil?
+          @warnings << "Page '#{page.name}', zone '#{zone.name}': " \
+                       "kpi_card uses '#{aggregate}' without aggregate_field (defaults to id)"
+        end
+
+        if aggregate_field && model_name
+          unless model_all_field_names(model_name).include?(aggregate_field)
+            @errors << "Page '#{page.name}', zone '#{zone.name}': " \
+                       "aggregate_field '#{aggregate_field}' does not exist on model '#{model_name}'"
+          end
+        end
+      end
+
+      def validate_zone_scope(page, zone)
+        return unless zone.scope
+
+        model_name = resolve_zone_model(page, zone)
+        unless model_name
+          if zone.widget? && zone.widget["type"] == "text"
+            @warnings << "Page '#{page.name}', zone '#{zone.name}': text widget has scope but no model context"
+          end
+          return
+        end
+
+        scopes = model_scope_names(model_name)
+        unless scopes.include?(zone.scope)
+          @errors << "Page '#{page.name}', zone '#{zone.name}': " \
+                     "scope '#{zone.scope}' does not exist on model '#{model_name}'"
+        end
+      end
+
+      def validate_zone_visible_when(page, zone)
+        vw = zone.visible_when
+        return unless vw
+
+        if vw.key?("role")
+          role_value = vw["role"]
+          roles = Array(role_value)
+          roles.each do |r|
+            unless r.is_a?(String)
+              @errors << "Page '#{page.name}', zone '#{zone.name}': " \
+                         "visible_when role must be a string or array of strings"
+              break
+            end
+          end
+        else
+          model_name = resolve_zone_model(page, zone)
+          if model_name
+            ctx = ConditionValidationContext.new("Page '#{page.name}', zone '#{zone.name}'", model_name)
+            validate_condition(ctx, vw, "visible_when")
+          else
+            @warnings << "Page '#{page.name}', zone '#{zone.name}': " \
+                         "visible_when condition has no model context for field validation"
+          end
+        end
+      end
+
+      def validate_zone_position(page, zone)
+        return unless zone.position
+
+        %w[row col width height].each do |key|
+          val = zone.position[key]
+          next unless val
+
+          unless val.is_a?(Integer) && val >= 1
+            @errors << "Page '#{page.name}', zone '#{zone.name}': " \
+                       "position #{key} must be a positive integer, got '#{val}'"
+          end
+        end
+      end
+
+      def validate_page_dialog_config(page)
+        return if page.dialog_config.empty?
+
+        size = page.dialog_config["size"]
+        if size && !VALID_DIALOG_SIZES.include?(size)
+          @errors << "Page '#{page.name}': dialog size '#{size}' is invalid. " \
+                     "Must be one of: #{VALID_DIALOG_SIZES.join(', ')}"
+        end
+      end
+
+      def resolve_zone_model(page, zone)
+        if zone.presenter_zone?
+          loader.presenter_definitions[zone.presenter]&.model
+        elsif zone.widget?
+          zone.widget&.dig("model")
         end
       end
 
